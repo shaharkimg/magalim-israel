@@ -50,7 +50,14 @@ create table public.landmarks (
   duration text not null,
   distance_km numeric not null,
   points int not null,
-  base_visits int not null default 0
+  base_visits int not null default 0,
+  family_friendly boolean not null default false,
+  dog_friendly boolean not null default false,
+  accessible boolean not null default false,
+  has_water boolean not null default false,
+  price_type text not null default 'free' check (price_type in ('free','paid')),
+  season text,
+  duration_hours numeric
 );
 
 alter table public.landmarks enable row level security;

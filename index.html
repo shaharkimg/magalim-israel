@@ -47,7 +47,7 @@ button{font-family:inherit;}
 }
 
 /* ---------- Auth screen ---------- */
-.auth-screen{position:absolute;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:28px 26px;gap:18px;}
+.auth-screen{position:absolute;inset:0;z-index:1200;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:28px 26px;gap:18px;}
 .auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px;}
 .auth-logo .brand-mark{width:56px;height:56px;border-radius:16px;}
 .auth-logo h1{font-size:26px;margin:0;}
@@ -77,6 +77,16 @@ button{font-family:inherit;}
 .view.active{display:flex;}
 .scroll-area{flex:1;overflow-y:auto;padding:0 16px 100px;}
 
+.home-hero{flex:none;padding:12px 16px 8px;}
+.home-hero h1{font-size:17px;margin:0;line-height:1.2;}
+.home-hero #heroSub{font-size:12px;color:var(--text-muted);margin:2px 0 10px;}
+.hero-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.hero-action-btn{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:8px 4px;font-size:10.8px;font-weight:700;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.25;text-align:center;}
+.hero-action-btn:active{background:var(--bg-elevated);}
+.hero-action-btn .ic{font-size:16px;}
+.quick-chip-row{display:flex;gap:6px;overflow-x:auto;margin-top:9px;padding-bottom:1px;scrollbar-width:none;}
+.quick-chip-row::-webkit-scrollbar{display:none;}
+.quick-chip{flex:none;padding:6px 12px;font-size:12.5px;}
 .map-wrap{position:relative;flex:1;min-height:0;background:var(--map-water);overflow:hidden;}
 .map-wrap .leaflet-container{position:absolute;inset:0;font-family:"Heebo",system-ui,sans-serif;background:#DDE6E3;}
 .map-controls{position:absolute;left:12px;bottom:24px;display:flex;flex-direction:column;gap:1px;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);}
@@ -142,6 +152,8 @@ button{font-family:inherit;}
 .lm-stat{background:var(--bg-elevated);border-radius:11px;padding:10px 6px;text-align:center;}
 .lm-stat .v{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;}
 .lm-stat .l{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+.amenity-row{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px;}
+.amenity-chip{background:var(--bg-elevated);border:1px solid var(--border);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--text);}
 .lm-actions{display:flex;gap:10px;margin-top:6px;}
 
 .checkin-status{display:flex;align-items:center;gap:10px;background:var(--bg-elevated);border-radius:12px;padding:12px;margin:10px 0;font-size:13.5px;color:var(--text-muted);}
@@ -170,6 +182,10 @@ button{font-family:inherit;}
 .mini-pts{font-weight:800;color:var(--accent-strong);font-size:13.5px;font-variant-numeric:tabular-nums;}
 .empty-state{text-align:center;color:var(--text-muted);padding:34px 18px;font-size:13.5px;}
 .empty-state .big{font-size:32px;margin-bottom:8px;}
+.guest-gate{text-align:center;color:var(--text-muted);padding:60px 24px;font-size:14px;}
+.guest-gate .big{font-size:38px;margin-bottom:10px;}
+.guest-gate p{margin:0 0 16px;}
+.guest-gate .btn{display:inline-flex;padding:11px 22px;}
 
 .profile-head{display:flex;align-items:center;gap:14px;padding:18px 0 10px;}
 .avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";}
@@ -265,10 +281,11 @@ input[type=file]{display:none;}
   <div class="loading-screen" id="loadingScreen"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted)">טוען...</div></div>
 
   <div class="auth-screen hidden" id="authScreen">
+    <button class="sheet-close hidden" id="authCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <div class="auth-logo">
       <div class="brand-mark" style="width:56px;height:56px;border-radius:16px;"><svg viewBox="0 0 24 24" fill="none" width="30" height="30"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
       <h1>מגלים את ישראל</h1>
-      <p>הצטרפו וצאו לכבוש את הארץ</p>
+      <p id="authIntroText">הצטרפו וצאו לכבוש את הארץ</p>
     </div>
     <div class="auth-tabs">
       <button class="active" id="tabLogin">התחברות</button>
@@ -298,16 +315,34 @@ input[type=file]{display:none;}
       <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
       <div class="brand">מגלים את ישראל<small>חי · Supabase</small></div>
     </div>
-    <div class="stat-pill" id="headerPoints">
+    <div class="stat-pill hidden" id="headerPoints">
       <svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--accent)"/><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="800" fill="var(--accent-ink)" font-family="Heebo">₪</text></svg>
       <span id="pointsVal">0</span>
       <span class="flame">🔥<span id="streakVal">0</span></span>
     </div>
+    <button class="btn btn-primary hidden" id="headerLoginBtn" style="flex:none;padding:8px 16px;font-size:13px;">התחברות</button>
   </div>
 
   <div class="offline-banner" id="offlineBanner">אין חיבור לרשת</div>
 
   <div class="view active hidden" id="view-map">
+    <div class="home-hero">
+      <h1 id="heroTitle">מגלים את ישראל</h1>
+      <p id="heroSub">כמה ממנה כבר גיליתם?</p>
+      <div class="hero-actions">
+        <button class="hero-action-btn" id="actDiscover"><span class="ic">🗺️</span>גלו מקום</button>
+        <button class="hero-action-btn" id="actNearby"><span class="ic">📍</span>מסלולים קרובים אליי</button>
+        <button class="hero-action-btn" id="actWishlist"><span class="ic">❤️</span>רשימת המשאלות שלי</button>
+      </div>
+      <div class="quick-chip-row" id="quickChipRow">
+        <button class="chip quick-chip" data-quick="near">📍 לידי</button>
+        <button class="chip quick-chip teal" data-quick="water">💧 מים</button>
+        <button class="chip quick-chip teal" data-quick="easy">קל</button>
+        <button class="chip quick-chip" data-quick="short">⏱ עד שעה</button>
+        <button class="chip quick-chip teal" data-quick="north">צפון</button>
+        <button class="chip quick-chip" data-quick="family">👪 משפחות</button>
+      </div>
+    </div>
     <div class="map-wrap" id="mapWrap">
       <div class="map-legend-btn" id="visibleCount">25 יעדים</div>
       <div class="filter-fab" id="openFilters"><span class="dot" id="filterDot"></span>
@@ -328,6 +363,12 @@ input[type=file]{display:none;}
 
   <div class="view" id="view-board">
     <div class="scroll-area">
+      <div class="guest-gate hidden" id="boardGuestGate">
+        <div class="big">🏆</div>
+        <p>התחברו כדי לראות איך אתם מדורגים מול חברים</p>
+        <button class="btn btn-primary" id="boardGuestBtn">התחברות / הרשמה</button>
+      </div>
+      <div id="boardRealContent">
       <div class="board-head">
         <h1 style="font-size:22px;margin:16px 0;">טבלת דירוג</h1>
         <button class="btn btn-outline" id="inviteBtn" style="flex:none;padding:9px 14px;font-size:13px;">👥 הזמן חברים</button>
@@ -354,11 +395,18 @@ input[type=file]{display:none;}
         <button data-period="all">כל הזמנים</button>
       </div>
       <div id="lbList"></div>
+      </div>
     </div>
   </div>
 
   <div class="view" id="view-feed">
     <div class="scroll-area">
+      <div class="guest-gate hidden" id="feedGuestGate">
+        <div class="big">📷</div>
+        <p>התחברו כדי לראות מה חברים כבשו לאחרונה</p>
+        <button class="btn btn-primary" id="feedGuestBtn">התחברות / הרשמה</button>
+      </div>
+      <div id="feedRealContent">
       <h1 style="font-size:22px;margin:16px 0 2px;">פיד חברתי</h1>
       <div class="challenge-card">
         <h3>🏅 אתגר קבוצתי: מסלולי הצפון</h3>
@@ -366,11 +414,18 @@ input[type=file]{display:none;}
         <div class="bar"><i id="challengeBar" style="width:0%"></i></div>
       </div>
       <div id="feedList"></div>
+      </div>
     </div>
   </div>
 
   <div class="view" id="view-profile">
     <div class="scroll-area">
+      <div class="guest-gate hidden" id="profileGuestGate">
+        <div class="big">🙋</div>
+        <p>התחברו כדי לראות את המסע שלכם — יעדים שכבשתם, תגים ונקודות</p>
+        <button class="btn btn-primary" id="profileGuestBtn">התחברות / הרשמה</button>
+      </div>
+      <div id="profileRealContent">
       <div class="profile-head">
         <div class="avatar" id="profAvatar">א</div>
         <div>
@@ -395,6 +450,7 @@ input[type=file]{display:none;}
       </div>
       <div id="profList"></div>
       <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:20px;">התנתקות</button>
+      </div>
     </div>
   </div>
 
@@ -418,6 +474,25 @@ input[type=file]{display:none;}
         <div class="range-row"><input type="range" id="distRange" min="5" max="400" value="400" step="5"><div class="range-val" id="distVal">ללא הגבלה</div></div>
         <div id="distHint" style="font-size:12px;color:var(--text-muted);margin-top:6px;">לחצו על כפתור המיקום במפה כדי לאפשר סינון לפי מרחק</div>
       </div>
+      <div class="filter-group"><h3>משך הטיול</h3><div class="chip-row" id="durationChips">
+        <button class="chip teal" data-id="short">עד שעה</button>
+        <button class="chip teal" data-id="medium">1–3 שעות</button>
+        <button class="chip teal" data-id="half">חצי יום</button>
+        <button class="chip teal" data-id="full">יום מלא</button>
+      </div></div>
+      <div class="filter-group"><h3>מתאים לי היום</h3><div class="chip-row" id="amenityChips">
+        <button class="chip" data-id="family">👪 מתאים למשפחות</button>
+        <button class="chip" data-id="dog">🐕 אפשר עם כלב</button>
+        <button class="chip" data-id="water">💧 יש מים</button>
+        <button class="chip" data-id="accessible">♿ נגיש</button>
+        <button class="chip" data-id="free">🆓 חינם</button>
+      </div></div>
+      <div class="filter-group"><h3>עונה מומלצת</h3><div class="chip-row" id="seasonChips">
+        <button class="chip" data-id="spring">אביב</button>
+        <button class="chip" data-id="summer">קיץ</button>
+        <button class="chip" data-id="autumn">סתיו</button>
+        <button class="chip" data-id="winter">חורף</button>
+      </div></div>
     </div>
     <div class="sheet-actions">
       <button class="btn btn-ghost" id="clearFilters">איפוס</button>

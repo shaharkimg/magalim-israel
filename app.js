@@ -62,7 +62,7 @@ let myWishlist = [];     // [landmark_id,...]
 let followingSet = new Set();
 let myGroups = [], activeGroupId = null, pendingGroupSwitch = false;
 let userLoc = null;
-let filters = { cats:[], diffs:[], regions:[], maxDist:400 };
+let filters = { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false };
 let prevBadgeSet = new Set();
 let lbScope="friends", lbPeriod="week";
 let profileListTab="visited";
@@ -132,74 +132,125 @@ $("authForm").addEventListener("submit", async (e)=>{
 });
 
 $("signOutBtn").onclick = async ()=>{ await supabase.auth.signOut(); };
+$("authCloseBtn").onclick = ()=> closeAuthSheet();
+
+let authGateMessage = null;
+function openAuthSheet(message){
+  authGateMessage = message || null;
+  $("authIntroText").textContent = message || "הצטרפו וצאו לכבוש את הארץ";
+  $("authCloseBtn").classList.remove("hidden");
+  $("authScreen").classList.remove("hidden");
+}
+function closeAuthSheet(){
+  $("authScreen").classList.add("hidden");
+  authGateMessage = null;
+}
+function requireAuth(message){
+  if(session) return true;
+  openAuthSheet(message);
+  return false;
+}
 
 supabase.auth.onAuthStateChange((event, newSession)=>{
   session = newSession;
-  if(session){ boot(); } else { showAuth(); }
+  if(session) closeAuthSheet();
+  bootUserData();
 });
 
-function showAuth(){
-  $("loadingScreen").classList.add("hidden");
-  $("authScreen").classList.remove("hidden");
-  $("topbar").classList.add("hidden");
-  $("bottomNav").classList.add("hidden");
+/* ============ ROUTER (lightweight hash-based) ============ */
+let navStack = [];
+function navigate(hash, push){
+  if(push===undefined) push = true;
+  if(push){ navStack.push(location.hash || "#/map"); history.pushState({magalim:true}, "", hash); }
+  else history.replaceState({magalim:true}, "", hash);
+  applyRoute();
+}
+function goBack(){ navigate(navStack.pop() || "#/map", false); }
+function goToDestination(id){ navigate("#/destination/"+encodeURIComponent(id)); }
+window.addEventListener("popstate", applyRoute);
+
+function switchView(view){
+  if(!["map","board","feed","profile"].includes(view)) view = "map";
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-  $("authForm").reset();
+  $("view-"+view).classList.add("active");
+  if(view==="map") setTimeout(()=>{ if(leafletMap) leafletMap.invalidateSize(); renderMap(); },0);
+  if(view==="board") renderBoard();
+  if(view==="feed") renderFeed();
+  if(view==="profile") renderProfile();
+}
+function applyRoute(){
+  if(!booted) return;
+  const hash = location.hash || "#/map";
+  const destMatch = hash.match(/^#\/destination\/(.+)$/);
+  if(destMatch){
+    const id = decodeURIComponent(destMatch[1]);
+    switchView("map");
+    if(lmById[id]) openDetail(id); else closeSheet("detailSheet","detailScrim");
+    return;
+  }
+  closeSheet("detailSheet","detailScrim");
+  const view = hash.replace(/^#\//,"").split("/")[0] || "map";
+  switchView(view);
 }
 
 /* ============ BOOT / DATA LOAD ============ */
-let booted = false, booting = false;
-async function boot(){
-  if(booting) return;
-  booting = true;
-  $("authScreen").classList.add("hidden");
-  $("loadingScreen").classList.remove("hidden");
+let booted = false, publicBootPromise = null;
+async function bootPublic(){
   try{
-    if(!LANDMARKS.length){
-      const { data: lms, error: lmErr } = await supabase.from("landmarks").select("*").order("name");
-      if(lmErr) throw lmErr;
-      LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, points:l.points, baseVisits:l.base_visits }));
-      lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));
-    }
+    const { data: lms, error: lmErr } = await supabase.from("landmarks").select("*").order("name");
+    if(lmErr) throw lmErr;
+    LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, points:l.points, baseVisits:l.base_visits,
+      familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null }));
+    lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));
+    await loadVisitCounts();
+    buildChips("catChips", CATEGORIES, "cats");
+    buildChips("diffChips", DIFFS, "diffs", "teal");
+    buildChips("regionChips", REGIONS, "regions", "teal");
+    $("loadingScreen").classList.add("hidden");
+    $("topbar").classList.remove("hidden");
+    $("bottomNav").classList.remove("hidden");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("hidden"));
+    $("view-map").classList.add("active");
+    wireStaticUI();
+    subscribeRealtime();
+    booted = true;
+    syncFilterUI();
+    updateOnlineStatus();
+    refreshHeader();
+    applyRoute();
+  }catch(err){
+    console.error(err);
+    toast("שגיאה בטעינת הנתונים: "+(err.message||err));
+    $("loadingScreen").classList.add("hidden");
+  }
+}
+async function bootUserData(){
+  await publicBootPromise;
+  if(!session){
+    myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
+    refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed();
+    return;
+  }
+  try{
     await loadMyProfile();
-    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadVisitCounts(), loadMyGroups() ]);
+    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadMyGroups() ]);
     prevBadgeSet = new Set(unlockedBadges().map(b=>b.id));
     flushPendingQueue();
     await handleInviteLinks();
     updateGroupBarVisibility();
-    if(!booted){
-      buildChips("catChips", CATEGORIES, "cats");
-      buildChips("diffChips", DIFFS, "diffs", "teal");
-      buildChips("regionChips", REGIONS, "regions", "teal");
-      wireStaticUI();
-      subscribeRealtime();
-      booted = true;
-    }
-    $("loadingScreen").classList.add("hidden");
-    $("topbar").classList.remove("hidden");
-    $("bottomNav").classList.remove("hidden");
-    document.querySelectorAll(".view").forEach(v=>{ v.classList.remove("active"); v.classList.remove("hidden"); });
-    $("view-map").classList.add("active");
-    syncFilterUI();
     refreshHeader();
-    setTimeout(()=>{ if(leafletMap){ leafletMap.invalidateSize(); if(israelBounds) leafletMap.fitBounds(israelBounds,{padding:[28,28]}); } renderMap(); }, 0);
-    renderProfile();
-    renderBoard();
-    renderFeed();
-    updateOnlineStatus();
+    renderMap(); renderProfile(); renderBoard(); renderFeed();
     if(pendingGroupSwitch){
       pendingGroupSwitch = false;
       lbScope = "group";
       document.querySelectorAll("#scopeSeg button").forEach(b=>b.classList.toggle("active", b.dataset.scope==="group"));
       updateGroupBarVisibility();
-      document.querySelector('.nav-btn[data-view="board"]').click();
+      navigate("#/board");
     }
   }catch(err){
     console.error(err);
-    toast("שגיאה בטעינת הנתונים: "+(err.message||err));
-    $("loadingScreen").classList.add("hidden");
-  }finally{
-    booting = false;
+    toast("שגיאה בטעינת הנתונים האישיים: "+(err.message||err));
   }
 }
 
@@ -277,7 +328,7 @@ async function handleInviteLinks(){
     if(!error){ followingSet.add(refId); toast("התחלת לעקוב אחרי החבר שהזמין אותך!"); changed = true; }
   }
   if(groupId){ await joinGroupFromLink(groupId); changed = true; pendingGroupSwitch = true; }
-  if(changed || refId || groupId) history.replaceState(null, "", location.pathname);
+  if(changed || refId || groupId) history.replaceState({magalim:true}, "", location.pathname + location.hash);
 }
 async function joinGroupFromLink(groupId){
   const already = myGroups.some(g=>g.id===groupId);
@@ -308,6 +359,9 @@ function subscribeRealtime(){
 const ISRAEL_CENTER = [31.55, 34.95], DEFAULT_ZOOM = 8;
 let leafletMap = null, clusterGroup = null, userLocMarker = null;
 
+const DURATION_BUCKETS = {
+  short:h=>h<=1, medium:h=>h>1&&h<=3, half:h=>h>3&&h<=6, full:h=>h>6,
+};
 function filteredLandmarks(){
   return LANDMARKS.filter(l=>{
     if(filters.cats.length && !filters.cats.includes(l.category)) return false;
@@ -317,9 +371,20 @@ function filteredLandmarks(){
       const d = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
       if(d>filters.maxDist) return false;
     }
+    if(filters.duration){
+      const h = l.durationHours!=null ? l.durationHours : estimateHours(l);
+      if(!DURATION_BUCKETS[filters.duration](h)) return false;
+    }
+    if(filters.season && l.season!==filters.season) return false;
+    if(filters.family && !l.familyFriendly) return false;
+    if(filters.dog && !l.dogFriendly) return false;
+    if(filters.water && !l.hasWater) return false;
+    if(filters.accessible && !l.accessible) return false;
+    if(filters.free && l.priceType!=="free") return false;
     return true;
   });
 }
+function estimateHours(l){ return l.distanceKm ? l.distanceKm/3.2 : 1.5; }
 
 let israelBounds = null;
 function initLeafletMap(){
@@ -356,7 +421,7 @@ function renderMap(){
       iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
     });
     const marker = L.marker([l.lat,l.lon], { icon, riseOnHover:true });
-    marker.on("click", ()=> openDetail(l.id));
+    marker.on("click", ()=> goToDestination(l.id));
     clusterGroup.addLayer(marker);
   });
   if(userLoc){
@@ -382,21 +447,50 @@ function wireStaticUI(){
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
   $("closeFilters").onclick=()=>closeSheet("filterSheet","filterScrim");
   $("filterScrim").onclick=()=>closeSheet("filterSheet","filterScrim");
-  $("clearFilters").onclick=()=>{ filters={cats:[],diffs:[],regions:[],maxDist:400}; syncFilterUI(); renderMap(); };
-  $("applyFilters").onclick=()=>{ renderMap(); closeSheet("filterSheet","filterScrim"); syncFilterUI(); };
-  $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); $("distVal").textContent = filters.maxDist>=400?"ללא הגבלה":filters.maxDist+' ק"מ'; };
-  $("detailScrim").onclick=()=>closeSheet("detailSheet","detailScrim");
-  document.querySelectorAll(".nav-btn").forEach(btn=>{
-    btn.onclick=()=>{
-      document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-      $("view-"+btn.dataset.view).classList.add("active");
-      if(btn.dataset.view==="map") setTimeout(()=>{ if(leafletMap) leafletMap.invalidateSize(); renderMap(); },0);
-      if(btn.dataset.view==="board") renderBoard();
-      if(btn.dataset.view==="feed") renderFeed();
-      if(btn.dataset.view==="profile") renderProfile();
+  $("clearFilters").onclick=()=>{ filters={cats:[],diffs:[],regions:[],maxDist:400,duration:null,season:null,family:false,dog:false,water:false,accessible:false,free:false}; syncFilterUI(); syncQuickChips(); renderMap(); };
+  $("applyFilters").onclick=()=>{ renderMap(); closeSheet("filterSheet","filterScrim"); syncFilterUI(); syncQuickChips(); };
+  wireSingleSelectChips("durationChips", "duration");
+  wireSingleSelectChips("seasonChips", "season");
+  wireBooleanChips("amenityChips", { family:"family", dog:"dog", water:"water", accessible:"accessible", free:"free" });
+  document.querySelectorAll("#quickChipRow .quick-chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      const key = chip.dataset.quick;
+      if(key==="near"){
+        if(!userLoc){ $("locateBtn").click(); }
+        filters.maxDist = filters.maxDist<400 ? 400 : 15;
+      } else if(key==="water") filters.water = !filters.water;
+      else if(key==="easy") filters.diffs = filters.diffs.includes("easy") ? filters.diffs.filter(x=>x!=="easy") : [...filters.diffs, "easy"];
+      else if(key==="short") filters.duration = filters.duration==="short" ? null : "short";
+      else if(key==="north") filters.regions = filters.regions.includes("north") ? filters.regions.filter(x=>x!=="north") : [...filters.regions, "north"];
+      else if(key==="family") filters.family = !filters.family;
+      renderMap(); syncFilterUI(); syncQuickChips();
     };
+  });
+  $("actDiscover").onclick = ()=>{
+    filters = {cats:[],diffs:[],regions:[],maxDist:400,duration:null,season:null,family:false,dog:false,water:false,accessible:false,free:false};
+    syncFilterUI(); syncQuickChips(); renderMap();
+    if(israelBounds) leafletMap.fitBounds(israelBounds,{padding:[28,28]});
+    navigate("#/map");
+  };
+  $("actNearby").onclick = ()=>{
+    navigate("#/map");
+    filters.maxDist = 15;
+    $("locateBtn").click();
+    syncFilterUI(); syncQuickChips(); renderMap();
+  };
+  $("headerLoginBtn").onclick = ()=> openAuthSheet();
+  $("boardGuestBtn").onclick = ()=> openAuthSheet();
+  $("feedGuestBtn").onclick = ()=> openAuthSheet();
+  $("profileGuestBtn").onclick = ()=> openAuthSheet();
+  $("actWishlist").onclick = ()=>{
+    if(!requireAuth("רוצה לראות את רשימת המשאלות שלך? צרו חשבון בחינם")) return;
+    navigate("#/profile");
+    setTimeout(()=>{ document.querySelector('.tab-row [data-list="wishlist"]')?.click(); }, 0);
+  };
+  $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); $("distVal").textContent = filters.maxDist>=400?"ללא הגבלה":filters.maxDist+' ק"מ'; };
+  $("detailScrim").onclick=()=> goBack();
+  document.querySelectorAll(".nav-btn").forEach(btn=>{
+    btn.onclick=()=> navigate("#/"+btn.dataset.view);
   });
   document.querySelectorAll(".tab-row [data-list]").forEach(btn=>{
     btn.onclick=()=>{
@@ -456,26 +550,75 @@ function buildChips(container, dict, filterKey, extraClass){
     };
   });
 }
+function wireSingleSelectChips(containerId, filterKey){
+  document.querySelectorAll("#"+containerId+" .chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      const id = chip.dataset.id;
+      filters[filterKey] = filters[filterKey]===id ? null : id;
+      document.querySelectorAll("#"+containerId+" .chip").forEach(c=>c.classList.toggle("active", c.dataset.id===filters[filterKey]));
+    };
+  });
+}
+function wireBooleanChips(containerId, keyMap){
+  document.querySelectorAll("#"+containerId+" .chip").forEach(chip=>{
+    const key = keyMap[chip.dataset.id];
+    chip.onclick = ()=>{ filters[key] = !filters[key]; chip.classList.toggle("active", filters[key]); };
+  });
+}
+function syncQuickChips(){
+  document.querySelectorAll("#quickChipRow .quick-chip").forEach(chip=>{
+    const key = chip.dataset.quick;
+    let active = false;
+    if(key==="near") active = filters.maxDist<400;
+    else if(key==="water") active = filters.water;
+    else if(key==="easy") active = filters.diffs.includes("easy");
+    else if(key==="short") active = filters.duration==="short";
+    else if(key==="north") active = filters.regions.includes("north");
+    else if(key==="family") active = filters.family;
+    chip.classList.toggle("active", active);
+  });
+}
 function syncFilterUI(){
   document.querySelectorAll("#catChips .chip").forEach(c=>c.classList.toggle("active", filters.cats.includes(c.dataset.id)));
   document.querySelectorAll("#diffChips .chip").forEach(c=>c.classList.toggle("active", filters.diffs.includes(c.dataset.id)));
   document.querySelectorAll("#regionChips .chip").forEach(c=>c.classList.toggle("active", filters.regions.includes(c.dataset.id)));
+  document.querySelectorAll("#durationChips .chip").forEach(c=>c.classList.toggle("active", c.dataset.id===filters.duration));
+  document.querySelectorAll("#seasonChips .chip").forEach(c=>c.classList.toggle("active", c.dataset.id===filters.season));
+  const amenityKeyMap = { family:"family", dog:"dog", water:"water", accessible:"accessible", free:"free" };
+  document.querySelectorAll("#amenityChips .chip").forEach(c=>c.classList.toggle("active", !!filters[amenityKeyMap[c.dataset.id]]));
   $("distRange").value = filters.maxDist;
   $("distVal").textContent = filters.maxDist>=400 ? "ללא הגבלה" : filters.maxDist+' ק"מ';
-  const hasFilters = filters.cats.length||filters.diffs.length||filters.regions.length||filters.maxDist<400;
+  const hasFilters = filters.cats.length||filters.diffs.length||filters.regions.length||filters.maxDist<400||filters.duration||filters.season||filters.family||filters.dog||filters.water||filters.accessible||filters.free;
   $("openFilters").classList.toggle("has-filters", !!hasFilters);
+  syncQuickChips();
+}
+function setGuestGate(prefix, isGuest){
+  $(prefix+"GuestGate").classList.toggle("hidden", !isGuest);
+  $(prefix+"RealContent").classList.toggle("hidden", isGuest);
 }
 function openSheet(sheetId, scrimId){ $(sheetId).classList.add("open"); $(scrimId).classList.add("open"); }
 function closeSheet(sheetId, scrimId){ $(sheetId).classList.remove("open"); $(scrimId).classList.remove("open"); }
 
 /* ============ LANDMARK DETAIL & CHECK-IN ============ */
 let activeCheckinPhoto = null, demoMode = false;
+const SEASON_LABEL = { spring:"אביב", summer:"קיץ", autumn:"סתיו", winter:"חורף" };
+function amenityChips(l){
+  const chips = [];
+  if(l.familyFriendly) chips.push("👪 מתאים למשפחות");
+  if(l.dogFriendly) chips.push("🐕 אפשר עם כלב");
+  if(l.hasWater) chips.push("💧 יש מים");
+  if(l.accessible) chips.push("♿ נגיש");
+  if(l.priceType==="paid") chips.push("💰 בתשלום"); else chips.push("🆓 חינם");
+  if(l.season) chips.push("🗓 עונה מומלצת: "+SEASON_LABEL[l.season]);
+  return chips;
+}
 function openDetail(id){
   const l = lmById[id];
   const visitedEntry = myVisits.find(v=>v.landmark_id===id);
   const wished = myWishlist.includes(id);
   const cat = CATEGORIES[l.category];
   const totalVisits = l.baseVisits + (visitCounts[id]||0);
+  const amenities = amenityChips(l);
   $("detailBody").innerHTML = `
     <div class="lm-hero" style="background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))">
       ${catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
@@ -491,14 +634,16 @@ function openDetail(id){
       <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
       <div class="lm-stat"><div class="v">+${DIFFS[l.difficulty].points}</div><div class="l">נקודות</div></div>
     </div>
+    <div class="amenity-row">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
-      <button class="btn btn-outline" id="wishBtn">${wished?"★ ברשימת המשאלות":"☆ הוסף למשאלות"}</button>
-      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"נכבש":"סמן שהגעתי"}</button>
+      <button class="btn btn-outline" id="wishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
+      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
     <div id="checkinFlow"></div>
   `;
   $("wishBtn").onclick = async ()=>{
+    if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם")) return;
     $("wishBtn").disabled = true;
     if(myWishlist.includes(id)){
       const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",id);
@@ -509,7 +654,10 @@ function openDetail(id){
     }
     openDetail(id); renderMap(); renderProfile();
   };
-  if(!visitedEntry) $("checkinBtn").onclick=()=>startCheckin(l);
+  if(!visitedEntry) $("checkinBtn").onclick=()=>{
+    if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם")) return;
+    startCheckin(l);
+  };
   $("detailSheet").style.maxHeight="90%";
   openSheet("detailSheet","detailScrim");
 }
@@ -669,12 +817,20 @@ function totalPoints(){ return myVisits.reduce((s,v)=>s+(v.points_awarded||0),0)
 
 /* ============ HEADER ============ */
 function refreshHeader(){
-  $("pointsVal").textContent = totalPoints().toLocaleString();
-  $("streakVal").textContent = computeStreak();
+  $("headerPoints").classList.toggle("hidden", !session);
+  $("headerLoginBtn").classList.toggle("hidden", !!session);
+  if(session){
+    $("pointsVal").textContent = totalPoints().toLocaleString();
+    $("streakVal").textContent = computeStreak();
+  }
+  const pct = (session && LANDMARKS.length) ? Math.round(myVisits.length/LANDMARKS.length*100) : null;
+  $("heroSub").textContent = pct!=null ? `גיליתם ${pct}% מהארץ — ${myVisits.length} מתוך ${LANDMARKS.length} יעדים` : "כמה ממנה כבר גיליתם?";
 }
 
 /* ============ PROFILE ============ */
 function renderProfile(){
+  if(!session){ setGuestGate("profile", true); return; }
+  setGuestGate("profile", false);
   if(!myProfile) return;
   $("profAvatar").textContent = myProfile.name.trim().charAt(0) || "א";
   $("profName").firstChild.textContent = myProfile.name;
@@ -718,12 +874,13 @@ function renderProfile(){
       }).join("");
     }
   }
-  listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>openDetail(el.dataset.id));
+  listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>goToDestination(el.dataset.id));
 }
 
 /* ============ LEADERBOARD ============ */
 async function renderBoard(){
-  if(!session) return;
+  if(!session){ setGuestGate("board", true); return; }
+  setGuestGate("board", false);
   const listEl = $("lbList");
   listEl.innerHTML = '<div class="empty-state">טוען דירוג...</div>';
   try{
@@ -781,7 +938,8 @@ function stringColor(str){
 
 /* ============ FEED ============ */
 async function renderFeed(){
-  if(!session) return;
+  if(!session){ setGuestGate("feed", true); return; }
+  setGuestGate("feed", false);
   const listEl = $("feedList");
   listEl.innerHTML = '<div class="empty-state">טוען פיד...</div>';
   try{
@@ -845,6 +1003,8 @@ function updateOnlineStatus(){
 }
 
 /* ============ INIT ============ */
-/* Boot is driven entirely by onAuthStateChange above — it fires immediately
-   on subscribe with the current session (logged in or not), so no separate
-   getSession()-triggered boot is needed here (that caused a double-boot race). */
+/* bootPublic() loads the map/landmarks and shows the app immediately for guests.
+   onAuthStateChange (registered above) fires once on subscribe with the current
+   session state (logged in or not) and drives bootUserData(), which awaits
+   publicBootPromise first so ordering is correct regardless of which resolves first. */
+publicBootPromise = bootPublic();
