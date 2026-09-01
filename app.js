@@ -79,7 +79,7 @@ function getLevel(xp){
   let i = LEVELS.length-1;
   while(i>0 && xp<LEVELS[i].min) i--;
   const cur = LEVELS[i], next = LEVELS[i+1] || null;
-  return { name:cur.name, icon:cur.icon, index:i, next, toNext: next ? next.min-xp : 0 };
+  return { name:cur.name, icon:cur.icon, index:i, min:cur.min, next, toNext: next ? next.min-xp : 0 };
 }
 
 function catIconSvg(cat,size){
@@ -1272,9 +1272,12 @@ function renderProfile(){
   if(!myProfile) return;
   const xp = totalPoints();
   const level = getLevel(xp);
-  $("profAvatar").textContent = myProfile.name.trim().charAt(0) || "א";
+  $("avatarLetter").textContent = myProfile.name.trim().charAt(0) || "א";
+  $("avatarLevelBadge").textContent = level.icon;
   $("profName").firstChild.textContent = myProfile.name;
   $("profSub").innerHTML = `<span class="level-chip">${level.icon} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
+  const levelPct = level.next ? Math.round((xp-level.min)/(level.next.min-level.min)*100) : 100;
+  $("levelMiniBar").style.width = levelPct+"%";
   const pct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
   $("progNum").firstChild.textContent = myVisits.length;
   $("progNum").querySelector("span").textContent = "/ "+LANDMARKS.length+" יעדים";

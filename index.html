@@ -217,7 +217,10 @@ button{font-family:inherit;}
 .welcome-banner .btn{display:inline-flex;background:#fff;color:#0F534C;padding:10px 24px;}
 
 .profile-head{display:flex;align-items:center;gap:14px;padding:18px 0 10px;}
-.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";}
+.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";position:relative;}
+.avatar-level-badge{position:absolute;bottom:-3px;left:-3px;width:24px;height:24px;border-radius:50%;background:var(--surface);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.level-mini-bar{width:100%;max-width:180px;height:4px;border-radius:4px;background:var(--border);margin-top:7px;overflow:hidden;}
+.level-mini-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:4px;transition:width .3s;}
 .profile-name{font-size:18px;font-weight:800;}
 .profile-name button{border:none;background:none;color:var(--text-muted);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-inline-start:6px;}
 .profile-sub{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
@@ -530,10 +533,11 @@ input[type=file]{display:none;}
       <div id="profileRealContent">
       <h1 style="font-size:20px;margin:16px 0 2px;">המסע שלי בישראל</h1>
       <div class="profile-head" style="padding-top:6px;">
-        <div class="avatar" id="profAvatar">א</div>
-        <div>
+        <div class="avatar" id="profAvatar"><span id="avatarLetter">א</span><span class="avatar-level-badge" id="avatarLevelBadge"></span></div>
+        <div style="flex:1;">
           <div class="profile-name" id="profName">...<button id="editNameBtn">שינוי שם</button></div>
           <div class="profile-sub" id="profSub"></div>
+          <div class="level-mini-bar"><i id="levelMiniBar" style="width:0%"></i></div>
         </div>
       </div>
       <div class="welcome-banner hidden" id="welcomeBanner">
@@ -542,14 +546,14 @@ input[type=file]{display:none;}
         <button class="btn btn-primary" id="welcomeFindBtn">מצא טיול</button>
       </div>
       <div class="progress-card">
-        <div class="progress-top"><div class="n" id="progNum">0<span>/ 25 יעדים</span></div><div class="n" id="progPct" style="color:var(--accent-strong)">0%</div></div>
+        <div class="progress-top"><div class="n" id="progNum">0<span>/ 259 יעדים</span></div><div class="n" id="progPct" style="color:var(--accent-strong)">0%</div></div>
         <div class="bar"><i id="progBar" style="width:0%"></i></div>
         <div class="level-hint" id="levelHint"></div>
       </div>
       <div class="stat-grid stat-grid-4">
         <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">XP סה"כ</div></div>
         <div class="stat-box"><div class="v" id="statStreak">0</div><div class="l">רצף שבועות</div></div>
-        <div class="stat-box"><div class="v" id="statBadges">0/8</div><div class="l">תגים</div></div>
+        <div class="stat-box"><div class="v" id="statBadges">0/13</div><div class="l">תגים</div></div>
         <div class="stat-box"><div class="v" id="statRegions">0/6</div><div class="l">אזורים</div></div>
       </div>
       <div class="section-head"><h2>המפה שלי</h2></div>
