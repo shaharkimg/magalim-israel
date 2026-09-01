@@ -76,6 +76,24 @@ function toast(msg){
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.classList.remove("show"), 3400);
 }
+function celebrate(landmarkName, xp, bonusText){
+  const overlay = $("celebrateOverlay");
+  $("celebrateTitle").textContent = "כבשת את "+landmarkName+"!";
+  $("celebrateXp").textContent = "+"+xp+" XP";
+  if(bonusText){ $("celebrateBonus").textContent = bonusText; $("celebrateBonus").classList.remove("hidden"); }
+  else $("celebrateBonus").classList.add("hidden");
+  overlay.classList.remove("hidden");
+  overlay.offsetHeight; // force reflow so the class below actually transitions
+  overlay.classList.add("show");
+  clearTimeout(celebrate._t);
+  const dismiss = ()=>{
+    overlay.classList.remove("show");
+    setTimeout(()=> overlay.classList.add("hidden"), 220);
+    overlay.removeEventListener("click", dismiss);
+  };
+  celebrate._t = setTimeout(dismiss, 2200);
+  overlay.addEventListener("click", dismiss);
+}
 async function shareLink(url, title, text){
   if(navigator.share){
     try{ await navigator.share({ title, text, url }); return; }catch(e){ if(e.name==="AbortError") return; }
@@ -632,7 +650,7 @@ function openDetail(id){
       <div class="lm-stat"><div class="v">${DIFFS[l.difficulty].label}</div><div class="l">קושי</div></div>
       <div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>
       <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
-      <div class="lm-stat"><div class="v">+${DIFFS[l.difficulty].points}</div><div class="l">נקודות</div></div>
+      <div class="lm-stat"><div class="v">+${DIFFS[l.difficulty].points}</div><div class="l">XP</div></div>
     </div>
     <div class="amenity-row">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
@@ -645,14 +663,16 @@ function openDetail(id){
   $("wishBtn").onclick = async ()=>{
     if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם")) return;
     $("wishBtn").disabled = true;
+    let justAdded = false;
     if(myWishlist.includes(id)){
       const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",id);
       if(!error) myWishlist = myWishlist.filter(x=>x!==id);
     } else {
       const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
-      if(!error) myWishlist.push(id);
+      if(!error){ myWishlist.push(id); justAdded = true; }
     }
     openDetail(id); renderMap(); renderProfile();
+    if(justAdded) $("wishBtn").classList.add("wish-pop");
   };
   if(!visitedEntry) $("checkinBtn").onclick=()=>{
     if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם")) return;
@@ -754,7 +774,7 @@ async function confirmCheckin(l){
     myVisits.push(data);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     const firstInCat = pts>DIFFS[l.difficulty].points;
-    toast("צ'ק-אין אושר! +"+pts+" נקודות"+(firstInCat?" (+15 בונוס קטגוריה ראשונה)":""));
+    celebrate(l.name, pts, firstInCat?"+15 XP בונוס — קטגוריה חדשה!":null);
     checkNewBadges();
     loadVisitCounts().then(renderMap);
     renderProfile(); renderBoard(); renderFeed();
@@ -796,7 +816,7 @@ function checkNewBadges(){
   const now = unlockedBadges();
   const newOnes = now.filter(b=>!prevBadgeSet.has(b.id));
   prevBadgeSet = new Set(now.map(b=>b.id));
-  newOnes.forEach(b=> setTimeout(()=>toast("תג חדש נפתח: "+b.icon+" "+b.label), 900));
+  newOnes.forEach((b,i)=> setTimeout(()=>toast("תג חדש נפתח: "+b.icon+" "+b.label), 2500+i*2200));
 }
 function isoWeekKey(d){
   const date = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
