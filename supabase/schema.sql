@@ -161,6 +161,45 @@ create policy "users can delete their own checkin photos"
   on storage.objects for delete
   using (bucket_id = 'checkin-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
+-- ============ GROUPS ============
+create table public.groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_by uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+alter table public.groups enable row level security;
+
+create policy "groups are publicly readable"
+  on public.groups for select
+  using (true);
+
+create policy "users can create groups"
+  on public.groups for insert
+  with check (auth.uid() = created_by);
+
+create table public.group_members (
+  group_id uuid not null references public.groups(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  primary key (group_id, user_id)
+);
+
+alter table public.group_members enable row level security;
+
+create policy "group members are publicly readable"
+  on public.group_members for select
+  using (true);
+
+create policy "users can join groups themselves"
+  on public.group_members for insert
+  with check (auth.uid() = user_id);
+
+create policy "users can leave groups"
+  on public.group_members for delete
+  using (auth.uid() = user_id);
+
 -- ============ SEED: 25 יעדים ============
 insert into public.landmarks (id,name,description,category,difficulty,region,lat,lon,duration,distance_km,points,base_visits) values
 ('masada','מצדה','מבצר הורדוס הניצב על צוק מדברי מעל ים המלח, אתר מורשת עולמית של אונסק"ו ומקום עמידתם האחרונה של המורדים בעת המרד הגדול ברומאים.','archaeology','hard','deadsea',31.3157,35.3529,'3 שעות',4.5,50,15420),

@@ -60,6 +60,7 @@ let visitCounts = {};
 let myVisits = [];       // {id?, landmark_id, visited_at, photo_url, points_awarded, pending?}
 let myWishlist = [];     // [landmark_id,...]
 let followingSet = new Set();
+let myGroups = [], activeGroupId = null, pendingGroupSwitch = false;
 let userLoc = null;
 let filters = { cats:[], diffs:[], regions:[], maxDist:400 };
 let prevBadgeSet = new Set();
@@ -74,6 +75,13 @@ function toast(msg){
   el.textContent = msg; el.classList.add("show");
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.classList.remove("show"), 3400);
+}
+async function shareLink(url, title, text){
+  if(navigator.share){
+    try{ await navigator.share({ title, text, url }); return; }catch(e){ if(e.name==="AbortError") return; }
+  }
+  try{ await navigator.clipboard.writeText(url); toast("הקישור הועתק — אפשר להדביק ולשלוח!"); }
+  catch(e){ toast("הקישור: "+url); }
 }
 function haversine(lat1,lon1,lat2,lon2){
   const R=6371, toRad=d=>d*Math.PI/180;
@@ -152,9 +160,11 @@ async function boot(){
       lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));
     }
     await loadMyProfile();
-    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadVisitCounts() ]);
+    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadVisitCounts(), loadMyGroups() ]);
     prevBadgeSet = new Set(unlockedBadges().map(b=>b.id));
     flushPendingQueue();
+    await handleInviteLinks();
+    updateGroupBarVisibility();
     if(!booted){
       buildChips("catChips", CATEGORIES, "cats");
       buildChips("diffChips", DIFFS, "diffs", "teal");
@@ -170,11 +180,18 @@ async function boot(){
     $("view-map").classList.add("active");
     syncFilterUI();
     refreshHeader();
-    renderMap();
+    setTimeout(()=>{ if(leafletMap){ leafletMap.invalidateSize(); if(israelBounds) leafletMap.fitBounds(israelBounds,{padding:[28,28]}); } renderMap(); }, 0);
     renderProfile();
     renderBoard();
     renderFeed();
     updateOnlineStatus();
+    if(pendingGroupSwitch){
+      pendingGroupSwitch = false;
+      lbScope = "group";
+      document.querySelectorAll("#scopeSeg button").forEach(b=>b.classList.toggle("active", b.dataset.scope==="group"));
+      updateGroupBarVisibility();
+      $('.nav-btn[data-view="board"]').click();
+    }
   }catch(err){
     console.error(err);
     toast("שגיאה בטעינת הנתונים: "+(err.message||err));
@@ -215,6 +232,61 @@ async function loadVisitCounts(){
   visitCounts = {};
   data.forEach(r=>{ visitCounts[r.landmark_id] = (visitCounts[r.landmark_id]||0)+1; });
 }
+async function loadMyGroups(){
+  const { data, error } = await supabase.from("group_members").select("group_id, groups(id,name)").eq("user_id", session.user.id);
+  if(error){ console.warn("groups feature unavailable:", error.message); myGroups = []; return; }
+  myGroups = data.filter(r=>r.groups).map(r=>({ id:r.groups.id, name:r.groups.name }));
+  if(!activeGroupId || !myGroups.some(g=>g.id===activeGroupId)) activeGroupId = myGroups[0] ? myGroups[0].id : null;
+  populateGroupSelect();
+}
+function populateGroupSelect(){
+  const sel = $("groupSelect");
+  sel.innerHTML = myGroups.map(g=>`<option value="${g.id}">${g.name}</option>`).join("");
+  if(activeGroupId) sel.value = activeGroupId;
+}
+function updateGroupBarVisibility(){
+  const isGroup = lbScope==="group";
+  $("groupBar").classList.toggle("hidden", !isGroup || !myGroups.length);
+  $("groupEmpty").classList.toggle("hidden", !isGroup || myGroups.length>0);
+  $("periodSeg").classList.toggle("hidden", isGroup && !myGroups.length);
+}
+async function createGroup(){
+  const name = prompt("איך לקרוא לקבוצה?");
+  if(!name || !name.trim()) return;
+  const { data, error } = await supabase.from("groups").insert({ name:name.trim(), created_by:session.user.id }).select().single();
+  if(error){ toast("שגיאה ביצירת הקבוצה"); return; }
+  const { error: joinErr } = await supabase.from("group_members").insert({ group_id:data.id, user_id:session.user.id });
+  if(joinErr){ toast("שגיאה בהצטרפות לקבוצה"); return; }
+  myGroups.push({ id:data.id, name:data.name });
+  activeGroupId = data.id;
+  populateGroupSelect(); updateGroupBarVisibility();
+  toast('הקבוצה "'+data.name+'" נוצרה!');
+  renderBoard();
+}
+async function handleInviteLinks(){
+  const params = new URLSearchParams(location.search);
+  const refId = params.get("ref");
+  const groupId = params.get("group");
+  let changed = false;
+  if(refId && refId!==session.user.id && !followingSet.has(refId)){
+    const { error } = await supabase.from("follows").insert({ follower_id:session.user.id, followee_id:refId });
+    if(!error){ followingSet.add(refId); toast("התחלת לעקוב אחרי החבר שהזמין אותך!"); changed = true; }
+  }
+  if(groupId){ await joinGroupFromLink(groupId); changed = true; pendingGroupSwitch = true; }
+  if(changed || refId || groupId) history.replaceState(null, "", location.pathname);
+}
+async function joinGroupFromLink(groupId){
+  const already = myGroups.some(g=>g.id===groupId);
+  if(already) return;
+  const { data: g, error: gErr } = await supabase.from("groups").select("id,name").eq("id", groupId).maybeSingle();
+  if(gErr || !g){ return; }
+  const { error } = await supabase.from("group_members").insert({ group_id:groupId, user_id:session.user.id });
+  if(error) return;
+  myGroups.push({ id:g.id, name:g.name });
+  activeGroupId = g.id;
+  populateGroupSelect();
+  toast('הצטרפת לקבוצה "'+g.name+'"!');
+}
 
 function subscribeRealtime(){
   supabase.channel("public:visits-live")
@@ -228,30 +300,9 @@ function subscribeRealtime(){
     .subscribe();
 }
 
-/* ============ MAP PROJECTION ============ */
-const LON_MIN=34.2, LON_MAX=35.9, LAT_MIN=29.45, LAT_MAX=33.35;
-function projectBase(lat,lon){
-  const x = 24 + (lon-LON_MIN)/(LON_MAX-LON_MIN)*352;
-  const y = 24 + (LAT_MAX-lat)/(LAT_MAX-LAT_MIN)*752;
-  return [x,y];
-}
-const OUTLINE = [
-  [33.09,35.11],[33.15,35.30],[33.25,35.55],[33.32,35.78],[33.13,35.82],
-  [32.87,35.78],[32.72,35.75],[32.45,35.65],[32.45,35.60],[32.20,35.58],
-  [31.85,35.55],[31.53,35.52],[31.30,35.45],[31.10,35.42],[30.95,35.40],
-  [30.60,35.30],[30.20,35.15],[29.90,35.05],[29.55,34.97],[29.50,34.85],
-  [29.55,34.70],[30.10,34.45],[30.85,34.35],[31.10,34.28],[31.22,34.24],
-  [31.45,34.35],[31.80,34.62],[32.05,34.77],[32.35,34.87],[32.50,34.90],
-  [32.60,34.93],[32.83,34.97],[32.93,35.07],[33.02,35.10],[33.09,35.11],
-];
-const mapView = { cx:200, cy:400, s:1 };
-function clampView(){
-  mapView.s = Math.max(1, Math.min(6, mapView.s));
-  const halfW = 200/mapView.s, halfH = 400/mapView.s;
-  mapView.cx = Math.max(halfW-40, Math.min(400-halfW+40, mapView.cx));
-  mapView.cy = Math.max(halfH-40, Math.min(800-halfH+40, mapView.cy));
-}
-function currentViewBox(){ const w=400/mapView.s, h=800/mapView.s; return { minX:mapView.cx-w/2, minY:mapView.cy-h/2, w, h }; }
+/* ============ MAP (Leaflet + OpenStreetMap) ============ */
+const ISRAEL_CENTER = [31.55, 34.95], DEFAULT_ZOOM = 8;
+let leafletMap = null, clusterGroup = null, userLocMarker = null;
 
 function filteredLandmarks(){
   return LANDMARKS.filter(l=>{
@@ -266,114 +317,62 @@ function filteredLandmarks(){
   });
 }
 
-const svg = document.getElementById("mapSvg");
-let dragged=false, pointers={}, lastDist=null, dragTotal=0;
+let israelBounds = null;
+function initLeafletMap(){
+  leafletMap = L.map("mapSvg", { zoomControl:false, attributionControl:true, minZoom:6, maxZoom:17 })
+    .setView(ISRAEL_CENTER, DEFAULT_ZOOM);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(leafletMap);
+  clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false });
+  leafletMap.addLayer(clusterGroup);
+  if(LANDMARKS.length){
+    israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
+    leafletMap.fitBounds(israelBounds, { padding:[28,28] });
+  }
+}
 
 function renderMap(){
-  clampView();
-  const vb = currentViewBox();
-  svg.setAttribute("viewBox", vb.minX+" "+vb.minY+" "+vb.w+" "+vb.h);
-  let html = "";
-  html += '<polygon class="map-island" points="'+OUTLINE.map(([la,lo])=>projectBase(la,lo).join(",")).join(" ")+'" />';
-  const [kx,ky] = projectBase(32.82,35.585);
-  html += '<ellipse class="map-water-shape" cx="'+kx+'" cy="'+ky+'" rx="9" ry="13" transform="rotate(-15 '+kx+' '+ky+')"/>';
-  const ds1=projectBase(31.55,35.475), ds2=projectBase(31.05,35.40);
-  html += '<line x1="'+ds1[0]+'" y1="'+ds1[1]+'" x2="'+ds2[0]+'" y2="'+ds2[1]+'" stroke="var(--map-water)" stroke-width="9" stroke-linecap="round" opacity="0.9"/>';
-
-  const items = filteredLandmarks().map(l=>{ const [x,y]=projectBase(l.lat,l.lon); return {l,x,y}; });
-  const threshold = 55/mapView.s;
-  const clusters = []; const used = new Array(items.length).fill(false);
-  for(let i=0;i<items.length;i++){
-    if(used[i]) continue;
-    const group=[items[i]]; used[i]=true;
-    for(let j=i+1;j<items.length;j++){
-      if(used[j]) continue;
-      const dx=items[i].x-items[j].x, dy=items[i].y-items[j].y;
-      if(Math.sqrt(dx*dx+dy*dy)<threshold){ group.push(items[j]); used[j]=true; }
-    }
-    clusters.push(group);
-  }
-  clusters.forEach(group=>{
-    if(group.length===1){
-      const {l,x,y} = group[0];
-      const visited = myVisits.some(v=>v.landmark_id===l.id);
-      const wished = myWishlist.includes(l.id);
-      const col = CATEGORIES[l.category].color;
-      html += '<g class="marker'+(visited?" visited":"")+'" data-id="'+l.id+'" transform="translate('+x+','+y+')">'
-        + '<circle class="halo" r="17" fill="'+col+'"/>'
-        + '<circle class="ring" r="11" fill="'+col+'" class="pin"/>'
-        + (visited ? '<path class="check" d="M-4 0 L-1 3 L5 -4" stroke="var(--surface)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' : '<circle r="3.2" fill="var(--surface)"/>')
-        + (wished ? '<path class="wish-star" transform="translate(8,-9) scale(0.45)" d="M0-8 2-2 8-2 3 2 5 8 0 4-5 8-3 2-8-2-2-2Z"/>' : "")
-        + "</g>";
-    } else {
-      const cx = group.reduce((s,g)=>s+g.x,0)/group.length;
-      const cy = group.reduce((s,g)=>s+g.y,0)/group.length;
-      html += '<g class="cluster" data-cluster="'+group.map(g=>g.l.id).join(",")+'" transform="translate('+cx+','+cy+')"><circle r="15"/><text x="0" y="5" text-anchor="middle">'+group.length+"</text></g>";
-    }
+  if(!leafletMap) return;
+  clusterGroup.clearLayers();
+  const list = filteredLandmarks();
+  $("visibleCount").textContent = list.length+" יעדים";
+  list.forEach(l=>{
+    const visited = myVisits.some(v=>v.landmark_id===l.id);
+    const wished = myWishlist.includes(l.id);
+    const cat = CATEGORIES[l.category];
+    const icon = L.divIcon({
+      className: "lm-divicon",
+      html: '<div class="lm-pin-wrap">'
+        + '<div class="lm-pin'+(visited?" visited":"")+'" style="--pin-color:'+cat.color+'">'
+        + (wished?'<span class="lm-pin-star">★</span>':"")
+        + (visited?'<span class="check">✓</span>':'<span class="dot"></span>')
+        + '</div><div class="lm-pin-label">'+l.name+'</div></div>',
+      iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
+    });
+    const marker = L.marker([l.lat,l.lon], { icon, riseOnHover:true });
+    marker.on("click", ()=> openDetail(l.id));
+    clusterGroup.addLayer(marker);
   });
   if(userLoc){
-    const [ux,uy] = projectBase(userLoc.lat, userLoc.lon);
-    html += '<circle cx="'+ux+'" cy="'+uy+'" r="7" fill="var(--teal)" stroke="var(--surface)" stroke-width="2.5"/><circle cx="'+ux+'" cy="'+uy+'" r="13" fill="var(--teal)" opacity="0.25"/>';
+    if(userLocMarker) leafletMap.removeLayer(userLocMarker);
+    userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], { radius:8, color:"#fff", weight:2.5, fillColor:"#146F67", fillOpacity:1 }).addTo(leafletMap);
   }
-  svg.innerHTML = html;
-  $("visibleCount").textContent = filteredLandmarks().length+" יעדים";
-  svg.querySelectorAll(".marker").forEach(el=> el.addEventListener("click",()=>{ if(!dragged) openDetail(el.getAttribute("data-id")); }));
-  svg.querySelectorAll(".cluster").forEach(el=> el.addEventListener("click",()=>{
-    if(dragged) return;
-    const ids = el.getAttribute("data-cluster").split(",");
-    const pts = ids.map(id=>projectBase(lmById[id].lat,lmById[id].lon));
-    mapView.cx = pts.reduce((s,p)=>s+p[0],0)/pts.length;
-    mapView.cy = pts.reduce((s,p)=>s+p[1],0)/pts.length;
-    mapView.s = Math.min(6, mapView.s*2.2);
-    renderMap();
-  }));
 }
-
-const mapWrap = $("mapWrap");
-function svgPixelToUser(px,py){
-  const rect = svg.getBoundingClientRect(); const vb = currentViewBox();
-  return [ vb.minX + (px-rect.left)/rect.width*vb.w, vb.minY + (py-rect.top)/rect.height*vb.h ];
-}
-mapWrap.addEventListener("pointerdown",e=>{ mapWrap.setPointerCapture(e.pointerId); pointers[e.pointerId]={x:e.clientX,y:e.clientY}; dragged=false; dragTotal=0; });
-mapWrap.addEventListener("pointermove",e=>{
-  if(!pointers[e.pointerId]) return;
-  pointers[e.pointerId] = {x:e.clientX,y:e.clientY};
-  const ids = Object.keys(pointers);
-  if(ids.length===1){
-    const dx=e.movementX||0, dy=e.movementY||0;
-    dragTotal += Math.abs(dx)+Math.abs(dy);
-    if(dragTotal>6) dragged=true;
-    const rect=svg.getBoundingClientRect(); const vb=currentViewBox();
-    mapView.cx -= dx/rect.width*vb.w; mapView.cy -= dy/rect.height*vb.h;
-    clampView(); renderMap();
-  } else if(ids.length===2){
-    const [p1,p2] = ids.map(id=>pointers[id]);
-    const dist = Math.hypot(p1.x-p2.x,p1.y-p2.y);
-    if(lastDist){ dragged=true; mapView.s *= dist/lastDist; clampView(); renderMap(); }
-    lastDist = dist;
-  }
-});
-function endPointer(e){ delete pointers[e.pointerId]; if(Object.keys(pointers).length<2) lastDist=null; }
-mapWrap.addEventListener("pointerup",endPointer);
-mapWrap.addEventListener("pointercancel",endPointer);
-mapWrap.addEventListener("wheel",e=>{
-  e.preventDefault();
-  const [ux,uy] = svgPixelToUser(e.clientX,e.clientY);
-  mapView.s *= e.deltaY<0 ? 1.25 : 0.8; clampView();
-  const [ux2,uy2] = svgPixelToUser(e.clientX,e.clientY);
-  mapView.cx += (ux-ux2); mapView.cy += (uy-uy2); clampView(); renderMap();
-},{passive:false});
 
 function wireStaticUI(){
-  $("zoomIn").onclick=()=>{mapView.s*=1.5;clampView();renderMap();};
-  $("zoomOut").onclick=()=>{mapView.s/=1.5;clampView();renderMap();};
-  $("zoomReset").onclick=()=>{mapView.cx=200;mapView.cy=400;mapView.s=1;renderMap();};
+  initLeafletMap();
+  $("zoomIn").onclick=()=> leafletMap.zoomIn();
+  $("zoomOut").onclick=()=> leafletMap.zoomOut();
+  $("zoomReset").onclick=()=> israelBounds ? leafletMap.fitBounds(israelBounds,{padding:[28,28]}) : leafletMap.setView(ISRAEL_CENTER, DEFAULT_ZOOM);
   $("locateBtn").onclick=()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
     navigator.geolocation.getCurrentPosition(pos=>{
       userLoc = {lat:pos.coords.latitude, lon:pos.coords.longitude};
       $("distHint").textContent = "המיקום שלך אותר — ניתן לסנן לפי מרחק נסיעה";
       toast("המיקום אותר בהצלחה"); renderMap();
+      leafletMap.setView([userLoc.lat, userLoc.lon], 12);
     }, ()=> toast("לא הצלחנו לאתר מיקום — יש לאשר גישה למיקום בדפדפן"), {enableHighAccuracy:true, timeout:8000});
   };
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
@@ -389,7 +388,7 @@ function wireStaticUI(){
       btn.classList.add("active");
       document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
       $("view-"+btn.dataset.view).classList.add("active");
-      if(btn.dataset.view==="map") setTimeout(renderMap,0);
+      if(btn.dataset.view==="map") setTimeout(()=>{ if(leafletMap) leafletMap.invalidateSize(); renderMap(); },0);
       if(btn.dataset.view==="board") renderBoard();
       if(btn.dataset.view==="feed") renderFeed();
       if(btn.dataset.view==="profile") renderProfile();
@@ -411,12 +410,28 @@ function wireStaticUI(){
   };
   $("scopeSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("scopeSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active"); lbScope=b.dataset.scope; renderBoard();
+    b.classList.add("active"); lbScope=b.dataset.scope;
+    updateGroupBarVisibility(); renderBoard();
   });
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
     b.classList.add("active"); lbPeriod=b.dataset.period; renderBoard();
   });
+  $("inviteBtn").onclick = ()=> shareLink(
+    `${location.origin}${location.pathname}?ref=${session.user.id}`,
+    "מגלים את ישראל", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!"
+  );
+  $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; renderBoard(); };
+  $("groupNewBtn").onclick = createGroup;
+  $("groupCreateBtn").onclick = createGroup;
+  $("groupInviteBtn").onclick = ()=>{
+    if(!activeGroupId){ toast("צור קבוצה קודם"); return; }
+    const g = myGroups.find(g=>g.id===activeGroupId);
+    shareLink(
+      `${location.origin}${location.pathname}?group=${activeGroupId}`,
+      "מגלים את ישראל", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים את ישראל!`
+    );
+  };
   window.addEventListener("online", ()=>{ updateOnlineStatus(); flushPendingQueue(); });
   window.addEventListener("offline", updateOnlineStatus);
 }
@@ -710,6 +725,12 @@ async function renderBoard(){
   try{
     let ids;
     if(lbScope==="friends"){ ids = Array.from(new Set([...followingSet, session.user.id])); }
+    else if(lbScope==="group"){
+      if(!activeGroupId){ listEl.innerHTML = ""; return; }
+      const { data: members, error: mErr } = await supabase.from("group_members").select("user_id").eq("group_id", activeGroupId);
+      if(mErr) throw mErr;
+      ids = members.map(m=>m.user_id);
+    }
     else { const { data } = await supabase.from("profiles").select("id").limit(60); ids = data.map(r=>r.id); if(!ids.includes(session.user.id)) ids.push(session.user.id); }
     if(!ids.length){ listEl.innerHTML = '<div class="empty-state">אין עדיין נתונים להצגה.</div>'; return; }
     const [{ data: profs, error: pErr }, { data: visits, error: vErr }] = await Promise.all([
