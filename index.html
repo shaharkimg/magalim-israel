@@ -184,6 +184,11 @@ button{font-family:inherit;}
 .photo-drop{border:1.5px dashed var(--border);border-radius:14px;padding:22px 12px;text-align:center;color:var(--text-muted);cursor:pointer;margin:12px 0;font-size:13.5px;}
 .photo-preview{width:100%;border-radius:14px;display:block;margin:12px 0;max-height:220px;object-fit:cover;}
 .demo-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border-radius:12px;padding:11px 13px;margin-top:14px;font-size:12.5px;color:var(--text-muted);}
+.privacy-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:16px;}
+.privacy-desc{margin:0 0 12px;font-size:12.5px;color:var(--text-muted);line-height:1.6;}
+.privacy-toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;font-weight:700;}
+.privacy-status{font-size:12px;color:var(--text-muted);text-align:center;margin-top:9px;}
+.friends-travel-banner{background:color-mix(in srgb, var(--teal) 12%, transparent);border:1px solid color-mix(in srgb, var(--teal) 30%, transparent);border-radius:12px;padding:10px 13px;margin-top:9px;font-size:12.5px;color:var(--text);line-height:1.5;}
 .switch{position:relative;width:38px;height:22px;flex:none;}
 .switch input{opacity:0;width:0;height:0;}
 .switch .track{position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.15s;cursor:pointer;}
@@ -440,6 +445,7 @@ input[type=file]{display:none;}
         <button class="hero-action-btn" id="actNearby"><span class="ic">📍</span>מסלולים קרובים אליי</button>
         <button class="hero-action-btn" id="actWishlist"><span class="ic">❤️</span>רשימת המשאלות שלי</button>
       </div>
+      <div class="friends-travel-banner hidden" id="friendsTravelBanner"></div>
       <button class="today-wizard-btn" id="openTodayWizard"><span>🎯 מה עושים היום?</span><span class="today-wizard-sub">כמה שאלות קצרות ונמצא לך טיול</span></button>
       <div class="quick-chip-row" id="quickChipRow">
         <button class="chip quick-chip" data-quick="near">📍 לידי</button>
@@ -585,6 +591,28 @@ input[type=file]{display:none;}
         <button data-list="wishlist">רשימת משאלות</button>
       </div>
       <div id="profList"></div>
+      <div class="section-head"><h2>🔒 פרטיות ומיקום</h2></div>
+      <div class="privacy-card">
+        <p class="privacy-desc">שתפו עם החברים שאתם עוקבים אחריהם שאתם מטיילים היום, ובאיזה אזור כללי בארץ — בלי לחשוף את המיקום המדויק שלכם. כבוי כברירת מחדל, אפשר לכבות בכל רגע.</p>
+        <div class="privacy-toggle-row">
+          <span>שיתוף מיקום כללי</span>
+          <label class="switch"><input type="checkbox" id="sharingToggle"><span class="track"></span></label>
+        </div>
+        <div id="travelStatusBox" class="hidden">
+          <label class="field-label" style="margin-top:10px;">איפה אתם מטיילים היום?</label>
+          <div class="chip-row" id="travelRegionChips">
+            <button type="button" class="chip teal" data-region="north">צפון</button>
+            <button type="button" class="chip teal" data-region="center">מרכז</button>
+            <button type="button" class="chip teal" data-region="jerusalem">ירושלים</button>
+            <button type="button" class="chip teal" data-region="south">דרום</button>
+            <button type="button" class="chip teal" data-region="deadsea">ים המלח</button>
+            <button type="button" class="chip teal" data-region="eilat">אילת</button>
+          </div>
+          <button class="btn btn-primary btn-block" id="setTravelingBtn" style="margin-top:10px;">📍 אני מטייל/ת היום</button>
+          <div class="privacy-status" id="travelStatusText"></div>
+          <button class="btn btn-ghost btn-block" id="revokeSharingBtn" style="margin-top:8px;">הפסק שיתוף מיידית</button>
+        </div>
+      </div>
       <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:20px;">התנתקות</button>
       </div>
     </div>

@@ -108,6 +108,7 @@ let visitCounts = {};
 let myVisits = [];       // {id?, landmark_id, visited_at, photo_url, points_awarded, pending?}
 let myWishlist = [];     // [landmark_id,...]
 let followingSet = new Set();
+let myTravelStatus = null;
 let myGroups = [], activeGroupId = null, pendingGroupSwitch = false;
 let boardTab = "leaders";
 let userLoc = null;
@@ -321,18 +322,18 @@ async function bootUserData(){
   await publicBootPromise;
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
-    refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel();
+    refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
   try{
     await loadMyProfile();
-    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadMyGroups() ]);
+    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadMyGroups(), loadMyTravelStatus() ]);
     prevBadgeSet = new Set(unlockedBadges().map(b=>b.id));
     flushPendingQueue();
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
-    renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel();
+    renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     if(pendingGroupSwitch){
       pendingGroupSwitch = false;
       boardTab = "group";
@@ -389,6 +390,13 @@ async function loadFollowing(){
   const { data, error } = await supabase.from("follows").select("followee_id").eq("follower_id", session.user.id);
   if(error) throw error;
   followingSet = new Set(data.map(r=>r.followee_id));
+}
+async function loadMyTravelStatus(){
+  try{
+    const { data, error } = await supabase.from("travel_status").select("region,sharing_enabled,travel_until").eq("user_id", session.user.id).maybeSingle();
+    if(error) throw error;
+    myTravelStatus = data;
+  }catch(err){ myTravelStatus = null; }
 }
 async function loadVisitCounts(){
   const { data, error } = await supabase.from("visits").select("landmark_id");
@@ -745,6 +753,19 @@ function wireStaticUI(){
       myProfile.name = n.trim(); renderProfile();
     }
   };
+  $("sharingToggle").onchange = e=> setSharingEnabled(e.target.checked);
+  document.querySelectorAll("#travelRegionChips .chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      document.querySelectorAll("#travelRegionChips .chip").forEach(c=>c.classList.remove("active"));
+      chip.classList.add("active");
+    };
+  });
+  $("setTravelingBtn").onclick = ()=>{
+    const active = document.querySelector("#travelRegionChips .chip.active");
+    if(!active){ toast("בחרו אזור קודם"); return; }
+    setTravelingToday(active.dataset.region);
+  };
+  $("revokeSharingBtn").onclick = revokeSharing;
   $("scopeSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("scopeSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
     b.classList.add("active"); lbScope=b.dataset.scope;
@@ -1344,6 +1365,56 @@ function renderProfile(){
     }
   }
   listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>goToDestination(el.dataset.id));
+  renderPrivacySection();
+}
+
+/* ============ PRIVACY / TRAVEL STATUS ("מטיילים עכשיו") ============ */
+function renderPrivacySection(){
+  const enabled = !!(myTravelStatus && myTravelStatus.sharing_enabled);
+  $("sharingToggle").checked = enabled;
+  $("travelStatusBox").classList.toggle("hidden", !enabled);
+  if(!enabled) return;
+  const region = myTravelStatus.region;
+  document.querySelectorAll("#travelRegionChips .chip").forEach(c=> c.classList.toggle("active", c.dataset.region===region));
+  const until = myTravelStatus.travel_until ? new Date(myTravelStatus.travel_until) : null;
+  const active = until && until.getTime()>Date.now();
+  $("travelStatusText").textContent = active
+    ? `📍 משותף כרגע (${REGIONS[region]||region}) עד ${until.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}`
+    : "השיתוף פעיל, אבל עדיין לא סימנתם שאתם מטיילים היום.";
+}
+async function setSharingEnabled(enabled){
+  try{
+    const { error } = await supabase.from("travel_status").upsert({ user_id:session.user.id, sharing_enabled:enabled, updated_at:new Date().toISOString() });
+    if(error) throw error;
+    myTravelStatus = { ...(myTravelStatus||{}), sharing_enabled:enabled };
+    renderPrivacySection();
+    toast(enabled ? "שיתוף מיקום כללי הופעל" : "שיתוף המיקום כובה");
+  }catch(err){ toast("לא ניתן לעדכן כרגע (יתכן שהתכונה עדיין לא מופעלת)"); $("sharingToggle").checked = !enabled; }
+}
+async function setTravelingToday(region){
+  try{
+    const until = new Date(Date.now()+24*3600*1000).toISOString();
+    const { error } = await supabase.from("travel_status").upsert({ user_id:session.user.id, sharing_enabled:true, region, travel_until:until, updated_at:new Date().toISOString() });
+    if(error) throw error;
+    myTravelStatus = { sharing_enabled:true, region, travel_until:until };
+    renderPrivacySection();
+    toast("שותף! חברים שעוקבים אחריכם יראו שאתם מטיילים היום ב"+REGIONS[region]);
+  }catch(err){ toast("לא ניתן לשתף כרגע"); }
+}
+async function revokeSharing(){ await setSharingEnabled(false); }
+async function renderFriendsTravelBanner(){
+  const box = $("friendsTravelBanner");
+  if(!session || !followingSet.size){ box.classList.add("hidden"); return; }
+  try{
+    const ids = [...followingSet];
+    // ה-RLS על travel_status כבר מגביל לשורות ששותפו במפורש (sharing_enabled) ועדיין בתוקף (travel_until) - כל שורה שחוזרת כאן פעילה
+    const { data, error } = await supabase.from("travel_status").select("user_id,region,profiles(name)").in("user_id", ids);
+    if(error) throw error;
+    if(!data || !data.length){ box.classList.add("hidden"); return; }
+    const names = data.map(r=> `${r.profiles?.name||"מטייל/ת"} (${REGIONS[r.region]||r.region})`).join(", ");
+    box.innerHTML = `👀 ${data.length===1?"חבר/ה אחד/ת מטייל/ת":data.length+" מהחברים שלכם מטיילים"} היום: ${names}`;
+    box.classList.remove("hidden");
+  }catch(err){ box.classList.add("hidden"); }
 }
 
 /* ============ LEADERBOARD ============ */
@@ -1416,7 +1487,7 @@ async function renderBoard(){
           const { error } = await supabase.from("follows").insert({ follower_id:session.user.id, followee_id:targetId });
           if(!error) followingSet.add(targetId);
         }
-        renderBoard();
+        renderBoard(); renderFriendsTravelBanner();
       };
     });
   }catch(err){ console.error(err); listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת הדירוג.</div>'; }
