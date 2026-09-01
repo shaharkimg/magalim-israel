@@ -226,8 +226,6 @@ button{font-family:inherit;}
 .profile-head{display:flex;align-items:center;gap:14px;padding:18px 0 10px;}
 .avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";position:relative;}
 .avatar-level-badge{position:absolute;bottom:-3px;left:-3px;width:24px;height:24px;border-radius:50%;background:var(--surface);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;}
-.level-mini-bar{width:100%;max-width:180px;height:4px;border-radius:4px;background:var(--border);margin-top:7px;overflow:hidden;}
-.level-mini-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:4px;transition:width .3s;}
 .profile-name{font-size:18px;font-weight:800;}
 .profile-name button{border:none;background:none;color:var(--text-muted);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-inline-start:6px;}
 .profile-sub{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
@@ -562,7 +560,6 @@ input[type=file]{display:none;}
         <div style="flex:1;">
           <div class="profile-name" id="profName">...<button id="editNameBtn">שינוי שם</button></div>
           <div class="profile-sub" id="profSub"></div>
-          <div class="level-mini-bar"><i id="levelMiniBar" style="width:0%"></i></div>
         </div>
       </div>
       <div class="welcome-banner hidden" id="welcomeBanner">
@@ -571,7 +568,7 @@ input[type=file]{display:none;}
         <button class="btn btn-primary" id="welcomeFindBtn">מצא טיול</button>
       </div>
       <div class="progress-card">
-        <div class="progress-top"><div class="n" id="progNum">0<span>/ 259 יעדים</span></div><div class="n" id="progPct" style="color:var(--accent-strong)">0%</div></div>
+        <div class="progress-top"><div class="n" id="progNum">0<span>/ 200 XP</span></div><div class="n" id="progPct" style="color:var(--accent-strong)">0%</div></div>
         <div class="bar"><i id="progBar" style="width:0%"></i></div>
         <div class="level-hint" id="levelHint"></div>
       </div>
