@@ -98,7 +98,6 @@ button{font-family:inherit;}
 .hero-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
 .hero-action-btn{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:8px 4px;font-size:10.8px;font-weight:700;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.25;text-align:center;}
 .hero-action-btn:active{background:var(--bg-elevated);}
-.hero-action-btn .ic{font-size:16px;}
 .today-wizard-btn{width:100%;border:none;border-radius:14px;padding:12px 16px;margin-top:9px;background:linear-gradient(135deg,var(--accent),var(--teal));color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .today-wizard-btn span:first-child{font-family:"Suez One";font-size:16px;}
 .today-wizard-sub{font-size:11px;opacity:.9;}
@@ -442,19 +441,19 @@ input[type=file]{display:none;}
       <h1 id="heroTitle">מגלים את ישראל</h1>
       <p id="heroSub">כמה ממנה כבר גיליתם?</p>
       <div class="hero-actions">
-        <button class="hero-action-btn" id="actDiscover"><span class="ic">🗺️</span>גלו מקום</button>
-        <button class="hero-action-btn" id="actNearby"><span class="ic">📍</span>מסלולים קרובים אליי</button>
-        <button class="hero-action-btn" id="actWishlist"><span class="ic">❤️</span>רשימת המשאלות שלי</button>
+        <button class="hero-action-btn" id="actDiscover">גלו מקום</button>
+        <button class="hero-action-btn" id="actNearby">מסלולים קרובים אליי</button>
+        <button class="hero-action-btn" id="actWishlist">רשימת המשאלות שלי</button>
       </div>
       <div class="friends-travel-banner hidden" id="friendsTravelBanner"></div>
-      <button class="today-wizard-btn" id="openTodayWizard"><span>🎯 מה עושים היום?</span><span class="today-wizard-sub">כמה שאלות קצרות ונמצא לך טיול</span></button>
+      <button class="today-wizard-btn" id="openTodayWizard"><span>מה עושים היום?</span><span class="today-wizard-sub">כמה שאלות קצרות ונמצא לך טיול</span></button>
       <div class="quick-chip-row" id="quickChipRow">
-        <button class="chip quick-chip" data-quick="near">📍 לידי</button>
-        <button class="chip quick-chip teal" data-quick="water">💧 מים</button>
+        <button class="chip quick-chip" data-quick="near">לידי</button>
+        <button class="chip quick-chip teal" data-quick="water">מים</button>
         <button class="chip quick-chip teal" data-quick="easy">קל</button>
-        <button class="chip quick-chip" data-quick="short">⏱ עד שעה</button>
+        <button class="chip quick-chip" data-quick="short">עד שעה</button>
         <button class="chip quick-chip teal" data-quick="north">צפון</button>
-        <button class="chip quick-chip" data-quick="family">👪 משפחות</button>
+        <button class="chip quick-chip" data-quick="family">משפחות</button>
       </div>
     </div>
     <div class="map-wrap" id="mapWrap">
