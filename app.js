@@ -498,9 +498,9 @@ function estimateHours(l){ return l.distanceKm ? l.distanceKm/3.2 : 1.5; }
 
 /* ============ "מה עושים היום?" WIZARD ============ */
 const DURATION_LABEL = { short:"עד שעה", medium:"1–3 שעות", half:"חצי יום", full:"יום מלא" };
-let wizState = { duration:null, difficulty:null, company:null, maxDist:400, water:false, loc:null };
+let wizState = { duration:null, difficulty:null, company:null, maxDist:400, water:false, accessible:false, free:false, loc:null };
 function wizardMatches(){
-  let strictness = ["water","duration","difficulty"]; // relax in this order if too few results
+  let strictness = ["water","accessible","free","duration","difficulty"]; // relax in this order if too few results
   let dropped = [];
   let results = [];
   for(let attempt=0; attempt<=strictness.length; attempt++){
@@ -515,6 +515,8 @@ function wizardMatches(){
         if(!DURATION_BUCKETS[wizState.duration](h)) return false;
       }
       if(!dropped.includes("water") && wizState.water && !(l.category==="water"||l.hasWater)) return false;
+      if(!dropped.includes("accessible") && wizState.accessible && !l.accessible) return false;
+      if(!dropped.includes("free") && wizState.free && l.priceType!=="free") return false;
       return true;
     });
     if(results.length>=3 || attempt===strictness.length) break;
@@ -536,6 +538,8 @@ function wizExplain(l){
   }
   parts.push(DIFFS[l.difficulty].label);
   if(l.category==="water"||l.hasWater) parts.push("יש מים");
+  if(l.accessible) parts.push("♿ נגיש");
+  if(l.priceType==="free") parts.push("🆓 חינם");
   parts.push("מתאים ל"+(l.duration||DURATION_LABEL[wizState.duration]||""));
   return parts.join(" · ");
 }
@@ -676,6 +680,8 @@ function wireStaticUI(){
     };
   });
   $("wizWaterChip").onclick = ()=>{ wizState.water = !wizState.water; $("wizWaterChip").classList.toggle("active", wizState.water); };
+  $("wizAccessibleChip").onclick = ()=>{ wizState.accessible = !wizState.accessible; $("wizAccessibleChip").classList.toggle("active", wizState.accessible); };
+  $("wizFreeChip").onclick = ()=>{ wizState.free = !wizState.free; $("wizFreeChip").classList.toggle("active", wizState.free); };
   $("wizDistRange").oninput = e=>{ wizState.maxDist = Number(e.target.value); $("wizDistVal").textContent = wizState.maxDist>=400?"ללא הגבלה":wizState.maxDist+' ק"מ'; };
   $("wizLocateBtn").onclick = ()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
