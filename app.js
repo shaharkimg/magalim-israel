@@ -433,6 +433,75 @@ function filteredLandmarks(){
 }
 function estimateHours(l){ return l.distanceKm ? l.distanceKm/3.2 : 1.5; }
 
+/* ============ "מה עושים היום?" WIZARD ============ */
+const DURATION_LABEL = { short:"עד שעה", medium:"1–3 שעות", half:"חצי יום", full:"יום מלא" };
+let wizState = { duration:null, difficulty:null, company:null, maxDist:400, water:false, loc:null };
+function wizardMatches(){
+  let strictness = ["water","duration","difficulty"]; // relax in this order if too few results
+  let dropped = [];
+  let results = [];
+  for(let attempt=0; attempt<=strictness.length; attempt++){
+    results = LANDMARKS.filter(l=>{
+      if(wizState.loc && wizState.maxDist<400){
+        if(haversine(wizState.loc.lat,wizState.loc.lon,l.lat,l.lon) > wizState.maxDist) return false;
+      }
+      if(wizState.company==="family" && !l.familyFriendly) return false;
+      if(!dropped.includes("difficulty") && wizState.difficulty && l.difficulty!==wizState.difficulty) return false;
+      if(!dropped.includes("duration") && wizState.duration){
+        const h = l.durationHours!=null ? l.durationHours : estimateHours(l);
+        if(!DURATION_BUCKETS[wizState.duration](h)) return false;
+      }
+      if(!dropped.includes("water") && wizState.water && !(l.category==="water"||l.hasWater)) return false;
+      return true;
+    });
+    if(results.length>=3 || attempt===strictness.length) break;
+    dropped.push(strictness[attempt]);
+  }
+  if(wizState.loc){
+    results = results.map(l=>({ l, dist: haversine(wizState.loc.lat,wizState.loc.lon,l.lat,l.lon) })).sort((a,b)=>a.dist-b.dist).map(x=>x.l);
+  } else {
+    results = results.slice().sort((a,b)=>(b.baseVisits||0)-(a.baseVisits||0));
+  }
+  return { results: results.slice(0,3), relaxed: dropped };
+}
+function wizExplain(l){
+  const parts = [];
+  if(wizState.loc){
+    const km = haversine(wizState.loc.lat,wizState.loc.lon,l.lat,l.lon);
+    const mins = Math.round(km/55*60/5)*5;
+    parts.push(km<1 ? "ממש לידך" : `כ-${mins<5?5:mins} דק' נסיעה ממך`);
+  }
+  parts.push(DIFFS[l.difficulty].label);
+  if(l.category==="water"||l.hasWater) parts.push("יש מים");
+  parts.push("מתאים ל"+(l.duration||DURATION_LABEL[wizState.duration]||""));
+  return parts.join(" · ");
+}
+function renderWizardResults(){
+  const { results, relaxed } = wizardMatches();
+  $("wizForm").classList.add("hidden");
+  $("wizResults").classList.remove("hidden");
+  $("wizBackBtn").classList.remove("hidden");
+  $("wizFindBtn").classList.add("hidden");
+  if(!results.length){
+    $("wizResults").innerHTML = '<div class="empty-state"><div class="big">🤔</div>לא מצאנו טיול שמתאים לכל הקריטריונים.<br>נסו להרחיב את המרחק או לשחרר קריטריון.</div>';
+    return;
+  }
+  let note = "";
+  if(relaxed.length){
+    const labels = { water:"מים", duration:"משך הזמן", difficulty:"רמת הקושי" };
+    note = `<div class="wiz-relaxed-note">לא מצאנו התאמה מלאה, אז הרחבנו את החיפוש (בלי דרישת ${relaxed.map(r=>labels[r]).join(", ")})</div>`;
+  }
+  $("wizResults").innerHTML = `<h3 style="margin:4px 0 12px;">מצאנו לך ${results.length} טיולים להיום 🎉</h3>${note}` +
+    results.map(l=>{
+      const cat = CATEGORIES[l.category];
+      return `<div class="mini-card wiz-result-card" data-id="${l.id}">
+        <div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+        <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${wizExplain(l)}</div></div>
+      </div>`;
+    }).join("");
+  $("wizResults").querySelectorAll(".wiz-result-card").forEach(el=> el.onclick = ()=>{ closeSheet("todaySheet","todayScrim"); goToDestination(el.dataset.id); });
+}
+
 let israelBounds = null;
 function initLeafletMap(){
   leafletMap = L.map("mapSvg", { zoomControl:false, attributionControl:true, minZoom:6, maxZoom:17 })
@@ -526,6 +595,43 @@ function wireStaticUI(){
     syncFilterUI(); syncQuickChips(); renderMap();
   };
   $("shareMapBtn").onclick = ()=> shareMyMap();
+  Object.entries(DIFFS).forEach(([id,d])=>{
+    const chip = document.createElement("button");
+    chip.className = "chip teal"; chip.dataset.id = id; chip.textContent = d.label;
+    $("wizDifficulty").appendChild(chip);
+  });
+  document.querySelectorAll("#wizDuration .chip, #wizDifficulty .chip, #wizCompany .chip").forEach(chip=>{
+    const key = chip.closest("#wizDuration") ? "duration" : chip.closest("#wizDifficulty") ? "difficulty" : "company";
+    chip.onclick = ()=>{
+      wizState[key] = wizState[key]===chip.dataset.id ? null : chip.dataset.id;
+      chip.parentElement.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active", c.dataset.id===wizState[key]));
+    };
+  });
+  $("wizWaterChip").onclick = ()=>{ wizState.water = !wizState.water; $("wizWaterChip").classList.toggle("active", wizState.water); };
+  $("wizDistRange").oninput = e=>{ wizState.maxDist = Number(e.target.value); $("wizDistVal").textContent = wizState.maxDist>=400?"ללא הגבלה":wizState.maxDist+' ק"מ'; };
+  $("wizLocateBtn").onclick = ()=>{
+    if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
+    $("wizLocStatus").innerHTML = '<span class="ic">📡</span> מאתר מיקום...';
+    navigator.geolocation.getCurrentPosition(pos=>{
+      wizState.loc = { lat:pos.coords.latitude, lon:pos.coords.longitude };
+      userLoc = wizState.loc;
+      $("wizLocStatus").className = "checkin-status ok";
+      $("wizLocStatus").innerHTML = '<span class="ic">✓</span> המיקום אותר בהצלחה';
+    }, ()=>{
+      $("wizLocStatus").className = "checkin-status bad";
+      $("wizLocStatus").innerHTML = '<span class="ic">✕</span> לא הצלחנו לאתר מיקום — עדיין אפשר לחפש בלי זה';
+    }, {enableHighAccuracy:true, timeout:8000});
+  };
+  $("wizFindBtn").onclick = ()=> renderWizardResults();
+  $("wizBackBtn").onclick = ()=>{
+    $("wizForm").classList.remove("hidden");
+    $("wizResults").classList.add("hidden");
+    $("wizBackBtn").classList.add("hidden");
+    $("wizFindBtn").classList.remove("hidden");
+  };
+  $("openTodayWizard").onclick = ()=> openSheet("todaySheet","todayScrim");
+  $("closeToday").onclick = ()=> closeSheet("todaySheet","todayScrim");
+  $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("feedGuestBtn").onclick = ()=> openAuthSheet();
