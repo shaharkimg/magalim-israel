@@ -1094,6 +1094,7 @@ async function submitFieldReport(landmarkId){
 }
 
 async function confirmCheckin(l){
+  const prevLevelIndex = getLevel(totalPoints()).index;
   const pts = pointsFor(l);
   const note = ($("checkinNote")?.value || "").trim().slice(0,120) || null;
   if(!navigator.onLine){
@@ -1124,7 +1125,12 @@ async function confirmCheckin(l){
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     const firstInCat = pts>DIFFS[l.difficulty].points;
     celebrate(l.name, pts, firstInCat?"+15 XP בונוס — קטגוריה חדשה!":null);
-    checkNewBadges();
+    const newBadgeCount = checkNewBadges();
+    const newLevelIndex = getLevel(totalPoints()).index;
+    if(newLevelIndex>prevLevelIndex){
+      const lvl = LEVELS[newLevelIndex];
+      setTimeout(()=> toast(`🎉 עלית לרמה: ${lvl.icon} ${lvl.name}!`), 2500+newBadgeCount*2200);
+    }
     loadVisitCounts().then(renderMap);
     renderProfile(); renderBoard(); renderFeed();
   }catch(err){
@@ -1169,6 +1175,7 @@ function checkNewBadges(){
   const newOnes = now.filter(b=>!prevBadgeSet.has(b.id));
   prevBadgeSet = new Set(now.map(b=>b.id));
   newOnes.forEach((b,i)=> setTimeout(()=>toast("תג חדש נפתח: "+b.icon+" "+b.label), 2500+i*2200));
+  return newOnes.length;
 }
 function isoWeekKey(d){
   const date = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
