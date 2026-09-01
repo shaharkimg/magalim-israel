@@ -201,6 +201,12 @@ button{font-family:inherit;}
 .bar{height:9px;border-radius:99px;background:var(--bg-elevated);overflow:hidden;}
 .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--accent));border-radius:99px;}
 .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0;}
+.stat-grid-4{grid-template-columns:repeat(4,1fr);}
+.stat-grid-4 .stat-box{padding:12px 3px;}
+.stat-grid-4 .stat-box .v{font-size:16px;}
+.stat-grid-4 .stat-box .l{font-size:9.5px;}
+.personal-map-wrap{background:var(--map-water);border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+.personal-map-wrap canvas{width:100%;height:auto;display:block;}
 .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center;}
 .stat-box .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;}
 .stat-box .l{font-size:10.5px;color:var(--text-muted);margin-top:3px;}
@@ -451,7 +457,8 @@ input[type=file]{display:none;}
         <button class="btn btn-primary" id="profileGuestBtn">התחברות / הרשמה</button>
       </div>
       <div id="profileRealContent">
-      <div class="profile-head">
+      <h1 style="font-size:20px;margin:16px 0 2px;">המסע שלי בישראל</h1>
+      <div class="profile-head" style="padding-top:6px;">
         <div class="avatar" id="profAvatar">א</div>
         <div>
           <div class="profile-name" id="profName">...<button id="editNameBtn">שינוי שם</button></div>
@@ -463,11 +470,15 @@ input[type=file]{display:none;}
         <div class="bar"><i id="progBar" style="width:0%"></i></div>
         <div class="level-hint" id="levelHint"></div>
       </div>
-      <div class="stat-grid">
+      <div class="stat-grid stat-grid-4">
         <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">XP סה"כ</div></div>
         <div class="stat-box"><div class="v" id="statStreak">0</div><div class="l">רצף שבועות</div></div>
         <div class="stat-box"><div class="v" id="statBadges">0/8</div><div class="l">תגים</div></div>
+        <div class="stat-box"><div class="v" id="statRegions">0/6</div><div class="l">אזורים</div></div>
       </div>
+      <div class="section-head"><h2>המפה שלי</h2></div>
+      <div class="personal-map-wrap"><canvas id="profileMapCanvas" width="340" height="400"></canvas></div>
+      <button class="btn btn-outline btn-block" id="shareMapBtn" style="margin:10px 0 4px;">📤 שתף את המפה שלי</button>
       <div class="section-head"><h2>תגים</h2></div>
       <div class="badge-grid" id="badgeGrid"></div>
       <div class="tab-row">

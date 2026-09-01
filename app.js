@@ -525,6 +525,7 @@ function wireStaticUI(){
     $("locateBtn").click();
     syncFilterUI(); syncQuickChips(); renderMap();
   };
+  $("shareMapBtn").onclick = ()=> shareMyMap();
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("feedGuestBtn").onclick = ()=> openAuthSheet();
@@ -876,6 +877,109 @@ function refreshHeader(){
   $("heroSub").textContent = pct!=null ? `גיליתם ${pct}% מהארץ — ${myVisits.length} מתוך ${LANDMARKS.length} יעדים` : "כמה ממנה כבר גיליתם?";
 }
 
+/* ============ PERSONAL MAP / SHARE CARD (canvas) ============ */
+const SHARE_LON_MIN=34.2, SHARE_LON_MAX=35.9, SHARE_LAT_MIN=29.45, SHARE_LAT_MAX=33.35;
+const SHARE_OUTLINE = [
+  [33.09,35.11],[33.15,35.30],[33.25,35.55],[33.32,35.78],[33.13,35.82],
+  [32.87,35.78],[32.72,35.75],[32.45,35.65],[32.45,35.60],[32.20,35.58],
+  [31.85,35.55],[31.53,35.52],[31.30,35.45],[31.10,35.42],[30.95,35.40],
+  [30.60,35.30],[30.20,35.15],[29.90,35.05],[29.55,34.97],[29.50,34.85],
+  [29.55,34.70],[30.10,34.45],[30.85,34.35],[31.10,34.28],[31.22,34.24],
+  [31.45,34.35],[31.80,34.62],[32.05,34.77],[32.35,34.87],[32.50,34.90],
+  [32.60,34.93],[32.83,34.97],[32.93,35.07],[33.02,35.10],[33.09,35.11],
+];
+function getCssVar(name, fallback){ const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; }
+function fitIsraelTransform(w, h, padFrac){
+  const pad = Math.min(w,h)*(padFrac==null?0.1:padFrac);
+  const availW = w-pad*2, availH = h-pad*2;
+  const lonRange = SHARE_LON_MAX-SHARE_LON_MIN, latRange = SHARE_LAT_MAX-SHARE_LAT_MIN;
+  const scale = Math.min(availW/lonRange, availH/latRange);
+  const mapW = lonRange*scale, mapH = latRange*scale;
+  const offX = (w-mapW)/2, offY = (h-mapH)/2;
+  return (lat,lon)=> [ offX + (lon-SHARE_LON_MIN)*scale, offY + (SHARE_LAT_MAX-lat)*scale ];
+}
+function paintIsraelMap(ctx, w, h, { padFrac, landColor, outlineColor, dotVisited, dotOther, waterColor, bgColor } = {}){
+  if(bgColor){ ctx.fillStyle = bgColor; ctx.fillRect(0,0,w,h); } else ctx.clearRect(0,0,w,h);
+  const project = fitIsraelTransform(w, h, padFrac);
+  ctx.beginPath();
+  SHARE_OUTLINE.forEach(([la,lo],i)=>{ const [x,y]=project(la,lo); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.closePath();
+  ctx.fillStyle = landColor || getCssVar("--map-land","#E4DEC9");
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, w/300);
+  ctx.strokeStyle = outlineColor || getCssVar("--map-outline","#B7A97E");
+  ctx.stroke();
+  const visitedSet = new Set(myVisits.map(v=>v.landmark_id));
+  const r = Math.max(2, w/130);
+  LANDMARKS.forEach(l=>{
+    const [x,y] = project(l.lat,l.lon);
+    const visited = visitedSet.has(l.id);
+    ctx.beginPath();
+    ctx.arc(x,y, visited?r*1.5:r*0.75, 0, Math.PI*2);
+    ctx.globalAlpha = visited?1:0.4;
+    ctx.fillStyle = visited ? (dotVisited || getCssVar("--accent-strong","#96610F")) : (dotOther || outlineColor || getCssVar("--map-outline","#B7A97E"));
+    ctx.fill();
+    if(visited){ ctx.lineWidth = Math.max(0.6, w/500); ctx.strokeStyle = "#fff"; ctx.stroke(); }
+  });
+  ctx.globalAlpha = 1;
+}
+function drawPersonalMap(canvas){
+  if(!canvas) return;
+  paintIsraelMap(canvas.getContext("2d"), canvas.width, canvas.height, {});
+}
+async function generateShareCard(){
+  const W=1080, H=1600;
+  const canvas = document.createElement("canvas");
+  canvas.width=W; canvas.height=H;
+  const ctx = canvas.getContext("2d");
+  const bg = getCssVar("--bg","#EDEAE0"), surface = getCssVar("--surface","#FFFFFF"), text = getCssVar("--text","#241F1A"), muted = getCssVar("--text-muted","#6B6255"), accent = getCssVar("--accent-strong","#96610F"), teal = getCssVar("--teal","#146F67");
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+  ctx.textAlign = "center";
+  ctx.fillStyle = text; ctx.font = "700 54px Heebo, sans-serif";
+  ctx.fillText("מגלים את ישראל", W/2, 130);
+  ctx.fillStyle = muted; ctx.font = "400 32px Heebo, sans-serif";
+  ctx.fillText("המסע של "+(myProfile?myProfile.name:"מטייל/ת"), W/2, 185);
+  const pct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
+  ctx.fillStyle = accent; ctx.font = "800 130px Heebo, sans-serif";
+  ctx.fillText("גיליתי "+pct+"% 🇮🇱", W/2, 350);
+  ctx.save();
+  ctx.translate(80, 420);
+  paintIsraelMap(ctx, W-160, 950, { padFrac:0.06 });
+  ctx.restore();
+  ctx.fillStyle = surface; ctx.fillRect(60, 1400, W-120, 150);
+  ctx.fillStyle = text; ctx.font = "800 46px Heebo, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(myVisits.length+" יעדים כבשתי", W-110, 1465);
+  ctx.fillStyle = teal; ctx.font = "700 34px Heebo, sans-serif";
+  ctx.fillText(totalPoints().toLocaleString()+" XP · רצף "+computeStreak()+" שבועות", W-110, 1515);
+  ctx.textAlign = "center";
+  ctx.fillStyle = muted; ctx.font = "400 28px Heebo, sans-serif";
+  ctx.fillText("magalim-israel.vercel.app", W/2, H-40);
+  return new Promise(resolve=> canvas.toBlob(blob=>resolve(blob), "image/png"));
+}
+async function shareMyMap(){
+  const btn = $("shareMapBtn");
+  if(btn){ btn.disabled = true; btn.textContent = "מכין תמונה..."; }
+  try{
+    const blob = await generateShareCard();
+    const file = new File([blob], "המסע-שלי-בישראל.png", { type:"image/png" });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title:"מגלים את ישראל", text:"המסע שלי בישראל 🇮🇱" });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "המסע-שלי-בישראל.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      toast("התמונה הורדה — אפשר לשתף אותה בוואטסאפ או באינסטגרם");
+    }
+  }catch(err){
+    if(err.name!=="AbortError"){ console.error(err); toast("לא הצלחנו להכין את התמונה לשיתוף"); }
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent="📤 שתף את המפה שלי"; }
+  }
+}
+
 /* ============ PROFILE ============ */
 function renderProfile(){
   if(!session){ setGuestGate("profile", true); return; }
@@ -892,6 +996,9 @@ function renderProfile(){
   $("progPct").textContent = pct+"%";
   $("progBar").style.width = pct+"%";
   $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} XP לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
+  $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
+  drawPersonalMap($("profileMapCanvas"));
   $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();
   const ub = unlockedBadges();
