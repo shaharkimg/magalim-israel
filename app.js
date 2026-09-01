@@ -28,7 +28,7 @@ const BADGES = [
   {id:"milestone10",label:"10 יעדים",icon:"🏅",target:()=>10,current:v=>Math.min(v.length,10)},
   {id:"milestone25",label:"25 יעדים",icon:"🥇",target:()=>25,current:v=>Math.min(v.length,25)},
   {id:"milestone50",label:"50 יעדים",icon:"💎",target:()=>50,current:v=>Math.min(v.length,50)},
-  {id:"region1",label:"כובש אזור ראשון",icon:"🏁",target:()=>bestRegionProgress().total,current:()=>bestRegionProgress().done},
+  {id:"region1",label:"כובש אזור ראשון",icon:"🏁",target:v=>bestRegionProgress(v).total,current:v=>bestRegionProgress(v).done},
   {id:"water5",label:"כובש נחלים",icon:"💧",target:()=>5,current:v=>Math.min(countCat(v,"water"),5)},
   {id:"hist5",label:"היסטוריון",icon:"🏺",target:()=>5,current:v=>Math.min(countCat(v,"archaeology")+countCat(v,"heritage"),5)},
   {id:"north",label:"אלוף הצפון",icon:"🧭",target:()=>Math.min(15,regionCount("north")),current:v=>Math.min(regionVisited(v,"north"),15)},
@@ -40,12 +40,13 @@ function countCat(visited,cat){return visited.filter(v=>lmById[v.landmark_id]&&l
 function countDiff(visited,d){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].difficulty===d).length;}
 function regionCount(r){ return LANDMARKS.filter(l=>l.region===r).length; }
 function regionVisited(visited,r){ return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].region===r).length; }
-function bestRegionProgress(){
+function bestRegionProgress(visits){
+  visits = visits || myVisits;
   let best = null;
   Object.keys(REGIONS).forEach(r=>{
     const total = regionCount(r);
     if(!total) return;
-    const done = regionVisited(myVisits, r);
+    const done = regionVisited(visits, r);
     const ratio = done/total, bestRatio = best ? best.done/best.total : -1;
     if(!best || ratio>bestRatio || (ratio===bestRatio && total<best.total)) best = { done, total };
   });
@@ -108,6 +109,7 @@ let myVisits = [];       // {id?, landmark_id, visited_at, photo_url, points_awa
 let myWishlist = [];     // [landmark_id,...]
 let followingSet = new Set();
 let myGroups = [], activeGroupId = null, pendingGroupSwitch = false;
+let boardTab = "leaders";
 let userLoc = null;
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
@@ -249,14 +251,24 @@ function goToDestination(id){ navigate("#/destination/"+encodeURIComponent(id));
 window.addEventListener("popstate", applyRoute);
 
 function switchView(view){
-  if(!["map","board","feed","profile"].includes(view)) view = "map";
+  if(view==="feed"){ view = "board"; boardTab = "feed"; }
+  if(!["map","board","profile"].includes(view)) view = "map";
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
   if(view==="map") setTimeout(()=>{ if(leafletMap) leafletMap.invalidateSize(); renderMap(); },0);
-  if(view==="board") renderBoard();
-  if(view==="feed") renderFeed();
+  if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
+}
+function switchBoardTab(tab){
+  boardTab = tab;
+  document.querySelectorAll("#boardTabs button").forEach(b=>b.classList.toggle("active", b.dataset.tab===tab));
+  $("boardPanelLeaders").classList.toggle("hidden", tab!=="leaders");
+  $("boardPanelGroup").classList.toggle("hidden", tab!=="group");
+  $("boardPanelFeed").classList.toggle("hidden", tab!=="feed");
+  if(tab==="leaders") renderBoard();
+  else if(tab==="group") renderGroupPanel();
+  else if(tab==="feed") renderFeed();
 }
 function applyRoute(){
   if(!booted) return;
@@ -309,7 +321,7 @@ async function bootUserData(){
   await publicBootPromise;
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
-    refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed();
+    refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel();
     return;
   }
   try{
@@ -320,12 +332,10 @@ async function bootUserData(){
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
-    renderMap(); renderProfile(); renderBoard(); renderFeed();
+    renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel();
     if(pendingGroupSwitch){
       pendingGroupSwitch = false;
-      lbScope = "group";
-      document.querySelectorAll("#scopeSeg button").forEach(b=>b.classList.toggle("active", b.dataset.scope==="group"));
-      updateGroupBarVisibility();
+      boardTab = "group";
       navigate("#/board");
     }
   }catch(err){
@@ -399,10 +409,10 @@ function populateGroupSelect(){
   if(activeGroupId) sel.value = activeGroupId;
 }
 function updateGroupBarVisibility(){
-  const isGroup = lbScope==="group";
-  $("groupBar").classList.toggle("hidden", !isGroup || !myGroups.length);
-  $("groupEmpty").classList.toggle("hidden", !isGroup || myGroups.length>0);
-  $("periodSeg").classList.toggle("hidden", isGroup && !myGroups.length);
+  const hasGroups = myGroups.length>0;
+  $("groupBar").classList.toggle("hidden", !hasGroups);
+  $("groupEmpty").classList.toggle("hidden", hasGroups);
+  $("groupContent").classList.toggle("hidden", !hasGroups || !activeGroupId);
 }
 async function createGroup(){
   const name = prompt("איך לקרוא לקבוצה?");
@@ -415,7 +425,7 @@ async function createGroup(){
   activeGroupId = data.id;
   populateGroupSelect(); updateGroupBarVisibility();
   toast('הקבוצה "'+data.name+'" נוצרה!');
-  renderBoard();
+  renderGroupPanel();
 }
 async function handleInviteLinks(){
   const params = new URLSearchParams(location.search);
@@ -446,7 +456,7 @@ function subscribeRealtime(){
   supabase.channel("public:visits-live")
     .on("postgres_changes", { event:"INSERT", schema:"public", table:"visits" }, ()=>{
       loadVisitCounts().then(renderMap);
-      renderFeed(); renderBoard();
+      renderFeed(); renderBoard(); renderGroupPanel();
     })
     .subscribe();
   supabase.channel("public:likes-live")
@@ -693,7 +703,6 @@ function wireStaticUI(){
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
-  $("feedGuestBtn").onclick = ()=> openAuthSheet();
   $("profileGuestBtn").onclick = ()=> openAuthSheet();
   const goToWishlist = ()=>{
     navigate("#/profile");
@@ -733,8 +742,9 @@ function wireStaticUI(){
   $("scopeSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("scopeSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
     b.classList.add("active"); lbScope=b.dataset.scope;
-    updateGroupBarVisibility(); renderBoard();
+    renderBoard();
   });
+  document.querySelectorAll("#boardTabs button").forEach(b=> b.onclick = ()=> switchBoardTab(b.dataset.tab));
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
     b.classList.add("active"); lbPeriod=b.dataset.period; renderBoard();
@@ -743,7 +753,7 @@ function wireStaticUI(){
     `${location.origin}${location.pathname}?ref=${session.user.id}`,
     "מגלים את ישראל", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!"
   );
-  $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; renderBoard(); };
+  $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; renderGroupPanel(); };
   $("groupNewBtn").onclick = createGroup;
   $("groupCreateBtn").onclick = createGroup;
   $("groupInviteBtn").onclick = ()=>{
@@ -1126,7 +1136,7 @@ async function flushPendingQueue(){
 }
 
 /* ============ BADGES / STREAK ============ */
-function unlockedBadges(){ return BADGES.filter(b=>b.current(myVisits)>=b.target()); }
+function unlockedBadges(){ return BADGES.filter(b=>b.current(myVisits)>=b.target(myVisits)); }
 function checkNewBadges(){
   const now = unlockedBadges();
   const newOnes = now.filter(b=>!prevBadgeSet.has(b.id));
@@ -1141,13 +1151,14 @@ function isoWeekKey(d){
   const week = 1+Math.round(((date-firstThu)/86400000-3+((firstThu.getUTCDay()+6)%7))/7);
   return date.getUTCFullYear()+"-W"+week;
 }
-function computeStreak(){
-  if(!myVisits.length) return 0;
-  const weeks = new Set(myVisits.map(v=>isoWeekKey(new Date(v.visited_at))));
+function streakFromVisits(visits){
+  if(!visits.length) return 0;
+  const weeks = new Set(visits.map(v=>isoWeekKey(new Date(v.visited_at))));
   let cursor = new Date(), streak=0;
   while(weeks.has(isoWeekKey(cursor))){ streak++; cursor.setDate(cursor.getDate()-7); }
   return streak;
 }
+function computeStreak(){ return streakFromVisits(myVisits); }
 function totalPoints(){ return myVisits.reduce((s,v)=>s+(v.points_awarded||0),0); }
 
 /* ============ HEADER ============ */
@@ -1294,7 +1305,7 @@ function renderProfile(){
   $("statBadges").textContent = ub.length+"/"+BADGES.length;
   $("badgeGrid").innerHTML = BADGES.map(b=>{
     const on = ub.some(u=>u.id===b.id);
-    const cur = b.current(myVisits), tgt = b.target();
+    const cur = b.current(myVisits), tgt = b.target(myVisits);
     const progressLine = on ? "" : `<div class="badge-progress">${cur}/${tgt}</div>`;
     return `<div class="badge${on?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div>${progressLine}</div>`;
   }).join("");
@@ -1361,12 +1372,6 @@ async function renderBoard(){
   try{
     let ids;
     if(lbScope==="friends"){ ids = Array.from(new Set([...followingSet, session.user.id])); }
-    else if(lbScope==="group"){
-      if(!activeGroupId){ listEl.innerHTML = ""; $("lbSummary").classList.add("hidden"); return; }
-      const { data: members, error: mErr } = await supabase.from("group_members").select("user_id").eq("group_id", activeGroupId);
-      if(mErr) throw mErr;
-      ids = members.map(m=>m.user_id);
-    }
     else { const { data } = await supabase.from("profiles").select("id").limit(60); ids = data.map(r=>r.id); if(!ids.includes(session.user.id)) ids.push(session.user.id); }
     if(!ids.length){ listEl.innerHTML = '<div class="empty-state">אין עדיין נתונים להצגה.</div>'; $("lbSummary").classList.add("hidden"); return; }
     const [{ data: profs, error: pErr }, { data: visits, error: vErr }] = await Promise.all([
@@ -1417,9 +1422,55 @@ function stringColor(str){
 }
 
 /* ============ FEED ============ */
+function feedCardHtml(row){
+  const l = lmById[row.landmark_id]; if(!l) return "";
+  const cat = CATEGORIES[l.category];
+  const name = row.profiles ? row.profiles.name : "מטייל/ת";
+  const likedByMe = row.likes.some(x=>x.user_id===session.user.id);
+  const wished = myWishlist.includes(l.id);
+  const visited = myVisits.some(v=>v.landmark_id===l.id);
+  const bg = row.photo_url ? `background-image:url('${row.photo_url}')` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%))`;
+  return `<div class="feed-card">
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
+      <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
+    <div class="feed-photo" data-goto="${l.id}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
+    ${row.note ? `<div class="feed-note">"${row.note}"</div>` : ""}
+    <div class="feed-actions">
+      <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
+      ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${wished?"❤️ ברשימת המשאלות":"🤍 הוסף לרשימת המשאלות"}</button>`}
+    </div>
+  </div>`;
+}
+function wireFeedCards(listEl, onChange){
+  listEl.querySelectorAll(".feed-photo").forEach(el=> el.onclick = ()=> goToDestination(el.dataset.goto));
+  listEl.querySelectorAll(".feed-wish-btn").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const lmId = btn.dataset.lm;
+      btn.disabled = true;
+      if(myWishlist.includes(lmId)){
+        const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",lmId);
+        if(!error) myWishlist = myWishlist.filter(x=>x!==lmId);
+      } else {
+        const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:lmId });
+        if(!error) myWishlist.push(lmId);
+      }
+      onChange(); renderMap();
+    };
+  });
+  listEl.querySelectorAll(".like-btn").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const visitId = btn.dataset.id;
+      const liked = btn.classList.contains("liked");
+      btn.disabled = true;
+      if(liked) await supabase.from("likes").delete().eq("user_id",session.user.id).eq("visit_id",visitId);
+      else await supabase.from("likes").insert({ user_id:session.user.id, visit_id:visitId });
+      onChange();
+    };
+  });
+}
 async function renderFeed(){
-  if(!session){ setGuestGate("feed", true); return; }
-  setGuestGate("feed", false);
+  if(!session){ setGuestGate("board", true); return; }
+  setGuestGate("board", false);
   const listEl = $("feedList");
   listEl.innerHTML = skeletonCards(3);
   try{
@@ -1437,53 +1488,128 @@ async function renderFeed(){
       $("emptyFeedCta").onclick = ()=> navigate("#/map");
       renderChallenge(); renderPersonalChallenges(); return;
     }
-    listEl.innerHTML = data.map(row=>{
-      const l = lmById[row.landmark_id]; if(!l) return "";
-      const cat = CATEGORIES[l.category];
-      const name = row.profiles ? row.profiles.name : "מטייל/ת";
-      const likedByMe = row.likes.some(x=>x.user_id===session.user.id);
-      const wished = myWishlist.includes(l.id);
-      const visited = myVisits.some(v=>v.landmark_id===l.id);
-      const bg = row.photo_url ? `background-image:url('${row.photo_url}')` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%))`;
-      return `<div class="feed-card">
-        <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
-          <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
-        <div class="feed-photo" data-goto="${l.id}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
-        ${row.note ? `<div class="feed-note">"${row.note}"</div>` : ""}
-        <div class="feed-actions">
-          <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
-          ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${wished?"❤️ ברשימת המשאלות":"🤍 הוסף לרשימת המשאלות"}</button>`}
-        </div>
-      </div>`;
-    }).join("");
-    listEl.querySelectorAll(".feed-photo").forEach(el=> el.onclick = ()=> goToDestination(el.dataset.goto));
-    listEl.querySelectorAll(".feed-wish-btn").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const lmId = btn.dataset.lm;
-        btn.disabled = true;
-        if(myWishlist.includes(lmId)){
-          const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",lmId);
-          if(!error) myWishlist = myWishlist.filter(x=>x!==lmId);
-        } else {
-          const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:lmId });
-          if(!error) myWishlist.push(lmId);
-        }
-        renderFeed(); renderMap();
-      };
-    });
-    listEl.querySelectorAll(".like-btn").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const visitId = btn.dataset.id;
-        const liked = btn.classList.contains("liked");
-        btn.disabled = true;
-        if(liked) await supabase.from("likes").delete().eq("user_id",session.user.id).eq("visit_id",visitId);
-        else await supabase.from("likes").insert({ user_id:session.user.id, visit_id:visitId });
-        renderFeed();
-      };
-    });
+    listEl.innerHTML = data.map(feedCardHtml).join("");
+    wireFeedCards(listEl, renderFeed);
     renderChallenge();
     renderPersonalChallenges();
   }catch(err){ console.error(err); listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת הפיד.</div>'; }
+}
+async function renderGroupFeed(memberIds){
+  const listEl = $("groupFeedList");
+  if(!memberIds.length){ listEl.innerHTML = ""; return; }
+  listEl.innerHTML = skeletonCards(2);
+  try{
+    let { data, error } = await supabase.from("visits")
+      .select("id,visited_at,photo_url,points_awarded,note,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+      .in("user_id", memberIds).order("visited_at",{ascending:false}).limit(10);
+    if(error && /note/i.test(error.message||"")){
+      ({ data, error } = await supabase.from("visits")
+        .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+        .in("user_id", memberIds).order("visited_at",{ascending:false}).limit(10));
+    }
+    if(error) throw error;
+    if(!data.length){ listEl.innerHTML = '<div class="empty-state">עדיין אין פעילות בקבוצה. היו הראשונים!</div>'; return; }
+    listEl.innerHTML = data.map(feedCardHtml).join("");
+    wireFeedCards(listEl, ()=> renderGroupPanel());
+  }catch(err){ console.error(err); listEl.innerHTML = ""; }
+}
+async function renderGroupPanel(){
+  if(!session){ setGuestGate("board", true); return; }
+  setGuestGate("board", false);
+  updateGroupBarVisibility();
+  if(!myGroups.length || !activeGroupId) return;
+  try{
+    const { data: members, error: mErr } = await supabase.from("group_members").select("user_id, profiles(name)").eq("group_id", activeGroupId);
+    if(mErr) throw mErr;
+    const memberIds = members.map(m=>m.user_id);
+    const nameById = Object.fromEntries(members.map(m=>[m.user_id, m.profiles?.name || "מטייל/ת"]));
+    const { data: visits, error: vErr } = await supabase.from("visits").select("user_id,landmark_id,points_awarded,visited_at").in("user_id", memberIds);
+    if(vErr) throw vErr;
+    const byMember = {};
+    memberIds.forEach(id=> byMember[id] = []);
+    visits.forEach(v=> byMember[v.user_id].push(v));
+
+    const statRows = memberIds.map(id=>{
+      const vs = byMember[id];
+      const xp = vs.reduce((s,v)=>s+(v.points_awarded||0),0);
+      return { id, name: nameById[id], xp, streak: streakFromVisits(vs), badgeCount: BADGES.filter(b=>b.current(vs)>=b.target(vs)).length };
+    }).sort((a,b)=>b.xp-a.xp);
+    $("groupMemberStats").innerHTML = statRows.length ? statRows.map((r,i)=>{
+      const isMe = r.id===session.user.id;
+      const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
+      return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
+        <div class="lb-avatar" style="background:${stringColor(r.name)}">${r.name.charAt(0)}</div>
+        <div class="lb-name">${r.name}${isMe?'<small>אתה/את</small>':''}</div>
+        <div class="lb-mini-stats"><span>🔥${r.streak}</span><span>🏅${r.badgeCount}</span></div>
+        <div class="lb-pts">${r.xp.toLocaleString()}</div></div>`;
+    }).join("") : '<div class="empty-state">אין עדיין נתונים.</div>';
+
+    const combinedVisitedIds = new Set(visits.map(v=>v.landmark_id));
+    let chosenChallenge = null, chProgress = 0;
+    for(const ch of CHALLENGES){
+      const matched = [...combinedVisitedIds].filter(id=> lmById[id] && ch.match(lmById[id])).length;
+      const current = Math.min(matched, ch.target);
+      if(current < ch.target){ chosenChallenge = ch; chProgress = current; break; }
+    }
+    if(chosenChallenge){
+      const pct = Math.round(chProgress/chosenChallenge.target*100);
+      $("groupChallengeCard").innerHTML = `<div class="pchallenge-card">
+        <div class="pchallenge-head">
+          <div class="pchallenge-icon" style="background:${chosenChallenge.color}">${chosenChallenge.icon}</div>
+          <div><div class="pchallenge-title">${chosenChallenge.title}</div><div class="pchallenge-reward">יחד כקבוצה</div></div>
+        </div>
+        <div class="pchallenge-progress-row"><span>${chProgress} / ${chosenChallenge.target} הושלמו</span><span>${pct}%</span></div>
+        <div class="bar"><i style="width:${pct}%;background:${chosenChallenge.color}"></i></div>
+      </div>`;
+    } else {
+      $("groupChallengeCard").innerHTML = '<div class="empty-state">🎉 הקבוצה השלימה את כל האתגרים הזמינים!</div>';
+    }
+
+    $("groupBadgeGrid").innerHTML = BADGES.map(b=>{
+      const count = memberIds.filter(id=> b.current(byMember[id])>=b.target(byMember[id])).length;
+      return `<div class="badge${count>0?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div><div class="badge-progress">${count}/${memberIds.length}</div></div>`;
+    }).join("");
+
+    renderVoteBox();
+    renderGroupFeed(memberIds);
+  }catch(err){ console.error(err); toast("שגיאה בטעינת נתוני הקבוצה: "+(err.message||err)); }
+}
+async function renderVoteBox(){
+  const box = $("groupVoteBox");
+  if(!activeGroupId) return;
+  try{
+    const { data, error } = await supabase.from("group_destination_votes").select("landmark_id,user_id").eq("group_id", activeGroupId);
+    if(error) throw error;
+    const tally = {};
+    (data||[]).forEach(v=> tally[v.landmark_id] = (tally[v.landmark_id]||0)+1);
+    const top = Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const myVote = (data||[]).find(v=>v.user_id===session.user.id);
+    box.innerHTML = `
+      <div id="voteResults">${top.length ? top.map(([lmId,count])=>{
+        const l = lmById[lmId]; if(!l) return "";
+        return `<div class="vote-row${myVote&&myVote.landmark_id===lmId?" mine":""}"><span>${l.name}</span><span class="vote-count">${count} ${count===1?"קול":"קולות"}</span></div>`;
+      }).join("") : '<div class="empty-state">אף אחד עוד לא הצביע.</div>'}</div>
+      <div class="vote-picker">
+        <input class="text-input" id="voteSearch" placeholder="חפשו יעד להצבעה...">
+        <div id="voteSearchResults"></div>
+      </div>`;
+    $("voteSearch").oninput = e=>{
+      const q = e.target.value.trim();
+      const resultsEl = $("voteSearchResults");
+      if(q.length<2){ resultsEl.innerHTML=""; return; }
+      const matches = LANDMARKS.filter(l=>l.name.includes(q)).slice(0,5);
+      resultsEl.innerHTML = matches.map(l=>`<button type="button" class="vote-option" data-id="${l.id}">${l.name}${myVote&&myVote.landmark_id===l.id?" ✓":""}</button>`).join("");
+      resultsEl.querySelectorAll(".vote-option").forEach(btn=> btn.onclick = ()=> castVote(btn.dataset.id));
+    };
+  }catch(err){ box.innerHTML = ""; }
+}
+async function castVote(landmarkId){
+  try{
+    const { error } = await supabase.from("group_destination_votes").upsert({ group_id:activeGroupId, user_id:session.user.id, landmark_id:landmarkId });
+    if(error) throw error;
+    toast("ההצבעה נשמרה!");
+    renderVoteBox();
+  }catch(err){ toast("לא ניתן להצביע כרגע"); }
 }
 const CHALLENGE_SEEN_KEY = "magalim-challenges-seen-v1";
 function renderPersonalChallenges(){
