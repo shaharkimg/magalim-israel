@@ -23,7 +23,12 @@ const DIFFS = {
 };
 const BADGES = [
   {id:"first",label:"צעד ראשון",icon:"👣",target:()=>1,current:v=>Math.min(v.length,1)},
+  {id:"milestone3",label:"3 יעדים",icon:"🔰",target:()=>3,current:v=>Math.min(v.length,3)},
   {id:"seven",label:"צועד השבעה",icon:"🥾",target:()=>7,current:v=>Math.min(v.length,7)},
+  {id:"milestone10",label:"10 יעדים",icon:"🏅",target:()=>10,current:v=>Math.min(v.length,10)},
+  {id:"milestone25",label:"25 יעדים",icon:"🥇",target:()=>25,current:v=>Math.min(v.length,25)},
+  {id:"milestone50",label:"50 יעדים",icon:"💎",target:()=>50,current:v=>Math.min(v.length,50)},
+  {id:"region1",label:"כובש אזור ראשון",icon:"🏁",target:()=>bestRegionProgress().total,current:()=>bestRegionProgress().done},
   {id:"water5",label:"כובש נחלים",icon:"💧",target:()=>5,current:v=>Math.min(countCat(v,"water"),5)},
   {id:"hist5",label:"היסטוריון",icon:"🏺",target:()=>5,current:v=>Math.min(countCat(v,"archaeology")+countCat(v,"heritage"),5)},
   {id:"north",label:"אלוף הצפון",icon:"🧭",target:()=>Math.min(15,regionCount("north")),current:v=>Math.min(regionVisited(v,"north"),15)},
@@ -35,6 +40,17 @@ function countCat(visited,cat){return visited.filter(v=>lmById[v.landmark_id]&&l
 function countDiff(visited,d){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].difficulty===d).length;}
 function regionCount(r){ return LANDMARKS.filter(l=>l.region===r).length; }
 function regionVisited(visited,r){ return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].region===r).length; }
+function bestRegionProgress(){
+  let best = null;
+  Object.keys(REGIONS).forEach(r=>{
+    const total = regionCount(r);
+    if(!total) return;
+    const done = regionVisited(myVisits, r);
+    const ratio = done/total, bestRatio = best ? best.done/best.total : -1;
+    if(!best || ratio>bestRatio || (ratio===bestRatio && total<best.total)) best = { done, total };
+  });
+  return best || { done:0, total:1 };
+}
 
 /* ============ LEVELS ============ */
 const LEVELS = [
@@ -51,6 +67,9 @@ const CHALLENGES = [
   {id:"water10", title:"אתגר המים — 10 יעדי מים", icon:"💧", color:"var(--cat-water)", target:10, match:l=>l.category==="water"||l.hasWater, reward:"תג ייחודי בפרופיל"},
   {id:"jlm8", title:"שבילי ירושלים", icon:"🕍", color:"var(--cat-religious)", target:8, match:l=>l.region==="jerusalem", reward:"תג ייחודי בפרופיל"},
   {id:"desert6", title:"חודש במדבר", icon:"🏜️", color:"var(--cat-mountains)", target:6, match:l=>["south","eilat","deadsea"].includes(l.region), reward:"תג ייחודי בפרופיל"},
+  {id:"peaks10", title:"כובשי הפסגות — 10 מסלולי הרים", icon:"🏔️", color:"var(--cat-mountains)", target:10, match:l=>l.category==="mountains", reward:"תג ייחודי בפרופיל"},
+  {id:"reserves8", title:"שומרי הטבע — 8 שמורות", icon:"🌿", color:"var(--cat-reserves)", target:8, match:l=>l.category==="reserves", reward:"תג ייחודי בפרופיל"},
+  {id:"center12", title:"גלו את המרכז — 12 יעדים", icon:"🏙️", color:"var(--cat-urban)", target:12, match:l=>l.region==="center", reward:"תג ייחודי בפרופיל"},
 ];
 function challengeProgress(ch){
   const matched = myVisits.filter(v=> lmById[v.landmark_id] && ch.match(lmById[v.landmark_id]));
