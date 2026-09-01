@@ -22,18 +22,45 @@ const DIFFS = {
   hard:{label:"קשה",points:50}, extreme:{label:"מאתגר",points:100},
 };
 const BADGES = [
-  {id:"first",label:"צעד ראשון",icon:"👣",cond:v=>v.length>=1},
-  {id:"seven",label:"צועד השבעה",icon:"🥾",cond:v=>v.length>=7},
-  {id:"water5",label:"כובש נחלים",icon:"💧",cond:v=>countCat(v,"water")>=5},
-  {id:"hist5",label:"היסטוריון",icon:"🏺",cond:v=>(countCat(v,"archaeology")+countCat(v,"heritage"))>=5},
-  {id:"north",label:"אלוף הצפון",icon:"🧭",cond:v=>regionDone(v,"north")},
-  {id:"desert",label:"רץ המדבר",icon:"🏜️",cond:v=>regionDone(v,"south")&&regionDone(v,"eilat")},
-  {id:"extreme",label:"מטפס ותיק",icon:"⛰️",cond:v=>countDiff(v,"extreme")>=2},
-  {id:"all",label:"כל הארץ",icon:"🏆",cond:v=>v.length>=LANDMARKS.length},
+  {id:"first",label:"צעד ראשון",icon:"👣",target:()=>1,current:v=>Math.min(v.length,1)},
+  {id:"seven",label:"צועד השבעה",icon:"🥾",target:()=>7,current:v=>Math.min(v.length,7)},
+  {id:"water5",label:"כובש נחלים",icon:"💧",target:()=>5,current:v=>Math.min(countCat(v,"water"),5)},
+  {id:"hist5",label:"היסטוריון",icon:"🏺",target:()=>5,current:v=>Math.min(countCat(v,"archaeology")+countCat(v,"heritage"),5)},
+  {id:"north",label:"אלוף הצפון",icon:"🧭",target:()=>Math.min(15,regionCount("north")),current:v=>Math.min(regionVisited(v,"north"),15)},
+  {id:"desert",label:"רץ המדבר",icon:"🏜️",target:()=>Math.min(10,regionCount("south")+regionCount("eilat")),current:v=>Math.min(regionVisited(v,"south")+regionVisited(v,"eilat"),10)},
+  {id:"extreme",label:"מטפס ותיק",icon:"⛰️",target:()=>2,current:v=>Math.min(countDiff(v,"extreme"),2)},
+  {id:"all",label:"כל הארץ",icon:"🏆",target:()=>LANDMARKS.length||259,current:v=>v.length},
 ];
 function countCat(visited,cat){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].category===cat).length;}
 function countDiff(visited,d){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].difficulty===d).length;}
-function regionDone(visited,r){const ids=LANDMARKS.filter(l=>l.region===r).map(l=>l.id);return ids.length>0 && ids.every(id=>visited.some(v=>v.landmark_id===id));}
+function regionCount(r){ return LANDMARKS.filter(l=>l.region===r).length; }
+function regionVisited(visited,r){ return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].region===r).length; }
+
+/* ============ LEVELS ============ */
+const LEVELS = [
+  {name:"מטייל מתחיל",icon:"🥾",min:0},
+  {name:"מגלה ארצות",icon:"🧭",min:100},
+  {name:"סייר",icon:"🏕️",min:300},
+  {name:"מומחה ישראל",icon:"🗺️",min:700},
+  {name:"אלוף הארץ",icon:"👑",min:1500},
+];
+/* ============ CHALLENGES ============ */
+const CHALLENGES = [
+  {id:"icons25", title:"25 המקומות שכל ישראלי חייב לראות", icon:"🏆", color:"var(--cat-heritage)", target:25, match:l=>!l.id.startsWith("tiuli-"), reward:"תג ייחודי בפרופיל"},
+  {id:"water10", title:"אתגר המים — 10 יעדי מים", icon:"💧", color:"var(--cat-water)", target:10, match:l=>l.category==="water"||l.hasWater, reward:"תג ייחודי בפרופיל"},
+  {id:"jlm8", title:"שבילי ירושלים", icon:"🕍", color:"var(--cat-religious)", target:8, match:l=>l.region==="jerusalem", reward:"תג ייחודי בפרופיל"},
+  {id:"desert6", title:"חודש במדבר", icon:"🏜️", color:"var(--cat-mountains)", target:6, match:l=>["south","eilat","deadsea"].includes(l.region), reward:"תג ייחודי בפרופיל"},
+];
+function challengeProgress(ch){
+  const matched = myVisits.filter(v=> lmById[v.landmark_id] && ch.match(lmById[v.landmark_id]));
+  return { current: Math.min(matched.length, ch.target), remaining: LANDMARKS.filter(l=>ch.match(l) && !myVisits.some(v=>v.landmark_id===l.id)) };
+}
+function getLevel(xp){
+  let i = LEVELS.length-1;
+  while(i>0 && xp<LEVELS[i].min) i--;
+  const cur = LEVELS[i], next = LEVELS[i+1] || null;
+  return { name:cur.name, icon:cur.icon, index:i, next, toNext: next ? next.min-xp : 0 };
+}
 
 function catIconSvg(cat,size){
   size=size||24;
@@ -62,7 +89,8 @@ let myWishlist = [];     // [landmark_id,...]
 let followingSet = new Set();
 let myGroups = [], activeGroupId = null, pendingGroupSwitch = false;
 let userLoc = null;
-let filters = { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false };
+function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
+let filters = defaultFilters();
 let prevBadgeSet = new Set();
 let lbScope="friends", lbPeriod="week";
 let profileListTab="visited";
@@ -382,6 +410,7 @@ const DURATION_BUCKETS = {
 };
 function filteredLandmarks(){
   return LANDMARKS.filter(l=>{
+    if(filters.customIds && !filters.customIds.has(l.id)) return false;
     if(filters.cats.length && !filters.cats.includes(l.category)) return false;
     if(filters.diffs.length && !filters.diffs.includes(l.difficulty)) return false;
     if(filters.regions.length && !filters.regions.includes(l.region)) return false;
@@ -424,7 +453,7 @@ function renderMap(){
   if(!leafletMap) return;
   clusterGroup.clearLayers();
   const list = filteredLandmarks();
-  $("visibleCount").textContent = list.length+" יעדים";
+  $("visibleCount").textContent = filters.customLabel ? filters.customLabel+" · "+list.length : list.length+" יעדים";
   list.forEach(l=>{
     const visited = myVisits.some(v=>v.landmark_id===l.id);
     const wished = myWishlist.includes(l.id);
@@ -465,7 +494,7 @@ function wireStaticUI(){
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
   $("closeFilters").onclick=()=>closeSheet("filterSheet","filterScrim");
   $("filterScrim").onclick=()=>closeSheet("filterSheet","filterScrim");
-  $("clearFilters").onclick=()=>{ filters={cats:[],diffs:[],regions:[],maxDist:400,duration:null,season:null,family:false,dog:false,water:false,accessible:false,free:false}; syncFilterUI(); syncQuickChips(); renderMap(); };
+  $("clearFilters").onclick=()=>{ filters=defaultFilters(); syncFilterUI(); syncQuickChips(); renderMap(); };
   $("applyFilters").onclick=()=>{ renderMap(); closeSheet("filterSheet","filterScrim"); syncFilterUI(); syncQuickChips(); };
   wireSingleSelectChips("durationChips", "duration");
   wireSingleSelectChips("seasonChips", "season");
@@ -485,7 +514,7 @@ function wireStaticUI(){
     };
   });
   $("actDiscover").onclick = ()=>{
-    filters = {cats:[],diffs:[],regions:[],maxDist:400,duration:null,season:null,family:false,dog:false,water:false,accessible:false,free:false};
+    filters = defaultFilters();
     syncFilterUI(); syncQuickChips(); renderMap();
     if(israelBounds) leafletMap.fitBounds(israelBounds,{padding:[28,28]});
     navigate("#/map");
@@ -811,7 +840,7 @@ async function flushPendingQueue(){
 }
 
 /* ============ BADGES / STREAK ============ */
-function unlockedBadges(){ return BADGES.filter(b=>b.cond(myVisits)); }
+function unlockedBadges(){ return BADGES.filter(b=>b.current(myVisits)>=b.target()); }
 function checkNewBadges(){
   const now = unlockedBadges();
   const newOnes = now.filter(b=>!prevBadgeSet.has(b.id));
@@ -852,21 +881,26 @@ function renderProfile(){
   if(!session){ setGuestGate("profile", true); return; }
   setGuestGate("profile", false);
   if(!myProfile) return;
+  const xp = totalPoints();
+  const level = getLevel(xp);
   $("profAvatar").textContent = myProfile.name.trim().charAt(0) || "א";
   $("profName").firstChild.textContent = myProfile.name;
-  $("profSub").textContent = (myVisits.length?"מטייל/ת פעיל/ה":"מצטרפ/ת חדש/ה")+" · "+myVisits.length+" יעדים נכבשו";
+  $("profSub").innerHTML = `<span class="level-chip">${level.icon} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
   const pct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
   $("progNum").firstChild.textContent = myVisits.length;
   $("progNum").querySelector("span").textContent = "/ "+LANDMARKS.length+" יעדים";
   $("progPct").textContent = pct+"%";
   $("progBar").style.width = pct+"%";
-  $("statPoints").textContent = totalPoints().toLocaleString();
+  $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} XP לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();
   const ub = unlockedBadges();
   $("statBadges").textContent = ub.length+"/"+BADGES.length;
   $("badgeGrid").innerHTML = BADGES.map(b=>{
     const on = ub.some(u=>u.id===b.id);
-    return '<div class="badge'+(on?" unlocked":"")+'"><div class="circ">'+b.icon+'</div><div class="lbl">'+b.label+"</div></div>";
+    const cur = b.current(myVisits), tgt = b.target();
+    const progressLine = on ? "" : `<div class="badge-progress">${cur}/${tgt}</div>`;
+    return `<div class="badge${on?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div>${progressLine}</div>`;
   }).join("");
   const listEl = $("profList");
   if(profileListTab==="visited"){
@@ -967,7 +1001,7 @@ async function renderFeed(){
       .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
       .order("visited_at",{ascending:false}).limit(20);
     if(error) throw error;
-    if(!data.length){ listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!</div>'; renderChallenge(); return; }
+    if(!data.length){ listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!</div>'; renderChallenge(); renderPersonalChallenges(); return; }
     listEl.innerHTML = data.map(row=>{
       const l = lmById[row.landmark_id]; if(!l) return "";
       const cat = CATEGORIES[l.category];
@@ -992,7 +1026,48 @@ async function renderFeed(){
       };
     });
     renderChallenge();
+    renderPersonalChallenges();
   }catch(err){ console.error(err); listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת הפיד.</div>'; }
+}
+const CHALLENGE_SEEN_KEY = "magalim-challenges-seen-v1";
+function renderPersonalChallenges(){
+  const seen = new Set(JSON.parse(localStorage.getItem(CHALLENGE_SEEN_KEY)||"[]"));
+  $("personalChallenges").innerHTML = CHALLENGES.map(ch=>{
+    const { current, remaining } = challengeProgress(ch);
+    const done = current>=ch.target;
+    if(done && !seen.has(ch.id)){
+      seen.add(ch.id);
+      setTimeout(()=>toast("🏅 השלמת אתגר: "+ch.title+"!"), 400);
+    }
+    const pct = Math.round(current/ch.target*100);
+    return `<div class="pchallenge-card${done?" done":""}">
+      <div class="pchallenge-head">
+        <div class="pchallenge-icon" style="background:${ch.color}">${ch.icon}</div>
+        <div><div class="pchallenge-title">${ch.title}</div><div class="pchallenge-reward">🎁 ${ch.reward}</div></div>
+      </div>
+      <div class="pchallenge-progress-row"><span>${current} / ${ch.target} הושלמו</span><span>${done?"הושלם! 🎉":pct+"%"}</span></div>
+      <div class="bar"><i style="width:${pct}%;background:${ch.color}"></i></div>
+      ${done ? "" : `<button class="pchallenge-cta" data-ch="${ch.id}">הצג את ${remaining.length} היעדים שנותרו</button>`}
+    </div>`;
+  }).join("");
+  localStorage.setItem(CHALLENGE_SEEN_KEY, JSON.stringify([...seen]));
+  document.querySelectorAll(".pchallenge-cta").forEach(btn=>{
+    btn.onclick = ()=>{
+      const ch = CHALLENGES.find(c=>c.id===btn.dataset.ch);
+      const { remaining } = challengeProgress(ch);
+      filters = defaultFilters();
+      filters.customIds = new Set(remaining.map(l=>l.id));
+      filters.customLabel = ch.title;
+      navigate("#/map");
+      setTimeout(()=>{
+        syncFilterUI(); renderMap();
+        if(remaining.length){
+          const bounds = L.latLngBounds(remaining.map(l=>[l.lat,l.lon]));
+          leafletMap.fitBounds(bounds,{padding:[36,36]});
+        }
+      },0);
+    };
+  });
 }
 function timeAgo(iso){
   const diff = Date.now()-new Date(iso).getTime();
