@@ -722,7 +722,9 @@ function startCheckin(l){
       <div class="photo-drop" id="photoDrop">📷 הקש כדי לצלם תמונת אימות במיקום</div>
       <input type="file" accept="image/*" capture="environment" id="photoInput">
       <img class="photo-preview hidden" id="photoPreview">
-      <button class="btn btn-primary btn-block" id="confirmCheckin" disabled>אשר צ'ק-אין</button>
+      <label class="field-label" style="margin-top:6px;">הערה קצרה לחברים (אופציונלי)</label>
+      <input class="text-input" id="checkinNote" maxlength="120" placeholder="לדוגמה: יש מים עכשיו, המסלול מעולה!">
+      <button class="btn btn-primary btn-block" id="confirmCheckin" disabled style="margin-top:12px;">אשר צ'ק-אין</button>
     </div>`;
   $("demoSwitch").onchange = e=>{ demoMode=e.target.checked; runGpsCheck(l); };
   $("photoDrop").onclick=()=>$("photoInput").click();
@@ -781,11 +783,12 @@ function pointsFor(l){
 
 async function confirmCheckin(l){
   const pts = pointsFor(l);
+  const note = ($("checkinNote")?.value || "").trim().slice(0,120) || null;
   if(!navigator.onLine){
-    const pending = { landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, points:pts, ts:new Date().toISOString() };
+    const pending = { landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, points:pts, note, ts:new Date().toISOString() };
     const queue = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
     queue.push(pending); localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
-    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:pts, pending:true });
+    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:pts, note, pending:true });
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     toast("נשמר במצב אופליין — יסונכרן כשהחיבור יחזור");
     renderMap(); renderProfile(); return;
@@ -799,7 +802,10 @@ async function confirmCheckin(l){
       if(upErr) throw upErr;
       photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
     }
-    const { data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:pts }).select().single();
+    let { data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:pts, note }).select().single();
+    if(error && /note/i.test(error.message||"")){
+      ({ data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:pts }).select().single());
+    }
     if(error) throw error;
     myVisits.push(data);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
@@ -829,7 +835,10 @@ async function flushPendingQueue(){
         const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, blob, { contentType:"image/jpeg" });
         if(!upErr) photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
       }
-      const { error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:item.points });
+      let { error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:item.points, note:item.note||null });
+      if(error && /note/i.test(error.message||"")){
+        ({ error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:item.points }));
+      }
       if(error) throw error;
       myVisits = myVisits.filter(v=>!(v.pending && v.landmark_id===item.landmarkId));
       toast("סונכרן צ'ק-אין: "+(lmById[item.landmarkId]?lmById[item.landmarkId].name:item.landmarkId));
@@ -1039,6 +1048,29 @@ function renderProfile(){
 }
 
 /* ============ LEADERBOARD ============ */
+function renderLbSummary(rows){
+  const el = $("lbSummary");
+  const myIndex = rows.findIndex(r=>r.id===session.user.id);
+  if(myIndex<0 || rows.length<2){ el.classList.add("hidden"); return; }
+  el.classList.remove("hidden");
+  const rank = myIndex+1, total = rows.length;
+  let headline;
+  if(myIndex===0) headline = `🥇 את/ה במקום הראשון מתוך ${total}!`;
+  else {
+    const medal = myIndex===1?"🥈":myIndex===2?"🥉":"📍";
+    headline = `${medal} את/ה במקום ${rank} מתוך ${total}`;
+  }
+  let sub = "";
+  if(myIndex>0){
+    const above = rows[myIndex-1];
+    const gap = above.val - rows[myIndex].val;
+    sub = gap>0 ? `${above.name} מוביל/ה עליך ב-${gap.toLocaleString()} XP` : `את/ה צמוד/ה ל${above.name}!`;
+  } else if(rows.length>1){
+    sub = `${(rows[0].val-rows[1].val).toLocaleString()} XP לפני ${rows[1].name}`;
+  }
+  el.innerHTML = `<div class="lb-summary-head">${headline}</div><div class="lb-summary-sub">${sub}</div><button class="btn btn-primary lb-summary-cta" id="lbFindNext">מצא את היעד הבא</button>`;
+  $("lbFindNext").onclick = ()=> navigate("#/map");
+}
 async function renderBoard(){
   if(!session){ setGuestGate("board", true); return; }
   setGuestGate("board", false);
@@ -1048,13 +1080,13 @@ async function renderBoard(){
     let ids;
     if(lbScope==="friends"){ ids = Array.from(new Set([...followingSet, session.user.id])); }
     else if(lbScope==="group"){
-      if(!activeGroupId){ listEl.innerHTML = ""; return; }
+      if(!activeGroupId){ listEl.innerHTML = ""; $("lbSummary").classList.add("hidden"); return; }
       const { data: members, error: mErr } = await supabase.from("group_members").select("user_id").eq("group_id", activeGroupId);
       if(mErr) throw mErr;
       ids = members.map(m=>m.user_id);
     }
     else { const { data } = await supabase.from("profiles").select("id").limit(60); ids = data.map(r=>r.id); if(!ids.includes(session.user.id)) ids.push(session.user.id); }
-    if(!ids.length){ listEl.innerHTML = '<div class="empty-state">אין עדיין נתונים להצגה.</div>'; return; }
+    if(!ids.length){ listEl.innerHTML = '<div class="empty-state">אין עדיין נתונים להצגה.</div>'; $("lbSummary").classList.add("hidden"); return; }
     const [{ data: profs, error: pErr }, { data: visits, error: vErr }] = await Promise.all([
       supabase.from("profiles").select("id,name").in("id", ids),
       supabase.from("visits").select("user_id,points_awarded,visited_at").in("user_id", ids),
@@ -1065,6 +1097,7 @@ async function renderBoard(){
     profs.forEach(p=> totals[p.id]=0);
     visits.forEach(v=>{ if(new Date(v.visited_at).getTime()>=cutoff) totals[v.user_id]=(totals[v.user_id]||0)+v.points_awarded; });
     const rows = profs.map(p=>({ id:p.id, name:p.name, val:totals[p.id]||0 })).sort((a,b)=>b.val-a.val);
+    renderLbSummary(rows);
     listEl.innerHTML = rows.map((r,i)=>{
       const isMe = r.id===session.user.id;
       const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
@@ -1104,9 +1137,14 @@ async function renderFeed(){
   const listEl = $("feedList");
   listEl.innerHTML = '<div class="empty-state">טוען פיד...</div>';
   try{
-    const { data, error } = await supabase.from("visits")
-      .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+    let { data, error } = await supabase.from("visits")
+      .select("id,visited_at,photo_url,points_awarded,note,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
       .order("visited_at",{ascending:false}).limit(20);
+    if(error && /note/i.test(error.message||"")){
+      ({ data, error } = await supabase.from("visits")
+        .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+        .order("visited_at",{ascending:false}).limit(20));
+    }
     if(error) throw error;
     if(!data.length){ listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!</div>'; renderChallenge(); renderPersonalChallenges(); return; }
     listEl.innerHTML = data.map(row=>{
@@ -1114,14 +1152,35 @@ async function renderFeed(){
       const cat = CATEGORIES[l.category];
       const name = row.profiles ? row.profiles.name : "מטייל/ת";
       const likedByMe = row.likes.some(x=>x.user_id===session.user.id);
+      const wished = myWishlist.includes(l.id);
+      const visited = myVisits.some(v=>v.landmark_id===l.id);
       const bg = row.photo_url ? `background-image:url('${row.photo_url}')` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%))`;
       return `<div class="feed-card">
         <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
           <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
-        <div class="feed-photo" style="${bg}">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
-        <div class="feed-actions"><button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button></div>
+        <div class="feed-photo" data-goto="${l.id}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
+        ${row.note ? `<div class="feed-note">"${row.note}"</div>` : ""}
+        <div class="feed-actions">
+          <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
+          ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${wished?"❤️ ברשימת המשאלות":"🤍 הוסף לרשימת המשאלות"}</button>`}
+        </div>
       </div>`;
     }).join("");
+    listEl.querySelectorAll(".feed-photo").forEach(el=> el.onclick = ()=> goToDestination(el.dataset.goto));
+    listEl.querySelectorAll(".feed-wish-btn").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const lmId = btn.dataset.lm;
+        btn.disabled = true;
+        if(myWishlist.includes(lmId)){
+          const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",lmId);
+          if(!error) myWishlist = myWishlist.filter(x=>x!==lmId);
+        } else {
+          const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:lmId });
+          if(!error) myWishlist.push(lmId);
+        }
+        renderFeed(); renderMap();
+      };
+    });
     listEl.querySelectorAll(".like-btn").forEach(btn=>{
       btn.onclick = async ()=>{
         const visitId = btn.dataset.id;

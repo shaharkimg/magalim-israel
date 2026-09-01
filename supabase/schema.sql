@@ -74,6 +74,7 @@ create table public.visits (
   visited_at timestamptz not null default now(),
   photo_url text,
   points_awarded int not null,
+  note text,
   unique (user_id, landmark_id)
 );
 
