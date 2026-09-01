@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מגלים את ישראל</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Suez+One&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDEAE0; --bg-elevated:#F6F4EC; --surface:#FFFFFF; --text:#241F1A; --text-muted:#6B6255; --border:#DAD4C4;
+  --accent:#B8791C; --accent-strong:#96610F; --accent-ink:#241F1A;
+  --teal:#146F67; --teal-ink:#FFFFFF; --success:#3E8A5A; --warn:#B8791C; --danger:#B3432E; --shadow:rgba(36,31,26,0.14);
+  --map-land:#E4DEC9; --map-land-2:#DAD2B8; --map-outline:#B7A97E; --map-water:#7FB8C4; --sheet-scrim:rgba(23,20,16,0.45);
+  --cat-nature:#4C7A4A;--cat-mountains:#8C5A3C;--cat-water:#1B7A72;--cat-heritage:#7A5C8C;
+  --cat-archaeology:#B08A3E;--cat-viewpoints:#3E6E96;--cat-religious:#AD8A1E;--cat-parks:#6B7A3A;
+  --cat-reserves:#3E8B6B;--cat-urban:#5A6572;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17140F; --bg-elevated:#211C15; --surface:#2A241B; --text:#F4EFE1; --text-muted:#B7AC96; --border:#3C3527;
+    --accent:#E3A94A; --accent-strong:#F0BC6A; --accent-ink:#20160A;
+    --teal:#4BC0B3; --teal-ink:#08211E; --success:#5FB37E; --warn:#E3A94A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.5);
+    --map-land:#2E2818; --map-land-2:#332C1C; --map-outline:#5B4F32; --map-water:#2D6A73; --sheet-scrim:rgba(8,6,3,0.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17140F; --bg-elevated:#211C15; --surface:#2A241B; --text:#F4EFE1; --text-muted:#B7AC96; --border:#3C3527;
+  --accent:#E3A94A; --accent-strong:#F0BC6A; --accent-ink:#20160A;
+  --teal:#4BC0B3; --teal-ink:#08211E; --success:#5FB37E; --warn:#E3A94A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.5);
+  --map-land:#2E2818; --map-land-2:#332C1C; --map-outline:#5B4F32; --map-water:#2D6A73; --sheet-scrim:rgba(8,6,3,0.6);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:"Heebo",system-ui,sans-serif;min-height:100%;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,.brand{font-family:"Suez One","Heebo",serif;text-wrap:balance;}
+button{font-family:inherit;}
+::selection{background:var(--accent);color:var(--accent-ink);}
+.app-shell{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;display:flex;flex-direction:column;box-shadow:0 0 60px var(--shadow);}
+@media (min-width:520px){
+  body{padding:24px 0;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  .app-shell{min-height:0;height:min(844px,92vh);width:390px;max-width:390px;border-radius:28px;overflow:hidden;border:1px solid var(--border);}
+}
+
+/* ---------- Auth screen ---------- */
+.auth-screen{position:absolute;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:28px 26px;gap:18px;}
+.auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px;}
+.auth-logo .brand-mark{width:56px;height:56px;border-radius:16px;}
+.auth-logo h1{font-size:26px;margin:0;}
+.auth-logo p{margin:0;color:var(--text-muted);font-size:13px;}
+.auth-tabs{display:flex;gap:6px;background:var(--bg-elevated);border-radius:12px;padding:4px;}
+.auth-tabs button{flex:1;border:none;background:transparent;padding:10px;border-radius:9px;font-weight:700;font-size:13.5px;color:var(--text-muted);cursor:pointer;}
+.auth-tabs button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow);}
+.auth-form{display:flex;flex-direction:column;gap:12px;}
+.auth-error{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);border-radius:10px;padding:10px 12px;font-size:13px;display:none;}
+.auth-error.show{display:block;}
+.auth-note{background:var(--bg-elevated);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--text-muted);display:none;}
+.auth-note.show{display:block;}
+.auth-skip{text-align:center;font-size:12.5px;color:var(--text-muted);margin-top:2px;}
+
+/* ---------- Header ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;background:var(--bg);position:sticky;top:0;z-index:20;}
+.brand-row{display:flex;align-items:center;gap:8px;}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;flex:none;}
+.brand-mark svg{width:19px;height:19px;}
+.brand{font-size:19px;color:var(--text);line-height:1;}
+.brand small{display:block;font-family:"Heebo";font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--text-muted);margin-top:2px;}
+.stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:6px 12px 6px 10px;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;box-shadow:0 1px 0 var(--shadow);}
+.stat-pill .flame{color:var(--danger);font-size:13px;}
+.stat-pill .coin{width:15px;height:15px;flex:none;}
+
+.view{display:none;flex:1;min-height:0;flex-direction:column;}
+.view.active{display:flex;}
+.scroll-area{flex:1;overflow-y:auto;padding:0 16px 100px;}
+
+.map-wrap{position:relative;flex:1;min-height:0;background:var(--map-water);overflow:hidden;touch-action:none;}
+.map-wrap svg{display:block;width:100%;height:100%;}
+.map-controls{position:absolute;left:12px;bottom:110px;display:flex;flex-direction:column;gap:1px;z-index:5;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);}
+.map-controls button{width:38px;height:38px;border:none;background:transparent;color:var(--text);font-size:19px;cursor:pointer;line-height:1;}
+.map-controls button:active{background:var(--bg-elevated);}
+.map-controls button+button{border-top:1px solid var(--border);}
+.locate-btn{position:absolute;right:12px;bottom:110px;width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--surface);box-shadow:0 2px 10px var(--shadow);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;}
+.filter-fab{position:absolute;top:12px;right:12px;z-index:5;display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:9px 14px;font-weight:700;font-size:13px;box-shadow:0 2px 10px var(--shadow);cursor:pointer;color:var(--text);}
+.filter-fab .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:none;}
+.filter-fab.has-filters .dot{display:inline-block;}
+.map-legend-btn{position:absolute;top:12px;left:12px;z-index:5;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:8px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 10px var(--shadow);color:var(--text-muted);}
+
+.marker{cursor:pointer;}
+.marker circle.halo{opacity:0;transition:opacity .15s;}
+.marker:hover circle.halo, .marker:active circle.halo{opacity:.18;}
+.marker.visited .ring{stroke:var(--success);}
+.marker .pin{stroke:var(--surface);stroke-width:2;}
+.marker .check{fill:var(--surface);}
+.marker .wish-star{fill:var(--accent);stroke:var(--surface);stroke-width:1;}
+.cluster circle{fill:var(--accent-strong);stroke:var(--surface);stroke-width:2.5;}
+.cluster text{fill:var(--accent-ink);font-weight:800;font-size:13px;font-family:"Heebo";}
+.map-island{fill:var(--map-land);stroke:var(--map-outline);stroke-width:1.4;}
+.map-water-shape{fill:var(--map-water);opacity:.9;}
+
+.scrim{position:absolute;inset:0;background:var(--sheet-scrim);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s;}
+.scrim.open{opacity:1;pointer-events:auto;}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:31;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -8px 30px var(--shadow);max-height:82%;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.3,1);}
+.sheet.open{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:10px auto 4px;flex:none;}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 10px;flex:none;}
+.sheet-head h2{margin:0;font-size:19px;}
+.sheet-close{border:none;background:var(--bg-elevated);color:var(--text-muted);width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;}
+.sheet-body{overflow-y:auto;padding:0 18px 18px;}
+.filter-group{margin-bottom:16px;}
+.filter-group h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-family:"Heebo";font-weight:700;margin:0 0 8px;}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .12s,border-color .12s;}
+.chip .sw{width:8px;height:8px;border-radius:50%;flex:none;}
+.chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.chip.active.teal{background:var(--teal);border-color:var(--teal);color:var(--teal-ink);}
+.sheet-actions{display:flex;gap:10px;padding:0 18px 18px;border-top:1px solid var(--border);margin-top:4px;padding-top:14px;}
+.range-row{display:flex;align-items:center;gap:10px;}
+.range-row input[type=range]{flex:1;accent-color:var(--accent);}
+.range-val{font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;min-width:64px;text-align:left;color:var(--text-muted);}
+
+.btn{border:none;border-radius:13px;padding:13px 18px;font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;flex:1;}
+.btn-primary{background:var(--accent);color:var(--accent-ink);}
+.btn-teal{background:var(--teal);color:var(--teal-ink);}
+.btn-ghost{background:var(--bg-elevated);color:var(--text);border:1px solid var(--border);}
+.btn-outline{background:transparent;color:var(--accent-strong);border:1.5px solid var(--accent);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-block{width:100%;}
+.icon-btn{border:none;background:var(--bg-elevated);border-radius:11px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex:none;}
+
+.lm-hero{height:150px;border-radius:14px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:12px;flex:none;}
+.lm-hero svg{position:absolute;opacity:.5;width:110px;height:110px;left:-14px;top:-16px;}
+.lm-hero .badge-count{position:relative;background:rgba(0,0,0,.32);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;backdrop-filter:blur(2px);}
+.cat-tag{display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;}
+.lm-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-top:12px;}
+.lm-title-row h2{margin:0;font-size:21px;}
+.lm-region{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
+.lm-desc{color:var(--text-muted);font-size:14.5px;line-height:1.65;margin:12px 0;}
+.lm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0;}
+.lm-stat{background:var(--bg-elevated);border-radius:11px;padding:10px 6px;text-align:center;}
+.lm-stat .v{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;}
+.lm-stat .l{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+.lm-actions{display:flex;gap:10px;margin-top:6px;}
+
+.checkin-status{display:flex;align-items:center;gap:10px;background:var(--bg-elevated);border-radius:12px;padding:12px;margin:10px 0;font-size:13.5px;color:var(--text-muted);}
+.checkin-status .ic{flex:none;font-size:18px;}
+.checkin-status.ok{color:var(--success);}
+.checkin-status.bad{color:var(--danger);}
+.photo-drop{border:1.5px dashed var(--border);border-radius:14px;padding:22px 12px;text-align:center;color:var(--text-muted);cursor:pointer;margin:12px 0;font-size:13.5px;}
+.photo-preview{width:100%;border-radius:14px;display:block;margin:12px 0;max-height:220px;object-fit:cover;}
+.demo-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border-radius:12px;padding:11px 13px;margin-top:14px;font-size:12.5px;color:var(--text-muted);}
+.switch{position:relative;width:38px;height:22px;flex:none;}
+.switch input{opacity:0;width:0;height:0;}
+.switch .track{position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.15s;cursor:pointer;}
+.switch .track:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:var(--surface);border-radius:50%;transition:.15s;}
+.switch input:checked+.track{background:var(--accent);}
+.switch input:checked+.track:before{transform:translateX(-16px);}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;}
+.section-head h2{font-size:17px;margin:0;}
+.mini-card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:9px;align-items:center;cursor:pointer;}
+.mini-thumb{width:52px;height:52px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mini-thumb img{width:100%;height:100%;object-fit:cover;}
+.mini-thumb svg{width:26px;height:26px;}
+.mini-info{flex:1;min-width:0;}
+.mini-info .name{font-weight:700;font-size:14.5px;}
+.mini-info .sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.mini-pts{font-weight:800;color:var(--accent-strong);font-size:13.5px;font-variant-numeric:tabular-nums;}
+.empty-state{text-align:center;color:var(--text-muted);padding:34px 18px;font-size:13.5px;}
+.empty-state .big{font-size:32px;margin-bottom:8px;}
+
+.profile-head{display:flex;align-items:center;gap:14px;padding:18px 0 10px;}
+.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";}
+.profile-name{font-size:18px;font-weight:800;}
+.profile-name button{border:none;background:none;color:var(--text-muted);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-inline-start:6px;}
+.profile-sub{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
+.progress-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin:14px 0;}
+.progress-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
+.progress-top .n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
+.progress-top .n span{font-size:13px;color:var(--text-muted);font-weight:600;}
+.bar{height:9px;border-radius:99px;background:var(--bg-elevated);overflow:hidden;}
+.bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--accent));border-radius:99px;}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center;}
+.stat-box .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;}
+.stat-box .l{font-size:10.5px;color:var(--text-muted);margin-top:3px;}
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 6px;}
+.badge{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
+.badge .circ{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;background:var(--bg-elevated);border:1.5px solid var(--border);}
+.badge.unlocked .circ{background:linear-gradient(155deg,var(--accent),var(--teal));border-color:transparent;}
+.badge .lbl{font-size:10px;color:var(--text-muted);font-weight:600;line-height:1.3;}
+.badge.unlocked .lbl{color:var(--text);}
+.tab-row{display:flex;gap:6px;background:var(--bg-elevated);border-radius:12px;padding:4px;margin:14px 0 4px;}
+.tab-row button{flex:1;border:none;background:transparent;padding:9px 4px;border-radius:9px;font-weight:700;font-size:12.5px;color:var(--text-muted);cursor:pointer;}
+.tab-row button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow);}
+
+.scope-row{display:flex;gap:8px;margin:14px 0 10px;}
+.seg{display:flex;background:var(--bg-elevated);border-radius:11px;padding:3px;flex:1;}
+.seg button{flex:1;border:none;background:transparent;padding:8px 4px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--text-muted);cursor:pointer;}
+.seg button.active{background:var(--surface);color:var(--text);}
+.lb-row{display:flex;align-items:center;gap:11px;padding:10px 8px;border-radius:13px;}
+.lb-row.me{background:var(--bg-elevated);border:1.5px solid var(--accent);}
+.lb-rank{width:22px;text-align:center;font-weight:800;color:var(--text-muted);font-size:13px;font-variant-numeric:tabular-nums;flex:none;}
+.lb-rank.top1{color:#C9A227;}
+.lb-rank.top2{color:#9AA0A6;}
+.lb-rank.top3{color:#B0713A;}
+.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13.5px;flex:none;font-family:"Suez One";}
+.lb-name{flex:1;font-weight:700;font-size:14px;}
+.lb-name small{display:block;font-weight:500;font-size:11px;color:var(--text-muted);}
+.lb-pts{font-weight:800;font-variant-numeric:tabular-nums;font-size:14px;}
+.follow-btn{border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer;flex:none;}
+.follow-btn.following{background:var(--teal);color:var(--teal-ink);border-color:var(--teal);}
+
+.challenge-card{background:linear-gradient(140deg,var(--teal),#0F534C);color:#fff;border-radius:16px;padding:16px;margin:14px 0;}
+:root[data-theme="dark"] .challenge-card,@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .challenge-card{background:linear-gradient(140deg,#1E7168,#0B3733);}}
+.challenge-card h3{margin:0 0 4px;font-size:15px;}
+.challenge-card p{margin:0 0 10px;font-size:12.5px;opacity:.85;}
+.challenge-card .bar{background:rgba(255,255,255,.22);}
+.challenge-card .bar>i{background:#fff;}
+.feed-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden;}
+.feed-head{display:flex;align-items:center;gap:10px;padding:12px 12px 0;}
+.feed-name{font-weight:700;font-size:13.5px;}
+.feed-time{font-size:11.5px;color:var(--text-muted);}
+.feed-photo{height:190px;margin:10px 0 0;display:flex;align-items:center;justify-content:center;position:relative;background-size:cover;background-position:center;}
+.feed-photo svg{width:52px;height:52px;opacity:.55;}
+.feed-photo .lm-label{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.4);color:#fff;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;}
+.feed-actions{display:flex;align-items:center;gap:16px;padding:10px 12px 12px;}
+.like-btn{border:none;background:none;display:flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13px;font-weight:700;cursor:pointer;padding:0;}
+.like-btn.liked{color:var(--danger);}
+.like-btn svg{width:18px;height:18px;}
+
+.toast{position:absolute;left:16px;right:16px;bottom:88px;z-index:60;background:var(--text);color:var(--bg);border-radius:13px;padding:13px 16px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:10px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.22s;box-shadow:0 8px 24px var(--shadow);}
+.toast.show{transform:translateY(0);opacity:1;}
+:root[data-theme="dark"] .toast,@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toast{background:var(--accent);color:var(--accent-ink);}}
+.offline-banner{background:var(--warn);color:var(--accent-ink);text-align:center;font-size:12px;font-weight:700;padding:6px;display:none;flex:none;}
+.offline-banner.show{display:block;}
+.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--surface);flex:none;position:sticky;bottom:0;z-index:20;padding-bottom:env(safe-area-inset-bottom);}
+.nav-btn{flex:1;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px 8px;cursor:pointer;color:var(--text-muted);}
+.nav-btn svg{width:21px;height:21px;}
+.nav-btn.active{color:var(--accent-strong);}
+.nav-btn span{font-size:10.5px;font-weight:700;}
+
+.detail-scrim{position:fixed;inset:0;background:var(--sheet-scrim);z-index:39;opacity:0;pointer-events:none;transition:opacity .2s;}
+.detail-scrim.open{opacity:1;pointer-events:auto;}
+@media (min-width:520px){ .detail-scrim{position:absolute;} .scrim{position:absolute;}}
+
+svg{overflow:visible;}
+.hidden{display:none!important;}
+input[type=file]{display:none;}
+.field-label{font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;}
+.text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);font-family:inherit;}
+.loading-screen{position:absolute;inset:0;z-index:90;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+
+  <div class="loading-screen" id="loadingScreen"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted)">טוען...</div></div>
+
+  <div class="auth-screen hidden" id="authScreen">
+    <div class="auth-logo">
+      <div class="brand-mark" style="width:56px;height:56px;border-radius:16px;"><svg viewBox="0 0 24 24" fill="none" width="30" height="30"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      <h1>מגלים את ישראל</h1>
+      <p>הצטרפו וצאו לכבוש את הארץ</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="active" id="tabLogin">התחברות</button>
+      <button id="tabSignup">הרשמה</button>
+    </div>
+    <form class="auth-form" id="authForm">
+      <div id="nameField" class="hidden">
+        <label class="field-label">שם</label>
+        <input class="text-input" id="authName" type="text" autocomplete="name" placeholder="איך לקרוא לך?">
+      </div>
+      <div>
+        <label class="field-label">אימייל</label>
+        <input class="text-input" id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+      </div>
+      <div>
+        <label class="field-label">סיסמה</label>
+        <input class="text-input" id="authPassword" type="password" autocomplete="current-password" required placeholder="לפחות 6 תווים" minlength="6">
+      </div>
+      <div class="auth-error" id="authError"></div>
+      <div class="auth-note" id="authNote"></div>
+      <button type="submit" class="btn btn-primary btn-block" id="authSubmit">התחברות</button>
+    </form>
+  </div>
+
+  <div class="topbar hidden" id="topbar">
+    <div class="brand-row">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      <div class="brand">מגלים את ישראל<small>חי · Supabase</small></div>
+    </div>
+    <div class="stat-pill" id="headerPoints">
+      <svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--accent)"/><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="800" fill="var(--accent-ink)" font-family="Heebo">₪</text></svg>
+      <span id="pointsVal">0</span>
+      <span class="flame">🔥<span id="streakVal">0</span></span>
+    </div>
+  </div>
+
+  <div class="offline-banner" id="offlineBanner">אין חיבור לרשת</div>
+
+  <div class="view active hidden" id="view-map">
+    <div class="map-wrap" id="mapWrap">
+      <div class="map-legend-btn" id="visibleCount">25 יעדים</div>
+      <div class="filter-fab" id="openFilters"><span class="dot" id="filterDot"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        סינון
+      </div>
+      <svg id="mapSvg" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid meet"></svg>
+      <button class="locate-btn" id="locateBtn" title="המיקום שלי">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="map-controls">
+        <button id="zoomIn">+</button>
+        <button id="zoomOut">−</button>
+        <button id="zoomReset" style="font-size:13px">⟲</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-board">
+    <div class="scroll-area">
+      <h1 style="font-size:22px;margin:16px 0 2px;">טבלת דירוג</h1>
+      <div class="scope-row">
+        <div class="seg" id="scopeSeg">
+          <button data-scope="friends" class="active">חברים</button>
+          <button data-scope="global">כלל המשתמשים</button>
+        </div>
+      </div>
+      <div class="seg" id="periodSeg" style="margin-bottom:14px;">
+        <button data-period="week" class="active">שבועי</button>
+        <button data-period="month">חודשי</button>
+        <button data-period="all">כל הזמנים</button>
+      </div>
+      <div id="lbList"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-feed">
+    <div class="scroll-area">
+      <h1 style="font-size:22px;margin:16px 0 2px;">פיד חברתי</h1>
+      <div class="challenge-card">
+        <h3>🏅 אתגר קבוצתי: מסלולי הצפון</h3>
+        <p id="challengeSub">טוען...</p>
+        <div class="bar"><i id="challengeBar" style="width:0%"></i></div>
+      </div>
+      <div id="feedList"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-profile">
+    <div class="scroll-area">
+      <div class="profile-head">
+        <div class="avatar" id="profAvatar">א</div>
+        <div>
+          <div class="profile-name" id="profName">...<button id="editNameBtn">שינוי שם</button></div>
+          <div class="profile-sub" id="profSub"></div>
+        </div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-top"><div class="n" id="progNum">0<span>/ 25 יעדים</span></div><div class="n" id="progPct" style="color:var(--accent-strong)">0%</div></div>
+        <div class="bar"><i id="progBar" style="width:0%"></i></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">נק' סה"כ</div></div>
+        <div class="stat-box"><div class="v" id="statStreak">0</div><div class="l">רצף שבועות</div></div>
+        <div class="stat-box"><div class="v" id="statBadges">0/8</div><div class="l">תגים</div></div>
+      </div>
+      <div class="section-head"><h2>תגים</h2></div>
+      <div class="badge-grid" id="badgeGrid"></div>
+      <div class="tab-row">
+        <button class="active" data-list="visited">כבשתי</button>
+        <button data-list="wishlist">רשימת משאלות</button>
+      </div>
+      <div id="profList"></div>
+      <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:20px;">התנתקות</button>
+    </div>
+  </div>
+
+  <div class="bottom-nav hidden" id="bottomNav">
+    <button class="nav-btn active" data-view="map"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>מפה</span></button>
+    <button class="nav-btn" data-view="board"><svg viewBox="0 0 24 24" fill="none"><path d="M5 21V10M12 21V3M19 21v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>דירוג</span></button>
+    <button class="nav-btn" data-view="feed"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 4v14" stroke="currentColor" stroke-width="1.8"/></svg><span>פיד</span></button>
+    <button class="nav-btn" data-view="profile"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>פרופיל</span></button>
+  </div>
+
+  <div class="scrim" id="filterScrim"></div>
+  <div class="sheet" id="filterSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2>סינון יעדים</h2><button class="sheet-close" id="closeFilters">✕</button></div>
+    <div class="sheet-body">
+      <div class="filter-group"><h3>קטגוריה</h3><div class="chip-row" id="catChips"></div></div>
+      <div class="filter-group"><h3>רמת קושי</h3><div class="chip-row" id="diffChips"></div></div>
+      <div class="filter-group"><h3>אזור בארץ</h3><div class="chip-row" id="regionChips"></div></div>
+      <div class="filter-group">
+        <h3>מרחק נסיעה מהמיקום שלי</h3>
+        <div class="range-row"><input type="range" id="distRange" min="5" max="400" value="400" step="5"><div class="range-val" id="distVal">ללא הגבלה</div></div>
+        <div id="distHint" style="font-size:12px;color:var(--text-muted);margin-top:6px;">לחצו על כפתור המיקום במפה כדי לאפשר סינון לפי מרחק</div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="clearFilters">איפוס</button>
+      <button class="btn btn-primary" id="applyFilters">הצג יעדים</button>
+    </div>
+  </div>
+
+  <div class="detail-scrim" id="detailScrim"></div>
+  <div class="sheet" id="detailSheet" style="max-height:90%;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-body" id="detailBody"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
