@@ -135,6 +135,10 @@ function haversine(lat1,lon1,lat2,lon2){
   const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
+// הערכת זמן נסיעה גסה ממרחק אווירי - קבוע מהירות ממוצע מוצהר כמשוער, לא נתון אמיתי מ-API ניווט
+const EST_DRIVE_KMH = 55;
+function estimateDriveMinutes(km){ return Math.max(1, Math.round(km/EST_DRIVE_KMH*60)); }
+function kmForDriveMinutes(min){ return Math.round(min/60*EST_DRIVE_KMH); }
 function friendlyAuthError(msg){
   if(!msg) return "משהו השתבש. נסו שוב.";
   if(/Invalid login credentials/i.test(msg)) return "אימייל או סיסמה שגויים.";
@@ -565,7 +569,9 @@ function wireStaticUI(){
     navigator.geolocation.getCurrentPosition(pos=>{
       userLoc = {lat:pos.coords.latitude, lon:pos.coords.longitude};
       $("distHint").textContent = "המיקום שלך אותר — ניתן לסנן לפי מרחק נסיעה";
-      toast("המיקום אותר בהצלחה"); renderMap();
+      syncFilterUI(); renderMap();
+      const count = filteredLandmarks().length;
+      toast(filters.maxDist<400 ? `נמצאו ${count} יעדים במרחק נסיעה של עד ${estimateDriveMinutes(filters.maxDist)} דק'` : "המיקום אותר בהצלחה");
       leafletMap.setView([userLoc.lat, userLoc.lon], 12);
     }, ()=> toast("לא הצלחנו לאתר מיקום — יש לאשר גישה למיקום בדפדפן"), {enableHighAccuracy:true, timeout:8000});
   };
@@ -599,9 +605,8 @@ function wireStaticUI(){
   };
   $("actNearby").onclick = ()=>{
     navigate("#/map");
-    filters.maxDist = 15;
-    $("locateBtn").click();
-    syncFilterUI(); syncQuickChips(); renderMap();
+    filters.maxDist = kmForDriveMinutes(30);
+    if(userLoc){ syncFilterUI(); renderMap(); } else { $("locateBtn").click(); }
   };
   $("shareMapBtn").onclick = ()=> shareMyMap();
   Object.entries(DIFFS).forEach(([id,d])=>{
@@ -654,7 +659,15 @@ function wireStaticUI(){
     if(!requireAuth("רוצה לראות את רשימת המשאלות שלך? צרו חשבון בחינם", goToWishlist)) return;
     goToWishlist();
   };
-  $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); $("distVal").textContent = filters.maxDist>=400?"ללא הגבלה":filters.maxDist+' ק"מ'; };
+  $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); updateDistVal(); syncDistQuickChips(); };
+  document.querySelectorAll("#distQuickChips .chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      const min = Number(chip.dataset.min);
+      if(min>0 && !userLoc){ $("locateBtn").click(); }
+      filters.maxDist = min>0 ? kmForDriveMinutes(min) : 400;
+      updateDistVal(); syncDistQuickChips(); renderMap(); syncQuickChips();
+    };
+  });
   $("detailScrim").onclick=()=> goBack();
   document.querySelectorAll(".nav-btn").forEach(btn=>{
     btn.onclick=()=> navigate("#/"+btn.dataset.view);
@@ -754,10 +767,21 @@ function syncFilterUI(){
   const amenityKeyMap = { family:"family", dog:"dog", water:"water", accessible:"accessible", free:"free" };
   document.querySelectorAll("#amenityChips .chip").forEach(c=>c.classList.toggle("active", !!filters[amenityKeyMap[c.dataset.id]]));
   $("distRange").value = filters.maxDist;
-  $("distVal").textContent = filters.maxDist>=400 ? "ללא הגבלה" : filters.maxDist+' ק"מ';
+  updateDistVal();
+  syncDistQuickChips();
   const hasFilters = filters.cats.length||filters.diffs.length||filters.regions.length||filters.maxDist<400||filters.duration||filters.season||filters.family||filters.dog||filters.water||filters.accessible||filters.free;
   $("openFilters").classList.toggle("has-filters", !!hasFilters);
   syncQuickChips();
+}
+function updateDistVal(){
+  $("distVal").textContent = filters.maxDist>=400 ? "ללא הגבלה" : filters.maxDist+' ק"מ · כ-'+estimateDriveMinutes(filters.maxDist)+' דק׳ נסיעה (משוער)';
+}
+function syncDistQuickChips(){
+  document.querySelectorAll("#distQuickChips .chip").forEach(chip=>{
+    const min = Number(chip.dataset.min);
+    const active = min===0 ? filters.maxDist>=400 : Math.abs(filters.maxDist - kmForDriveMinutes(min)) <= 2;
+    chip.classList.toggle("active", active);
+  });
 }
 function skeletonRows(n){
   return Array.from({length:n}).map(()=>`<div class="lb-row skel-row"><div class="skel skel-circle" style="width:22px;height:16px;"></div><div class="skel skel-circle" style="width:38px;height:38px;"></div><div class="skel skel-line" style="flex:1;"></div><div class="skel skel-line" style="width:40px;"></div></div>`).join("");
@@ -802,6 +826,7 @@ function openDetail(id){
     </div>
     <div class="lm-title-row"><div><h2>${l.name}</h2>
       <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
+      ${userLoc ? `<div class="lm-from-you">📍 ${Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} ק"מ ממך · כ-${estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} דק׳ נסיעה (משוער)</div>` : ""}
     </div></div>
     <p class="lm-desc">${l.desc}</p>
     <div class="lm-stats">

@@ -151,6 +151,7 @@ button{font-family:inherit;}
 .lm-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-top:12px;}
 .lm-title-row h2{margin:0;font-size:21px;}
 .lm-region{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
+.lm-from-you{color:var(--teal);background:color-mix(in srgb, var(--teal) 14%, transparent);display:inline-block;font-size:12px;font-weight:600;padding:4px 9px;border-radius:20px;margin-top:8px;}
 .lm-desc{color:var(--text-muted);font-size:14.5px;line-height:1.65;margin:12px 0;}
 .lm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0;}
 .lm-stat{background:var(--bg-elevated);border-radius:11px;padding:10px 6px;text-align:center;}
@@ -541,6 +542,13 @@ input[type=file]{display:none;}
       <div class="filter-group"><h3>אזור בארץ</h3><div class="chip-row" id="regionChips"></div></div>
       <div class="filter-group">
         <h3>מרחק נסיעה מהמיקום שלי</h3>
+        <div class="chip-row" id="distQuickChips" style="margin-bottom:10px;">
+          <button class="chip teal" data-min="15">עד 15 דק'</button>
+          <button class="chip teal" data-min="30">עד 30 דק'</button>
+          <button class="chip teal" data-min="60">עד שעה</button>
+          <button class="chip teal" data-min="120">עד שעתיים</button>
+          <button class="chip teal" data-min="0">ללא הגבלה</button>
+        </div>
         <div class="range-row"><input type="range" id="distRange" min="5" max="400" value="400" step="5"><div class="range-val" id="distVal">ללא הגבלה</div></div>
         <div id="distHint" style="font-size:12px;color:var(--text-muted);margin-top:6px;">לחצו על כפתור המיקום במפה כדי לאפשר סינון לפי מרחק</div>
       </div>
