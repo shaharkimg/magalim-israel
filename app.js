@@ -18,8 +18,8 @@ const CATEGORIES = {
 };
 const REGIONS = { north:"צפון", center:"מרכז", jerusalem:"ירושלים", south:"דרום", deadsea:"ים המלח", eilat:"אילת" };
 const DIFFS = {
-  easy:{label:"קל",points:10}, medium:{label:"בינוני",points:25},
-  hard:{label:"קשה",points:50}, extreme:{label:"מאתגר",points:100},
+  easy:{label:"קל",points:50}, medium:{label:"בינוני",points:100},
+  hard:{label:"קשה",points:150}, extreme:{label:"מאתגר",points:250},
 };
 const BADGES = [
   {id:"first",label:"צעד ראשון",icon:"👣",target:()=>1,current:v=>Math.min(v.length,1)},
@@ -39,10 +39,11 @@ function regionVisited(visited,r){ return visited.filter(v=>lmById[v.landmark_id
 /* ============ LEVELS ============ */
 const LEVELS = [
   {name:"מטייל מתחיל",icon:"🥾",min:0},
-  {name:"מגלה ארצות",icon:"🧭",min:100},
-  {name:"סייר",icon:"🏕️",min:300},
-  {name:"מומחה ישראל",icon:"🗺️",min:700},
-  {name:"אלוף הארץ",icon:"👑",min:1500},
+  {name:"מגלה ארצות",icon:"🧭",min:200},
+  {name:"סייר",icon:"🏕️",min:600},
+  {name:"חוקר הארץ",icon:"🗺️",min:1500},
+  {name:"מומחה ישראל",icon:"🎖️",min:3500},
+  {name:"אלוף הארץ",icon:"👑",min:7000},
 ];
 /* ============ CHALLENGES ============ */
 const CHALLENGES = [
@@ -278,6 +279,7 @@ async function bootPublic(){
     updateOnlineStatus();
     refreshHeader();
     applyRoute();
+    initOnboarding();
   }catch(err){
     console.error(err);
     toast("שגיאה בטעינת הנתונים: "+(err.message||err));
@@ -311,6 +313,25 @@ async function bootUserData(){
     console.error(err);
     toast("שגיאה בטעינת הנתונים האישיים: "+(err.message||err));
   }
+}
+
+/* ============ ONBOARDING (פעם אחת, ניתן לדלג) ============ */
+const ONBOARDING_KEY = "onboarding_done_v1";
+let onboardingStep = 0;
+function initOnboarding(){
+  if(localStorage.getItem(ONBOARDING_KEY)) return;
+  onboardingStep = 0;
+  updateOnboardingStep();
+  $("onboardingScreen").classList.remove("hidden");
+}
+function updateOnboardingStep(){
+  document.querySelectorAll(".onboarding-slide").forEach(s=> s.classList.toggle("active", Number(s.dataset.step)===onboardingStep));
+  document.querySelectorAll("#onboardingDots .dot").forEach((d,i)=> d.classList.toggle("active", i===onboardingStep));
+  $("onboardingNext").textContent = onboardingStep>=2 ? "בואו נתחיל" : "הבא";
+}
+function closeOnboarding(){
+  localStorage.setItem(ONBOARDING_KEY, "1");
+  $("onboardingScreen").classList.add("hidden");
 }
 
 async function loadMyProfile(){
@@ -561,6 +582,10 @@ function renderMap(){
 
 function wireStaticUI(){
   initLeafletMap();
+  $("onboardingSkip").onclick = closeOnboarding;
+  $("onboardingNext").onclick = ()=>{
+    if(onboardingStep<2){ onboardingStep++; updateOnboardingStep(); } else { closeOnboarding(); }
+  };
   $("zoomIn").onclick=()=> leafletMap.zoomIn();
   $("zoomOut").onclick=()=> leafletMap.zoomOut();
   $("zoomReset").onclick=()=> israelBounds ? leafletMap.fitBounds(israelBounds,{padding:[28,28]}) : leafletMap.setView(ISRAEL_CENTER, DEFAULT_ZOOM);
@@ -1254,7 +1279,8 @@ function renderProfile(){
   const listEl = $("profList");
   if(profileListTab==="visited"){
     if(!myVisits.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">🗺️</div>עדיין לא כבשת יעדים.<br>צאו לטייל ועשו צ׳ק-אין ביעד הראשון!</div>';
+      listEl.innerHTML = '<div class="empty-state"><div class="big">🗺️</div>עדיין לא כבשת יעדים.<br>צאו לטייל ועשו צ׳ק-אין ביעד הראשון!<br><button class="btn btn-primary empty-cta" id="emptyVisitedCta">🗺️ גלו יעדים במפה</button></div>';
+      $("emptyVisitedCta").onclick = ()=> navigate("#/map");
     } else {
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
         const l = lmById[v.landmark_id]; if(!l) return "";
@@ -1267,7 +1293,8 @@ function renderProfile(){
     }
   } else {
     if(!myWishlist.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">⭐</div>רשימת המשאלות ריקה.<br>שמרו יעדים מהמפה לטיול הבא.</div>';
+      listEl.innerHTML = '<div class="empty-state"><div class="big">⭐</div>רשימת המשאלות ריקה.<br>שמרו יעדים מהמפה לטיול הבא.<br><button class="btn btn-primary empty-cta" id="emptyWishlistCta">🗺️ גלו יעדים במפה</button></div>';
+      $("emptyWishlistCta").onclick = ()=> navigate("#/map");
     } else {
       listEl.innerHTML = myWishlist.map(id=>{
         const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
@@ -1331,7 +1358,10 @@ async function renderBoard(){
     visits.forEach(v=>{ if(new Date(v.visited_at).getTime()>=cutoff) totals[v.user_id]=(totals[v.user_id]||0)+v.points_awarded; });
     const rows = profs.map(p=>({ id:p.id, name:p.name, val:totals[p.id]||0 })).sort((a,b)=>b.val-a.val);
     renderLbSummary(rows);
-    listEl.innerHTML = rows.map((r,i)=>{
+    const friendsEmptyBanner = (lbScope==="friends" && rows.length<=1)
+      ? '<div class="empty-state"><div class="big">👥</div>עדיין לא עוקבים אחרי אף אחד.<br>הזמינו חברים כדי להתחרות יחד!<br><button class="btn btn-primary empty-cta" id="emptyFriendsCta">👥 הזמן חברים</button></div>'
+      : "";
+    listEl.innerHTML = friendsEmptyBanner + rows.map((r,i)=>{
       const isMe = r.id===session.user.id;
       const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
       const following = followingSet.has(r.id);
@@ -1341,6 +1371,7 @@ async function renderBoard(){
         ${(!isMe) ? `<button class="follow-btn${following?" following":""}" data-id="${r.id}">${following?"עוקב/ת":"עקוב/י"}</button>` : ""}
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
+    if(friendsEmptyBanner) $("emptyFriendsCta").onclick = ()=> $("inviteBtn").click();
     listEl.querySelectorAll(".follow-btn").forEach(btn=>{
       btn.onclick = async ()=>{
         const targetId = btn.dataset.id;
@@ -1379,7 +1410,11 @@ async function renderFeed(){
         .order("visited_at",{ascending:false}).limit(20));
     }
     if(error) throw error;
-    if(!data.length){ listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!</div>'; renderChallenge(); renderPersonalChallenges(); return; }
+    if(!data.length){
+      listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!<br><button class="btn btn-primary empty-cta" id="emptyFeedCta">🗺️ גלו יעדים במפה</button></div>';
+      $("emptyFeedCta").onclick = ()=> navigate("#/map");
+      renderChallenge(); renderPersonalChallenges(); return;
+    }
     listEl.innerHTML = data.map(row=>{
       const l = lmById[row.landmark_id]; if(!l) return "";
       const cat = CATEGORIES[l.category];
