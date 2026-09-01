@@ -801,6 +801,7 @@ function closeSheet(sheetId, scrimId){ $(sheetId).classList.remove("open"); $(sc
 
 /* ============ LANDMARK DETAIL & CHECK-IN ============ */
 let activeCheckinPhoto = null, demoMode = false;
+let reportState = { water:null, crowding:null, parking:null };
 const SEASON_LABEL = { spring:"אביב", summer:"קיץ", autumn:"סתיו", winter:"חורף" };
 function amenityChips(l){
   const chips = [];
@@ -836,6 +837,7 @@ function openDetail(id){
       <div class="lm-stat"><div class="v">+${DIFFS[l.difficulty].points}</div><div class="l">XP</div></div>
     </div>
     <div class="amenity-row">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
+    <div id="fieldReportsBox"></div>
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
       <button class="btn btn-outline" id="wishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
@@ -866,10 +868,71 @@ function openDetail(id){
   };
   $("detailSheet").style.maxHeight="90%";
   openSheet("detailSheet","detailScrim");
+  renderFieldReports(id, l);
 }
 
+const FIELD_REPORT_LABELS = {
+  water: { flowing:"💧 יש מים", low:"💧 מעט מים", dry:"🏜️ יבש" },
+  crowding: { quiet:"🙂 שקט", moderate:"🙂 בינוני", crowded:"😅 עמוס" },
+  parking: { available:"🅿️ יש מקום", limited:"🅿️ מוגבל", full:"🅿️ מלא" },
+};
+const FIELD_REPORT_TITLES = { water:"מצב מים", crowding:"עומס", parking:"חניה" };
+async function renderFieldReports(id, l){
+  const box = $("fieldReportsBox");
+  if(!box) return;
+  try{
+    const { data, error } = await supabase.from("field_reports").select("water_level,crowding,parking,created_at").eq("landmark_id", id).order("created_at",{ascending:false}).limit(30);
+    if(error) throw error;
+    if(!box.isConnected) return;
+    const latest = {};
+    for(const row of (data||[])){
+      if(row.water_level && !latest.water) latest.water = { val:row.water_level, at:row.created_at };
+      if(row.crowding && !latest.crowding) latest.crowding = { val:row.crowding, at:row.created_at };
+      if(row.parking && !latest.parking) latest.parking = { val:row.parking, at:row.created_at };
+    }
+    const keys = Object.keys(latest);
+    if(!keys.length){ box.innerHTML = ""; return; }
+    box.innerHTML = `<div class="field-reports"><div class="field-reports-title">📋 דיווחים מהשטח</div>` +
+      keys.map(key=>{
+        const r = latest[key];
+        const ageDays = (Date.now()-new Date(r.at).getTime())/86400000;
+        const stale = ageDays>14;
+        return `<div class="field-report-row${stale?" stale":""}">
+          <span>${FIELD_REPORT_TITLES[key]}: ${FIELD_REPORT_LABELS[key][r.val]}</span>
+          <span class="field-report-time">${timeAgo(r.at)}${stale?" · ייתכן שהמצב השתנה":""}</span>
+        </div>`;
+      }).join("") + `</div>`;
+  }catch(err){
+    box.innerHTML = "";
+  }
+}
+
+const FIELD_REPORT_OPTIONS = {
+  water: [ ["flowing","💧 יש מים"], ["low","💧 מעט מים"], ["dry","🏜️ יבש"] ],
+  crowding: [ ["quiet","🙂 שקט"], ["moderate","🙂 בינוני"], ["crowded","😅 עמוס"] ],
+  parking: [ ["available","🅿️ יש מקום"], ["limited","🅿️ מוגבל"], ["full","🅿️ מלא"] ],
+};
+function fieldReportChips(l){
+  const groups = [];
+  if(l.hasWater || l.category==="water") groups.push("water");
+  groups.push("crowding","parking");
+  return `<label class="field-label" style="margin-top:10px;">איך המצב בשטח עכשיו? (אופציונלי)</label>` +
+    groups.map(key=>`<div class="chip-row report-chip-row" id="report_${key}" style="margin-top:6px;">` +
+      FIELD_REPORT_OPTIONS[key].map(([val,label])=>`<button type="button" class="chip teal" data-report="${key}" data-val="${val}">${label}</button>`).join("") +
+      `</div>`).join("");
+}
+function wireFieldReportChips(){
+  document.querySelectorAll(".report-chip-row .chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      const { report, val } = chip.dataset;
+      reportState[report] = reportState[report]===val ? null : val;
+      document.querySelectorAll(`.chip[data-report="${report}"]`).forEach(c=>c.classList.toggle("active", c.dataset.val===reportState[report]));
+    };
+  });
+}
 function startCheckin(l){
   activeCheckinPhoto = null;
+  reportState = { water:null, crowding:null, parking:null };
   $("checkinFlow").innerHTML = `
     <div class="checkin-status" id="gpsStatus"><span class="ic">📡</span> מאתר מיקום GPS...</div>
     <div class="demo-toggle"><span>מצב הדגמה (עוקף בדיקת מרחק לצורך בדיקה)</span>
@@ -880,10 +943,12 @@ function startCheckin(l){
       <img class="photo-preview hidden" id="photoPreview">
       <label class="field-label" style="margin-top:6px;">הערה קצרה לחברים (אופציונלי)</label>
       <input class="text-input" id="checkinNote" maxlength="120" placeholder="לדוגמה: יש מים עכשיו, המסלול מעולה!">
+      ${fieldReportChips(l)}
       <button class="btn btn-primary btn-block" id="confirmCheckin" disabled style="margin-top:12px;">אשר צ'ק-אין</button>
     </div>`;
   $("demoSwitch").onchange = e=>{ demoMode=e.target.checked; runGpsCheck(l); };
   $("photoDrop").onclick=()=>$("photoInput").click();
+  wireFieldReportChips();
   $("photoInput").onchange = e=>{
     const file = e.target.files[0]; if(!file) return;
     const reader = new FileReader();
@@ -936,6 +1001,16 @@ function pointsFor(l){
   const firstInCat = countCat(myVisits, l.category)===0;
   return DIFFS[l.difficulty].points + (firstInCat?15:0);
 }
+async function submitFieldReport(landmarkId){
+  if(!reportState.water && !reportState.crowding && !reportState.parking) return;
+  try{
+    const { error } = await supabase.from("field_reports").insert({
+      landmark_id: landmarkId, user_id: session.user.id,
+      water_level: reportState.water, crowding: reportState.crowding, parking: reportState.parking,
+    });
+    if(error) throw error;
+  }catch(err){ console.warn("דיווח שטח לא נשמר (יתכן שהטבלה עדיין לא נוצרה):", err.message||err); }
+}
 
 async function confirmCheckin(l){
   const pts = pointsFor(l);
@@ -964,6 +1039,7 @@ async function confirmCheckin(l){
     }
     if(error) throw error;
     myVisits.push(data);
+    submitFieldReport(l.id);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     const firstInCat = pts>DIFFS[l.difficulty].points;
     celebrate(l.name, pts, firstInCat?"+15 XP בונוס — קטגוריה חדשה!":null);
