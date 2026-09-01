@@ -148,8 +148,10 @@ function showAuth(){
 }
 
 /* ============ BOOT / DATA LOAD ============ */
-let booted = false;
+let booted = false, booting = false;
 async function boot(){
+  if(booting) return;
+  booting = true;
   $("authScreen").classList.add("hidden");
   $("loadingScreen").classList.remove("hidden");
   try{
@@ -190,12 +192,14 @@ async function boot(){
       lbScope = "group";
       document.querySelectorAll("#scopeSeg button").forEach(b=>b.classList.toggle("active", b.dataset.scope==="group"));
       updateGroupBarVisibility();
-      $('.nav-btn[data-view="board"]').click();
+      document.querySelector('.nav-btn[data-view="board"]').click();
     }
   }catch(err){
     console.error(err);
     toast("שגיאה בטעינת הנתונים: "+(err.message||err));
     $("loadingScreen").classList.add("hidden");
+  }finally{
+    booting = false;
   }
 }
 
@@ -841,8 +845,6 @@ function updateOnlineStatus(){
 }
 
 /* ============ INIT ============ */
-(async function init(){
-  const { data } = await supabase.auth.getSession();
-  session = data.session;
-  if(session) boot(); else showAuth();
-})();
+/* Boot is driven entirely by onAuthStateChange above — it fires immediately
+   on subscribe with the current session (logged in or not), so no separate
+   getSession()-triggered boot is needed here (that caused a double-boot race). */
