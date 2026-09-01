@@ -630,6 +630,7 @@ function wireStaticUI(){
     $("wizFindBtn").classList.remove("hidden");
   };
   $("openTodayWizard").onclick = ()=> openSheet("todaySheet","todayScrim");
+  $("welcomeFindBtn").onclick = ()=> navigate("#/map");
   $("closeToday").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
@@ -745,6 +746,15 @@ function syncFilterUI(){
   const hasFilters = filters.cats.length||filters.diffs.length||filters.regions.length||filters.maxDist<400||filters.duration||filters.season||filters.family||filters.dog||filters.water||filters.accessible||filters.free;
   $("openFilters").classList.toggle("has-filters", !!hasFilters);
   syncQuickChips();
+}
+function skeletonRows(n){
+  return Array.from({length:n}).map(()=>`<div class="lb-row skel-row"><div class="skel skel-circle" style="width:22px;height:16px;"></div><div class="skel skel-circle" style="width:38px;height:38px;"></div><div class="skel skel-line" style="flex:1;"></div><div class="skel skel-line" style="width:40px;"></div></div>`).join("");
+}
+function skeletonCards(n){
+  return Array.from({length:n}).map(()=>`<div class="feed-card skel-card">
+    <div class="feed-head"><div class="skel skel-circle" style="width:34px;height:34px;"></div><div style="flex:1"><div class="skel skel-line" style="width:40%;margin-bottom:6px;"></div><div class="skel skel-line" style="width:65%;height:9px;"></div></div></div>
+    <div class="skel skel-block" style="height:150px;margin:10px 12px 12px;border-radius:12px;"></div>
+  </div>`).join("");
 }
 function setGuestGate(prefix, isGuest){
   $(prefix+"GuestGate").classList.toggle("hidden", !isGuest);
@@ -1111,6 +1121,7 @@ function renderProfile(){
   $("progPct").textContent = pct+"%";
   $("progBar").style.width = pct+"%";
   $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} XP לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
   const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
   $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
   drawPersonalMap($("profileMapCanvas"));
@@ -1132,7 +1143,7 @@ function renderProfile(){
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
         const l = lmById[v.landmark_id]; if(!l) return "";
         const cat = CATEGORIES[l.category];
-        const thumb = v.photo_url ? `<img src="${v.photo_url}">` : catIconSvg(cat.icon,24);
+        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,24);
         return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${thumb}</div>
           <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div></div>
           <div class="mini-pts">+${v.points_awarded}</div></div>`;
@@ -1181,7 +1192,7 @@ async function renderBoard(){
   if(!session){ setGuestGate("board", true); return; }
   setGuestGate("board", false);
   const listEl = $("lbList");
-  listEl.innerHTML = '<div class="empty-state">טוען דירוג...</div>';
+  listEl.innerHTML = skeletonRows(5);
   try{
     let ids;
     if(lbScope==="friends"){ ids = Array.from(new Set([...followingSet, session.user.id])); }
@@ -1241,7 +1252,7 @@ async function renderFeed(){
   if(!session){ setGuestGate("feed", true); return; }
   setGuestGate("feed", false);
   const listEl = $("feedList");
-  listEl.innerHTML = '<div class="empty-state">טוען פיד...</div>';
+  listEl.innerHTML = skeletonCards(3);
   try{
     let { data, error } = await supabase.from("visits")
       .select("id,visited_at,photo_url,points_awarded,note,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
@@ -1267,7 +1278,7 @@ async function renderFeed(){
         <div class="feed-photo" data-goto="${l.id}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
         ${row.note ? `<div class="feed-note">"${row.note}"</div>` : ""}
         <div class="feed-actions">
-          <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
+          <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
           ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${wished?"❤️ ברשימת המשאלות":"🤍 הוסף לרשימת המשאלות"}</button>`}
         </div>
       </div>`;
