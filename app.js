@@ -181,8 +181,10 @@ $("signOutBtn").onclick = async ()=>{ await supabase.auth.signOut(); };
 $("authCloseBtn").onclick = ()=> closeAuthSheet();
 
 let authGateMessage = null;
-function openAuthSheet(message){
+let pendingAuthAction = null;
+function openAuthSheet(message, onSuccess){
   authGateMessage = message || null;
+  pendingAuthAction = onSuccess || null;
   $("authIntroText").textContent = message || "הצטרפו וצאו לכבוש את הארץ";
   $("authCloseBtn").classList.remove("hidden");
   $("authScreen").classList.remove("hidden");
@@ -191,16 +193,23 @@ function closeAuthSheet(){
   $("authScreen").classList.add("hidden");
   authGateMessage = null;
 }
-function requireAuth(message){
+function requireAuth(message, onSuccess){
   if(session) return true;
-  openAuthSheet(message);
+  openAuthSheet(message, onSuccess);
   return false;
 }
 
 supabase.auth.onAuthStateChange((event, newSession)=>{
+  const hadNoSession = !session;
   session = newSession;
   if(session) closeAuthSheet();
-  bootUserData();
+  bootUserData().then(()=>{
+    if(session && hadNoSession && pendingAuthAction){
+      const action = pendingAuthAction;
+      pendingAuthAction = null;
+      action();
+    }
+  });
 });
 
 /* ============ ROUTER (lightweight hash-based) ============ */
@@ -637,10 +646,13 @@ function wireStaticUI(){
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("feedGuestBtn").onclick = ()=> openAuthSheet();
   $("profileGuestBtn").onclick = ()=> openAuthSheet();
-  $("actWishlist").onclick = ()=>{
-    if(!requireAuth("רוצה לראות את רשימת המשאלות שלך? צרו חשבון בחינם")) return;
+  const goToWishlist = ()=>{
     navigate("#/profile");
     setTimeout(()=>{ document.querySelector('.tab-row [data-list="wishlist"]')?.click(); }, 0);
+  };
+  $("actWishlist").onclick = ()=>{
+    if(!requireAuth("רוצה לראות את רשימת המשאלות שלך? צרו חשבון בחינם", goToWishlist)) return;
+    goToWishlist();
   };
   $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); $("distVal").textContent = filters.maxDist>=400?"ללא הגבלה":filters.maxDist+' ק"מ'; };
   $("detailScrim").onclick=()=> goBack();
@@ -806,8 +818,7 @@ function openDetail(id){
     </div>
     <div id="checkinFlow"></div>
   `;
-  $("wishBtn").onclick = async ()=>{
-    if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם")) return;
+  const toggleWish = async ()=>{
     $("wishBtn").disabled = true;
     let justAdded = false;
     if(myWishlist.includes(id)){
@@ -820,8 +831,12 @@ function openDetail(id){
     openDetail(id); renderMap(); renderProfile();
     if(justAdded) $("wishBtn").classList.add("wish-pop");
   };
+  $("wishBtn").onclick = ()=>{
+    if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם", toggleWish)) return;
+    toggleWish();
+  };
   if(!visitedEntry) $("checkinBtn").onclick=()=>{
-    if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם")) return;
+    if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם", ()=>startCheckin(l))) return;
     startCheckin(l);
   };
   $("detailSheet").style.maxHeight="90%";
