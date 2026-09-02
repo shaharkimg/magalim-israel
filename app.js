@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902q";
+const APP_VERSION = "20260902r";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -285,6 +285,8 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
       pendingAuthAction = null;
       action();
     }
+    const pendingCode = sessionStorage.getItem("pendingInviteCode");
+    if(session && pendingCode) handleInviteCode(pendingCode);
   });
 });
 
@@ -330,7 +332,14 @@ function applyRoute(){
     if(lmById[id]) openDetail(id); else closeSheet("detailSheet","detailScrim");
     return;
   }
+  const inviteMatch = hash.match(/^#\/invite\/(.+)$/);
+  if(inviteMatch){
+    switchView("map");
+    handleInviteCode(decodeURIComponent(inviteMatch[1]));
+    return;
+  }
   closeSheet("detailSheet","detailScrim");
+  closeSheet("inviteSheet","inviteScrim");
   closePreview();
   const view = hash.replace(/^#\//,"").split("/")[0] || "map";
   switchView(view);
@@ -533,6 +542,73 @@ async function joinGroupFromLink(groupId){
   activeGroupId = g.id;
   populateGroupSelect();
   toast('הצטרפת לקבוצה "'+g.name+'"!');
+}
+
+/* ============ INVITE CODES (Phase 5) ============ */
+function generateInviteCode(){
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // בלי 0/O/1/I כדי למנוע בלבול בהעתקה ידנית
+  let code = "";
+  for(let i=0;i<8;i++) code += alphabet[Math.floor(Math.random()*alphabet.length)];
+  return code;
+}
+async function getOrCreateInvite(type, circleId){
+  let q = supabase.from("invites").select("code,expires_at,max_uses,uses").eq("created_by", session.user.id).eq("invite_type", type).eq("is_active", true);
+  q = type==="circle" ? q.eq("circle_id", circleId) : q.is("circle_id", null);
+  const { data: existing, error: selErr } = await q.order("created_at",{ascending:false}).limit(1);
+  if(selErr) throw selErr;
+  const row = existing && existing[0];
+  const stillValid = row && (!row.expires_at || new Date(row.expires_at) > new Date()) && (row.max_uses==null || row.uses < row.max_uses);
+  if(stillValid) return row.code;
+  for(let attempt=0; attempt<5; attempt++){
+    const code = generateInviteCode();
+    const { data, error } = await supabase.from("invites").insert({ code, created_by:session.user.id, invite_type:type, circle_id: type==="circle"?circleId:null }).select("code").single();
+    if(!error) return data.code;
+    if(error.code !== "23505") throw error;
+  }
+  throw new Error("לא ניתן ליצור קישור הזמנה כרגע");
+}
+function inviteErrorMessage(code){
+  if(code==="invite_expired") return "קישור ההזמנה הזה כבר לא בתוקף.";
+  if(code==="invite_maxed") return "קישור ההזמנה הזה כבר נוצל במלואו.";
+  if(code==="own_invite") return "זו ההזמנה שלך :)";
+  return "קישור ההזמנה לא נמצא או שאינו תקין.";
+}
+async function handleInviteCode(code){
+  if(!session){
+    sessionStorage.setItem("pendingInviteCode", code);
+    openAuthSheet("הוזמנת! צרו חשבון כדי להמשיך");
+    $("tabSignup").click();
+    return;
+  }
+  sessionStorage.removeItem("pendingInviteCode");
+  const { data, error } = await supabase.rpc("get_invite_preview", { p_code: code });
+  if(error || !data || !data.ok){ toast(inviteErrorMessage(data && data.error)); return; }
+  openInvitePreview(code, data);
+}
+function openInvitePreview(code, data){
+  const actionText = data.invite_type==="circle" ? `הצטרפות למעגל "${data.circle_name||''}"` : "הצטרפות כחברים";
+  $("inviteBody").innerHTML = `
+    <div style="font-size:38px;margin:10px 0 8px;">✉️</div>
+    <h2 style="margin:0 0 6px;font-size:19px;">${data.inviter_name||'מטייל/ת'} הזמינ/ה אותך</h2>
+    <p style="color:var(--text-muted);font-size:13.5px;margin:0 0 20px;">${actionText}</p>
+    <button class="btn btn-primary btn-block" id="inviteAcceptBtn">אישור ההזמנה</button>
+    <button class="btn btn-ghost btn-block" id="inviteDismissBtn" style="margin-top:8px;">לא עכשיו</button>
+  `;
+  $("inviteAcceptBtn").onclick = async ()=>{
+    $("inviteAcceptBtn").disabled = true;
+    const { data: result, error } = await supabase.rpc("redeem_invite", { p_code: code });
+    if(error || !result || !result.ok){
+      toast(inviteErrorMessage(result && result.error));
+      closeSheet("inviteSheet","inviteScrim");
+      return;
+    }
+    closeSheet("inviteSheet","inviteScrim");
+    toast(data.invite_type==="circle" ? "הצטרפת למעגל!" : "עכשיו אתם חברים!");
+    await bootUserData();
+    navigate(data.invite_type==="circle" ? "#/board" : "#/profile");
+  };
+  $("inviteDismissBtn").onclick = ()=>{ closeSheet("inviteSheet","inviteScrim"); navigate("#/map"); };
+  openSheet("inviteSheet","inviteScrim");
 }
 
 function subscribeRealtime(){
@@ -978,20 +1054,30 @@ function wireStaticUI(){
     $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
     b.classList.add("active"); lbPeriod=b.dataset.period; renderBoard();
   });
-  $("inviteBtn").onclick = ()=> shareLink(
-    `${location.origin}${location.pathname}?ref=${session.user.id}`,
-    "מגלים את ישראל", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!"
-  );
+  $("inviteBtn").onclick = async ()=>{
+    let url;
+    try{
+      const code = await getOrCreateInvite("friend", null);
+      url = `${location.origin}${location.pathname}#/invite/${code}`;
+    }catch(err){
+      url = `${location.origin}${location.pathname}?ref=${session.user.id}`;
+    }
+    shareLink(url, "מגלים את ישראל", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
+  };
   $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; renderGroupPanel(); };
   $("groupNewBtn").onclick = createGroup;
   $("groupCreateBtn").onclick = createGroup;
-  $("groupInviteBtn").onclick = ()=>{
+  $("groupInviteBtn").onclick = async ()=>{
     if(!activeGroupId){ toast("צור קבוצה קודם"); return; }
     const g = myGroups.find(g=>g.id===activeGroupId);
-    shareLink(
-      `${location.origin}${location.pathname}?group=${activeGroupId}`,
-      "מגלים את ישראל", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים את ישראל!`
-    );
+    let url;
+    try{
+      const code = await getOrCreateInvite("circle", activeGroupId);
+      url = `${location.origin}${location.pathname}#/invite/${code}`;
+    }catch(err){
+      url = `${location.origin}${location.pathname}?group=${activeGroupId}`;
+    }
+    shareLink(url, "מגלים את ישראל", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים את ישראל!`);
   };
   window.addEventListener("online", ()=>{ updateOnlineStatus(); flushPendingQueue(); });
   window.addEventListener("offline", updateOnlineStatus);
