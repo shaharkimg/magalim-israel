@@ -273,6 +273,12 @@ button{font-family:inherit;}
 .mini-info .name{font-weight:700;font-size:14.5px;}
 .mini-info .sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
 .mini-pts{font-weight:800;color:var(--accent-strong);font-size:13.5px;font-variant-numeric:tabular-nums;}
+.friend-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:9px 12px;margin-bottom:8px;}
+.friend-row .avatar{width:38px;height:38px;font-size:14px;flex:none;}
+.friend-row .friend-name{font-weight:700;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.friend-row .friend-actions{display:flex;gap:6px;flex:none;}
+.friend-row .friend-actions .btn{flex:none;padding:7px 12px;font-size:12px;}
+.friends-empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:14px 10px;}
 .wiz-relaxed-note{background:var(--bg-elevated);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--text-muted);margin-bottom:12px;}
 .wiz-result-card .mini-info .sub{font-size:11.5px;}
 .empty-state{text-align:center;color:var(--text-muted);padding:34px 18px;font-size:13.5px;}
@@ -710,6 +716,9 @@ input[type=file]{display:none;}
         <button data-list="wishlist">רשימת משאלות</button>
       </div>
       <div id="profList"></div>
+      <div class="section-head"><h2>חברים</h2></div>
+      <div id="friendRequestsBox"></div>
+      <div id="friendsListBox"></div>
       <div class="section-head"><h2>פרטיות ומיקום</h2></div>
       <div class="privacy-card">
         <div class="privacy-head">
@@ -862,6 +871,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902o"></script>
+<script type="module" src="./app.js?v=20260902p"></script>
 </body>
 </html>

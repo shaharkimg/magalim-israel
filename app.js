@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902o";
+const APP_VERSION = "20260902p";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1576,6 +1576,95 @@ function renderProfile(){
   }
   listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>goToDestination(el.dataset.id));
   renderPrivacySection();
+  renderFriends();
+}
+
+/* ============ FRIENDSHIPS ============ */
+async function sendFriendRequest(addresseeId){
+  if(addresseeId === session.user.id) throw new Error("אי אפשר לשלוח בקשת חברות לעצמך");
+  const { error } = await supabase.from("friendships").insert({ requester_id: session.user.id, addressee_id: addresseeId });
+  if(error) throw error;
+}
+async function acceptFriendRequest(id){
+  const { error } = await supabase.from("friendships").update({ status:"accepted", accepted_at: new Date().toISOString() }).eq("id", id);
+  if(error) throw error;
+}
+async function declineFriendRequest(id){
+  const { error } = await supabase.from("friendships").update({ status:"declined" }).eq("id", id);
+  if(error) throw error;
+}
+async function removeFriend(id){
+  const { error } = await supabase.from("friendships").delete().eq("id", id);
+  if(error) throw error;
+}
+async function blockUser(otherUserId){
+  const mine = session.user.id;
+  const { data: existing } = await supabase.from("friendships").select("id")
+    .or(`and(requester_id.eq.${mine},addressee_id.eq.${otherUserId}),and(requester_id.eq.${otherUserId},addressee_id.eq.${mine})`)
+    .maybeSingle();
+  if(existing){
+    const { error } = await supabase.from("friendships").update({ status:"blocked" }).eq("id", existing.id);
+    if(error) throw error;
+  } else {
+    const { data, error: insErr } = await supabase.from("friendships").insert({ requester_id:mine, addressee_id:otherUserId }).select().single();
+    if(insErr) throw insErr;
+    const { error: updErr } = await supabase.from("friendships").update({ status:"blocked" }).eq("id", data.id);
+    if(updErr) throw updErr;
+  }
+}
+async function getPendingFriendRequests(){
+  const { data, error } = await supabase.from("friendships").select("id,requester_id,created_at").eq("addressee_id", session.user.id).eq("status","pending");
+  if(error){ console.warn("friendships feature unavailable:", error.message); return []; }
+  return data;
+}
+async function getFriends(){
+  const mine = session.user.id;
+  const { data, error } = await supabase.from("friendships").select("id,requester_id,addressee_id")
+    .eq("status","accepted").or(`requester_id.eq.${mine},addressee_id.eq.${mine}`);
+  if(error){ console.warn("friendships feature unavailable:", error.message); return []; }
+  return data.map(f=>({ friendshipId:f.id, userId: f.requester_id===mine ? f.addressee_id : f.requester_id }));
+}
+async function renderFriends(){
+  const reqBox = $("friendRequestsBox"), listBox = $("friendsListBox");
+  if(!reqBox || !listBox) return;
+  const [pending, friends] = await Promise.all([ getPendingFriendRequests(), getFriends() ]);
+  const otherIds = [...new Set([...pending.map(p=>p.requester_id), ...friends.map(f=>f.userId)])];
+  let names = {};
+  if(otherIds.length){
+    const { data } = await supabase.from("profiles").select("id,name").in("id", otherIds);
+    (data||[]).forEach(p=> names[p.id]=p.name);
+  }
+  reqBox.innerHTML = pending.length ? pending.map(p=>{
+    const name = names[p.requester_id] || "מטייל/ת";
+    return `<div class="friend-row" data-id="${p.id}">
+      <div class="avatar">${name.trim().charAt(0)||"א"}</div>
+      <div class="friend-name">${name}</div>
+      <div class="friend-actions">
+        <button class="btn btn-primary" data-act="accept">אישור</button>
+        <button class="btn btn-ghost" data-act="decline">דחייה</button>
+      </div>
+    </div>`;
+  }).join("") : "";
+  reqBox.querySelectorAll(".friend-row").forEach(row=>{
+    const id = row.dataset.id;
+    row.querySelector('[data-act="accept"]').onclick = async ()=>{ await acceptFriendRequest(id); toast("בקשת החברות אושרה!"); renderFriends(); };
+    row.querySelector('[data-act="decline"]').onclick = async ()=>{ await declineFriendRequest(id); renderFriends(); };
+  });
+  if(!friends.length){
+    listBox.innerHTML = '<div class="friends-empty">עדיין אין לך חברים באפליקציה.<br>בקרוב תוכלו להזמין חברים בעזרת קישור הזמנה.</div>';
+  } else {
+    listBox.innerHTML = friends.map(f=>{
+      const name = names[f.userId] || "מטייל/ת";
+      return `<div class="friend-row" data-id="${f.friendshipId}">
+        <div class="avatar">${name.trim().charAt(0)||"א"}</div>
+        <div class="friend-name">${name}</div>
+        <button class="icon-btn" data-act="remove" aria-label="הסרת חבר">✕</button>
+      </div>`;
+    }).join("");
+    listBox.querySelectorAll(".friend-row").forEach(row=>{
+      row.querySelector('[data-act="remove"]').onclick = async ()=>{ await removeFriend(row.dataset.id); renderFriends(); };
+    });
+  }
 }
 
 /* ============ PRIVACY / TRAVEL STATUS ("מטיילים עכשיו") ============ */
