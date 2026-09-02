@@ -101,8 +101,8 @@ button{font-family:inherit;}
 /* ---------- Header ---------- */
 .topbar{display:flex;align-items:center;justify-content:space-between;height:64px;padding:0 16px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;}
 .brand-row{display:flex;align-items:center;gap:10px;}
-.brand-mark{width:36px;height:36px;border-radius:var(--radius-sm);background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;flex:none;}
-.brand-mark svg{width:20px;height:20px;}
+.brand-mark{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:none;}
+.brand-mark img{width:100%;height:100%;object-fit:contain;display:block;}
 .brand{font-family:"Suez One","Heebo",serif;font-size:19px;color:var(--text);line-height:1;}
 .stat-pill{display:flex;align-items:center;gap:7px;color:var(--text-muted);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums;}
 .stat-pill b{color:var(--text);font-weight:700;}
@@ -517,7 +517,7 @@ input[type=file]{display:none;}
   <div class="auth-screen hidden" id="authScreen">
     <button class="sheet-close hidden" id="authCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <div class="auth-logo">
-      <div class="brand-mark" style="width:56px;height:56px;border-radius:16px;"><svg viewBox="0 0 24 24" fill="none" width="30" height="30"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      <div class="brand-mark" style="width:56px;height:56px;"><img src="./logo.png" alt="מגלים את ישראל"></div>
       <h1>מגלים את ישראל</h1>
       <p id="authIntroText">הצטרפו וצאו לכבוש את הארץ</p>
     </div>
@@ -569,7 +569,7 @@ input[type=file]{display:none;}
 
   <div class="topbar hidden" id="topbar">
     <div class="brand-row">
-      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      <div class="brand-mark"><img src="./logo.png" alt="מגלים את ישראל"></div>
       <div class="brand">מגלים את ישראל</div>
     </div>
     <div class="stat-pill hidden" id="headerPoints">
@@ -915,6 +915,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902v"></script>
+<script type="module" src="./app.js?v=20260902w"></script>
 </body>
 </html>
