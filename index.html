@@ -111,37 +111,43 @@ button{font-family:inherit;}
 .view.active{display:flex;}
 .scroll-area{flex:1;overflow-y:auto;padding:0 16px 100px;}
 
-.home-hero{flex:none;padding:16px 16px 8px;position:relative;}
-.home-hero h1{font-family:"Suez One","Heebo",serif;font-size:32px;font-weight:700;line-height:1.08;margin:0;text-wrap:balance;}
-.home-hero #heroSub{font-size:14px;color:var(--text-muted);margin:5px 0 0;}
-.hero-landscape{border-radius:var(--radius-hero);overflow:hidden;margin:14px 0;height:104px;box-shadow:var(--shadow-card);}
-.hero-landscape svg{display:block;width:100%;height:100%;}
-.hero-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
-.hero-action-btn{border:1.5px solid var(--border);background:var(--surface);border-radius:var(--radius-input);padding:10px 4px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1.25;text-align:center;transition:background .12s,transform .12s;}
-.hero-action-btn:active{transform:scale(.97);background:var(--bg-elevated);}
-.hero-action-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
-.today-wizard-btn{width:100%;border:none;border-radius:var(--radius-card);padding:14px 16px;margin-top:10px;background:linear-gradient(135deg,var(--accent),var(--teal));color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;}
-.today-wizard-btn span:first-child{font-family:"Suez One";font-size:17px;}
-.today-wizard-sub{font-size:11.5px;opacity:.9;}
-.quick-chip-row{display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:1px;scrollbar-width:none;}
-.quick-chip-row::-webkit-scrollbar{display:none;}
-.quick-chip{flex:none;padding:8px 14px;font-size:12.5px;}
 .map-wrap{position:relative;flex:1;min-height:0;background:var(--map-water);overflow:hidden;}
 .map-wrap .leaflet-container{position:absolute;inset:0;font-family:"Heebo",system-ui,sans-serif;background:#DDE6E3;}
+.map-top-bar{position:absolute;left:0;right:0;top:0;z-index:1000;padding:12px 12px 0;display:flex;flex-direction:column;gap:8px;}
+.map-top-bar #heroSub{margin:0 2px;font-size:12px;font-weight:700;color:var(--text);background:var(--surface);display:inline-block;padding:4px 10px;border-radius:999px;box-shadow:var(--shadow-elevated);align-self:flex-start;}
+.map-search-row{display:flex;gap:8px;}
+.map-search-pill{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--surface);border:none;border-radius:999px;padding:12px 16px;box-shadow:var(--shadow-elevated);font-size:13.5px;font-weight:600;color:var(--text);cursor:pointer;}
+.map-search-pill svg{flex:none;color:var(--text-muted);}
+.map-search-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.quick-chip-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:1px;scrollbar-width:none;}
+.quick-chip-row::-webkit-scrollbar{display:none;}
+.quick-chip{flex:none;padding:8px 14px;font-size:12.5px;background:var(--surface);box-shadow:var(--shadow-elevated);}
+.quick-chip.active{box-shadow:none;}
 .map-controls{position:absolute;left:12px;bottom:24px;display:flex;flex-direction:column;gap:1px;z-index:1000;background:var(--surface);border-radius:var(--radius-input);overflow:hidden;box-shadow:var(--shadow-elevated);}
 .map-controls button{width:38px;height:38px;border:none;background:transparent;color:var(--text);font-size:19px;cursor:pointer;line-height:1;}
 .map-controls button:active{background:var(--bg-elevated);}
 .map-controls button+button{border-top:1px solid var(--border);}
 .locate-btn{position:absolute;right:12px;bottom:24px;width:40px;height:40px;border-radius:var(--radius-input);border:none;background:var(--surface);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
-.filter-fab{position:absolute;top:12px;right:12px;z-index:1000;display:flex;align-items:center;gap:6px;background:var(--surface);border-radius:999px;padding:9px 14px;font-weight:700;font-size:13px;box-shadow:var(--shadow-elevated);cursor:pointer;color:var(--text);}
+.filter-fab{flex:none;display:flex;align-items:center;gap:6px;background:var(--surface);border-radius:999px;padding:0 14px;font-weight:700;font-size:13px;box-shadow:var(--shadow-elevated);cursor:pointer;color:var(--text);}
 .filter-fab .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:none;}
 .filter-fab.has-filters .dot{display:inline-block;}
-.map-legend-btn{position:absolute;top:12px;left:12px;z-index:1000;background:var(--surface);border-radius:999px;padding:8px 12px;font-size:12px;font-weight:700;box-shadow:var(--shadow-elevated);color:var(--text-muted);}
+.filter-fab .fab-count{color:var(--text-muted);font-weight:600;font-size:11px;border-inline-start:1px solid var(--border);padding-inline-start:8px;margin-inline-start:2px;white-space:nowrap;}
+.dest-preview{position:absolute;left:12px;right:12px;bottom:12px;z-index:1050;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;height:92px;transform:translateY(140%);transition:transform .28s cubic-bezier(.2,.8,.3,1);cursor:pointer;}
+.dest-preview.open{transform:translateY(0);}
+.dest-preview-hero{width:92px;flex:none;position:relative;overflow:hidden;}
+.dest-preview-hero > div{width:100%;height:100%;}
+.dest-preview-body{flex:1;min-width:0;padding:11px 14px;display:flex;flex-direction:column;justify-content:center;}
+.dest-preview-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.dest-preview-top h3{margin:0;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dest-preview-facts{font-size:12px;color:var(--text-muted);margin-top:3px;}
+.dest-preview-wish{border:none;background:var(--bg-elevated);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;cursor:pointer;}
 
 .lm-pin-wrap{position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;}
 .lm-pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin-color);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;transition:transform .18s;}
 .lm-pin-wrap:hover .lm-pin{transform:rotate(-45deg) scale(1.12);}
 .lm-pin.visited{box-shadow:0 0 0 2.5px var(--success),0 1px 5px rgba(0,0,0,.35);}
+.lm-pin.selected{transform:rotate(-45deg) scale(1.3);box-shadow:0 0 0 3px var(--accent),0 3px 10px rgba(0,0,0,.4);z-index:20;}
+.lm-pin-wrap:hover .lm-pin.selected{transform:rotate(-45deg) scale(1.3);}
 .lm-pin .lm-pin-icon{transform:rotate(45deg);color:#fff;display:flex;}
 .lm-pin .check{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900;line-height:1;}
 .lm-pin-star{position:absolute;top:-9px;right:-7px;color:var(--sand);text-shadow:0 1px 2px rgba(0,0,0,.5);z-index:2;font-size:13px;}
@@ -497,41 +503,31 @@ input[type=file]{display:none;}
   <div class="offline-banner" id="offlineBanner">אין חיבור לרשת</div>
 
   <div class="view active hidden" id="view-map">
-    <div class="home-hero topo-texture">
-      <h1 id="heroTitle">מגלים את ישראל</h1>
-      <p id="heroSub">כמה ממנה כבר גיליתם?</p>
-      <div class="hero-landscape" aria-hidden="true">
-        <svg viewBox="0 0 400 130" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="400" height="130" fill="var(--accent-light)"/>
-          <circle cx="326" cy="32" r="20" fill="var(--sand)"/>
-          <path d="M0 92 L55 52 L108 84 L165 38 L226 80 L292 46 L400 88 L400 130 L0 130 Z" fill="var(--teal)" opacity=".6"/>
-          <path d="M0 112 L75 76 L145 104 L215 66 L295 100 L400 70 L400 130 L0 130 Z" fill="var(--accent)"/>
-          <path d="M0 124 Q100 110 200 122 T400 114" stroke="var(--sand)" stroke-width="2" fill="none" opacity=".8"/>
-        </svg>
-      </div>
-      <div class="hero-actions">
-        <button class="hero-action-btn primary" id="actDiscover">גלו מקום</button>
-        <button class="hero-action-btn" id="actNearby">מסלולים קרובים אליי</button>
-        <button class="hero-action-btn" id="actWishlist">רשימת המשאלות שלי</button>
-      </div>
-      <div class="friends-travel-banner hidden" id="friendsTravelBanner"></div>
-      <button class="today-wizard-btn" id="openTodayWizard"><span>מה עושים היום?</span><span class="today-wizard-sub">כמה שאלות קצרות ונמצא לך טיול</span></button>
-      <div class="quick-chip-row" id="quickChipRow">
-        <button class="chip quick-chip" data-quick="near">לידי</button>
-        <button class="chip quick-chip teal" data-quick="water">מים</button>
-        <button class="chip quick-chip teal" data-quick="easy">קל</button>
-        <button class="chip quick-chip" data-quick="short">עד שעה</button>
-        <button class="chip quick-chip teal" data-quick="north">צפון</button>
-        <button class="chip quick-chip" data-quick="family">משפחות</button>
-      </div>
-    </div>
     <div class="map-wrap" id="mapWrap">
-      <div class="map-legend-btn" id="visibleCount">25 יעדים</div>
-      <div class="filter-fab" id="openFilters"><span class="dot" id="filterDot"></span>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        סינון
-      </div>
       <div id="mapSvg"></div>
+      <div class="map-top-bar">
+        <p id="heroSub">כמה ממנה כבר גיליתם?</p>
+        <div class="map-search-row">
+          <button class="map-search-pill" id="openTodayWizard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span>מה בא לכם לגלות היום?</span>
+          </button>
+          <div class="filter-fab" id="openFilters"><span class="dot" id="filterDot"></span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>סינון</span>
+            <span class="fab-count" id="visibleCount">25 יעדים</span>
+          </div>
+        </div>
+        <div class="quick-chip-row" id="quickChipRow">
+          <button class="chip quick-chip" data-quick="near">לידי</button>
+          <button class="chip quick-chip teal" data-quick="water">מים</button>
+          <button class="chip quick-chip teal" data-quick="easy">קל</button>
+          <button class="chip quick-chip" data-quick="short">עד שעה</button>
+          <button class="chip quick-chip teal" data-quick="north">צפון</button>
+          <button class="chip quick-chip" data-quick="family">משפחות</button>
+        </div>
+        <div class="friends-travel-banner hidden" id="friendsTravelBanner"></div>
+      </div>
       <button class="locate-btn" id="locateBtn" title="המיקום שלי" aria-label="המיקום שלי">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -539,6 +535,18 @@ input[type=file]{display:none;}
         <button id="zoomIn" aria-label="הגדל מפה">+</button>
         <button id="zoomOut" aria-label="הקטן מפה">−</button>
         <button id="zoomReset" style="font-size:13px" aria-label="איפוס תצוגת מפה">⟲</button>
+      </div>
+      <div class="dest-preview topo-texture" id="destPreview" role="button" tabindex="0" aria-label="פתח את עמוד היעד">
+        <div class="dest-preview-hero" id="destPreviewHero"></div>
+        <div class="dest-preview-body">
+          <div class="dest-preview-top">
+            <div>
+              <h3 id="destPreviewName"></h3>
+              <div class="dest-preview-facts" id="destPreviewFacts"></div>
+            </div>
+            <button class="dest-preview-wish" id="destPreviewWish" aria-label="רשימת משאלות">🤍</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -816,6 +824,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902g"></script>
+<script type="module" src="./app.js?v=20260902h"></script>
 </body>
 </html>

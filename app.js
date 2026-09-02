@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902g";
+const APP_VERSION = "20260902h";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -284,6 +284,7 @@ function applyRoute(){
     return;
   }
   closeSheet("detailSheet","detailScrim");
+  closePreview();
   const view = hash.replace(/^#\//,"").split("/")[0] || "map";
   switchView(view);
 }
@@ -590,32 +591,55 @@ function initLeafletMap(){
   }).addTo(leafletMap);
   clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false });
   leafletMap.addLayer(clusterGroup);
+  leafletMap.on("click", closePreview);
   if(LANDMARKS.length){
     israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
     leafletMap.fitBounds(israelBounds, { padding:[28,28] });
   }
 }
 
+let previewId = null;
+function openPreview(id){
+  const l = lmById[id]; if(!l) return;
+  previewId = id;
+  const cat = CATEGORIES[l.category];
+  const wished = myWishlist.includes(id);
+  $("destPreviewHero").innerHTML = '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+  $("destPreviewName").textContent = l.name;
+  const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
+  $("destPreviewFacts").textContent = distText+DIFFS[l.difficulty].label+" · "+l.duration;
+  $("destPreviewWish").textContent = wished ? "❤️" : "🤍";
+  $("destPreview").classList.add("open");
+  renderMap();
+}
+function closePreview(){
+  if(!previewId) return;
+  previewId = null;
+  $("destPreview").classList.remove("open");
+  renderMap();
+}
 function renderMap(){
   if(!leafletMap) return;
   clusterGroup.clearLayers();
   const list = filteredLandmarks();
   $("visibleCount").textContent = filters.customLabel ? filters.customLabel+" · "+list.length : list.length+" יעדים";
+  if(previewId && !list.some(l=>l.id===previewId)){ previewId = null; $("destPreview").classList.remove("open"); }
   list.forEach(l=>{
     const visited = myVisits.some(v=>v.landmark_id===l.id);
     const wished = myWishlist.includes(l.id);
+    const selected = l.id===previewId;
     const cat = CATEGORIES[l.category];
     const icon = L.divIcon({
       className: "lm-divicon",
       html: '<div class="lm-pin-wrap">'
-        + '<div class="lm-pin'+(visited?" visited":"")+'" style="--pin-color:'+cat.color+'">'
+        + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+'" style="--pin-color:'+cat.color+'">'
         + (wished?'<span class="lm-pin-star">★</span>':"")
         + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
         + '</div><div class="lm-pin-label">'+l.name+'</div></div>',
       iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
     });
     const marker = L.marker([l.lat,l.lon], { icon, riseOnHover:true });
-    marker.on("click", ()=> goToDestination(l.id));
+    marker.on("click", (e)=>{ L.DomEvent.stopPropagation(e); openPreview(l.id); });
     clusterGroup.addLayer(marker);
   });
   if(userLoc){
@@ -649,6 +673,25 @@ function wireStaticUI(){
   $("filterScrim").onclick=()=>closeSheet("filterSheet","filterScrim");
   $("clearFilters").onclick=()=>{ filters=defaultFilters(); syncFilterUI(); syncQuickChips(); renderMap(); };
   $("applyFilters").onclick=()=>{ renderMap(); closeSheet("filterSheet","filterScrim"); syncFilterUI(); syncQuickChips(); };
+  $("destPreview").onclick = ()=> previewId && goToDestination(previewId);
+  $("destPreview").onkeydown = e=>{ if((e.key==="Enter"||e.key===" ") && previewId){ e.preventDefault(); goToDestination(previewId); } };
+  $("destPreviewWish").onclick = (e)=>{
+    e.stopPropagation();
+    if(!previewId) return;
+    const id = previewId;
+    const run = async ()=>{
+      const justAdded = await toggleWishlist(id);
+      $("destPreviewWish").textContent = justAdded ? "❤️" : "🤍";
+      if(justAdded){
+        $("destPreviewWish").classList.remove("wish-pop");
+        void $("destPreviewWish").offsetWidth;
+        $("destPreviewWish").classList.add("wish-pop");
+      }
+      renderProfile();
+    };
+    if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם", run)) return;
+    run();
+  };
   wireSingleSelectChips("durationChips", "duration");
   wireSingleSelectChips("seasonChips", "season");
   wireBooleanChips("amenityChips", { family:"family", dog:"dog", water:"water", accessible:"accessible", free:"free" });
@@ -666,17 +709,6 @@ function wireStaticUI(){
       renderMap(); syncFilterUI(); syncQuickChips();
     };
   });
-  $("actDiscover").onclick = ()=>{
-    filters = defaultFilters();
-    syncFilterUI(); syncQuickChips(); renderMap();
-    if(israelBounds) leafletMap.fitBounds(israelBounds,{padding:[28,28]});
-    navigate("#/map");
-  };
-  $("actNearby").onclick = ()=>{
-    navigate("#/map");
-    filters.maxDist = kmForDriveMinutes(30);
-    if(userLoc){ syncFilterUI(); renderMap(); } else { $("locateBtn").click(); }
-  };
   $("shareMapBtn").onclick = ()=> shareMyMap();
   Object.entries(DIFFS).forEach(([id,d])=>{
     const chip = document.createElement("button");
@@ -721,14 +753,6 @@ function wireStaticUI(){
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("profileGuestBtn").onclick = ()=> openAuthSheet();
-  const goToWishlist = ()=>{
-    navigate("#/profile");
-    setTimeout(()=>{ document.querySelector('.tab-row [data-list="wishlist"]')?.click(); }, 0);
-  };
-  $("actWishlist").onclick = ()=>{
-    if(!requireAuth("רוצה לראות את רשימת המשאלות שלך? צרו חשבון בחינם", goToWishlist)) return;
-    goToWishlist();
-  };
   $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); updateDistVal(); syncDistQuickChips(); };
   document.querySelectorAll("#distQuickChips .chip").forEach(chip=>{
     chip.onclick = ()=>{
@@ -900,7 +924,20 @@ function amenityChips(l){
   if(l.season) chips.push("🗓 עונה מומלצת: "+SEASON_LABEL[l.season]);
   return chips;
 }
+async function toggleWishlist(id){
+  let justAdded = false;
+  if(myWishlist.includes(id)){
+    const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",id);
+    if(!error) myWishlist = myWishlist.filter(x=>x!==id);
+  } else {
+    const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
+    if(!error){ myWishlist.push(id); justAdded = true; }
+  }
+  renderMap();
+  return justAdded;
+}
 function openDetail(id){
+  closePreview();
   const l = lmById[id];
   const visitedEntry = myVisits.find(v=>v.landmark_id===id);
   const wished = myWishlist.includes(id);
@@ -934,15 +971,8 @@ function openDetail(id){
   `;
   const toggleWish = async ()=>{
     $("wishBtn").disabled = true;
-    let justAdded = false;
-    if(myWishlist.includes(id)){
-      const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",id);
-      if(!error) myWishlist = myWishlist.filter(x=>x!==id);
-    } else {
-      const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
-      if(!error){ myWishlist.push(id); justAdded = true; }
-    }
-    openDetail(id); renderMap(); renderProfile();
+    const justAdded = await toggleWishlist(id);
+    openDetail(id); renderProfile();
     if(justAdded) $("wishBtn").classList.add("wish-pop");
   };
   $("wishBtn").onclick = ()=>{
