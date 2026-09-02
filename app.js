@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902j";
+const APP_VERSION = "20260902k";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -668,6 +668,7 @@ function renderMap(){
 
 function renderDiscoveryCarousel(){
   if(!leafletMap) return;
+  renderMapSidePanel();
   const el = $("discoveryCarousel");
   el.classList.toggle("hidden", !!previewId);
   if(previewId) return;
@@ -697,6 +698,63 @@ function renderDiscoveryCarousel(){
       openPreview(l.id);
     };
   });
+}
+
+function renderMapSidePanel(){
+  const panel = $("mapSidePanel");
+  if(!panel || !leafletMap) return;
+  if(previewId && lmById[previewId]){
+    const l = lmById[previewId];
+    const cat = CATEGORIES[l.category];
+    const wished = myWishlist.includes(l.id);
+    const photoUrl = landmarkPhotos[l.id];
+    panel.innerHTML = `
+      <div class="lm-hero${photoUrl?" has-photo":""}" style="height:150px;${photoUrl?"":`background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`}">
+        ${photoUrl ? `<img src="${photoUrl}" alt="">` : catIconSvg(cat.icon,90).replace('<svg ','<svg style="color:#fff" ')}
+      </div>
+      <div class="lm-title-row"><div><h2>${l.name}</h2>
+        <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
+      </div></div>
+      <div class="lm-stats">
+        <div class="lm-stat"><div class="v">${DIFFS[l.difficulty].label}</div><div class="l">קושי</div></div>
+        <div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>
+        <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
+      </div>
+      <p class="lm-desc">${l.desc}</p>
+      <div class="lm-actions">
+        <button class="btn btn-outline" id="panelWishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
+        <button class="btn btn-primary" id="panelDetailBtn">פרטים מלאים</button>
+      </div>
+    `;
+    $("panelWishBtn").onclick = ()=>{
+      const run = async ()=>{
+        const justAdded = await toggleWishlist(l.id);
+        renderMapSidePanel();
+        if(justAdded) $("panelWishBtn").classList.add("wish-pop");
+      };
+      if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם", run)) return;
+      run();
+    };
+    $("panelDetailBtn").onclick = ()=> goToDestination(l.id);
+  } else {
+    const bounds = leafletMap.getBounds();
+    const list = filteredLandmarks().filter(l=>bounds.contains([l.lat,l.lon])).slice(0,40);
+    panel.innerHTML = '<div class="side-panel-head"><h3>יעדים באזור</h3></div><div class="side-list">' + list.map(l=>{
+      const cat = CATEGORIES[l.category];
+      const photoUrl = landmarkPhotos[l.id];
+      const thumb = photoUrl ? '<img src="'+photoUrl+'" alt="">' : catIconSvg(cat.icon,24);
+      return '<div class="mini-card" data-id="'+l.id+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
+        + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+DIFFS[l.difficulty].label+" · "+l.duration+'</div></div></div>';
+    }).join("") + '</div>';
+    panel.querySelectorAll(".mini-card").forEach(card=>{
+      card.onclick = ()=>{
+        const l = lmById[card.dataset.id];
+        if(!l) return;
+        leafletMap.panTo([l.lat,l.lon]);
+        openPreview(l.id);
+      };
+    });
+  }
 }
 
 function wireStaticUI(){
