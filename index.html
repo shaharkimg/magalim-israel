@@ -444,10 +444,15 @@ button{font-family:inherit;}
 .celebrate-card{background:var(--surface);border-radius:22px;padding:32px 30px;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.35);max-width:280px;transform:scale(.85);opacity:0;transition:transform .32s cubic-bezier(.2,1.4,.4,1),opacity .25s;}
 .celebrate-overlay.show .celebrate-card{transform:scale(1);opacity:1;}
 .celebrate-emoji{font-size:44px;line-height:1;margin-bottom:6px;}
+.celebrate-hero{width:100%;height:120px;border-radius:16px;overflow:hidden;margin-bottom:12px;}
+.celebrate-hero img{width:100%;height:100%;object-fit:cover;display:block;}
 .celebrate-card h2{font-size:19px;margin:0 0 10px;}
 .celebrate-xp{font-family:"Suez One";font-size:30px;color:var(--accent-strong);font-variant-numeric:tabular-nums;}
 .celebrate-bonus{font-size:12.5px;color:var(--text-muted);margin-top:6px;}
-@media (prefers-reduced-motion: reduce){ .celebrate-card{transition:opacity .2s;} .wish-pop{animation:none;} }
+.celebrate-region{font-size:12.5px;font-weight:700;color:var(--accent);background:var(--accent-light);display:inline-block;padding:4px 12px;border-radius:999px;margin-top:10px;}
+@media (prefers-reduced-motion: reduce){ .celebrate-card{transition:opacity .2s;} .wish-pop{animation:none;} .lm-pin.pulse{animation:none;} }
+@keyframes pulse-marker{ 0%{transform:rotate(-45deg) scale(1);} 40%{transform:rotate(-45deg) scale(1.55);box-shadow:0 0 0 8px rgba(23,107,91,.28);} 100%{transform:rotate(-45deg) scale(1);} }
+.lm-pin.pulse{animation:pulse-marker .9s ease-out;}
 .wish-pop{animation:wishPop .38s ease;}
 @keyframes wishPop{0%{transform:scale(1);}35%{transform:scale(1.18);}100%{transform:scale(1);}}
 :root[data-theme="dark"] .toast,@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toast{background:var(--accent);color:var(--accent-ink);}}
@@ -920,17 +925,13 @@ input[type=file]{display:none;}
   </div>
 
   <div class="celebrate-overlay hidden" id="celebrateOverlay">
-    <div class="celebrate-card">
-      <div class="celebrate-emoji">🎉</div>
-      <h2 id="celebrateTitle">כבשת את היעד!</h2>
-      <div class="celebrate-xp" id="celebrateXp">+0 XP</div>
-      <div class="celebrate-bonus hidden" id="celebrateBonus"></div>
-    </div>
+    <div class="celebrate-card" id="celebrateCard"></div>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260903b"></script>
+<script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
+<script type="module" src="./app.js?v=20260903d"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903b";
+const APP_VERSION = "20260903d";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -194,23 +194,61 @@ function toast(msg){
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.classList.remove("show"), 3400);
 }
-function celebrate(landmarkName, xp, bonusText){
+function animateXpCount(el, target){
+  if(!el) return;
+  const start = performance.now();
+  const dur = 650;
+  function tick(now){
+    const t = Math.min(1, (now-start)/dur);
+    const val = Math.round(target*(1-Math.pow(1-t,3)));
+    el.textContent = "+"+val.toLocaleString()+" XP";
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+// steps: [{photoUrl, emoji, title, xp, sub, region, confetti}] - מוצגים ברצף אחד, קליק מקדם/סוגר.
+// זה מחליף את הרצף הקודם של celebrate()+toast()ים מדורגים נפרדים לכל תג/רמה - עכשיו הכל
+// באותו overlay אחד, קצר ואפשר לדלג עליו בהקשה בכל שלב.
+function celebrate(steps){
+  if(!steps || !steps.length) return;
   const overlay = $("celebrateOverlay");
-  $("celebrateTitle").textContent = "כבשת את "+landmarkName+"!";
-  $("celebrateXp").textContent = "+"+xp+" XP";
-  if(bonusText){ $("celebrateBonus").textContent = bonusText; $("celebrateBonus").classList.remove("hidden"); }
-  else $("celebrateBonus").classList.add("hidden");
+  const card = $("celebrateCard");
+  const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let i = 0;
+  clearTimeout(celebrate._t);
+  const dismiss = ()=>{
+    clearTimeout(celebrate._t);
+    overlay.classList.remove("show");
+    setTimeout(()=> overlay.classList.add("hidden"), 220);
+    overlay.onclick = null;
+  };
+  const renderStep = ()=>{
+    const s = steps[i];
+    const hero = s.photoUrl
+      ? `<div class="celebrate-hero"><img src="${s.photoUrl}" alt=""></div>`
+      : s.emoji ? `<div class="celebrate-emoji">${s.emoji}</div>` : "";
+    card.innerHTML = hero
+      + `<h2>${s.title}</h2>`
+      + (s.xp!=null ? `<div class="celebrate-xp" id="celebrateXpNum">+0 XP</div>` : "")
+      + (s.sub ? `<div class="celebrate-bonus">${s.sub}</div>` : "")
+      + (s.region ? `<div class="celebrate-region">${s.region}</div>` : "");
+    if(s.xp!=null) animateXpCount($("celebrateXpNum"), s.xp);
+    if(s.confetti && !reducedMotion && window.confetti){
+      window.confetti({ particleCount:60, spread:65, origin:{y:0.35}, scalar:0.9, ticks:150 });
+    }
+    clearTimeout(celebrate._t);
+    celebrate._t = setTimeout(advance, 1900);
+  };
+  const advance = ()=>{
+    i++;
+    if(i>=steps.length){ dismiss(); return; }
+    renderStep();
+  };
   overlay.classList.remove("hidden");
   overlay.offsetHeight; // force reflow so the class below actually transitions
   overlay.classList.add("show");
-  clearTimeout(celebrate._t);
-  const dismiss = ()=>{
-    overlay.classList.remove("show");
-    setTimeout(()=> overlay.classList.add("hidden"), 220);
-    overlay.removeEventListener("click", dismiss);
-  };
-  celebrate._t = setTimeout(dismiss, 2200);
-  overlay.addEventListener("click", dismiss);
+  overlay.onclick = advance;
+  renderStep();
 }
 async function shareLink(url, title, text){
   if(navigator.share){
@@ -1049,6 +1087,7 @@ function initLeafletMap(){
 }
 
 let previewId = null;
+let justCheckedInId = null;
 function openPreview(id){
   const l = lmById[id]; if(!l) return;
   previewId = id;
@@ -1082,11 +1121,12 @@ function renderMap(){
     const visited = myVisits.some(v=>v.landmark_id===l.id);
     const wished = myWishlist.includes(l.id);
     const selected = l.id===previewId;
+    const justIn = l.id===justCheckedInId;
     const cat = CATEGORIES[l.category];
     const icon = L.divIcon({
       className: "lm-divicon",
       html: '<div class="lm-pin-wrap">'
-        + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+'" style="--pin-color:'+cat.color+'">'
+        + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+cat.color+'">'
         + (wished?'<span class="lm-pin-star">★</span>':"")
         + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
         + '</div><div class="lm-pin-label">'+l.name+'</div></div>',
@@ -1738,14 +1778,27 @@ async function confirmCheckin(l){
     submitFieldReport(l.id);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     const firstInCat = pts>DIFFS[l.difficulty].points;
-    celebrate(l.name, pts, firstInCat?"+15 XP בונוס — קטגוריה חדשה!":null);
-    const newBadgeCount = checkNewBadges();
+    const newBadges = checkNewBadges();
     const newLevelIndex = getLevel(totalPoints()).index;
-    if(newLevelIndex>prevLevelIndex){
-      const lvl = LEVELS[newLevelIndex];
-      setTimeout(()=> toast(`🎉 עלית לרמה: ${lvl.icon} ${lvl.name}!`), 2500+newBadgeCount*2200);
-    }
-    loadVisitCounts().then(renderMap);
+    const leveledUpTo = newLevelIndex>prevLevelIndex ? LEVELS[newLevelIndex] : null;
+    const regionLabel = REGIONS[l.region];
+    const regionInfo = regionLabel ? regionLabel+" — "+regionVisited(myVisits,l.region)+"/"+regionCount(l.region) : null;
+    const steps = [{
+      photoUrl: photoUrl || landmarkPhotos[l.id] || null,
+      title: "🎉 גילית את "+l.name+"!",
+      xp: pts,
+      sub: firstInCat ? "+15 XP בונוס — קטגוריה חדשה!" : null,
+      region: regionInfo,
+      confetti: true,
+    }];
+    newBadges.forEach(b=> steps.push({ emoji:"🏅", title:"תג חדש נפתח — "+b.icon+" "+b.label, confetti:false }));
+    if(leveledUpTo) steps.push({ emoji:"⭐", title:"עלית לרמה "+leveledUpTo.icon+" "+leveledUpTo.name+"!", confetti:true });
+    celebrate(steps);
+    justCheckedInId = l.id;
+    loadVisitCounts().then(()=>{
+      renderMap();
+      setTimeout(()=>{ justCheckedInId=null; }, 1200);
+    });
     renderProfile(); renderBoard(); renderFeed();
   }catch(err){
     console.error(err);
@@ -1788,8 +1841,7 @@ function checkNewBadges(){
   const now = unlockedBadges();
   const newOnes = now.filter(b=>!prevBadgeSet.has(b.id));
   prevBadgeSet = new Set(now.map(b=>b.id));
-  newOnes.forEach((b,i)=> setTimeout(()=>toast("תג חדש נפתח: "+b.icon+" "+b.label), 2500+i*2200));
-  return newOnes.length;
+  return newOnes;
 }
 function isoWeekKey(d){
   const date = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
