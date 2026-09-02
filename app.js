@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903d";
+const APP_VERSION = "20260903e";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -23,6 +23,29 @@ const DIFFS = {
   easy:{label:"קל",points:50}, medium:{label:"בינוני",points:100},
   hard:{label:"קשה",points:150}, extreme:{label:"מאתגר",points:250},
 };
+// שם-אזור בצורת "עם ה' הידיעה" לתגי חוקר/מומחה (חלק מהאזורים שמות פרטיים - ירושלים/אילת/ים
+// המלח - לא לוקחים ה' הידיעה בעברית, אז אי אפשר פשוט לשרשר "ה"+שם לכל האזורים).
+const REGION_THE = { north:"הצפון", center:"המרכז", jerusalem:"ירושלים", south:"הדרום", deadsea:"ים המלח", eilat:"אילת" };
+// מרחיבים את מערכת ה-BADGES הקיימת (לא בונים מנגנון נפרד) - 3 דרגות × 6 אזורים, לפי אחוז
+// מגילוי האזור (לא מספר קבוע) כי גודל האזורים שונה מאוד זה מזה.
+function regionTierBadges(){
+  const tiers = [
+    { suffix:"bronze", pct:0.25, icon:"🥉", label:r=>"מתחיל ב"+REGIONS[r] },
+    { suffix:"silver", pct:0.6, icon:"🥈", label:r=>"חוקר "+REGION_THE[r] },
+    { suffix:"gold", pct:1, icon:"🥇", label:r=>"מומחה "+REGION_THE[r] },
+  ];
+  const out = [];
+  Object.keys(REGIONS).forEach(r=>{
+    tiers.forEach(t=>{
+      out.push({
+        id:"region_"+r+"_"+t.suffix, label:t.label(r), icon:t.icon,
+        target:()=> Math.max(1, Math.ceil(regionCount(r)*t.pct)),
+        current:v=> Math.min(regionVisited(v,r), Math.max(1, Math.ceil(regionCount(r)*t.pct))),
+      });
+    });
+  });
+  return out;
+}
 const BADGES = [
   {id:"first",label:"צעד ראשון",icon:"👣",target:()=>1,current:v=>Math.min(v.length,1)},
   {id:"milestone3",label:"3 יעדים",icon:"🔰",target:()=>3,current:v=>Math.min(v.length,3)},
@@ -37,6 +60,7 @@ const BADGES = [
   {id:"desert",label:"רץ המדבר",icon:"🏜️",target:()=>Math.min(10,regionCount("south")+regionCount("eilat")),current:v=>Math.min(regionVisited(v,"south")+regionVisited(v,"eilat"),10)},
   {id:"extreme",label:"מטפס ותיק",icon:"⛰️",target:()=>2,current:v=>Math.min(countDiff(v,"extreme"),2)},
   {id:"all",label:"כל הארץ",icon:"🏆",target:()=>LANDMARKS.length||259,current:v=>v.length},
+  ...regionTierBadges(),
 ];
 function countCat(visited,cat){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].category===cat).length;}
 function countDiff(visited,d){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].difficulty===d).length;}
