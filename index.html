@@ -45,7 +45,7 @@ body{background:var(--bg);color:var(--text);font-family:"Heebo",system-ui,sans-s
 h1,h2,h3,.brand{font-family:"Suez One","Heebo",serif;text-wrap:balance;}
 button{font-family:inherit;}
 ::selection{background:var(--accent);color:var(--accent-ink);}
-.app-shell{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;display:flex;flex-direction:column;box-shadow:0 0 60px var(--shadow);}
+.app-shell{max-width:480px;margin:0 auto;height:100vh;height:100dvh;background:var(--bg);position:relative;display:flex;flex-direction:column;box-shadow:0 0 60px var(--shadow);overflow:hidden;}
 @media (min-width:520px){
   body{padding:24px 0;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;min-height:100vh;}
   .app-shell{min-height:0;height:min(844px,92vh);width:390px;max-width:390px;border-radius:28px;overflow:hidden;border:1px solid var(--border);}
