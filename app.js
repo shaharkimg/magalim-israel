@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
+const APP_VERSION = "20260902a";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -312,6 +314,7 @@ async function bootPublic(){
     refreshHeader();
     applyRoute();
     initOnboarding();
+    setTimeout(checkForNewVersion, 60000);
   }catch(err){
     console.error(err);
     toast("שגיאה בטעינת הנתונים: "+(err.message||err));
@@ -793,6 +796,9 @@ function wireStaticUI(){
   };
   window.addEventListener("online", ()=>{ updateOnlineStatus(); flushPendingQueue(); });
   window.addEventListener("offline", updateOnlineStatus);
+  $("updateBannerBtn").onclick = ()=> location.reload(true);
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") checkForNewVersion(); });
+  setInterval(checkForNewVersion, 5*60*1000);
 }
 
 function buildChips(container, dict, filterKey, extraClass){
@@ -1761,6 +1767,15 @@ async function renderChallenge(){
 /* ============ OFFLINE ============ */
 function updateOnlineStatus(){
   $("offlineBanner").classList.toggle("show", !navigator.onLine);
+}
+
+/* ============ UPDATE CHECK (מזהה כשהדפדפן תקוע על גרסה ישנה בקאש) ============ */
+function checkForNewVersion(){
+  if(!navigator.onLine) return;
+  fetch("./index.html", { cache:"no-store" }).then(r=>r.text()).then(html=>{
+    const m = html.match(/app\.js\?v=([\w.-]+)/);
+    if(m && m[1]!==APP_VERSION) $("updateBanner").classList.remove("hidden");
+  }).catch(()=>{});
 }
 
 /* ============ INIT ============ */

@@ -325,6 +325,8 @@ button{font-family:inherit;}
 
 .toast{position:absolute;left:16px;right:16px;bottom:88px;z-index:60;background:var(--text);color:var(--bg);border-radius:13px;padding:13px 16px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:10px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.22s;box-shadow:0 8px 24px var(--shadow);}
 .toast.show{transform:translateY(0);opacity:1;}
+.update-banner{position:absolute;left:16px;right:16px;top:66px;z-index:1300;background:var(--accent);color:var(--accent-ink);border-radius:13px;padding:11px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 8px 24px var(--shadow);}
+.update-banner button{background:var(--accent-ink);color:var(--accent);border:none;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:800;cursor:pointer;flex:none;}
 .celebrate-overlay{position:absolute;inset:0;z-index:1250;background:var(--sheet-scrim);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
 .celebrate-overlay.show{opacity:1;pointer-events:auto;}
 .celebrate-card{background:var(--surface);border-radius:22px;padding:32px 30px;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.35);max-width:280px;transform:scale(.85);opacity:0;transition:transform .32s cubic-bezier(.2,1.4,.4,1),opacity .25s;}
@@ -719,6 +721,11 @@ input[type=file]{display:none;}
 
   <div class="toast" id="toast"></div>
 
+  <div class="update-banner hidden" id="updateBanner">
+    <span>🔄 גרסה חדשה זמינה</span>
+    <button id="updateBannerBtn" type="button">רענון</button>
+  </div>
+
   <div class="celebrate-overlay hidden" id="celebrateOverlay">
     <div class="celebrate-card">
       <div class="celebrate-emoji">🎉</div>
@@ -731,6 +738,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260901b"></script>
+<script type="module" src="./app.js?v=20260902a"></script>
 </body>
 </html>
