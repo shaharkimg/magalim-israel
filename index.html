@@ -154,6 +154,7 @@ button{font-family:inherit;}
 .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:10px auto 4px;flex:none;}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 10px;flex:none;}
 .sheet-head h2{margin:0;font-size:19px;}
+.wizard-sub{margin:-4px 18px 10px;font-size:13px;color:var(--text-muted);}
 .sheet-close{border:none;background:var(--bg-elevated);color:var(--text-muted);width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;}
 .sheet-body{overflow-y:auto;padding:0 18px 18px;}
 .filter-group{margin-bottom:24px;}
@@ -286,9 +287,9 @@ button{font-family:inherit;}
 .group-bar{display:flex;gap:8px;margin:0 0 14px;align-items:center;}
 .group-bar select{-webkit-appearance:none;appearance:none;}
 .scope-row{display:flex;gap:8px;margin:14px 0 10px;}
-.seg{display:flex;background:var(--bg-elevated);border-radius:11px;padding:3px;flex:1;}
-.seg button{flex:1;border:none;background:transparent;padding:8px 4px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--text-muted);cursor:pointer;}
-.seg button.active{background:var(--surface);color:var(--text);}
+.seg{display:flex;background:var(--bg-elevated);border-radius:var(--radius-input);padding:3px;flex:1;}
+.seg button{flex:1;border:none;background:transparent;padding:8px 4px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
+.seg button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-card);}
 .lb-row{display:flex;align-items:center;gap:11px;padding:10px 8px;border-radius:13px;}
 .skel{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--border) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:skelShimmer 1.4s ease-in-out infinite;border-radius:8px;flex:none;}
 .skel-circle{border-radius:50%;}
@@ -301,7 +302,9 @@ button{font-family:inherit;}
 .lb-rank.top1{color:#C9A227;}
 .lb-rank.top2{color:#9AA0A6;}
 .lb-rank.top3{color:#B0713A;}
-.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13.5px;flex:none;font-family:"Suez One";}
+.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13.5px;flex:none;font-family:"Suez One";transition:width .15s,height .15s;}
+.lb-row:has(.lb-rank.top1) .lb-avatar,.lb-row:has(.lb-rank.top2) .lb-avatar,.lb-row:has(.lb-rank.top3) .lb-avatar{width:45px;height:45px;font-size:16px;}
+.lb-row:has(.lb-rank.top1) .lb-avatar{box-shadow:0 0 0 2px var(--sand);}
 .lb-name{flex:1;font-weight:700;font-size:14px;}
 .lb-name small{display:block;font-weight:500;font-size:11px;color:var(--text-muted);}
 .lb-pts{font-weight:800;font-variant-numeric:tabular-nums;font-size:14px;}
@@ -520,9 +523,9 @@ input[type=file]{display:none;}
         <button class="btn btn-outline" id="inviteBtn" style="flex:none;padding:9px 14px;font-size:13px;">👥 הזמן חברים</button>
       </div>
       <div class="seg" id="boardTabs" style="margin-bottom:14px;">
-        <button data-tab="leaders" class="active">🏆 מובילים</button>
-        <button data-tab="group">🧑‍🤝‍🧑 קבוצה</button>
-        <button data-tab="feed">📷 פיד</button>
+        <button data-tab="leaders" class="active">מובילים</button>
+        <button data-tab="group">קבוצה</button>
+        <button data-tab="feed">פיד</button>
       </div>
 
       <div id="boardPanelLeaders">
@@ -538,7 +541,7 @@ input[type=file]{display:none;}
           <button data-period="all">כל הזמנים</button>
         </div>
         <div class="lb-summary hidden" id="lbSummary"></div>
-        <div class="section-head"><h2>🏆 המובילים</h2></div>
+        <div class="section-head"><h2>המובילים</h2></div>
         <div id="lbList"></div>
       </div>
 
@@ -711,37 +714,38 @@ input[type=file]{display:none;}
   <div class="scrim" id="todayScrim"></div>
   <div class="sheet" id="todaySheet" style="max-height:92%;">
     <div class="sheet-handle"></div>
-    <div class="sheet-head"><h2>🎯 מה עושים היום?</h2><button class="sheet-close" id="closeToday" aria-label="סגור">✕</button></div>
+    <div class="sheet-head"><h2>מה בא לכם לגלות היום?</h2><button class="sheet-close" id="closeToday" aria-label="סגור">✕</button></div>
+    <p class="wizard-sub">כמה שאלות קצרות, וטיול שמתאים בדיוק למצב הרוח שלכם</p>
     <div class="sheet-body">
       <div id="wizForm">
         <div class="filter-group">
-          <h3>📍 מיקום</h3>
+          <h3>מיקום</h3>
           <div class="checkin-status" id="wizLocStatus"><span class="ic">📡</span> לחצו כדי לאתר את המיקום שלכם</div>
           <button class="btn btn-outline btn-block" id="wizLocateBtn" style="margin-top:8px;">אתר את המיקום שלי</button>
         </div>
-        <div class="filter-group"><h3>⏱️ כמה זמן יש לך</h3><div class="chip-row" id="wizDuration">
+        <div class="filter-group"><h3>כמה זמן יש לך</h3><div class="chip-row" id="wizDuration">
           <button class="chip teal" data-id="short">עד שעה</button>
           <button class="chip teal" data-id="medium">1–3 שעות</button>
           <button class="chip teal" data-id="half">חצי יום</button>
           <button class="chip teal" data-id="full">יום מלא</button>
         </div></div>
-        <div class="filter-group"><h3>🥾 רמת קושי</h3><div class="chip-row" id="wizDifficulty"></div></div>
-        <div class="filter-group"><h3>👥 עם מי אני מטייל</h3><div class="chip-row" id="wizCompany">
+        <div class="filter-group"><h3>רמת קושי</h3><div class="chip-row" id="wizDifficulty"></div></div>
+        <div class="filter-group"><h3>עם מי אני מטייל</h3><div class="chip-row" id="wizCompany">
           <button class="chip" data-id="solo">לבד</button>
           <button class="chip" data-id="couple">זוגי</button>
           <button class="chip" data-id="family">משפחה עם ילדים</button>
           <button class="chip" data-id="friends">חברים</button>
         </div></div>
         <div class="filter-group">
-          <h3>🚗 מרחק נסיעה מקסימלי</h3>
+          <h3>מרחק נסיעה מקסימלי</h3>
           <div class="range-row"><input type="range" id="wizDistRange" min="5" max="400" value="400" step="5"><div class="range-val" id="wizDistVal">ללא הגבלה</div></div>
         </div>
-        <div class="filter-group"><h3>🌊 האם אני רוצה מים</h3><div class="chip-row">
+        <div class="filter-group"><h3>האם אני רוצה מים</h3><div class="chip-row">
           <button class="chip teal" id="wizWaterChip">כן, בא לי מים</button>
         </div></div>
         <div class="filter-group"><h3>עוד העדפות</h3><div class="chip-row">
-          <button class="chip teal" id="wizAccessibleChip">♿ נגיש</button>
-          <button class="chip teal" id="wizFreeChip">🆓 חינם</button>
+          <button class="chip teal" id="wizAccessibleChip">נגיש</button>
+          <button class="chip teal" id="wizFreeChip">חינם</button>
         </div></div>
       </div>
       <div id="wizResults" class="hidden"></div>
@@ -771,6 +775,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902c"></script>
+<script type="module" src="./app.js?v=20260902d"></script>
 </body>
 </html>
