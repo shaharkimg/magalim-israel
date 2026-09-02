@@ -281,6 +281,12 @@ button{font-family:inherit;}
 .friend-row .friend-name{font-weight:700;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .friend-row .friend-actions{display:flex;gap:6px;flex:none;}
 .friend-row .friend-actions .btn{flex:none;padding:7px 12px;font-size:12px;}
+.admin-user-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:9px 12px;margin-bottom:8px;}
+.admin-user-info{flex:1;min-width:0;}
+.admin-user-name{font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.admin-user-sub{font-size:11.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+.admin-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--accent-light,var(--bg-elevated));color:var(--accent);}
+.admin-badge.suspended{background:#fbe8e3;color:#b3432e;}
 .friends-empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:14px 10px;}
 .notif-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:background .12s;}
 .notif-row.unread{background:var(--accent-light);border-color:transparent;}
@@ -514,6 +520,8 @@ input[type=file]{display:none;}
     <input class="text-input" type="number" min="0" id="admDefaultInvites" style="margin-bottom:16px;">
     <button class="btn btn-primary btn-block" id="admSaveBtn">שמירת הגדרות</button>
     <div class="auth-note" id="admSaveNote" style="margin-top:10px;"></div>
+    <div class="section-head"><h2>משתמשים אחרונים</h2></div>
+    <div id="adminUsersList"></div>
   </div>
 
   <div class="auth-screen hidden" id="authScreen">
@@ -917,6 +925,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902w"></script>
+<script type="module" src="./app.js?v=20260902x"></script>
 </body>
 </html>

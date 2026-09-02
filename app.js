@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902w";
+const APP_VERSION = "20260902x";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -761,6 +761,34 @@ async function renderAdminDashboard(){
     $("admMaxUsers").value = settings.max_users ?? "";
     $("admDefaultInvites").value = settings.default_invites_per_user ?? 3;
   }
+  await renderAdminUsersList();
+}
+async function renderAdminUsersList(){
+  const listEl = $("adminUsersList");
+  if(!listEl) return;
+  listEl.innerHTML = skeletonRows(4);
+  const { data: users, error } = await supabase.rpc("get_admin_users_list", { p_limit: 100 });
+  if(error || !users){
+    listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת רשימת המשתמשים.</div>';
+    return;
+  }
+  if(!users.length){
+    listEl.innerHTML = '<div class="empty-state">אין עדיין משתמשים רשומים.</div>';
+    return;
+  }
+  listEl.innerHTML = users.map(u=>{
+    const name = (u.name || "מטייל/ת").trim();
+    const statusBadge = u.account_status && u.account_status!=="active"
+      ? `<span class="admin-badge suspended">${u.account_status}</span>` : "";
+    const adminBadge = u.is_admin ? `<span class="admin-badge">מנהל</span>` : "";
+    return `<div class="admin-user-row">
+      <div class="lb-avatar" style="background:${stringColor(name)}">${name.charAt(0)||"א"}</div>
+      <div class="admin-user-info">
+        <div class="admin-user-name">${name}${adminBadge}${statusBadge}</div>
+        <div class="admin-user-sub">${u.email||""} · ${timeAgo(u.created_at)}</div>
+      </div>
+    </div>`;
+  }).join("");
 }
 async function saveAdminSettings(){
   $("admSaveBtn").disabled = true;
