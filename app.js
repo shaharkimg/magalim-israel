@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902r";
+const APP_VERSION = "20260902s";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -117,7 +117,7 @@ let userLoc = null;
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
 let prevBadgeSet = new Set();
-let lbScope="friends", lbPeriod="week";
+let lbPeriod="week";
 let profileListTab="visited";
 const PENDING_KEY = "magalim-pending-checkins-v1";
 
@@ -464,13 +464,27 @@ async function loadMyTravelStatus(){
   }catch(err){ myTravelStatus = null; }
 }
 async function loadVisitCounts(){
-  const { data, error } = await supabase.from("visits").select("landmark_id");
-  if(error) throw error;
-  visitCounts = {};
-  data.forEach(r=>{ visitCounts[r.landmark_id] = (visitCounts[r.landmark_id]||0)+1; });
+  const { data, error } = await supabase.rpc("get_landmark_visit_counts");
+  if(!error && data){
+    visitCounts = {};
+    data.forEach(r=> visitCounts[r.landmark_id] = Number(r.visit_count));
+    return;
+  }
+  try{
+    const { data: raw, error: rawErr } = await supabase.from("visits").select("landmark_id");
+    if(rawErr) throw rawErr;
+    visitCounts = {};
+    raw.forEach(r=>{ visitCounts[r.landmark_id] = (visitCounts[r.landmark_id]||0)+1; });
+  }catch(e){ visitCounts = {}; }
 }
 let landmarkPhotos = {};
 async function loadLandmarkPhotos(){
+  const { data: agg, error: aggErr } = await supabase.rpc("get_landmark_photos");
+  if(!aggErr && agg){
+    landmarkPhotos = {};
+    agg.forEach(r=>{ landmarkPhotos[r.landmark_id] = r.photo_url; });
+    return;
+  }
   const { data, error } = await supabase.from("visits").select("landmark_id,photo_url,visited_at").not("photo_url","is",null).order("visited_at",{ascending:false}).limit(500);
   if(error) throw error;
   landmarkPhotos = {};
@@ -1044,11 +1058,6 @@ function wireStaticUI(){
     setTravelingToday(active.dataset.region);
   };
   $("revokeSharingBtn").onclick = revokeSharing;
-  $("scopeSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    $("scopeSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active"); lbScope=b.dataset.scope;
-    renderBoard();
-  });
   document.querySelectorAll("#boardTabs button").forEach(b=> b.onclick = ()=> switchBoardTab(b.dataset.tab));
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
@@ -1801,9 +1810,11 @@ async function setTravelingToday(region){
 async function revokeSharing(){ await setSharingEnabled(false); }
 async function renderFriendsTravelBanner(){
   const box = $("friendsTravelBanner");
-  if(!session || !followingSet.size){ box.classList.add("hidden"); return; }
+  if(!session){ box.classList.add("hidden"); return; }
   try{
-    const ids = [...followingSet];
+    const friends = await getFriends();
+    if(!friends.length){ box.classList.add("hidden"); return; }
+    const ids = friends.map(f=>f.userId);
     // ה-RLS על travel_status כבר מגביל לשורות ששותפו במפורש (sharing_enabled) ועדיין בתוקף (travel_until) - כל שורה שחוזרת כאן פעילה
     const { data, error } = await supabase.from("travel_status").select("user_id,region,profiles(name)").in("user_id", ids);
     if(error) throw error;
@@ -1844,10 +1855,8 @@ async function renderBoard(){
   const listEl = $("lbList");
   listEl.innerHTML = skeletonRows(5);
   try{
-    let ids;
-    if(lbScope==="friends"){ ids = Array.from(new Set([...followingSet, session.user.id])); }
-    else { const { data } = await supabase.from("profiles").select("id").limit(60); ids = data.map(r=>r.id); if(!ids.includes(session.user.id)) ids.push(session.user.id); }
-    if(!ids.length){ listEl.innerHTML = '<div class="empty-state">אין עדיין נתונים להצגה.</div>'; $("lbSummary").classList.add("hidden"); return; }
+    const friends = await getFriends();
+    const ids = Array.from(new Set([...friends.map(f=>f.userId), session.user.id]));
     const [{ data: profs, error: pErr }, { data: visits, error: vErr }] = await Promise.all([
       supabase.from("profiles").select("id,name").in("id", ids),
       supabase.from("visits").select("user_id,points_awarded,visited_at").in("user_id", ids),
@@ -1859,34 +1868,18 @@ async function renderBoard(){
     visits.forEach(v=>{ if(new Date(v.visited_at).getTime()>=cutoff) totals[v.user_id]=(totals[v.user_id]||0)+v.points_awarded; });
     const rows = profs.map(p=>({ id:p.id, name:p.name, val:totals[p.id]||0 })).sort((a,b)=>b.val-a.val);
     renderLbSummary(rows);
-    const friendsEmptyBanner = (lbScope==="friends" && rows.length<=1)
-      ? '<div class="empty-state"><div class="big">👥</div>עדיין לא עוקבים אחרי אף אחד.<br>הזמינו חברים כדי להתחרות יחד!<br><button class="btn btn-primary empty-cta" id="emptyFriendsCta">👥 הזמן חברים</button></div>'
+    const friendsEmptyBanner = (rows.length<=1)
+      ? '<div class="empty-state"><div class="big">👥</div>עדיין אין לך חברים באפליקציה.<br>הזמינו חברים כדי להתחרות יחד!<br><button class="btn btn-primary empty-cta" id="emptyFriendsCta">👥 הזמן חברים</button></div>'
       : "";
     listEl.innerHTML = friendsEmptyBanner + rows.map((r,i)=>{
       const isMe = r.id===session.user.id;
       const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
-      const following = followingSet.has(r.id);
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
         <div class="lb-avatar" style="background:${stringColor(r.name)}">${r.name.charAt(0)}</div>
         <div class="lb-name">${r.name}${isMe?'<small>הדירוג שלך</small>':''}</div>
-        ${(!isMe) ? `<button class="follow-btn${following?" following":""}" data-id="${r.id}">${following?"עוקב/ת":"עקוב/י"}</button>` : ""}
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
     if(friendsEmptyBanner) $("emptyFriendsCta").onclick = ()=> $("inviteBtn").click();
-    listEl.querySelectorAll(".follow-btn").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const targetId = btn.dataset.id;
-        btn.disabled = true;
-        if(followingSet.has(targetId)){
-          const { error } = await supabase.from("follows").delete().eq("follower_id",session.user.id).eq("followee_id",targetId);
-          if(!error) followingSet.delete(targetId);
-        } else {
-          const { error } = await supabase.from("follows").insert({ follower_id:session.user.id, followee_id:targetId });
-          if(!error) followingSet.add(targetId);
-        }
-        renderBoard(); renderFriendsTravelBanner();
-      };
-    });
   }catch(err){ console.error(err); listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת הדירוג.</div>'; }
 }
 function stringColor(str){
@@ -2140,7 +2133,10 @@ async function renderChallenge(){
     const northIds = LANDMARKS.filter(l=>l.region==="north").map(l=>l.id);
     if(!northIds.length) return;
     const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0);
-    const { data } = await supabase.from("visits").select("landmark_id").in("landmark_id",northIds).gte("visited_at", startOfMonth.toISOString());
+    let { data, error } = await supabase.rpc("get_community_landmark_activity", { p_landmark_ids: northIds, p_since: startOfMonth.toISOString() });
+    if(error){
+      ({ data } = await supabase.from("visits").select("landmark_id").in("landmark_id",northIds).gte("visited_at", startOfMonth.toISOString()));
+    }
     const uniqueLandmarks = new Set((data||[]).map(r=>r.landmark_id)).size;
     const goal = 10;
     $("challengeSub").textContent = `הקהילה כבשה ${uniqueLandmarks} מתוך ${goal} יעדי צפון החודש`;

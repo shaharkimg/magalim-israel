@@ -16,15 +16,19 @@ create policy "users can view their own travel status"
   on public.travel_status for select
   using (auth.uid() = user_id);
 
--- עוקבים רואים רק סטטוס ששותף במפורש (sharing_enabled) ושעדיין בתוקף (travel_until) - שניהם נאכפים כאן ברמת ה-DB, לא רק ב-UI
-create policy "followers can view shared travel status"
+-- חברים (friendships מאושרת) רואים רק סטטוס ששותף במפורש (sharing_enabled) ושעדיין בתוקף
+-- (travel_until) - שניהם נאכפים כאן ברמת ה-DB, לא רק ב-UI. עודכן מ-follows ל-friendships
+-- כדי להתאים למודל ה"חברים" האמיתי (Phase 3/6) - טבלה זו טרם הורצה אז אין נתונים לאבד.
+create policy "friends can view shared travel status"
   on public.travel_status for select
   using (
     sharing_enabled = true
     and travel_until > now()
     and exists (
-      select 1 from public.follows
-      where follower_id = auth.uid() and followee_id = travel_status.user_id
+      select 1 from public.friendships f
+      where f.status = 'accepted'
+        and ((f.requester_id = auth.uid() and f.addressee_id = travel_status.user_id)
+          or (f.addressee_id = auth.uid() and f.requester_id = travel_status.user_id))
     )
   );
 

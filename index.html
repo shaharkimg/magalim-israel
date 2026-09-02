@@ -356,7 +356,6 @@ button{font-family:inherit;}
 .board-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .group-bar{display:flex;gap:8px;margin:0 0 14px;align-items:center;}
 .group-bar select{-webkit-appearance:none;appearance:none;}
-.scope-row{display:flex;gap:8px;margin:14px 0 10px;}
 .seg{display:flex;background:var(--bg-elevated);border-radius:var(--radius-input);padding:3px;flex:1;}
 .seg button{flex:1;border:none;background:transparent;padding:8px 4px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
 .seg button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-card);}
@@ -382,8 +381,6 @@ button{font-family:inherit;}
 .lb-summary-head{font-family:"Suez One";font-size:19px;}
 .lb-summary-sub{font-size:12.5px;opacity:.85;margin-top:3px;}
 .lb-summary-cta{margin-top:12px;background:#fff;color:var(--teal-gradient-to);display:inline-flex;padding:9px 18px;font-size:13px;}
-.follow-btn{border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer;flex:none;}
-.follow-btn.following{background:var(--teal);color:var(--teal-ink);border-color:var(--teal);}
 .lb-mini-stats{display:flex;gap:8px;flex:none;font-size:11.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
 .vote-row{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg-elevated);border-radius:11px;margin-bottom:6px;font-size:13.5px;font-weight:600;}
 .vote-row.mine{border:1.5px solid var(--accent);}
@@ -614,12 +611,6 @@ input[type=file]{display:none;}
       </div>
 
       <div id="boardPanelLeaders">
-        <div class="scope-row">
-          <div class="seg" id="scopeSeg">
-            <button data-scope="friends" class="active">חברים</button>
-            <button data-scope="global">כולם</button>
-          </div>
-        </div>
         <div class="seg" id="periodSeg" style="margin-bottom:14px;">
           <button data-period="week" class="active">שבועי</button>
           <button data-period="month">חודשי</button>
@@ -877,6 +868,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902r"></script>
+<script type="module" src="./app.js?v=20260902s"></script>
 </body>
 </html>
