@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902x";
+const APP_VERSION = "20260902y";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -849,6 +849,28 @@ function filteredLandmarks(){
   });
 }
 function estimateHours(l){ return l.distanceKm ? l.distanceKm/3.2 : 1.5; }
+function activeFilterCount(){
+  return filters.cats.length + filters.diffs.length + filters.regions.length
+    + (filters.maxDist<400?1:0) + (filters.duration?1:0) + (filters.season?1:0)
+    + (filters.family?1:0) + (filters.dog?1:0) + (filters.water?1:0)
+    + (filters.accessible?1:0) + (filters.free?1:0);
+}
+function updateFilterBadge(list){
+  const badge = $("filterCountBadge");
+  if(!badge) return;
+  if(filters.customLabel){
+    badge.textContent = filters.customLabel+" · "+list.length;
+    badge.classList.remove("hidden");
+    return;
+  }
+  const n = activeFilterCount();
+  if(n>0){ badge.textContent = "· "+n; badge.classList.remove("hidden"); }
+  else badge.classList.add("hidden");
+}
+function updateApplyCTA(){
+  const n = filteredLandmarks().length;
+  $("applyFilters").textContent = n===0 ? "הצג מקומות" : n===1 ? "הצג מקום אחד" : "הצג "+n+" מקומות";
+}
 
 /* ============ "מה עושים היום?" WIZARD ============ */
 const DURATION_LABEL = { short:"עד שעה", medium:"1–3 שעות", half:"חצי יום", full:"יום מלא" };
@@ -969,7 +991,7 @@ function renderMap(){
   if(!leafletMap) return;
   clusterGroup.clearLayers();
   const list = filteredLandmarks();
-  $("visibleCount").textContent = filters.customLabel ? filters.customLabel+" · "+list.length : list.length+" יעדים";
+  updateFilterBadge(list);
   if(previewId && !list.some(l=>l.id===previewId)){ previewId = null; $("destPreview").classList.remove("open"); }
   list.forEach(l=>{
     const visited = myVisits.some(v=>v.landmark_id===l.id);
@@ -999,8 +1021,9 @@ function renderMap(){
 function renderDiscoveryCarousel(){
   if(!leafletMap) return;
   renderMapSidePanel();
+  const section = $("discoverySection");
   const el = $("discoveryCarousel");
-  el.classList.toggle("hidden", !!previewId);
+  section.classList.toggle("hidden", !!previewId);
   if(previewId) return;
   const bounds = leafletMap.getBounds();
   const center = leafletMap.getCenter();
@@ -1008,6 +1031,10 @@ function renderDiscoveryCarousel(){
     .filter(l=> bounds.contains([l.lat,l.lon]))
     .sort((a,b)=> haversine(center.lat,center.lng,a.lat,a.lon) - haversine(center.lat,center.lng,b.lat,b.lon))
     .slice(0,30);
+  if(!list.length){
+    el.innerHTML = '<div class="discovery-empty">אין יעדים באזור המוצג — נסו לזוז במפה או לרענן את הסינון.</div>';
+    return;
+  }
   el.innerHTML = list.map(l=>{
     const cat = CATEGORIES[l.category];
     const photoUrl = landmarkPhotos[l.id];
@@ -1199,13 +1226,13 @@ function wireStaticUI(){
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("profileGuestBtn").onclick = ()=> openAuthSheet();
-  $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); updateDistVal(); syncDistQuickChips(); };
+  $("distRange").oninput = e=>{ filters.maxDist=Number(e.target.value); updateDistVal(); syncDistQuickChips(); updateApplyCTA(); };
   document.querySelectorAll("#distQuickChips .chip").forEach(chip=>{
     chip.onclick = ()=>{
       const min = Number(chip.dataset.min);
       if(min>0 && !userLoc){ $("locateBtn").click(); }
       filters.maxDist = min>0 ? kmForDriveMinutes(min) : 400;
-      updateDistVal(); syncDistQuickChips(); renderMap(); syncQuickChips();
+      updateDistVal(); syncDistQuickChips(); renderMap(); syncQuickChips(); updateApplyCTA();
     };
   });
   $("detailScrim").onclick=()=> goBack();
@@ -1295,6 +1322,7 @@ function buildChips(container, dict, filterKey, extraClass){
       const arr = filters[filterKey];
       const idx = arr.indexOf(id);
       if(idx>=0){arr.splice(idx,1); chip.classList.remove("active");} else {arr.push(id); chip.classList.add("active");}
+      updateApplyCTA();
     };
   });
 }
@@ -1304,13 +1332,14 @@ function wireSingleSelectChips(containerId, filterKey){
       const id = chip.dataset.id;
       filters[filterKey] = filters[filterKey]===id ? null : id;
       document.querySelectorAll("#"+containerId+" .chip").forEach(c=>c.classList.toggle("active", c.dataset.id===filters[filterKey]));
+      updateApplyCTA();
     };
   });
 }
 function wireBooleanChips(containerId, keyMap){
   document.querySelectorAll("#"+containerId+" .chip").forEach(chip=>{
     const key = keyMap[chip.dataset.id];
-    chip.onclick = ()=>{ filters[key] = !filters[key]; chip.classList.toggle("active", filters[key]); };
+    chip.onclick = ()=>{ filters[key] = !filters[key]; chip.classList.toggle("active", filters[key]); updateApplyCTA(); };
   });
 }
 function syncQuickChips(){
@@ -1339,8 +1368,7 @@ function syncFilterUI(){
   $("distRange").value = filters.maxDist;
   updateDistVal();
   syncDistQuickChips();
-  const hasFilters = filters.cats.length||filters.diffs.length||filters.regions.length||filters.maxDist<400||filters.duration||filters.season||filters.family||filters.dog||filters.water||filters.accessible||filters.free;
-  $("openFilters").classList.toggle("has-filters", !!hasFilters);
+  updateApplyCTA();
   syncQuickChips();
 }
 function updateDistVal(){
@@ -1700,7 +1728,11 @@ function refreshHeader(){
     $("streakVal").textContent = computeStreak();
   }
   const pct = (session && LANDMARKS.length) ? Math.round(myVisits.length/LANDMARKS.length*100) : null;
-  $("heroSub").textContent = pct!=null ? `גיליתם ${pct}% מהארץ — ${myVisits.length} מתוך ${LANDMARKS.length} יעדים` : "כמה ממנה כבר גיליתם?";
+  const discEl = $("discoveryPct");
+  if(discEl){
+    discEl.classList.toggle("hidden", pct==null);
+    if(pct!=null) discEl.textContent = `גיליתם ${pct}% מהארץ — ${myVisits.length} מתוך ${LANDMARKS.length} יעדים`;
+  }
 }
 
 /* ============ PERSONAL MAP / SHARE CARD (canvas) ============ */

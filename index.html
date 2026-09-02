@@ -117,7 +117,7 @@ button{font-family:inherit;}
 .map-wrap{position:relative;flex:1;min-height:0;background:var(--map-water);overflow:hidden;}
 .map-wrap .leaflet-container{position:absolute;inset:0;font-family:"Heebo",system-ui,sans-serif;background:#DDE6E3;}
 .map-top-bar{position:absolute;left:0;right:0;top:0;z-index:1000;padding:12px 12px 0;display:flex;flex-direction:column;gap:8px;}
-.map-top-bar #heroSub{margin:0 2px;font-size:12px;font-weight:700;color:var(--text);background:var(--surface);display:inline-block;padding:4px 10px;border-radius:999px;box-shadow:var(--shadow-elevated);align-self:flex-start;}
+#discoveryPct{margin:6px 0 0;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-light);display:inline-block;padding:4px 10px;border-radius:999px;}
 .map-search-row{display:flex;gap:8px;}
 .map-search-pill{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--surface);border:none;border-radius:999px;padding:12px 16px;box-shadow:var(--shadow-elevated);font-size:13.5px;font-weight:600;color:var(--text);cursor:pointer;}
 .map-search-pill svg{flex:none;color:var(--text-muted);}
@@ -132,9 +132,7 @@ button{font-family:inherit;}
 .map-controls button+button{border-top:1px solid var(--border);}
 .locate-btn{position:absolute;right:12px;bottom:24px;width:40px;height:40px;border-radius:var(--radius-input);border:none;background:var(--surface);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
 .filter-fab{flex:none;display:flex;align-items:center;gap:6px;background:var(--surface);border-radius:999px;padding:0 14px;font-weight:700;font-size:13px;box-shadow:var(--shadow-elevated);cursor:pointer;color:var(--text);}
-.filter-fab .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:none;}
-.filter-fab.has-filters .dot{display:inline-block;}
-.filter-fab .fab-count{color:var(--text-muted);font-weight:600;font-size:11px;border-inline-start:1px solid var(--border);padding-inline-start:8px;margin-inline-start:2px;white-space:nowrap;}
+.filter-fab .fab-count{color:var(--accent);font-weight:700;font-size:13px;white-space:nowrap;}
 .dest-preview{position:absolute;left:12px;right:12px;bottom:12px;z-index:1050;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;height:92px;transform:translateY(140%);transition:transform .28s cubic-bezier(.2,.8,.3,1);cursor:pointer;}
 .dest-preview.open{transform:translateY(0);}
 .dest-preview-hero{width:92px;flex:none;position:relative;overflow:hidden;}
@@ -145,9 +143,12 @@ button{font-family:inherit;}
 .dest-preview-top h3{margin:0;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dest-preview-facts{font-size:12px;color:var(--text-muted);margin-top:3px;}
 .dest-preview-wish{border:none;background:var(--bg-elevated);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;cursor:pointer;}
-.discovery-carousel{position:absolute;left:0;right:0;bottom:12px;z-index:1040;display:flex;gap:10px;overflow-x:auto;padding:0 12px;scroll-snap-type:x proximity;scrollbar-width:none;}
+.discovery-section{position:absolute;left:0;right:0;bottom:12px;z-index:1040;}
+.discovery-section.hidden{display:none;}
+.discovery-heading{margin:0 12px 8px;font-size:12.5px;font-weight:700;color:var(--text-muted);}
+.discovery-carousel{display:flex;gap:10px;overflow-x:auto;padding:0 12px;scroll-snap-type:x proximity;scrollbar-width:none;}
 .discovery-carousel::-webkit-scrollbar{display:none;}
-.discovery-carousel.hidden{display:none;}
+.discovery-empty{margin:0 12px;padding:14px 16px;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);color:var(--text-muted);font-size:12.5px;text-align:center;}
 .discovery-card{flex:none;width:126px;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);overflow:hidden;cursor:pointer;scroll-snap-align:start;transition:transform .12s;}
 .discovery-card:active{transform:scale(.96);}
 .discovery-card-thumb{height:74px;position:relative;}
@@ -164,7 +165,7 @@ button{font-family:inherit;}
   #view-map{flex-direction:row;}
   .map-wrap{flex:0 0 66%;}
   .map-side-panel{display:block;flex:1;min-width:0;padding:18px;overflow-y:auto;border-inline-start:1px solid var(--border);background:var(--surface);}
-  .dest-preview,.discovery-carousel{display:none;}
+  .dest-preview,.discovery-section{display:none;}
 }
 
 .lm-pin-wrap{position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;}
@@ -595,16 +596,15 @@ input[type=file]{display:none;}
     <div class="map-wrap" id="mapWrap">
       <div id="mapSvg"></div>
       <div class="map-top-bar">
-        <p id="heroSub">כמה ממנה כבר גיליתם?</p>
         <div class="map-search-row">
           <button class="map-search-pill" id="openTodayWizard">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <span>מה בא לכם לגלות היום?</span>
           </button>
-          <div class="filter-fab" id="openFilters" role="button" tabindex="0" aria-label="פתיחת סינון יעדים"><span class="dot" id="filterDot"></span>
+          <div class="filter-fab" id="openFilters" role="button" tabindex="0" aria-label="פתיחת סינון יעדים">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             <span>סינון</span>
-            <span class="fab-count" id="visibleCount">25 יעדים</span>
+            <span class="fab-count hidden" id="filterCountBadge"></span>
           </div>
         </div>
         <div class="quick-chip-row" id="quickChipRow">
@@ -612,10 +612,6 @@ input[type=file]{display:none;}
           <button class="chip quick-chip" data-quick="family">עם ילדים</button>
           <button class="chip quick-chip teal" data-quick="water">מים</button>
           <button class="chip quick-chip teal" data-quick="easy">קל</button>
-          <button class="chip quick-chip" data-quick="short">עד שעה</button>
-          <button class="chip quick-chip teal" data-quick="accessible">נגיש</button>
-          <button class="chip quick-chip" data-quick="free">חינם</button>
-          <button class="chip quick-chip teal" data-quick="north">צפון</button>
         </div>
         <div class="friends-travel-banner hidden" id="friendsTravelBanner"></div>
       </div>
@@ -639,7 +635,10 @@ input[type=file]{display:none;}
           </div>
         </div>
       </div>
-      <div class="discovery-carousel" id="discoveryCarousel"></div>
+      <div class="discovery-section" id="discoverySection">
+        <h3 class="discovery-heading">מקומות באזור המוצג במפה</h3>
+        <div class="discovery-carousel" id="discoveryCarousel"></div>
+      </div>
     </div>
     <div class="map-side-panel" id="mapSidePanel"></div>
   </div>
@@ -648,7 +647,7 @@ input[type=file]{display:none;}
     <div class="scroll-area">
       <div class="guest-gate hidden" id="boardGuestGate">
         <div class="big">🏆</div>
-        <p>התחברו כדי לראות את המסע החברתי שלכם — דירוג, קבוצה ופיד</p>
+        <p>התחברו כדי לראות את המסע החברתי שלכם — דירוג, קבוצה ופעילות</p>
         <button class="btn btn-primary" id="boardGuestBtn">התחברות / הרשמה</button>
       </div>
       <div id="boardRealContent">
@@ -659,7 +658,7 @@ input[type=file]{display:none;}
       <div class="seg" id="boardTabs" style="margin-bottom:14px;">
         <button data-tab="leaders" class="active">מובילים</button>
         <button data-tab="group">קבוצה</button>
-        <button data-tab="feed">פיד</button>
+        <button data-tab="feed">פעילות</button>
       </div>
 
       <div id="boardPanelLeaders">
@@ -727,6 +726,7 @@ input[type=file]{display:none;}
           <div style="flex:1;">
             <div class="profile-name" id="profName">...<button id="editNameBtn">שינוי שם</button></div>
             <div class="profile-sub" id="profSub"></div>
+            <span id="discoveryPct" class="hidden"></span>
           </div>
         </div>
         <div class="journey-progress">
@@ -925,6 +925,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902x"></script>
+<script type="module" src="./app.js?v=20260902y"></script>
 </body>
 </html>
