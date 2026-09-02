@@ -103,9 +103,9 @@ button{font-family:inherit;}
 .brand-mark svg{width:20px;height:20px;}
 .brand{font-family:"Suez One","Heebo",serif;font-size:19px;color:var(--text);line-height:1;}
 .brand small{display:block;font-family:"Heebo";font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--text-muted);margin-top:3px;}
-.stat-pill{display:flex;align-items:center;gap:6px;background:var(--bg-elevated);border-radius:999px;padding:6px 12px 6px 10px;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;}
-.stat-pill .flame{color:var(--terracotta);font-size:13px;}
-.stat-pill .coin{width:15px;height:15px;flex:none;}
+.stat-pill{display:flex;align-items:center;gap:7px;color:var(--text-muted);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums;}
+.stat-pill b{color:var(--text);font-weight:700;}
+.stat-pill .flame{color:var(--terracotta);font-size:12px;}
 
 .view{display:none;flex:1;min-height:0;flex-direction:column;}
 .view.active{display:flex;}
@@ -516,8 +516,7 @@ input[type=file]{display:none;}
       <div class="brand">מגלים את ישראל<small>חי · Supabase</small></div>
     </div>
     <div class="stat-pill hidden" id="headerPoints">
-      <svg class="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--accent)"/><path d="M12 6l1.8 3.6 4 .58-2.9 2.82.68 3.98L12 15.1l-3.58 1.88.68-3.98L6.2 10.18l4-.58L12 6Z" fill="var(--accent-ink)"/></svg>
-      <span id="pointsVal">0</span><span style="font-size:10px;color:var(--text-muted);font-weight:700;">XP</span>
+      <span><b id="pointsVal">0</b> XP</span>
       <span class="flame">🔥<span id="streakVal">0</span></span>
     </div>
     <button class="btn btn-primary hidden" id="headerLoginBtn" style="flex:none;padding:8px 16px;font-size:13px;">התחברות</button>
@@ -851,6 +850,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902k"></script>
+<script type="module" src="./app.js?v=20260902l"></script>
 </body>
 </html>
