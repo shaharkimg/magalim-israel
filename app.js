@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903a";
+const APP_VERSION = "20260903b";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -53,6 +53,71 @@ function bestRegionProgress(visits){
     if(!best || ratio>bestRatio || (ratio===bestRatio && total<best.total)) best = { done, total };
   });
   return best || { done:0, total:1 };
+}
+
+/* ============ FOG OF WAR — גיאומטריית אזורים + גילוי ============ */
+// אין קובץ גבולות רשמי לאזורים האלה (חלוקה פנימית של האפליקציה, לא מנהלית) - הפתרון
+// הוא לגזור צורה מתוך קואורדינטות היעדים עצמם (convex hull + buffer קל), לא לצייר ידנית.
+function regionDiscoveryPct(r, visits){
+  visits = visits || myVisits;
+  const total = regionCount(r);
+  return total ? regionVisited(visits, r) / total : 0;
+}
+function convexHull(points){
+  const pts = points.slice().sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
+  const cross = (o,a,b)=> (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lower = [];
+  for(const p of pts){
+    while(lower.length>=2 && cross(lower[lower.length-2],lower[lower.length-1],p)<=0) lower.pop();
+    lower.push(p);
+  }
+  const upper = [];
+  for(let i=pts.length-1;i>=0;i--){
+    const p = pts[i];
+    while(upper.length>=2 && cross(upper[upper.length-2],upper[upper.length-1],p)<=0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+function bufferHull(hull, deg){
+  if(!hull.length) return hull;
+  const cLat = hull.reduce((s,p)=>s+p[0],0)/hull.length;
+  const cLon = hull.reduce((s,p)=>s+p[1],0)/hull.length;
+  return hull.map(([lat,lon])=>{
+    const dLat=lat-cLat, dLon=lon-cLon;
+    const len = Math.hypot(dLat,dLon) || 1;
+    return [lat + dLat/len*deg, lon + dLon/len*deg];
+  });
+}
+let regionHullsCache = null;
+function computeRegionHulls(){
+  if(regionHullsCache) return regionHullsCache;
+  const hulls = {};
+  Object.keys(REGIONS).forEach(r=>{
+    const pts = LANDMARKS.filter(l=>l.region===r).map(l=>[l.lat,l.lon]);
+    hulls[r] = pts.length>=3 ? bufferHull(convexHull(pts), 0.06) : null;
+  });
+  regionHullsCache = hulls;
+  return hulls;
+}
+let fogLayers = {};
+function renderFogOfWar(){
+  if(!leafletMap) return;
+  const hulls = computeRegionHulls();
+  Object.keys(REGIONS).forEach(r=>{
+    const hull = hulls[r];
+    if(!hull || hull.length<3) return;
+    const opacity = session ? Math.max(0, 0.14*(1-regionDiscoveryPct(r))) : 0;
+    if(!fogLayers[r]){
+      fogLayers[r] = L.polygon(hull, {
+        stroke:false, fillColor:"#8a9187", fillOpacity:opacity,
+        interactive:false, className:"fog-region",
+      }).addTo(leafletMap);
+    } else {
+      fogLayers[r].setStyle({ fillOpacity: opacity });
+    }
+  });
 }
 
 /* ============ LEVELS ============ */
@@ -980,6 +1045,7 @@ function initLeafletMap(){
     israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
     leafletMap.fitBounds(israelBounds, { padding:[28,28] });
   }
+  renderFogOfWar();
 }
 
 let previewId = null;
@@ -1034,6 +1100,7 @@ function renderMap(){
     if(userLocMarker) leafletMap.removeLayer(userLocMarker);
     userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], { radius:8, color:"#fff", weight:2.5, fillColor:"#146F67", fillOpacity:1 }).addTo(leafletMap);
   }
+  renderFogOfWar();
   renderDiscoveryCarousel();
 }
 
