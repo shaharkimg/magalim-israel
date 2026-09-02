@@ -349,6 +349,20 @@ button{font-family:inherit;}
 .journey-stat .l{font-size:11px;color:rgba(255,255,255,.68);margin-top:2px;}
 .personal-map-wrap{background:var(--map-water);border-radius:16px;overflow:hidden;border:1px solid var(--border);}
 .personal-map-wrap canvas{width:100%;height:auto;display:block;}
+.my-israel-pct{margin:0 0 12px;font-size:13.5px;font-weight:700;color:var(--accent);}
+.region-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;}
+.region-row-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+.region-row-head .name{font-weight:700;font-size:13.5px;}
+.region-row-head .count{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.region-row-nudge{font-size:11px;color:var(--text-muted);margin-top:6px;}
+.region-place-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border);}
+.region-place-row:last-child{border-bottom:none;}
+.region-place-row .thumb{width:44px;height:44px;border-radius:12px;overflow:hidden;flex:none;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);}
+.region-place-row .thumb img{width:100%;height:100%;object-fit:cover;}
+.region-place-row .thumb.mystery{font-size:18px;font-weight:800;color:var(--text-muted);}
+.region-place-row .info .name{font-weight:700;font-size:13.5px;}
+.region-place-row .info .sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+.region-place-row.visited{cursor:pointer;}
 .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center;}
 .stat-box .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;}
 .stat-box .l{font-size:10.5px;color:var(--text-muted);margin-top:3px;}
@@ -764,9 +778,11 @@ input[type=file]{display:none;}
         <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">XP סה"כ</div></div>
         <div class="stat-box"><div class="v" id="statStreak">0</div><div class="l">רצף שבועות</div></div>
       </div>
-      <div class="section-head"><h2>המפה שלי</h2></div>
+      <div class="section-head"><h2>ישראל שלי 🇮🇱</h2></div>
+      <p class="my-israel-pct" id="myIsraelPct">גילית 0% מישראל</p>
       <div class="personal-map-wrap"><canvas id="profileMapCanvas" width="340" height="400"></canvas></div>
       <button class="btn btn-outline btn-block" id="shareMapBtn" style="margin:10px 0 4px;">📤 שתף את המפה שלי</button>
+      <div id="regionProgressList"></div>
       <div class="section-head"><h2>תגים</h2></div>
       <div class="badge-grid" id="badgeGrid"></div>
       <div class="tab-row">
@@ -911,6 +927,13 @@ input[type=file]{display:none;}
     </div>
   </div>
 
+  <div class="scrim" id="regionScrim"></div>
+  <div class="sheet" id="regionSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="regionSheetTitle"></h2><button class="sheet-close" id="closeRegionSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body" id="regionSheetBody"></div>
+  </div>
+
   <div class="scrim" id="inviteScrim"></div>
   <div class="sheet" id="inviteSheet">
     <div class="sheet-handle"></div>
@@ -932,6 +955,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
-<script type="module" src="./app.js?v=20260903e"></script>
+<script type="module" src="./app.js?v=20260903f"></script>
 </body>
 </html>

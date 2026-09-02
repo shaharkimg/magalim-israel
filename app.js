@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903e";
+const APP_VERSION = "20260903f";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1375,6 +1375,8 @@ function wireStaticUI(){
   $("welcomeFindBtn").onclick = ()=> navigate("#/map");
   $("closeToday").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
+  $("closeRegionSheet").onclick = ()=> closeSheet("regionSheet","regionScrim");
+  $("regionScrim").onclick = ()=> closeSheet("regionSheet","regionScrim");
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("profileGuestBtn").onclick = ()=> openAuthSheet();
@@ -1933,6 +1935,22 @@ function paintIsraelMap(ctx, w, h, { padFrac, landColor, outlineColor, dotVisite
   ctx.lineWidth = Math.max(1, w/300);
   ctx.strokeStyle = outlineColor || getCssVar("--map-outline","#B7A97E");
   ctx.stroke();
+  // ערפל לפי אזור - אותה גיאומטריה בדיוק כמו שכבת ה-Fog of War על ה-Leaflet map (Phase 1),
+  // מוקרנת דרך אותה fitIsraelTransform - כך שגם כרטיס השיתוף (generateShareCard) מקבל את זה בחינם.
+  const hulls = computeRegionHulls();
+  Object.keys(REGIONS).forEach(r=>{
+    const hull = hulls[r];
+    if(!hull || hull.length<3) return;
+    const opacity = Math.max(0, 0.18*(1-regionDiscoveryPct(r)));
+    if(opacity<=0) return;
+    ctx.beginPath();
+    hull.forEach(([la,lo],i)=>{ const [x,y]=project(la,lo); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+    ctx.closePath();
+    ctx.globalAlpha = opacity;
+    ctx.fillStyle = "#8a9187";
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
   const visitedSet = new Set(myVisits.map(v=>v.landmark_id));
   const r = Math.max(2, w/130);
   LANDMARKS.forEach(l=>{
@@ -1950,6 +1968,37 @@ function paintIsraelMap(ctx, w, h, { padFrac, landColor, outlineColor, dotVisite
 function drawPersonalMap(canvas){
   if(!canvas) return;
   paintIsraelMap(canvas.getContext("2d"), canvas.width, canvas.height, {});
+}
+function renderRegionProgress(){
+  const el = $("regionProgressList");
+  if(!el) return;
+  el.innerHTML = Object.keys(REGIONS).map(r=>{
+    const total = regionCount(r), done = regionVisited(myVisits, r);
+    const pct = total ? Math.round(done/total*100) : 0;
+    const nudge = done>=total ? "" : `<div class="region-row-nudge">עוד ${total-done} להשלמת ${REGIONS[r]}</div>`;
+    return `<div class="region-row" data-region="${r}">
+      <div class="region-row-head"><span class="name">${REGIONS[r]}</span><span class="count">${done} מתוך ${total}</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      ${nudge}
+    </div>`;
+  }).join("");
+  el.querySelectorAll(".region-row").forEach(row=> row.onclick = ()=> openRegionSheet(row.dataset.region));
+}
+function openRegionSheet(r){
+  $("regionSheetTitle").textContent = REGIONS[r];
+  const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+  const list = LANDMARKS.filter(l=>l.region===r);
+  $("regionSheetBody").innerHTML = list.map(l=>{
+    const cat = CATEGORIES[l.category];
+    if(visitedIds.has(l.id)){
+      const photoUrl = landmarkPhotos[l.id];
+      const thumb = photoUrl ? `<img src="${photoUrl}" alt="${l.name}">` : catIconSvg(cat.icon,20);
+      return `<div class="region-place-row visited" data-goto="${l.id}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${DIFFS[l.difficulty].label} · ${cat.label}</div></div></div>`;
+    }
+    return `<div class="region-place-row locked"><div class="thumb mystery">?</div><div class="info"><div class="name">מקום שעוד לא גילית</div><div class="sub">${DIFFS[l.difficulty].label} · ${cat.label}</div></div></div>`;
+  }).join("");
+  $("regionSheetBody").querySelectorAll("[data-goto]").forEach(elm=> elm.onclick = ()=>{ closeSheet("regionSheet","regionScrim"); goToDestination(elm.dataset.goto); });
+  openSheet("regionSheet","regionScrim");
 }
 async function generateShareCard(){
   const W=1080, H=1600;
@@ -2029,6 +2078,9 @@ function renderProfile(){
   const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
   $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
   drawPersonalMap($("profileMapCanvas"));
+  const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
+  $("myIsraelPct").textContent = "גילית "+discPct+"% מישראל";
+  renderRegionProgress();
   $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();
   const ub = unlockedBadges();
