@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902h";
+const APP_VERSION = "20260902i";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -299,6 +299,11 @@ async function bootPublic(){
       familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null }));
     lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));
     await loadVisitCounts();
+    loadLandmarkPhotos().then(()=>{
+      renderMap();
+      const m = location.hash.match(/^#\/destination\/(.+)$/);
+      if(m && lmById[decodeURIComponent(m[1])]) openDetail(decodeURIComponent(m[1]));
+    }).catch(()=>{});
     buildChips("catChips", CATEGORIES, "cats");
     buildChips("diffChips", DIFFS, "diffs", "teal");
     buildChips("regionChips", REGIONS, "regions", "teal");
@@ -407,6 +412,13 @@ async function loadVisitCounts(){
   if(error) throw error;
   visitCounts = {};
   data.forEach(r=>{ visitCounts[r.landmark_id] = (visitCounts[r.landmark_id]||0)+1; });
+}
+let landmarkPhotos = {};
+async function loadLandmarkPhotos(){
+  const { data, error } = await supabase.from("visits").select("landmark_id,photo_url,visited_at").not("photo_url","is",null).order("visited_at",{ascending:false}).limit(500);
+  if(error) throw error;
+  landmarkPhotos = {};
+  data.forEach(r=>{ if(!landmarkPhotos[r.landmark_id]) landmarkPhotos[r.landmark_id] = r.photo_url; });
 }
 async function loadMyGroups(){
   const { data, error } = await supabase.from("group_members").select("group_id, groups(id,name)").eq("user_id", session.user.id);
@@ -592,6 +604,8 @@ function initLeafletMap(){
   clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false });
   leafletMap.addLayer(clusterGroup);
   leafletMap.on("click", closePreview);
+  let moveDebounce = null;
+  leafletMap.on("moveend", ()=>{ clearTimeout(moveDebounce); moveDebounce = setTimeout(renderDiscoveryCarousel, 150); });
   if(LANDMARKS.length){
     israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
     leafletMap.fitBounds(israelBounds, { padding:[28,28] });
@@ -604,7 +618,10 @@ function openPreview(id){
   previewId = id;
   const cat = CATEGORIES[l.category];
   const wished = myWishlist.includes(id);
-  $("destPreviewHero").innerHTML = '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+  const photoUrl = landmarkPhotos[id];
+  $("destPreviewHero").innerHTML = photoUrl
+    ? '<img src="'+photoUrl+'" alt="">'
+    : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
   $("destPreviewFacts").textContent = distText+DIFFS[l.difficulty].label+" · "+l.duration;
@@ -646,6 +663,40 @@ function renderMap(){
     if(userLocMarker) leafletMap.removeLayer(userLocMarker);
     userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], { radius:8, color:"#fff", weight:2.5, fillColor:"#146F67", fillOpacity:1 }).addTo(leafletMap);
   }
+  renderDiscoveryCarousel();
+}
+
+function renderDiscoveryCarousel(){
+  if(!leafletMap) return;
+  const el = $("discoveryCarousel");
+  el.classList.toggle("hidden", !!previewId);
+  if(previewId) return;
+  const bounds = leafletMap.getBounds();
+  const center = leafletMap.getCenter();
+  const list = filteredLandmarks()
+    .filter(l=> bounds.contains([l.lat,l.lon]))
+    .sort((a,b)=> haversine(center.lat,center.lng,a.lat,a.lon) - haversine(center.lat,center.lng,b.lat,b.lon))
+    .slice(0,30);
+  el.innerHTML = list.map(l=>{
+    const cat = CATEGORIES[l.category];
+    const photoUrl = landmarkPhotos[l.id];
+    const thumb = photoUrl
+      ? '<img src="'+photoUrl+'" alt="">'
+      : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,26).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+    return '<div class="discovery-card" data-id="'+l.id+'">'
+      + '<div class="discovery-card-thumb">'+thumb+'</div>'
+      + '<div class="discovery-card-name">'+l.name+'</div>'
+      + '<div class="discovery-card-facts">'+DIFFS[l.difficulty].label+" · "+l.duration+'</div>'
+      + '</div>';
+  }).join("");
+  el.querySelectorAll(".discovery-card").forEach(card=>{
+    card.onclick = ()=>{
+      const l = lmById[card.dataset.id];
+      if(!l) return;
+      leafletMap.panTo([l.lat,l.lon]);
+      openPreview(l.id);
+    };
+  });
 }
 
 function wireStaticUI(){
@@ -944,9 +995,10 @@ function openDetail(id){
   const cat = CATEGORIES[l.category];
   const totalVisits = l.baseVisits + (visitCounts[id]||0);
   const amenities = amenityChips(l);
+  const photoUrl = landmarkPhotos[id];
   $("detailBody").innerHTML = `
-    <div class="lm-hero" style="background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))">
-      ${catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
+    <div class="lm-hero${photoUrl?" has-photo":""}"${photoUrl?"":` style="background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))"`}>
+      ${photoUrl ? `<img src="${photoUrl}" alt="">` : catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
       <span class="badge-count">${totalVisits.toLocaleString()} כובשים</span>
     </div>
     <div class="lm-title-row"><div><h2>${l.name}</h2>

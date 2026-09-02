@@ -136,11 +136,21 @@ button{font-family:inherit;}
 .dest-preview.open{transform:translateY(0);}
 .dest-preview-hero{width:92px;flex:none;position:relative;overflow:hidden;}
 .dest-preview-hero > div{width:100%;height:100%;}
+.dest-preview-hero img{width:100%;height:100%;object-fit:cover;display:block;}
 .dest-preview-body{flex:1;min-width:0;padding:11px 14px;display:flex;flex-direction:column;justify-content:center;}
 .dest-preview-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .dest-preview-top h3{margin:0;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dest-preview-facts{font-size:12px;color:var(--text-muted);margin-top:3px;}
 .dest-preview-wish{border:none;background:var(--bg-elevated);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;cursor:pointer;}
+.discovery-carousel{position:absolute;left:0;right:0;bottom:12px;z-index:1040;display:flex;gap:10px;overflow-x:auto;padding:0 12px;scroll-snap-type:x proximity;scrollbar-width:none;}
+.discovery-carousel::-webkit-scrollbar{display:none;}
+.discovery-carousel.hidden{display:none;}
+.discovery-card{flex:none;width:126px;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);overflow:hidden;cursor:pointer;scroll-snap-align:start;}
+.discovery-card-thumb{height:74px;position:relative;}
+.discovery-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.discovery-card-thumb > div{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.discovery-card-name{font-size:12px;font-weight:700;padding:6px 8px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.discovery-card-facts{font-size:10.5px;color:var(--text-muted);padding:2px 8px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .lm-pin-wrap{position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;}
 .lm-pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin-color);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;transition:transform .18s;}
@@ -193,8 +203,10 @@ button{font-family:inherit;}
 .icon-btn:active{background:var(--border);}
 
 .lm-hero{height:172px;border-radius:var(--radius-card);position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:14px;flex:none;}
+.lm-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.lm-hero.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.4), transparent 55%);}
 .lm-hero svg{position:absolute;opacity:.5;width:110px;height:110px;left:-14px;top:-16px;}
-.lm-hero .badge-count{position:relative;background:rgba(0,0,0,.32);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;backdrop-filter:blur(2px);}
+.lm-hero .badge-count{position:relative;z-index:1;background:rgba(0,0,0,.32);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;backdrop-filter:blur(2px);}
 .cat-tag{display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;}
 .lm-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-top:12px;}
 .lm-title-row h2{margin:0;font-size:21px;}
@@ -548,6 +560,7 @@ input[type=file]{display:none;}
           </div>
         </div>
       </div>
+      <div class="discovery-carousel" id="discoveryCarousel"></div>
     </div>
   </div>
 
@@ -824,6 +837,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902h"></script>
+<script type="module" src="./app.js?v=20260902i"></script>
 </body>
 </html>
