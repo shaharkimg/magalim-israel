@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902n";
+const APP_VERSION = "20260902o";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -175,8 +175,8 @@ function friendlyAuthError(msg){
 
 /* ============ AUTH ============ */
 let authMode = "login";
-$("tabLogin").onclick = ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("nameField").classList.add("hidden"); $("authSubmit").textContent="התחברות"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); };
-$("tabSignup").onclick = ()=>{ authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("nameField").classList.remove("hidden"); $("authSubmit").textContent="הרשמה"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); };
+$("tabLogin").onclick = ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("nameField").classList.add("hidden"); $("authSubmit").textContent="התחברות"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.remove("hidden"); };
+$("tabSignup").onclick = ()=>{ authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("nameField").classList.remove("hidden"); $("authSubmit").textContent="הרשמה"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.add("hidden"); };
 
 $("authForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -209,6 +209,46 @@ $("authForm").addEventListener("submit", async (e)=>{
 $("signOutBtn").onclick = async ()=>{ await supabase.auth.signOut(); };
 $("authCloseBtn").onclick = ()=> closeAuthSheet();
 
+$("forgotPasswordLink").onclick = async ()=>{
+  const email = $("authEmail").value.trim();
+  if(!email){ $("authError").textContent = "הזינו קודם את כתובת האימייל שלכם למעלה."; $("authError").classList.add("show"); return; }
+  $("forgotPasswordLink").disabled = true;
+  try{
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if(error) throw error;
+    $("authError").classList.remove("show");
+    $("authNote").textContent = "שלחנו לכם מייל עם קישור לאיפוס הסיסמה.";
+    $("authNote").classList.add("show");
+  }catch(err){
+    $("authError").textContent = friendlyAuthError(err.message);
+    $("authError").classList.add("show");
+  }finally{
+    $("forgotPasswordLink").disabled = false;
+  }
+};
+
+$("resetPasswordForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const password = $("resetPassword").value;
+  $("resetError").classList.remove("show");
+  $("resetSubmit").disabled = true;
+  try{
+    const { error } = await supabase.auth.updateUser({ password });
+    if(error) throw error;
+    toast("הסיסמה עודכנה בהצלחה!");
+    $("resetPasswordForm").classList.add("hidden");
+    $("authForm").classList.remove("hidden");
+    $("authCloseBtn").classList.remove("hidden");
+    closeAuthSheet();
+    bootUserData();
+  }catch(err){
+    $("resetError").textContent = friendlyAuthError(err.message);
+    $("resetError").classList.add("show");
+  }finally{
+    $("resetSubmit").disabled = false;
+  }
+});
+
 let authGateMessage = null;
 let pendingAuthAction = null;
 function openAuthSheet(message, onSuccess){
@@ -231,6 +271,13 @@ function requireAuth(message, onSuccess){
 supabase.auth.onAuthStateChange((event, newSession)=>{
   const hadNoSession = !session;
   session = newSession;
+  if(event==="PASSWORD_RECOVERY"){
+    $("authScreen").classList.remove("hidden");
+    $("authCloseBtn").classList.add("hidden");
+    $("authForm").classList.add("hidden");
+    $("resetPasswordForm").classList.remove("hidden");
+    return;
+  }
   if(session) closeAuthSheet();
   bootUserData().then(()=>{
     if(session && hadNoSession && pendingAuthAction){
