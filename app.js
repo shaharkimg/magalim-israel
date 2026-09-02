@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902p";
+const APP_VERSION = "20260902q";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -490,7 +490,10 @@ async function createGroup(){
   if(!name || !name.trim()) return;
   const { data, error } = await supabase.from("groups").insert({ name:name.trim(), created_by:session.user.id }).select().single();
   if(error){ toast("שגיאה ביצירת הקבוצה"); return; }
-  const { error: joinErr } = await supabase.from("group_members").insert({ group_id:data.id, user_id:session.user.id });
+  let { error: joinErr } = await supabase.from("group_members").insert({ group_id:data.id, user_id:session.user.id, role:"owner" });
+  if(joinErr && /role/i.test(joinErr.message||"")){
+    ({ error: joinErr } = await supabase.from("group_members").insert({ group_id:data.id, user_id:session.user.id }));
+  }
   if(joinErr){ toast("שגיאה בהצטרפות לקבוצה"); return; }
   myGroups.push({ id:data.id, name:data.name });
   activeGroupId = data.id;
@@ -513,9 +516,18 @@ async function handleInviteLinks(){
 async function joinGroupFromLink(groupId){
   const already = myGroups.some(g=>g.id===groupId);
   if(already) return;
-  const { data: g, error: gErr } = await supabase.from("groups").select("id,name").eq("id", groupId).maybeSingle();
-  if(gErr || !g){ return; }
-  const { error } = await supabase.from("group_members").insert({ group_id:groupId, user_id:session.user.id });
+  let g = null;
+  const { data: preview, error: rpcErr } = await supabase.rpc("get_group_preview", { gid: groupId });
+  if(!rpcErr && preview && preview[0]) g = preview[0];
+  else {
+    const { data: legacy } = await supabase.from("groups").select("id,name").eq("id", groupId).maybeSingle();
+    g = legacy || null;
+  }
+  if(!g) return;
+  let { error } = await supabase.from("group_members").insert({ group_id:groupId, user_id:session.user.id, role:"member" });
+  if(error && /role/i.test(error.message||"")){
+    ({ error } = await supabase.from("group_members").insert({ group_id:groupId, user_id:session.user.id }));
+  }
   if(error) return;
   myGroups.push({ id:g.id, name:g.name });
   activeGroupId = g.id;
