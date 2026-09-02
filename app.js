@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902s";
+const APP_VERSION = "20260902t";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -170,6 +170,9 @@ function friendlyAuthError(msg){
   if(/User already registered/i.test(msg)) return "כבר יש חשבון עם האימייל הזה — נסו להתחבר.";
   if(/Password should be at least/i.test(msg)) return "הסיסמה חייבת להכיל לפחות 6 תווים.";
   if(/Unable to validate email/i.test(msg)) return "כתובת האימייל לא תקינה.";
+  if(/registration_disabled/i.test(msg)) return "ההרשמה סגורה כרגע.";
+  if(/registration_full/i.test(msg)) return "הגענו כרגע למכסת המשתמשים של גרסת הבטא. נסו שוב מאוחר יותר.";
+  if(/invite_required/i.test(msg)) return "כרגע אפשר להירשם רק עם קישור הזמנה תקף.";
   return msg;
 }
 
@@ -188,7 +191,10 @@ $("authForm").addEventListener("submit", async (e)=>{
   $("authSubmit").disabled = true;
   try{
     if(authMode==="signup"){
-      const { data, error } = await supabase.auth.signUp({ email, password, options:{ data:{ name: name || "מטייל/ת חדש/ה" } } });
+      const pendingCode = sessionStorage.getItem("pendingInviteCode");
+      const meta = { name: name || "מטייל/ת חדש/ה" };
+      if(pendingCode) meta.invite_code = pendingCode;
+      const { data, error } = await supabase.auth.signUp({ email, password, options:{ data: meta } });
       if(error) throw error;
       if(!data.session){
         $("authNote").textContent = "נרשמת בהצלחה! בדקו את תיבת המייל ואשרו את ההרשמה כדי להתחבר.";
@@ -338,6 +344,12 @@ function applyRoute(){
     handleInviteCode(decodeURIComponent(inviteMatch[1]));
     return;
   }
+  if(hash==="#/admin"){
+    switchView("map");
+    openAdmin();
+    return;
+  }
+  $("adminScreen").classList.add("hidden");
   closeSheet("detailSheet","detailScrim");
   closeSheet("inviteSheet","inviteScrim");
   closePreview();
@@ -565,6 +577,16 @@ function generateInviteCode(){
   for(let i=0;i<8;i++) code += alphabet[Math.floor(Math.random()*alphabet.length)];
   return code;
 }
+async function getInviteQuota(){
+  const [{ data: settings }, { data: profile }, { count }] = await Promise.all([
+    supabase.from("app_settings").select("default_invites_per_user").eq("id",1).maybeSingle(),
+    supabase.from("profiles").select("bonus_invites").eq("id",session.user.id).maybeSingle(),
+    supabase.from("invites").select("id",{count:"exact",head:true}).eq("created_by",session.user.id),
+  ]);
+  const limit = (settings?.default_invites_per_user ?? 3) + (profile?.bonus_invites ?? 0);
+  const used = count || 0;
+  return { limit, used, remaining: Math.max(0, limit-used) };
+}
 async function getOrCreateInvite(type, circleId){
   let q = supabase.from("invites").select("code,expires_at,max_uses,uses").eq("created_by", session.user.id).eq("invite_type", type).eq("is_active", true);
   q = type==="circle" ? q.eq("circle_id", circleId) : q.is("circle_id", null);
@@ -573,6 +595,13 @@ async function getOrCreateInvite(type, circleId){
   const row = existing && existing[0];
   const stillValid = row && (!row.expires_at || new Date(row.expires_at) > new Date()) && (row.max_uses==null || row.uses < row.max_uses);
   if(stillValid) return row.code;
+  let quota = null;
+  try{ quota = await getInviteQuota(); }catch(err){ quota = null; }
+  if(quota && quota.remaining<=0){
+    const quotaErr = new Error("נוצלו כל ההזמנות שלך לשלב הבטא.");
+    quotaErr.code = "quota_exceeded";
+    throw quotaErr;
+  }
   for(let attempt=0; attempt<5; attempt++){
     const code = generateInviteCode();
     const { data, error } = await supabase.from("invites").insert({ code, created_by:session.user.id, invite_type:type, circle_id: type==="circle"?circleId:null }).select("code").single();
@@ -623,6 +652,59 @@ function openInvitePreview(code, data){
   };
   $("inviteDismissBtn").onclick = ()=>{ closeSheet("inviteSheet","inviteScrim"); navigate("#/map"); };
   openSheet("inviteSheet","inviteScrim");
+}
+
+/* ============ ADMIN DASHBOARD (Phase 7) ============ */
+async function openAdmin(){
+  if(!session || !myProfile || !myProfile.is_admin){
+    toast("אין לך הרשאה לצפות בעמוד הזה.");
+    navigate("#/map", false);
+    return;
+  }
+  $("adminScreen").classList.remove("hidden");
+  await renderAdminDashboard();
+}
+function closeAdmin(){
+  $("adminScreen").classList.add("hidden");
+  navigate("#/map");
+}
+const ADMIN_STAT_LABELS = {
+  total_users:"סה\"כ משתמשים", active_users:"משתמשים פעילים", new_users_week:"חדשים השבוע",
+  total_circles:"מעגלים", total_checkins:"צ'ק-אינים", total_invites:"הזמנות שנוצרו",
+};
+async function renderAdminDashboard(){
+  const statsEl = $("adminStats");
+  statsEl.innerHTML = skeletonRows(3);
+  const { data: stats, error: statsErr } = await supabase.rpc("get_admin_stats");
+  if(statsErr || !stats){
+    statsEl.innerHTML = '<div class="empty-state">שגיאה בטעינת נתוני הלוח.</div>';
+  } else {
+    statsEl.innerHTML = Object.entries(ADMIN_STAT_LABELS).map(([key,label])=>
+      `<div class="stat-box"><div class="v">${(stats[key]??0).toLocaleString()}</div><div class="l">${label}</div></div>`
+    ).join("");
+  }
+  const { data: settings } = await supabase.from("app_settings").select("*").eq("id",1).maybeSingle();
+  if(settings){
+    $("admRegEnabled").checked = !!settings.registration_enabled;
+    $("admInviteOnly").checked = !!settings.invite_only;
+    $("admMaxUsers").value = settings.max_users ?? "";
+    $("admDefaultInvites").value = settings.default_invites_per_user ?? 3;
+  }
+}
+async function saveAdminSettings(){
+  $("admSaveBtn").disabled = true;
+  $("admSaveNote").classList.remove("show");
+  const maxUsersVal = $("admMaxUsers").value.trim();
+  const { error } = await supabase.from("app_settings").update({
+    registration_enabled: $("admRegEnabled").checked,
+    invite_only: $("admInviteOnly").checked,
+    max_users: maxUsersVal==="" ? null : Number(maxUsersVal),
+    default_invites_per_user: Number($("admDefaultInvites").value) || 0,
+    updated_at: new Date().toISOString(),
+  }).eq("id",1);
+  $("admSaveBtn").disabled = false;
+  $("admSaveNote").textContent = error ? "שגיאה בשמירת ההגדרות." : "ההגדרות נשמרו.";
+  $("admSaveNote").classList.add("show");
 }
 
 function subscribeRealtime(){
@@ -1058,6 +1140,9 @@ function wireStaticUI(){
     setTravelingToday(active.dataset.region);
   };
   $("revokeSharingBtn").onclick = revokeSharing;
+  $("adminCloseBtn").onclick = closeAdmin;
+  $("admSaveBtn").onclick = saveAdminSettings;
+  $("adminLinkBtn").onclick = ()=> navigate("#/admin");
   document.querySelectorAll("#boardTabs button").forEach(b=> b.onclick = ()=> switchBoardTab(b.dataset.tab));
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
@@ -1069,6 +1154,7 @@ function wireStaticUI(){
       const code = await getOrCreateInvite("friend", null);
       url = `${location.origin}${location.pathname}#/invite/${code}`;
     }catch(err){
+      if(err.code==="quota_exceeded"){ toast(err.message); return; }
       url = `${location.origin}${location.pathname}?ref=${session.user.id}`;
     }
     shareLink(url, "מגלים את ישראל", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
@@ -1084,6 +1170,7 @@ function wireStaticUI(){
       const code = await getOrCreateInvite("circle", activeGroupId);
       url = `${location.origin}${location.pathname}#/invite/${code}`;
     }catch(err){
+      if(err.code==="quota_exceeded"){ toast(err.message); return; }
       url = `${location.origin}${location.pathname}?group=${activeGroupId}`;
     }
     shareLink(url, "מגלים את ישראל", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים את ישראל!`);
@@ -1624,6 +1711,7 @@ function renderProfile(){
   if(!session){ setGuestGate("profile", true); return; }
   setGuestGate("profile", false);
   if(!myProfile) return;
+  $("adminLinkBtn").classList.toggle("hidden", !myProfile.is_admin);
   const xp = totalPoints();
   const level = getLevel(xp);
   $("avatarLetter").textContent = myProfile.name.trim().charAt(0) || "א";
@@ -1734,6 +1822,10 @@ async function getFriends(){
 async function renderFriends(){
   const reqBox = $("friendRequestsBox"), listBox = $("friendsListBox");
   if(!reqBox || !listBox) return;
+  getInviteQuota().then(q=>{
+    $("inviteQuotaText").textContent = `הזמנות שנותרו: ${q.remaining}`;
+    $("inviteQuotaText").classList.remove("hidden");
+  }).catch(()=>{});
   const [pending, friends] = await Promise.all([ getPendingFriendRequests(), getFriends() ]);
   const otherIds = [...new Set([...pending.map(p=>p.requester_id), ...friends.map(f=>f.userId)])];
   let names = {};
