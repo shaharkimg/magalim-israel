@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903f";
+const APP_VERSION = "20260903g";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1372,7 +1372,7 @@ function wireStaticUI(){
     $("wizFindBtn").classList.remove("hidden");
   };
   $("openTodayWizard").onclick = ()=> openSheet("todaySheet","todayScrim");
-  $("welcomeFindBtn").onclick = ()=> navigate("#/map");
+  $("welcomeFindBtn").onclick = ()=> { navigate("#/map"); openSheet("todaySheet","todayScrim"); };
   $("closeToday").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("closeRegionSheet").onclick = ()=> closeSheet("regionSheet","regionScrim");
@@ -1895,7 +1895,9 @@ function refreshHeader(){
     $("pointsVal").textContent = totalPoints().toLocaleString();
     $("streakVal").textContent = computeStreak();
   }
-  const pct = (session && LANDMARKS.length) ? Math.round(myVisits.length/LANDMARKS.length*100) : null;
+  // בכוונה לא מציגים "0%"/"0 מתוך" למשתמש שעוד לא ביקר בשום מקום - נשאר רק ה-welcome-banner
+  // החיובי (renderProfile). ה-badge הזה מופיע רק אחרי הביקור הראשון.
+  const pct = (session && LANDMARKS.length && myVisits.length>0) ? Math.round(myVisits.length/LANDMARKS.length*100) : null;
   const discEl = $("discoveryPct");
   if(discEl){
     discEl.classList.toggle("hidden", pct==null);
@@ -2074,6 +2076,8 @@ function renderProfile(){
   $("progBar").style.width = levelPct+"%";
   $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} XP לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
   $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
+  $("progressSection").classList.toggle("hidden", myVisits.length===0);
+  document.querySelector(".journey-stats-3")?.classList.toggle("hidden", myVisits.length===0);
   $("statVisited").textContent = myVisits.length;
   const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
   $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
