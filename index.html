@@ -545,6 +545,19 @@ input[type=file]{display:none;}
       <div class="auth-error" id="resetError"></div>
       <button type="submit" class="btn btn-primary btn-block" id="resetSubmit">עדכון סיסמה</button>
     </form>
+    <form class="auth-form hidden" id="waitlistView" style="text-align:center;">
+      <div style="font-size:40px;">🎒</div>
+      <h2 id="waitlistTitle" style="margin:6px 0 4px;font-size:18px;"></h2>
+      <p id="waitlistSub" style="color:var(--text-muted);font-size:13.5px;margin:0 0 6px;line-height:1.6;white-space:pre-line;"></p>
+      <div>
+        <label class="field-label">אימייל</label>
+        <input class="text-input" id="waitlistEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="auth-error" id="waitlistError"></div>
+      <div class="auth-note" id="waitlistNote"></div>
+      <button type="submit" class="btn btn-primary btn-block" id="waitlistSubmitBtn">הצטרפות לרשימת ההמתנה</button>
+      <button type="button" class="auth-forgot" id="waitlistBackBtn">חזרה להתחברות</button>
+    </form>
   </div>
 
   <div class="topbar hidden" id="topbar">
@@ -891,6 +904,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902t"></script>
+<script type="module" src="./app.js?v=20260902u"></script>
 </body>
 </html>

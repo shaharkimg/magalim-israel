@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902t";
+const APP_VERSION = "20260902u";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -178,8 +178,72 @@ function friendlyAuthError(msg){
 
 /* ============ AUTH ============ */
 let authMode = "login";
-$("tabLogin").onclick = ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("nameField").classList.add("hidden"); $("authSubmit").textContent="התחברות"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.remove("hidden"); };
-$("tabSignup").onclick = ()=>{ authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("nameField").classList.remove("hidden"); $("authSubmit").textContent="הרשמה"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.add("hidden"); };
+$("tabLogin").onclick = ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("nameField").classList.add("hidden"); $("authSubmit").textContent="התחברות"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.remove("hidden"); showAuthTabs(); };
+$("tabSignup").onclick = async ()=>{
+  authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("nameField").classList.remove("hidden"); $("authSubmit").textContent="הרשמה"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.add("hidden");
+  showAuthTabs();
+  if(sessionStorage.getItem("pendingInviteCode")) return; // יש קישור הזמנה בהמתנה — מדלגים על הבדיקה, ה-trigger באמת יאמת את זה
+  const gate = await checkRegistrationGate();
+  if(!gate.open) showWaitlistView(gate.reason);
+};
+
+/* ============ WAITLIST (Phase 8) ============ */
+async function checkRegistrationGate(){
+  try{
+    const { data, error } = await supabase.rpc("get_registration_status");
+    if(error || !data) return { open:true };
+    if(!data.registration_enabled) return { open:false, reason:"disabled" };
+    if(data.is_full) return { open:false, reason:"full" };
+    if(data.invite_only) return { open:false, reason:"invite_only" };
+    return { open:true };
+  }catch(err){ return { open:true }; }
+}
+const WAITLIST_COPY = {
+  full: { title:"הגענו כרגע למכסת המשתמשים של גרסת הבטא", sub:"אנחנו פותחים מקומות חדשים בהדרגה כדי לוודא שהחוויה נשארת מהירה ואיכותית.\nרוצים שנעדכן אתכם כשייפתח מקום?" },
+  disabled: { title:"ההרשמה סגורה כרגע", sub:"אנחנו עדיין לא פתוחים לציבור הרחב.\nרוצים שנעדכן אתכם כשההרשמה תיפתח?" },
+  invite_only: { title:"ההרשמה כרגע פתוחה רק בהזמנה", sub:"בשלב הזה אפשר להצטרף רק עם קישור הזמנה מחבר.\nרוצים שנעדכן אתכם כשההרשמה תיפתח לכולם?" },
+};
+function showWaitlistView(reason){
+  document.querySelector(".auth-tabs").classList.add("hidden");
+  $("authForm").classList.add("hidden");
+  $("resetPasswordForm").classList.add("hidden");
+  const copy = WAITLIST_COPY[reason] || WAITLIST_COPY.full;
+  $("waitlistTitle").textContent = copy.title;
+  $("waitlistSub").textContent = copy.sub;
+  $("waitlistError").classList.remove("show");
+  $("waitlistNote").classList.remove("show");
+  $("waitlistView").classList.remove("hidden");
+}
+function showAuthTabs(){
+  document.querySelector(".auth-tabs").classList.remove("hidden");
+  $("waitlistView").classList.add("hidden");
+  $("resetPasswordForm").classList.add("hidden");
+  $("authForm").classList.remove("hidden");
+}
+$("waitlistBackBtn").onclick = ()=> $("tabLogin").click();
+$("waitlistView").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const email = $("waitlistEmail").value.trim();
+  $("waitlistError").classList.remove("show");
+  if(!email){ $("waitlistError").textContent = "הזינו כתובת אימייל."; $("waitlistError").classList.add("show"); return; }
+  $("waitlistSubmitBtn").disabled = true;
+  try{
+    const { error } = await supabase.from("waitlist").insert({ email });
+    if(error){
+      if(error.code==="23505"){ $("waitlistNote").textContent = "כבר נרשמתם לרשימת ההמתנה עם המייל הזה!"; $("waitlistNote").classList.add("show"); }
+      else throw error;
+    } else {
+      $("waitlistNote").textContent = "נרשמתם לרשימת ההמתנה! נעדכן אתכם כשייפתח מקום.";
+      $("waitlistNote").classList.add("show");
+      $("waitlistEmail").value = "";
+    }
+  }catch(err){
+    $("waitlistError").textContent = "משהו השתבש. נסו שוב.";
+    $("waitlistError").classList.add("show");
+  }finally{
+    $("waitlistSubmitBtn").disabled = false;
+  }
+});
 
 $("authForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -205,8 +269,14 @@ $("authForm").addEventListener("submit", async (e)=>{
       if(error) throw error;
     }
   }catch(err){
-    $("authError").textContent = friendlyAuthError(err.message);
-    $("authError").classList.add("show");
+    const msg = err.message||"";
+    if(/registration_disabled/i.test(msg)){ showWaitlistView("disabled"); }
+    else if(/registration_full/i.test(msg)){ showWaitlistView("full"); }
+    else if(/invite_required/i.test(msg)){ showWaitlistView("invite_only"); }
+    else{
+      $("authError").textContent = friendlyAuthError(msg);
+      $("authError").classList.add("show");
+    }
   }finally{
     $("authSubmit").disabled = false;
   }
@@ -263,6 +333,7 @@ function openAuthSheet(message, onSuccess){
   $("authIntroText").textContent = message || "הצטרפו וצאו לכבוש את הארץ";
   $("authCloseBtn").classList.remove("hidden");
   $("authScreen").classList.remove("hidden");
+  showAuthTabs();
 }
 function closeAuthSheet(){
   $("authScreen").classList.add("hidden");
