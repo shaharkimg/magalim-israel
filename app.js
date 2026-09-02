@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902y";
+const APP_VERSION = "20260902z";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -164,6 +164,20 @@ function haversine(lat1,lon1,lat2,lon2){
 const EST_DRIVE_KMH = 55;
 function estimateDriveMinutes(km){ return Math.max(1, Math.round(km/EST_DRIVE_KMH*60)); }
 function kmForDriveMinutes(min){ return Math.round(min/60*EST_DRIVE_KMH); }
+
+/* ============ WAZE NAVIGATION (shared) ============ */
+// אותו מקור קואורדינטות בדיוק כמו ה-marker במפה (L.marker([l.lat,l.lon]) ב-renderMap) -
+// כל קורא כאן מקבל landmark מ-lmById, כך שאין אפשרות לסטייה בין הסמן לניווט.
+function openWazeNavigation(latitude, longitude, destinationName){
+  window.open(`https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`, "_blank", "noopener");
+}
+function wireWazeButton(btn, l){
+  if(!btn || !l) return;
+  const label = "נווט ל"+l.name+" באמצעות Waze";
+  btn.setAttribute("aria-label", label);
+  btn.title = label;
+  btn.onclick = (e)=>{ e.stopPropagation(); openWazeNavigation(l.lat, l.lon, l.name); };
+}
 function friendlyAuthError(msg){
   if(!msg) return "משהו השתבש. נסו שוב.";
   if(/Invalid login credentials/i.test(msg)) return "אימייל או סיסמה שגויים.";
@@ -978,6 +992,7 @@ function openPreview(id){
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
   $("destPreviewFacts").textContent = distText+DIFFS[l.difficulty].label+" · "+l.duration;
   $("destPreviewWish").textContent = wished ? "❤️" : "🤍";
+  wireWazeButton($("destPreviewNav"), l);
   $("destPreview").classList.add("open");
   renderMap();
 }
@@ -1081,10 +1096,12 @@ function renderMapSidePanel(){
       </div>
       <p class="lm-desc">${l.desc}</p>
       <div class="lm-actions">
+        <button class="icon-btn waze-btn" id="panelWazeBtn">↗</button>
         <button class="btn btn-outline" id="panelWishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
         <button class="btn btn-primary" id="panelDetailBtn">פרטים מלאים</button>
       </div>
     `;
+    wireWazeButton($("panelWazeBtn"), l);
     $("panelWishBtn").onclick = ()=>{
       const run = async ()=>{
         const justAdded = await toggleWishlist(l.id);
@@ -1452,11 +1469,13 @@ function openDetail(id){
     <div id="fieldReportsBox"></div>
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
+      <button class="icon-btn waze-btn" id="detailWazeBtn">↗</button>
       <button class="btn btn-outline" id="wishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
     <div id="checkinFlow"></div>
   `;
+  wireWazeButton($("detailWazeBtn"), l);
   const toggleWish = async ()=>{
     $("wishBtn").disabled = true;
     const justAdded = await toggleWishlist(id);
