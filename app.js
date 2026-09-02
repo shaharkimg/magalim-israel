@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902d";
+const APP_VERSION = "20260902e";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1336,6 +1336,7 @@ function renderProfile(){
   $("progBar").style.width = levelPct+"%";
   $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} XP לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
   $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
+  $("statVisited").textContent = myVisits.length;
   const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
   $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
   drawPersonalMap($("profileMapCanvas"));
