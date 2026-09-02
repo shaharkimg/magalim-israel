@@ -145,7 +145,8 @@ button{font-family:inherit;}
 .discovery-carousel{position:absolute;left:0;right:0;bottom:12px;z-index:1040;display:flex;gap:10px;overflow-x:auto;padding:0 12px;scroll-snap-type:x proximity;scrollbar-width:none;}
 .discovery-carousel::-webkit-scrollbar{display:none;}
 .discovery-carousel.hidden{display:none;}
-.discovery-card{flex:none;width:126px;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);overflow:hidden;cursor:pointer;scroll-snap-align:start;}
+.discovery-card{flex:none;width:126px;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);overflow:hidden;cursor:pointer;scroll-snap-align:start;transition:transform .12s;}
+.discovery-card:active{transform:scale(.96);}
 .discovery-card-thumb{height:74px;position:relative;}
 .discovery-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .discovery-card-thumb > div{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
@@ -167,7 +168,7 @@ button{font-family:inherit;}
 .lm-pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin-color);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;transition:transform .18s;}
 .lm-pin-wrap:hover .lm-pin{transform:rotate(-45deg) scale(1.12);}
 .lm-pin.visited{box-shadow:0 0 0 2.5px var(--success),0 1px 5px rgba(0,0,0,.35);}
-.lm-pin.selected{transform:rotate(-45deg) scale(1.3);box-shadow:0 0 0 3px var(--accent),0 3px 10px rgba(0,0,0,.4);z-index:20;}
+.lm-pin.selected{transform:rotate(-45deg) scale(1.3);box-shadow:0 0 0 3px var(--accent),0 3px 10px rgba(0,0,0,.4);z-index:20;transition:transform .3s cubic-bezier(.3,1.8,.4,1),box-shadow .18s;}
 .lm-pin-wrap:hover .lm-pin.selected{transform:rotate(-45deg) scale(1.3);}
 .lm-pin .lm-pin-icon{transform:rotate(45deg);color:#fff;display:flex;}
 .lm-pin .check{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900;line-height:1;}
@@ -263,7 +264,8 @@ button{font-family:inherit;}
 
 .section-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;}
 .section-head h2{font-size:17px;margin:0;}
-.mini-card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:9px;align-items:center;cursor:pointer;}
+.mini-card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:9px;align-items:center;cursor:pointer;transition:transform .12s,background .12s;}
+.mini-card:active{transform:scale(.98);background:var(--bg-elevated);}
 .mini-thumb{width:52px;height:52px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .mini-thumb img{width:100%;height:100%;object-fit:cover;}
 .mini-thumb svg{width:26px;height:26px;}
@@ -534,7 +536,7 @@ input[type=file]{display:none;}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <span>מה בא לכם לגלות היום?</span>
           </button>
-          <div class="filter-fab" id="openFilters"><span class="dot" id="filterDot"></span>
+          <div class="filter-fab" id="openFilters" role="button" tabindex="0" aria-label="פתיחת סינון יעדים"><span class="dot" id="filterDot"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             <span>סינון</span>
             <span class="fab-count" id="visibleCount">25 יעדים</span>
@@ -850,6 +852,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902l"></script>
+<script type="module" src="./app.js?v=20260902m"></script>
 </body>
 </html>

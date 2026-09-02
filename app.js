@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902l";
+const APP_VERSION = "20260902m";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -620,7 +620,7 @@ function openPreview(id){
   const wished = myWishlist.includes(id);
   const photoUrl = landmarkPhotos[id];
   $("destPreviewHero").innerHTML = photoUrl
-    ? '<img src="'+photoUrl+'" alt="">'
+    ? '<img src="'+photoUrl+'" alt="'+l.name+'">'
     : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
@@ -682,21 +682,23 @@ function renderDiscoveryCarousel(){
     const cat = CATEGORIES[l.category];
     const photoUrl = landmarkPhotos[l.id];
     const thumb = photoUrl
-      ? '<img src="'+photoUrl+'" alt="">'
+      ? '<img src="'+photoUrl+'" alt="'+l.name+'">'
       : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,26).replace('<svg ','<svg style="color:#fff" ')+'</div>';
-    return '<div class="discovery-card" data-id="'+l.id+'">'
+    return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
       + '<div class="discovery-card-thumb">'+thumb+'</div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
       + '<div class="discovery-card-facts">'+DIFFS[l.difficulty].label+" · "+l.duration+'</div>'
       + '</div>';
   }).join("");
   el.querySelectorAll(".discovery-card").forEach(card=>{
-    card.onclick = ()=>{
+    const go = ()=>{
       const l = lmById[card.dataset.id];
       if(!l) return;
       leafletMap.panTo([l.lat,l.lon]);
       openPreview(l.id);
     };
+    card.onclick = go;
+    card.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
   });
 }
 
@@ -710,7 +712,7 @@ function renderMapSidePanel(){
     const photoUrl = landmarkPhotos[l.id];
     panel.innerHTML = `
       <div class="lm-hero${photoUrl?" has-photo":""}" style="height:150px;${photoUrl?"":`background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`}">
-        ${photoUrl ? `<img src="${photoUrl}" alt="">` : catIconSvg(cat.icon,90).replace('<svg ','<svg style="color:#fff" ')}
+        ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}">` : catIconSvg(cat.icon,90).replace('<svg ','<svg style="color:#fff" ')}
       </div>
       <div class="lm-title-row"><div><h2>${l.name}</h2>
         <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
@@ -742,17 +744,19 @@ function renderMapSidePanel(){
     panel.innerHTML = '<div class="side-panel-head"><h3>יעדים באזור</h3></div><div class="side-list">' + list.map(l=>{
       const cat = CATEGORIES[l.category];
       const photoUrl = landmarkPhotos[l.id];
-      const thumb = photoUrl ? '<img src="'+photoUrl+'" alt="">' : catIconSvg(cat.icon,24);
-      return '<div class="mini-card" data-id="'+l.id+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
+      const thumb = photoUrl ? '<img src="'+photoUrl+'" alt="'+l.name+'">' : catIconSvg(cat.icon,24);
+      return '<div class="mini-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
         + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+DIFFS[l.difficulty].label+" · "+l.duration+'</div></div></div>';
     }).join("") + '</div>';
     panel.querySelectorAll(".mini-card").forEach(card=>{
-      card.onclick = ()=>{
+      const go = ()=>{
         const l = lmById[card.dataset.id];
         if(!l) return;
         leafletMap.panTo([l.lat,l.lon]);
         openPreview(l.id);
       };
+      card.onclick = go;
+      card.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
     });
   }
 }
@@ -778,6 +782,7 @@ function wireStaticUI(){
     }, ()=> toast("לא הצלחנו לאתר מיקום — יש לאשר גישה למיקום בדפדפן"), {enableHighAccuracy:true, timeout:8000});
   };
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
+  $("openFilters").onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); syncFilterUI(); openSheet("filterSheet","filterScrim"); } };
   $("closeFilters").onclick=()=>closeSheet("filterSheet","filterScrim");
   $("filterScrim").onclick=()=>closeSheet("filterSheet","filterScrim");
   $("clearFilters").onclick=()=>{ filters=defaultFilters(); syncFilterUI(); syncQuickChips(); renderMap(); };
@@ -1060,7 +1065,7 @@ function openDetail(id){
   const photoUrl = landmarkPhotos[id];
   $("detailBody").innerHTML = `
     <div class="lm-hero${photoUrl?" has-photo":""}"${photoUrl?"":` style="background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))"`}>
-      ${photoUrl ? `<img src="${photoUrl}" alt="">` : catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
+      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}">` : catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
       <span class="badge-count">${totalVisits.toLocaleString()} כובשים</span>
     </div>
     <div class="lm-title-row"><div><h2>${l.name}</h2>
