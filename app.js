@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902u";
+const APP_VERSION = "20260902v";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1214,6 +1214,7 @@ function wireStaticUI(){
   $("adminCloseBtn").onclick = closeAdmin;
   $("admSaveBtn").onclick = saveAdminSettings;
   $("adminLinkBtn").onclick = ()=> navigate("#/admin");
+  $("markAllReadBtn").onclick = async ()=>{ await markAllNotificationsRead(); renderNotifications(); };
   document.querySelectorAll("#boardTabs button").forEach(b=> b.onclick = ()=> switchBoardTab(b.dataset.tab));
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
@@ -1779,7 +1780,7 @@ async function shareMyMap(){
 
 /* ============ PROFILE ============ */
 function renderProfile(){
-  if(!session){ setGuestGate("profile", true); return; }
+  if(!session){ setGuestGate("profile", true); $("navUnreadDot").classList.remove("show"); return; }
   setGuestGate("profile", false);
   if(!myProfile) return;
   $("adminLinkBtn").classList.toggle("hidden", !myProfile.is_admin);
@@ -1843,6 +1844,7 @@ function renderProfile(){
   listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>goToDestination(el.dataset.id));
   renderPrivacySection();
   renderFriends();
+  renderNotifications();
 }
 
 /* ============ FRIENDSHIPS ============ */
@@ -1935,6 +1937,60 @@ async function renderFriends(){
       row.querySelector('[data-act="remove"]').onclick = async ()=>{ await removeFriend(row.dataset.id); renderFriends(); };
     });
   }
+}
+
+/* ============ NOTIFICATIONS (Phase 9) ============ */
+async function getNotifications(){
+  const { data, error } = await supabase.from("notifications").select("*").order("created_at",{ascending:false}).limit(30);
+  if(error){ console.warn("notifications feature unavailable:", error.message); return []; }
+  return data;
+}
+async function markNotificationRead(id){
+  const { error } = await supabase.from("notifications").update({ is_read:true }).eq("id",id);
+  if(error) throw error;
+}
+async function markAllNotificationsRead(){
+  if(!session) return;
+  await supabase.from("notifications").update({ is_read:true }).eq("user_id",session.user.id).eq("is_read",false);
+}
+function notificationIcon(type){
+  if(type==="friend_request") return "👋";
+  if(type==="friend_accepted") return "🤝";
+  if(type==="circle_joined") return "👥";
+  if(type==="friend_checkin") return "🏆";
+  return "🔔";
+}
+function notificationText(n){
+  const p = n.payload || {};
+  if(n.type==="friend_request") return `${p.from_name||"מטייל/ת"} שלח/ה לך בקשת חברות`;
+  if(n.type==="friend_accepted") return `${p.from_name||"מטייל/ת"} אישר/ה את בקשת החברות שלך`;
+  if(n.type==="circle_joined") return `${p.joiner_name||"מטייל/ת"} הצטרפ/ה למעגל "${p.circle_name||""}"`;
+  if(n.type==="friend_checkin") return `${p.visitor_name||"מטייל/ת"} כבש/ה יעד חדש${p.landmark_name?" — "+p.landmark_name:""}`;
+  return "התראה חדשה";
+}
+async function renderNotifications(){
+  if(!session) return;
+  const list = await getNotifications();
+  const unread = list.filter(n=>!n.is_read).length;
+  $("navUnreadDot").classList.toggle("show", unread>0);
+  const section = $("notifSection");
+  if(!list.length){ section.classList.add("hidden"); return; }
+  section.classList.remove("hidden");
+  $("notifList").innerHTML = list.map(n=>
+    `<div class="notif-row${n.is_read?"":" unread"}" data-id="${n.id}">
+      <div class="notif-icon">${notificationIcon(n.type)}</div>
+      <div><div class="notif-text">${notificationText(n)}</div><div class="notif-time">${timeAgo(n.created_at)}</div></div>
+    </div>`
+  ).join("");
+  $("notifList").querySelectorAll(".notif-row").forEach(row=>{
+    row.onclick = async ()=>{
+      if(!row.classList.contains("unread")) return;
+      row.classList.remove("unread");
+      try{ await markNotificationRead(row.dataset.id); }catch(err){}
+      const stillUnread = $("notifList").querySelectorAll(".notif-row.unread").length;
+      $("navUnreadDot").classList.toggle("show", stillUnread>0);
+    };
+  });
 }
 
 /* ============ PRIVACY / TRAVEL STATUS ("מטיילים עכשיו") ============ */
