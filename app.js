@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902b";
+const APP_VERSION = "20260902c";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -610,7 +610,7 @@ function renderMap(){
       html: '<div class="lm-pin-wrap">'
         + '<div class="lm-pin'+(visited?" visited":"")+'" style="--pin-color:'+cat.color+'">'
         + (wished?'<span class="lm-pin-star">★</span>':"")
-        + (visited?'<span class="check">✓</span>':'<span class="dot"></span>')
+        + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
         + '</div><div class="lm-pin-label">'+l.name+'</div></div>',
       iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
     });
