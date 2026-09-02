@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260902i";
+const APP_VERSION = "20260902j";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -757,6 +757,8 @@ function wireStaticUI(){
       else if(key==="short") filters.duration = filters.duration==="short" ? null : "short";
       else if(key==="north") filters.regions = filters.regions.includes("north") ? filters.regions.filter(x=>x!=="north") : [...filters.regions, "north"];
       else if(key==="family") filters.family = !filters.family;
+      else if(key==="accessible") filters.accessible = !filters.accessible;
+      else if(key==="free") filters.free = !filters.free;
       renderMap(); syncFilterUI(); syncQuickChips();
     };
   });
@@ -917,6 +919,8 @@ function syncQuickChips(){
     else if(key==="short") active = filters.duration==="short";
     else if(key==="north") active = filters.regions.includes("north");
     else if(key==="family") active = filters.family;
+    else if(key==="accessible") active = filters.accessible;
+    else if(key==="free") active = filters.free;
     chip.classList.toggle("active", active);
   });
 }
