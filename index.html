@@ -215,9 +215,13 @@ button{font-family:inherit;}
 .photo-drop{border:1.5px dashed var(--border);border-radius:14px;padding:22px 12px;text-align:center;color:var(--text-muted);cursor:pointer;margin:12px 0;font-size:13.5px;}
 .photo-preview{width:100%;border-radius:14px;display:block;margin:12px 0;max-height:220px;object-fit:cover;}
 .demo-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border-radius:12px;padding:11px 13px;margin-top:14px;font-size:12.5px;color:var(--text-muted);}
-.privacy-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:16px;}
-.privacy-desc{margin:0 0 12px;font-size:12.5px;color:var(--text-muted);line-height:1.6;}
-.privacy-toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;font-weight:700;}
+.privacy-card{background:var(--accent-light);border:1px solid transparent;border-radius:var(--radius-card);padding:16px;margin-bottom:16px;}
+.privacy-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;}
+.privacy-icon{width:36px;height:36px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;flex:none;color:var(--accent-strong);box-shadow:var(--shadow-card);}
+.privacy-icon svg{width:18px;height:18px;}
+.privacy-desc{margin:0;font-size:12.5px;color:var(--text);opacity:.82;line-height:1.6;}
+.privacy-toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;font-weight:700;background:var(--surface);border-radius:var(--radius-input);padding:12px 14px;}
+#travelStatusBox{background:var(--surface);border-radius:var(--radius-input);padding:12px 14px;margin-top:10px;}
 .privacy-status{font-size:12px;color:var(--text-muted);text-align:center;margin-top:9px;}
 .friends-travel-banner{background:color-mix(in srgb, var(--teal) 12%, transparent);border:1px solid color-mix(in srgb, var(--teal) 30%, transparent);border-radius:12px;padding:10px 13px;margin-top:9px;font-size:12.5px;color:var(--text);line-height:1.5;}
 .switch{position:relative;width:38px;height:22px;flex:none;}
@@ -544,7 +548,7 @@ input[type=file]{display:none;}
       <div id="boardRealContent">
       <div class="board-head">
         <h1 style="font-size:22px;margin:16px 0;">המסע שלנו</h1>
-        <button class="btn btn-outline" id="inviteBtn" style="flex:none;padding:9px 14px;font-size:13px;">👥 הזמן חברים</button>
+        <button class="btn btn-outline" id="inviteBtn" style="flex:none;padding:9px 14px;font-size:13px;">הזמן חברים</button>
       </div>
       <div class="seg" id="boardTabs" style="margin-bottom:14px;">
         <button data-tab="leaders" class="active">מובילים</button>
@@ -580,15 +584,15 @@ input[type=file]{display:none;}
           <button class="btn btn-primary" id="groupCreateBtn" style="margin-top:12px;display:inline-flex;">צור קבוצה ראשונה</button>
         </div>
         <div id="groupContent" class="hidden">
-          <div class="section-head"><h2>👥 חברי הקבוצה</h2></div>
+          <div class="section-head"><h2>חברי הקבוצה</h2></div>
           <div id="groupMemberStats"></div>
-          <div class="section-head"><h2>🎯 אתגר קבוצתי</h2></div>
+          <div class="section-head"><h2>אתגר קבוצתי</h2></div>
           <div id="groupChallengeCard"></div>
-          <div class="section-head"><h2>🏅 תגי הקבוצה</h2></div>
+          <div class="section-head"><h2>תגי הקבוצה</h2></div>
           <div class="badge-grid" id="groupBadgeGrid"></div>
-          <div class="section-head"><h2>🗳️ הצבעה על היעד הבא</h2></div>
+          <div class="section-head"><h2>הצבעה על היעד הבא</h2></div>
           <div id="groupVoteBox"></div>
-          <div class="section-head"><h2>📷 פעילות אחרונה בקבוצה</h2></div>
+          <div class="section-head"><h2>פעילות אחרונה בקבוצה</h2></div>
           <div id="groupFeedList"></div>
         </div>
       </div>
@@ -597,7 +601,7 @@ input[type=file]{display:none;}
         <div class="section-head" style="margin-top:4px;"><h2>אתגרים</h2></div>
         <div id="personalChallenges"></div>
         <div class="challenge-card">
-          <h3>🏅 אתגר קהילתי: מסלולי הצפון</h3>
+          <h3>אתגר קהילתי: מסלולי הצפון</h3>
           <p id="challengeSub">טוען...</p>
           <div class="bar"><i id="challengeBar" style="width:0%"></i></div>
         </div>
@@ -655,15 +659,18 @@ input[type=file]{display:none;}
         <button data-list="wishlist">רשימת משאלות</button>
       </div>
       <div id="profList"></div>
-      <div class="section-head"><h2>🔒 פרטיות ומיקום</h2></div>
+      <div class="section-head"><h2>פרטיות ומיקום</h2></div>
       <div class="privacy-card">
-        <p class="privacy-desc">שתפו עם החברים שאתם עוקבים אחריהם שאתם מטיילים היום, ובאיזה אזור כללי בארץ — בלי לחשוף את המיקום המדויק שלכם. כבוי כברירת מחדל, אפשר לכבות בכל רגע.</p>
+        <div class="privacy-head">
+          <div class="privacy-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <p class="privacy-desc">שתפו עם החברים שאתם עוקבים אחריהם שאתם מטיילים היום, ובאיזה אזור כללי בארץ — בלי לחשוף את המיקום המדויק שלכם. כבוי כברירת מחדל, אפשר לכבות בכל רגע.</p>
+        </div>
         <div class="privacy-toggle-row">
           <span>שיתוף מיקום כללי</span>
           <label class="switch"><input type="checkbox" id="sharingToggle"><span class="track"></span></label>
         </div>
         <div id="travelStatusBox" class="hidden">
-          <label class="field-label" style="margin-top:10px;">איפה אתם מטיילים היום?</label>
+          <label class="field-label">איפה אתם מטיילים היום?</label>
           <div class="chip-row" id="travelRegionChips">
             <button type="button" class="chip teal" data-region="north">צפון</button>
             <button type="button" class="chip teal" data-region="center">מרכז</button>
@@ -672,7 +679,7 @@ input[type=file]{display:none;}
             <button type="button" class="chip teal" data-region="deadsea">ים המלח</button>
             <button type="button" class="chip teal" data-region="eilat">אילת</button>
           </div>
-          <button class="btn btn-primary btn-block" id="setTravelingBtn" style="margin-top:10px;">📍 אני מטייל/ת היום</button>
+          <button class="btn btn-primary btn-block" id="setTravelingBtn" style="margin-top:10px;">אני מטייל/ת היום</button>
           <div class="privacy-status" id="travelStatusText"></div>
           <button class="btn btn-ghost btn-block" id="revokeSharingBtn" style="margin-top:8px;">הפסק שיתוף מיידית</button>
         </div>
@@ -804,6 +811,6 @@ input[type=file]{display:none;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module" src="./app.js?v=20260902e"></script>
+<script type="module" src="./app.js?v=20260902f"></script>
 </body>
 </html>
