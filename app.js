@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903z2";
+const APP_VERSION = "20260903z3";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -1454,12 +1454,16 @@ function renderWizardResults(){
       const cat = CATEGORIES[l.category];
       const tag = tagLabels[i] ? `<div class="wiz-match-tag">${tagLabels[i]}</div>` : "";
       const pctChip = s.pct!=null ? `<div class="wiz-match-pct">${s.pct}% התאמה</div>` : "";
-      return `<div class="mini-card wiz-result-card" data-id="${l.id}">
+      return `<div class="mini-card wiz-result-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}">
         <div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
         <div class="mini-info">${tag}<div class="name">${l.name}</div><div class="sub">${wizExplain(l)}</div>${pctChip}</div>
       </div>`;
     }).join("");
-  $("wizResults").querySelectorAll(".wiz-result-card").forEach(el=> el.onclick = ()=>{ closeSheet("todaySheet","todayScrim"); goToDestination(el.dataset.id); });
+  $("wizResults").querySelectorAll(".wiz-result-card").forEach(el=>{
+    const go = ()=>{ closeSheet("todaySheet","todayScrim"); goToDestination(el.dataset.id); };
+    el.onclick = go;
+    el.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
 }
 function wizMatchScore(l){
   const criteria = [];
@@ -1603,7 +1607,7 @@ function renderDiscoveryCarousel(){
     const cat = CATEGORIES[l.category];
     const photoUrl = landmarkPhotos[l.id];
     const thumb = photoUrl
-      ? '<img src="'+photoUrl+'" alt="'+l.name+'">'
+      ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">'
       : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,26).replace('<svg ','<svg style="color:#fff" ')+'</div>';
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
       + '<div class="discovery-card-thumb">'+thumb+'</div>'
@@ -1667,7 +1671,7 @@ function renderMapSidePanel(){
     panel.innerHTML = '<div class="side-panel-head"><h3>יעדים באזור</h3></div><div class="side-list">' + list.map(l=>{
       const cat = CATEGORIES[l.category];
       const photoUrl = landmarkPhotos[l.id];
-      const thumb = photoUrl ? '<img src="'+photoUrl+'" alt="'+l.name+'">' : catIconSvg(cat.icon,24);
+      const thumb = photoUrl ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">' : catIconSvg(cat.icon,24);
       return '<div class="mini-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
         + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+DIFFS[l.difficulty].label+" · "+l.duration+'</div></div></div>';
     }).join("") + '</div>';
@@ -1918,9 +1922,13 @@ function wireStaticUI(){
   $("openSearchBtn").onclick = openSearchSheet;
   $("closeSearchSheet").onclick = ()=> closeSheet("searchSheet","searchScrim");
   $("searchScrim").onclick = ()=> closeSheet("searchSheet","searchScrim");
+  let searchInputDebounce = null;
   $("searchInput").oninput = ()=>{
-    const q = $("searchInput").value;
-    if(q.trim()) renderSearchResults(q); else renderSearchDefault();
+    clearTimeout(searchInputDebounce);
+    searchInputDebounce = setTimeout(()=>{
+      const q = $("searchInput").value;
+      if(q.trim()) renderSearchResults(q); else renderSearchDefault();
+    }, 150);
   };
   $("helpCloseBtn").onclick = goBack;
   $("reportProblemToggle").onclick = ()=> $("reportProblemForm").classList.toggle("hidden");
@@ -2656,12 +2664,16 @@ function renderPlaceListSheet(title, list){
     const cat = CATEGORIES[l.category];
     if(visitedIds.has(l.id)){
       const photoUrl = landmarkPhotos[l.id];
-      const thumb = photoUrl ? `<img src="${photoUrl}" alt="${l.name}">` : catIconSvg(cat.icon,20);
-      return `<div class="region-place-row visited" data-goto="${l.id}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${DIFFS[l.difficulty].label} · ${cat.label}</div></div></div>`;
+      const thumb = photoUrl ? `<img src="${photoUrl}" loading="lazy" decoding="async" alt="${l.name}">` : catIconSvg(cat.icon,20);
+      return `<div class="region-place-row visited" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${DIFFS[l.difficulty].label} · ${cat.label}</div></div></div>`;
     }
     return `<div class="region-place-row locked"><div class="thumb mystery">?</div><div class="info"><div class="name">מקום שעוד לא גילית</div><div class="sub">${DIFFS[l.difficulty].label} · ${cat.label}</div></div></div>`;
   }).join("");
-  $("regionSheetBody").querySelectorAll("[data-goto]").forEach(elm=> elm.onclick = ()=>{ closeSheet("regionSheet","regionScrim"); goToDestination(elm.dataset.goto); });
+  $("regionSheetBody").querySelectorAll("[data-goto]").forEach(elm=>{
+    const go = ()=>{ closeSheet("regionSheet","regionScrim"); goToDestination(elm.dataset.goto); };
+    elm.onclick = go;
+    elm.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
   openSheet("regionSheet","regionScrim");
 }
 function openRegionSheet(r){
@@ -2886,8 +2898,13 @@ function searchLandmarks(query){
 }
 function searchMiniCardHtml(l, subLine){
   const cat = CATEGORIES[l.category];
-  return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+  return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
     <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${subLine}</div></div></div>`;
+}
+function wireMiniCardKeydown(container){
+  container.querySelectorAll(".mini-card").forEach(card=>{
+    card.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); card.onclick && card.onclick(); } };
+  });
 }
 function renderSearchDefault(){
   const el = $("searchResults");
@@ -2908,6 +2925,7 @@ function renderSearchDefault(){
     renderSearchResults(chip.dataset.recentQ);
   });
   el.querySelectorAll(".mini-card").forEach(card=> card.onclick = ()=>{ closeSheet("searchSheet","searchScrim"); goToDestination(card.dataset.id); });
+  wireMiniCardKeydown(el);
 }
 function renderSearchResults(query){
   const el = $("searchResults");
@@ -2922,6 +2940,7 @@ function renderSearchResults(query){
     closeSheet("searchSheet","searchScrim");
     goToDestination(card.dataset.id);
   });
+  wireMiniCardKeydown(el);
 }
 function openSearchSheet(){
   $("searchInput").value = "";
@@ -2980,7 +2999,7 @@ function renderProfile(){
         const l = lmById[v.landmark_id]; if(!l) return "";
         const cat = CATEGORIES[l.category];
         const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,24);
-        return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${thumb}</div>
+        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${thumb}</div>
           <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div></div>
           <div class="mini-pts">+${v.points_awarded}</div></div>`;
       }).join("");
@@ -3000,7 +3019,7 @@ function renderProfile(){
       listEl.innerHTML = sortedWishlist.map(id=>{
         const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
         const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
-        return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
           <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${l.duration}</div>${ctx}</div>
           <div class="mini-pts">${DIFFS[l.difficulty].label}</div></div>`;
       }).join("");
@@ -3013,12 +3032,13 @@ function renderProfile(){
     } else {
       listEl.innerHTML = recentlyViewed.map(l=>{
         const cat = CATEGORIES[l.category];
-        return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
           <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${DIFFS[l.difficulty].label}</div></div></div>`;
       }).join("");
     }
   }
   listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>goToDestination(el.dataset.id));
+  wireMiniCardKeydown(listEl);
   renderPrivacySection();
   renderFriends();
   renderNotifications();
@@ -3378,7 +3398,7 @@ function feedCardHtml(row){
   return `<div class="feed-card">
     <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
-    <div class="feed-photo" data-goto="${l.id}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
+    <div class="feed-photo" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
     ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
     <div class="feed-actions">
       <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
@@ -3387,7 +3407,10 @@ function feedCardHtml(row){
   </div>`;
 }
 function wireFeedCards(listEl, onChange){
-  listEl.querySelectorAll(".feed-photo").forEach(el=> el.onclick = ()=> goToDestination(el.dataset.goto));
+  listEl.querySelectorAll(".feed-photo").forEach(el=>{
+    el.onclick = ()=> goToDestination(el.dataset.goto);
+    el.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); goToDestination(el.dataset.goto); } };
+  });
   listEl.querySelectorAll(".feed-wish-btn").forEach(btn=>{
     btn.onclick = async ()=>{
       const lmId = btn.dataset.lm;
