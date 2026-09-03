@@ -202,14 +202,23 @@ button{font-family:inherit;}
 .marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background-color:var(--accent-strong);color:#fff;font-weight:800;font-family:"Heebo";}
 .leaflet-control-attribution{font-size:9.5px;}
 
-.scrim{position:absolute;inset:0;background:var(--sheet-scrim);z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s;}
+/* position:fixed (לא absolute) בבסיס - .app-shell גובהו 100dvh, ויחידת-viewport-דינמית
+   ידועה כגורמת לפעמים ל-containing-block לא-עקבי עבור position:absolute במכשירים ניידים
+   אמיתיים (שוחזר ואומת: sheet לא הגיע לתחתית המסך בפועל). fixed מוגן מזה כי הוא תמיד
+   יחסי ל-viewport האמיתי. חוזר ל-absolute ב-520px+ כי שם .app-shell הוא כרטיס-בגודל-קבוע
+   (לא viewport מלא) - בדיוק כמו שכבר נעשה עבור .detail-scrim. */
+.scrim{position:fixed;inset:0;background:var(--sheet-scrim);z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s;}
 .scrim.open{opacity:1;pointer-events:auto;}
 /* מגן נוסף (לצד transform) נגד sheet סגור שנשאר גלוי חזותית במכשירים אמיתיים מסוימים -
    דווח כ-"גליץ'" (תוכן מסך אחד דולף מתחת למסך אחר) גם אחרי שהוודא ש-classList לא כולל
    "open". visibility:hidden מובטח ברמת ה-CSS ללא תלות בחישוב ה-transform של הדפדפן/מכשיר;
    ה-delay על ה-transition שומר על אנימציית-הסגירה הרגילה (visibility מתעדכן רק אחרי
    שהיא מסתיימת), וב-.open אין delay כדי שהפתיחה תישאר מיידית. */
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1101;background:var(--surface);border-radius:var(--radius-card) var(--radius-card) 0 0;box-shadow:0 -8px 30px var(--shadow);max-height:82%;display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s cubic-bezier(.2,.8,.3,1), visibility 0s linear .25s;padding-bottom:env(safe-area-inset-bottom);}
+/* position:fixed באותו נימוק בדיוק כמו .scrim למעלה - זה השורש האמיתי של ה"גליץ'" שדווח
+   פעמיים ממכשיר אמיתי: sheet לא הגיע לתחתית ה-viewport האמיתי כשמוצב יחסית ל-.app-shell
+   שגובהו 100dvh, משאיר פער שבו ה-scrim (שמתחתיו) נראה. אומת חי: מעבר ל-fixed תיקן את זה
+   מיידית (getBoundingClientRect().bottom חזר ל-812 המדויק במקום עצירה מוקדמת). */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:1101;background:var(--surface);border-radius:var(--radius-card) var(--radius-card) 0 0;box-shadow:0 -8px 30px var(--shadow);max-height:82%;display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s cubic-bezier(.2,.8,.3,1), visibility 0s linear .25s;padding-bottom:env(safe-area-inset-bottom);}
 .sheet.open{transform:translateY(0);visibility:visible;transition-delay:0s;}
 .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:10px auto 4px;flex:none;}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 10px;flex:none;}
@@ -557,7 +566,7 @@ button{font-family:inherit;}
 
 .detail-scrim{position:fixed;inset:0;background:var(--sheet-scrim);z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s;}
 .detail-scrim.open{opacity:1;pointer-events:auto;}
-@media (min-width:520px){ .detail-scrim{position:absolute;} .scrim{position:absolute;}}
+@media (min-width:520px){ .detail-scrim{position:absolute;} .scrim{position:absolute;} .sheet{position:absolute;}}
 
 svg{overflow:visible;}
 .hidden{display:none!important;}
@@ -1260,6 +1269,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260903z11"></script>
+<script type="module" src="./app.js?v=20260903z12"></script>
 </body>
 </html>
