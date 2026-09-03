@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903z5";
+const APP_VERSION = "20260903z6";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -839,9 +839,24 @@ function switchBoardTab(tab){
   $("boardPanelLeaders").classList.toggle("hidden", tab!=="leaders");
   $("boardPanelGroup").classList.toggle("hidden", tab!=="group");
   $("boardPanelFeed").classList.toggle("hidden", tab!=="feed");
+  $("boardPanelAchievements").classList.toggle("hidden", tab!=="achievements");
   if(tab==="leaders") renderBoard();
   else if(tab==="group") renderGroupPanel();
   else if(tab==="feed") renderFeed();
+  else if(tab==="achievements") renderAchievementsPanel();
+}
+// תגים+אוספים אישיים - הועברו מטאב "פרופיל" לטאב חדש "הישגים" בתוך "המסע שלנו" (לבקשת
+// המשתמש), נשארים תלויים ב-myVisits/BADGES/COLLECTIONS הגלובליים בדיוק כמו קודם.
+function renderAchievementsPanel(){
+  if(!session) return;
+  const ub = unlockedBadges();
+  $("badgeGrid").innerHTML = BADGES.map(b=>{
+    const on = ub.some(u=>u.id===b.id);
+    const cur = b.current(myVisits), tgt = b.target(myVisits);
+    const progressLine = on ? "" : `<div class="badge-progress">${cur}/${tgt}</div>`;
+    return `<div class="badge${on?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div>${progressLine}</div>`;
+  }).join("");
+  renderCollections();
 }
 const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen", "#/privacy-policy":"privacyPolicyScreen", "#/help":"helpScreen", "#/notifications":"notificationsScreen" };
 const SIMPLE_OVERLAY_IDS = Object.values(SIMPLE_OVERLAY_ROUTES);
@@ -3051,15 +3066,7 @@ function renderProfile(){
   renderRegionProgress();
   $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();
-  const ub = unlockedBadges();
-  $("statBadges").textContent = ub.length+"/"+BADGES.length;
-  $("badgeGrid").innerHTML = BADGES.map(b=>{
-    const on = ub.some(u=>u.id===b.id);
-    const cur = b.current(myVisits), tgt = b.target(myVisits);
-    const progressLine = on ? "" : `<div class="badge-progress">${cur}/${tgt}</div>`;
-    return `<div class="badge${on?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div>${progressLine}</div>`;
-  }).join("");
-  renderCollections();
+  $("statBadges").textContent = unlockedBadges().length+"/"+BADGES.length;
   const listEl = $("profList");
   if(profileListTab==="visited"){
     if(!myVisits.length){

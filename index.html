@@ -871,6 +871,7 @@ input[type=file]{display:none;}
         <button data-tab="leaders" class="active">מובילים</button>
         <button data-tab="group">קבוצה</button>
         <button data-tab="feed">פעילות</button>
+        <button data-tab="achievements">הישגים</button>
       </div>
 
       <div id="boardPanelLeaders">
@@ -918,6 +919,13 @@ input[type=file]{display:none;}
         </div>
         <div class="section-head"><h2>מה חברים כבשו</h2></div>
         <div id="feedList"></div>
+      </div>
+
+      <div id="boardPanelAchievements" class="hidden">
+        <div class="section-head" style="margin-top:4px;"><h2>תגים</h2></div>
+        <div class="badge-grid" id="badgeGrid"></div>
+        <div class="section-head"><h2>אוספים</h2></div>
+        <div class="badge-grid" id="collectionGrid"></div>
       </div>
       </div>
     </div>
@@ -973,10 +981,6 @@ input[type=file]{display:none;}
       <button class="btn btn-outline btn-block" id="shareMapBtn" style="margin:10px 0 4px;">📤 שתף את המפה שלי</button>
       <div id="regionProgressList"></div>
       </div>
-      <div class="section-head"><h2>תגים</h2></div>
-      <div class="badge-grid" id="badgeGrid"></div>
-      <div class="section-head"><h2>אוספים</h2></div>
-      <div class="badge-grid" id="collectionGrid"></div>
       <div class="tab-row">
         <button class="active" data-list="visited">כבשתי</button>
         <button data-list="wishlist">רשימת משאלות</button>
@@ -1242,6 +1246,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260903z5"></script>
+<script type="module" src="./app.js?v=20260903z6"></script>
 </body>
 </html>
