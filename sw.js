@@ -7,7 +7,7 @@
 // את זה. CACHE_VERSION כאן חייב להתעדכן יחד עם APP_VERSION (app.js) וה-?v= ב-index.html
 // בכל דיפלוי, כדי שגרסה ישנה תימחק אוטומטית ב-activate.
 
-const CACHE_VERSION = "20260903z9";
+const CACHE_VERSION = "20260903z10";
 const CACHE_NAME = "magalim-shell-" + CACHE_VERSION;
 const SHELL_PATHS = ["/", "/index.html", "/config.js", "/logo.png", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
