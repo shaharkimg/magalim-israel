@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903z4";
+const APP_VERSION = "20260903z5";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -56,6 +56,7 @@ window.addEventListener("appinstalled", ()=>{
   deferredInstallPrompt = null;
   try{ localStorage.setItem("magalim-install-dismissed","1"); }catch(e){}
   $("installBanner")?.classList.add("hidden");
+  track("install_prompt_accepted");
 });
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
 // כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
@@ -348,6 +349,28 @@ window.addEventListener("unhandledrejection", e=>{
   reportClientError(reason && reason.message ? reason.message : String(reason), reason && reason.stack, location.href);
 });
 
+// App Essentials Phase 0F, Round 6 - תשתית אנליטיקס אמיתית: track() כותב ל-analytics_events
+// (fire-and-forget, graceful אם migration טרם רצה). session_id נוצר פעם אחת ונשמר ל-sessionStorage
+// (לא מזהה-משתמש - רק לקבץ אירועים מאותה טעינת-דף). מוחל רק על סט מצומצם ואמיתי של אירועים
+// שכבר קורים בפועל באפליקציה, לא רשימה תיאורטית.
+function getAnalyticsSessionId(){
+  let sid = null;
+  try{ sid = sessionStorage.getItem("magalim-session-id"); }catch(e){}
+  if(!sid){
+    sid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random().toString(36).slice(2));
+    try{ sessionStorage.setItem("magalim-session-id", sid); }catch(e){}
+  }
+  return sid;
+}
+function track(eventName, payload){
+  supabase.from("analytics_events").insert({
+    user_id: session ? session.user.id : null,
+    session_id: getAnalyticsSessionId(),
+    event_name: eventName,
+    payload: payload || {},
+  }).then(()=>{}, ()=>{});
+}
+
 /* ============ HELPERS ============ */
 function $(id){ return document.getElementById(id); }
 function toast(msg, action){
@@ -524,9 +547,9 @@ function celebrate(steps){
 }
 async function shareLink(url, title, text){
   if(navigator.share){
-    try{ await navigator.share({ title, text, url }); return; }catch(e){ if(e.name==="AbortError") return; }
+    try{ await navigator.share({ title, text, url }); track("share_used"); return; }catch(e){ if(e.name==="AbortError") return; }
   }
-  try{ await navigator.clipboard.writeText(url); toast("הקישור הועתק — אפשר להדביק ולשלוח!"); }
+  try{ await navigator.clipboard.writeText(url); toast("הקישור הועתק — אפשר להדביק ולשלוח!"); track("share_used"); }
   catch(e){ toast("הקישור: "+url); }
 }
 function haversine(lat1,lon1,lat2,lon2){
@@ -653,6 +676,7 @@ $("authForm").addEventListener("submit", async (e)=>{
       if(pendingCode) meta.invite_code = pendingCode;
       const { data, error } = await supabase.auth.signUp({ email, password, options:{ data: meta } });
       if(error) throw error;
+      track("signup_completed");
       if(!data.session){
         $("authNote").textContent = "נרשמת בהצלחה! בדקו את תיבת המייל ואשרו את ההרשמה כדי להתחבר.";
         $("authNote").classList.add("show");
@@ -1190,6 +1214,12 @@ const ADMIN_STAT_LABELS = {
   total_users:"סה\"כ משתמשים", active_users:"משתמשים פעילים", new_users_week:"חדשים השבוע",
   total_circles:"מעגלים", total_checkins:"צ'ק-אינים", total_invites:"הזמנות שנוצרו",
 };
+// App Essentials Phase 0F, Round 6 - שמות האירועים הממשיים ש-track() כותב בפועל (לא רשימה
+// תיאורטית) - signup_completed/checkin_completed/search_used/share_used/install_prompt_accepted.
+const EVENT_STAT_LABELS = {
+  signup_completed:"הרשמות", checkin_completed:"צ'ק-אינים (אירוע)", search_used:"חיפושים",
+  share_used:"שיתופים", install_prompt_accepted:"התקנות PWA",
+};
 async function renderAdminDashboard(){
   const statsEl = $("adminStats");
   statsEl.innerHTML = skeletonRows(3);
@@ -1199,6 +1229,15 @@ async function renderAdminDashboard(){
   } else {
     statsEl.innerHTML = Object.entries(ADMIN_STAT_LABELS).map(([key,label])=>
       `<div class="stat-box"><div class="v">${(stats[key]??0).toLocaleString()}</div><div class="l">${label}</div></div>`
+    ).join("");
+  }
+  const eventStatsEl = $("adminEventStats");
+  const { data: eventStats, error: eventStatsErr } = await supabase.rpc("get_event_counts");
+  if(eventStatsErr || !eventStats){
+    eventStatsEl.innerHTML = '<div class="empty-state" style="font-size:12.5px;">אין עדיין נתוני אירועים (יתכן שהתכונה עדיין לא מופעלת).</div>';
+  } else {
+    eventStatsEl.innerHTML = Object.entries(EVENT_STAT_LABELS).map(([key,label])=>
+      `<div class="stat-box"><div class="v">${(eventStats[key]??0).toLocaleString()}</div><div class="l">${label}</div></div>`
     ).join("");
   }
   const { data: settings } = await supabase.from("app_settings").select("*").eq("id",1).maybeSingle();
@@ -2479,6 +2518,7 @@ async function confirmCheckin(l){
     }
     if(error) throw error;
     myVisits.push(data);
+    track("checkin_completed", { landmark_id: l.id });
     submitFieldReport(l.id);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     const firstInCat = pts>DIFFS[l.difficulty].points;
@@ -2909,6 +2949,7 @@ function addRecentSearch(q){
   let list = getRecentSearches().filter(x=>x!==q);
   list.unshift(q);
   try{ localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(list.slice(0,5))); }catch(e){}
+  track("search_used", { query_length: q.length });
 }
 function getRecentlyViewed(){ try{ return JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY)||"[]"); }catch(e){ return []; } }
 function addRecentlyViewed(id){
