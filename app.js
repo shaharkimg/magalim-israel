@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903z7";
+const APP_VERSION = "20260903z8";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -2216,6 +2216,14 @@ function setGuestGate(prefix, isGuest){
 let sheetFocusReturnEl = null;
 let openSheetStack = [];
 function openSheet(sheetId, scrimId, onEscape){
+  // באג-אמת שדווח ממכשיר פיזי: sheet חדש (למשל תצוגת-הזמנה שנפתחת מקישור) שנפתח בזמן ש-sheet
+  // אחר (למשל הגדרות) כבר פתוח, השאיר את שניהם "open" בו-זמנית - נראה כמו שני מסכים דלוקים
+  // אחד מעל השני. סוגרים כל sheet אחר לפני פתיחת החדש; קוראים ל-onEscape שלו אם יש (כמו
+  // confirmSheet שצריך לפתור promise תלוי) כדי לא להשאיר state תקוע.
+  [...openSheetStack].forEach(s=>{
+    if(s.sheetId===sheetId) return;
+    if(s.onEscape) s.onEscape(); else closeSheet(s.sheetId, s.scrimId);
+  });
   sheetFocusReturnEl = document.activeElement;
   $(sheetId).classList.add("open"); $(scrimId).classList.add("open");
   openSheetStack.push({ sheetId, scrimId, onEscape });
