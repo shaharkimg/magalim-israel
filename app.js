@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903m";
+const APP_VERSION = "20260903o";
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
 // כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
 const THEME_KEY = "magalim-theme";
@@ -251,6 +251,18 @@ function toast(msg){
   el.textContent = msg; el.classList.add("show");
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.classList.remove("show"), 3400);
+}
+let confirmResolve = null;
+function confirmAction({ title, message, confirmLabel="אישור", cancelLabel="ביטול", destructive=false }){
+  return new Promise(resolve=>{
+    confirmResolve = resolve;
+    $("confirmTitle").textContent = title;
+    $("confirmMessage").textContent = message;
+    $("confirmOkBtn").textContent = confirmLabel;
+    $("confirmOkBtn").className = "btn btn-block "+(destructive ? "btn-danger" : "btn-primary");
+    $("confirmCancelBtn").textContent = cancelLabel;
+    openSheet("confirmSheet","confirmScrim");
+  });
 }
 function animateXpCount(el, target){
   if(!el) return;
@@ -608,7 +620,13 @@ function applyRoute(){
     openAdmin();
     return;
   }
+  if(hash==="#/settings/profile"){
+    switchView("profile");
+    openEditProfile();
+    return;
+  }
   $("adminScreen").classList.add("hidden");
+  $("editProfileScreen").classList.add("hidden");
   closeSheet("detailSheet","detailScrim");
   closeSheet("inviteSheet","inviteScrim");
   closePreview();
@@ -1524,6 +1542,11 @@ function wireStaticUI(){
     chip.className = "chip teal"; chip.dataset.id = id; chip.textContent = d.label;
     $("wizDifficulty").appendChild(chip);
   });
+  Object.entries(DIFFS).forEach(([id,d])=>{
+    const chip = document.createElement("button");
+    chip.className = "chip teal"; chip.dataset.id = id; chip.textContent = d.label;
+    $("prefDifficulty").appendChild(chip);
+  });
   document.querySelectorAll("#wizDuration .chip, #wizDifficulty .chip, #wizCompany .chip").forEach(chip=>{
     const key = chip.closest("#wizDuration") ? "duration" : chip.closest("#wizDifficulty") ? "difficulty" : "company";
     chip.onclick = ()=>{
@@ -1561,9 +1584,32 @@ function wireStaticUI(){
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("closeRegionSheet").onclick = ()=> closeSheet("regionSheet","regionScrim");
   $("regionScrim").onclick = ()=> closeSheet("regionSheet","regionScrim");
-  $("openSettingsBtn").onclick = ()=> openSheet("settingsSheet","settingsScrim");
+  $("openSettingsBtn").onclick = ()=>{
+    openSheet("settingsSheet","settingsScrim");
+    renderBlockedUsers();
+    const av = (myProfile && myProfile.activity_visibility) || "friends_groups";
+    document.querySelectorAll("#activityVisibilitySeg button").forEach(b=> b.classList.toggle("active", b.dataset.val===av));
+  };
   $("closeSettingsSheet").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
+  $("confirmOkBtn").onclick = ()=>{ closeSheet("confirmSheet","confirmScrim"); const r=confirmResolve; confirmResolve=null; r && r(true); };
+  $("confirmCancelBtn").onclick = ()=>{ closeSheet("confirmSheet","confirmScrim"); const r=confirmResolve; confirmResolve=null; r && r(false); };
+  $("confirmScrim").onclick = ()=>{ closeSheet("confirmSheet","confirmScrim"); const r=confirmResolve; confirmResolve=null; r && r(false); };
+  document.querySelectorAll("#activityVisibilitySeg button").forEach(b=>{
+    b.onclick = async ()=>{
+      document.querySelectorAll("#activityVisibilitySeg button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      try{
+        const { error } = await supabase.from("profiles").update({ activity_visibility: b.dataset.val }).eq("id", session.user.id);
+        if(error) throw error;
+        myProfile.activity_visibility = b.dataset.val;
+        toast("✓ ההעדפה נשמרה");
+      }catch(err){
+        console.error(err);
+        toast("לא ניתן לעדכן כרגע (יתכן שהתכונה עדיין לא מופעלת)");
+      }
+    };
+  });
   document.querySelectorAll("#themeSeg button").forEach(b=>{
     b.classList.toggle("active", b.dataset.theme===themePref);
     b.onclick = ()=> setTheme(b.dataset.theme);
@@ -1590,14 +1636,36 @@ function wireStaticUI(){
       btn.classList.add("active"); profileListTab = btn.dataset.list; renderProfile();
     };
   });
-  $("editNameBtn").onclick = async ()=>{
-    const n = prompt("איך לקרוא לך?", myProfile.name);
-    if(n && n.trim()){
-      const { error } = await supabase.from("profiles").update({ name:n.trim() }).eq("id", session.user.id);
-      if(error){ toast("שגיאה בעדכון השם"); return; }
-      myProfile.name = n.trim(); renderProfile();
-    }
+  $("editNameBtn").onclick = ()=> navigate("#/settings/profile");
+  $("editProfileLinkBtn").onclick = ()=>{ closeSheet("settingsSheet","settingsScrim"); navigate("#/settings/profile"); };
+  $("editProfileCloseBtn").onclick = closeEditProfile;
+  $("changeAvatarBtn").onclick = ()=> $("avatarInput").click();
+  $("avatarInput").onchange = e=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW=240, scale=Math.min(1,maxW/img.width);
+        const c = document.createElement("canvas");
+        c.width = img.width*scale; c.height = img.height*scale;
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        c.toBlob(blob=>{
+          editAvatarPhoto = { blob, dataUrl: c.toDataURL("image/jpeg",0.85) };
+          $("editAvatarPreview").innerHTML = `<img src="${editAvatarPhoto.dataUrl}" alt="תמונת פרופיל">`;
+        }, "image/jpeg", 0.85);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
   };
+  wireMultiChips("prefCompany", ()=>editPrefs.company);
+  wireMultiChips("prefInterests", ()=>editPrefs.interests);
+  wireMultiChips("prefAmenities", ()=>editPrefs.amenities);
+  wireSingleChip("prefDifficulty", "difficulty");
+  wireSingleChip("prefDuration", "duration");
+  wireSingleChip("prefDistance", "distance");
+  $("saveProfileBtn").onclick = saveProfile;
   $("sharingToggle").onchange = e=> setSharingEnabled(e.target.checked);
   document.querySelectorAll("#travelRegionChips .chip").forEach(chip=>{
     chip.onclick = ()=>{
@@ -2326,6 +2394,88 @@ function wishlistContextLines(l){
   }
   return lines.slice(0,2);
 }
+/* ============ EDIT PROFILE (App Essentials Phase 0A, Round 1) ============ */
+let editPrefs = {};
+let editAvatarPhoto = null;
+function wireMultiChips(containerId, arrGetter){
+  document.querySelectorAll("#"+containerId+" .chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      const id = chip.dataset.id;
+      const arr = arrGetter();
+      const idx = arr.indexOf(id);
+      if(idx>=0) arr.splice(idx,1); else arr.push(id);
+      chip.classList.toggle("active", arr.includes(id));
+    };
+  });
+}
+function wireSingleChip(containerId, key){
+  document.querySelectorAll("#"+containerId+" .chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      editPrefs[key] = editPrefs[key]===chip.dataset.id ? null : chip.dataset.id;
+      document.querySelectorAll("#"+containerId+" .chip").forEach(c=> c.classList.toggle("active", c.dataset.id===editPrefs[key]));
+    };
+  });
+}
+function openEditProfile(){
+  if(!session || !myProfile){ toast("צריך להתחבר קודם"); navigate("#/map", false); return; }
+  editAvatarPhoto = null;
+  editPrefs = JSON.parse(JSON.stringify(myProfile.travel_preferences || {}));
+  editPrefs.company = editPrefs.company || [];
+  editPrefs.interests = editPrefs.interests || [];
+  editPrefs.amenities = editPrefs.amenities || [];
+  $("editNameInput").value = myProfile.name || "";
+  if(myProfile.avatar_url) $("editAvatarPreview").innerHTML = `<img src="${myProfile.avatar_url}" alt="תמונת פרופיל">`;
+  else $("editAvatarPreview").innerHTML = `<span id="editAvatarLetter">${(myProfile.name||"א").trim().charAt(0)}</span>`;
+  ["prefCompany","prefInterests","prefAmenities"].forEach(id=>{
+    const key = id==="prefCompany" ? "company" : id==="prefInterests" ? "interests" : "amenities";
+    document.querySelectorAll("#"+id+" .chip").forEach(c=> c.classList.toggle("active", editPrefs[key].includes(c.dataset.id)));
+  });
+  ["prefDifficulty","prefDuration","prefDistance"].forEach(id=>{
+    const key = id==="prefDifficulty" ? "difficulty" : id==="prefDuration" ? "duration" : "distance";
+    document.querySelectorAll("#"+id+" .chip").forEach(c=> c.classList.toggle("active", c.dataset.id===editPrefs[key]));
+  });
+  $("editProfileScreen").classList.remove("hidden");
+}
+function closeEditProfile(){
+  $("editProfileScreen").classList.add("hidden");
+  navigate("#/profile");
+}
+async function saveProfile(){
+  const name = $("editNameInput").value.trim();
+  if(!name){ toast("נא להזין שם"); return; }
+  const btn = $("saveProfileBtn"); btn.disabled = true; btn.textContent = "שומר...";
+  try{
+    let avatarUrl = myProfile.avatar_url || null;
+    if(editAvatarPhoto){
+      const path = `${session.user.id}/avatar-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, editAvatarPhoto.blob, { contentType:"image/jpeg" });
+      if(upErr) throw upErr;
+      avatarUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+    }
+    const { error } = await supabase.from("profiles").update({
+      name, avatar_url: avatarUrl, travel_preferences: editPrefs,
+    }).eq("id", session.user.id);
+    if(error){
+      if(/travel_preferences/i.test(error.message||"")){
+        const { error: err2 } = await supabase.from("profiles").update({ name, avatar_url: avatarUrl }).eq("id", session.user.id);
+        if(err2) throw err2;
+        toast("השם והתמונה נשמרו — סגנון הטיולים יישמר אחרי עדכון קרוב");
+        myProfile.name = name; myProfile.avatar_url = avatarUrl;
+        renderProfile(); closeEditProfile();
+        return;
+      }
+      throw error;
+    }
+    myProfile.name = name; myProfile.avatar_url = avatarUrl; myProfile.travel_preferences = editPrefs;
+    toast("✓ הפרופיל נשמר");
+    renderProfile(); closeEditProfile();
+  }catch(err){
+    console.error(err);
+    toast("לא הצלחנו לשמור. נסה שוב.");
+  }finally{
+    btn.disabled = false; btn.textContent = "שמירה";
+  }
+}
 /* ============ PROFILE ============ */
 function renderProfile(){
   if(!session){ setGuestGate("profile", true); $("navUnreadDot").classList.remove("show"); return; }
@@ -2334,7 +2484,7 @@ function renderProfile(){
   $("adminLinkBtn").classList.toggle("hidden", !myProfile.is_admin);
   const xp = totalPoints();
   const level = getLevel(xp);
-  $("avatarLetter").textContent = myProfile.name.trim().charAt(0) || "א";
+  $("avatarLetter").innerHTML = myProfile.avatar_url ? `<img src="${myProfile.avatar_url}" alt="">` : (myProfile.name.trim().charAt(0) || "א");
   $("avatarLevelBadge").textContent = level.icon;
   $("profName").firstChild.textContent = myProfile.name;
   $("profSub").innerHTML = `<span class="level-chip">${level.icon} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
@@ -2442,6 +2592,37 @@ async function blockUser(otherUserId){
     if(updErr) throw updErr;
   }
 }
+async function unblockUser(friendshipId){
+  const { error } = await supabase.from("friendships").delete().eq("id", friendshipId);
+  if(error) throw error;
+}
+async function getBlockedUsers(){
+  const mine = session.user.id;
+  const { data, error } = await supabase.from("friendships").select("id,requester_id,addressee_id")
+    .eq("status","blocked").or(`requester_id.eq.${mine},addressee_id.eq.${mine}`);
+  if(error){ console.warn("friendships feature unavailable:", error.message); return []; }
+  return data.map(f=>({ friendshipId:f.id, userId: f.requester_id===mine ? f.addressee_id : f.requester_id }));
+}
+async function renderBlockedUsers(){
+  const el = $("blockedUsersList");
+  if(!el) return;
+  const blocked = await getBlockedUsers();
+  if(!blocked.length){ el.innerHTML = '<div class="friends-empty">אין לך משתמשים חסומים.</div>'; return; }
+  const ids = blocked.map(b=>b.userId);
+  const { data } = await supabase.from("profiles").select("id,name").in("id", ids);
+  const names = {}; (data||[]).forEach(p=> names[p.id]=p.name);
+  el.innerHTML = blocked.map(b=>{
+    const name = names[b.userId] || "מטייל/ת";
+    return `<div class="friend-row" data-id="${b.friendshipId}">
+      <div class="avatar">${name.trim().charAt(0)||"א"}</div>
+      <div class="friend-name">${name}</div>
+      <button class="btn btn-ghost" data-act="unblock">בטל חסימה</button>
+    </div>`;
+  }).join("");
+  el.querySelectorAll(".friend-row").forEach(row=>{
+    row.querySelector('[data-act="unblock"]').onclick = async ()=>{ await unblockUser(row.dataset.id); toast("החסימה בוטלה"); renderBlockedUsers(); renderFriends(); };
+  });
+}
 async function getPendingFriendRequests(){
   const { data, error } = await supabase.from("friendships").select("id,requester_id,created_at").eq("addressee_id", session.user.id).eq("status","pending");
   if(error){ console.warn("friendships feature unavailable:", error.message); return []; }
@@ -2489,14 +2670,26 @@ async function renderFriends(){
   } else {
     listBox.innerHTML = friends.map(f=>{
       const name = names[f.userId] || "מטייל/ת";
-      return `<div class="friend-row" data-id="${f.friendshipId}">
+      return `<div class="friend-row" data-id="${f.friendshipId}" data-user="${f.userId}">
         <div class="avatar">${name.trim().charAt(0)||"א"}</div>
         <div class="friend-name">${name}</div>
+        <button class="icon-btn" data-act="block" aria-label="חסימת משתמש" title="חסום">🚫</button>
         <button class="icon-btn" data-act="remove" aria-label="הסרת חבר">✕</button>
       </div>`;
     }).join("");
     listBox.querySelectorAll(".friend-row").forEach(row=>{
       row.querySelector('[data-act="remove"]').onclick = async ()=>{ await removeFriend(row.dataset.id); renderFriends(); };
+      row.querySelector('[data-act="block"]').onclick = async ()=>{
+        const name = row.querySelector(".friend-name").textContent;
+        const ok = await confirmAction({
+          title: "לחסום את "+name+"?",
+          message: "החסימה תסיר את החברות ביניכם, ותמנע ראיית פעילות ואינטראקציה הדדית.",
+          confirmLabel: "חסום", destructive: true,
+        });
+        if(!ok) return;
+        await blockUser(row.dataset.user);
+        toast("המשתמש נחסם"); renderFriends(); renderBlockedUsers();
+      };
     });
   }
 }

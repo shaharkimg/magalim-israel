@@ -76,6 +76,9 @@ button{font-family:inherit;}
 .auth-screen{position:absolute;inset:0;z-index:1200;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:28px 26px;gap:18px;}
 .onboarding-screen{position:absolute;inset:0;z-index:1250;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:32px 26px;}
 .admin-screen{position:absolute;inset:0;z-index:1260;background:var(--bg);overflow-y:auto;padding:60px 18px 30px;}
+.full-overlay{position:absolute;inset:0;z-index:1260;background:var(--bg);overflow-y:auto;padding:60px 18px 30px;}
+.avatar-edit-row{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+.avatar-edit-row .avatar{width:72px;height:72px;font-size:26px;flex:none;}
 .onboarding-screen .btn{flex:none;}
 .onboarding-slide{display:none;flex-direction:column;align-items:center;text-align:center;gap:12px;}
 .onboarding-slide.active{display:flex;}
@@ -216,6 +219,8 @@ button{font-family:inherit;}
 .btn-ghost:active{background:var(--bg-elevated);}
 .btn-outline{background:var(--surface);color:var(--text);border:1.5px solid var(--border);}
 .btn-outline:active{background:var(--bg-elevated);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:active{transform:scale(.98);opacity:.9;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
 .btn-block{width:100%;}
 .icon-btn{border:none;background:var(--bg-elevated);border-radius:var(--radius-input);width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex:none;transition:background .15s;}
@@ -327,7 +332,9 @@ button{font-family:inherit;}
 .welcome-banner p{margin:0 0 14px;font-size:13.5px;line-height:1.6;opacity:.95;}
 .welcome-banner .btn{display:inline-flex;background:#fff;color:var(--teal-gradient-to);padding:10px 24px;}
 
-.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";position:relative;}
+.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";position:relative;overflow:hidden;}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.avatar #avatarLetter,.avatar #editAvatarLetter{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 .avatar-level-badge{position:absolute;bottom:-3px;left:-3px;width:24px;height:24px;border-radius:50%;background:var(--surface);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;}
 .profile-name{font-size:18px;font-weight:800;}
 .profile-name button{border:none;background:none;color:var(--text-muted);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-inline-start:6px;}
@@ -566,6 +573,61 @@ input[type=file]{display:none;}
     <div class="auth-note" id="admSaveNote" style="margin-top:10px;"></div>
     <div class="section-head"><h2>משתמשים אחרונים</h2></div>
     <div id="adminUsersList"></div>
+  </div>
+
+  <div class="full-overlay hidden" id="editProfileScreen">
+    <button class="sheet-close" id="editProfileCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
+    <h1 style="font-size:20px;margin:6px 0 16px;">עריכת פרופיל</h1>
+    <div class="avatar-edit-row">
+      <div class="avatar" id="editAvatarPreview"><span id="editAvatarLetter">א</span></div>
+      <div>
+        <button class="btn btn-outline" id="changeAvatarBtn" type="button">החלף תמונה</button>
+        <input type="file" accept="image/*" id="avatarInput" class="hidden">
+      </div>
+    </div>
+    <div class="filter-group">
+      <h3>שם</h3>
+      <input type="text" class="text-input" id="editNameInput" maxlength="40" placeholder="איך לקרוא לך?">
+    </div>
+    <div class="section-head" style="margin-top:20px;"><h2>סגנון הטיולים שלי</h2></div>
+    <div class="filter-group"><h3>בדרך כלל אני מטייל/ת עם</h3><div class="chip-row" id="prefCompany">
+      <button type="button" class="chip" data-id="solo">לבד</button>
+      <button type="button" class="chip" data-id="couple">זוגי</button>
+      <button type="button" class="chip" data-id="family">משפחה עם ילדים</button>
+      <button type="button" class="chip" data-id="friends">חברים</button>
+    </div></div>
+    <div class="filter-group"><h3>אני בדרך כלל מחפש/ת</h3><div class="chip-row" id="prefInterests">
+      <button type="button" class="chip" data-id="nature">טבע</button>
+      <button type="button" class="chip" data-id="water">מים</button>
+      <button type="button" class="chip" data-id="viewpoints">תצפיות</button>
+      <button type="button" class="chip" data-id="hiking">מסלולי הליכה</button>
+      <button type="button" class="chip" data-id="picnic">פיקניק</button>
+      <button type="button" class="chip" data-id="heritage">אתרי מורשת</button>
+      <button type="button" class="chip" data-id="beaches">חופים</button>
+      <button type="button" class="chip" data-id="family_attractions">אטרקציות למשפחה</button>
+    </div></div>
+    <div class="filter-group"><h3>רמת קושי מועדפת</h3><div class="chip-row" id="prefDifficulty"></div></div>
+    <div class="filter-group"><h3>זמן טיול מועדף</h3><div class="chip-row" id="prefDuration">
+      <button type="button" class="chip" data-id="short">עד שעה</button>
+      <button type="button" class="chip" data-id="medium">1–3 שעות</button>
+      <button type="button" class="chip" data-id="half">חצי יום</button>
+      <button type="button" class="chip" data-id="full">יום שלם</button>
+    </div></div>
+    <div class="filter-group"><h3>מרחק נסיעה שאני מוכן/ה לנסוע</h3><div class="chip-row" id="prefDistance">
+      <button type="button" class="chip" data-id="near">קרוב</button>
+      <button type="button" class="chip" data-id="30">עד 30 דקות</button>
+      <button type="button" class="chip" data-id="60">עד שעה</button>
+      <button type="button" class="chip" data-id="90">עד שעה וחצי</button>
+      <button type="button" class="chip" data-id="any">לא משנה</button>
+    </div></div>
+    <div class="filter-group"><h3>אפשרויות נוספות</h3><div class="chip-row" id="prefAmenities">
+      <button type="button" class="chip" data-id="accessible">נגישות</button>
+      <button type="button" class="chip" data-id="stroller">מתאים לעגלות</button>
+      <button type="button" class="chip" data-id="water">מים</button>
+      <button type="button" class="chip" data-id="free">חינם בלבד</button>
+      <button type="button" class="chip" data-id="dogs">מתאים לכלבים</button>
+    </div></div>
+    <button class="btn btn-primary btn-block" id="saveProfileBtn" style="margin:20px 0 30px;">שמירה</button>
   </div>
 
   <div class="auth-screen hidden" id="authScreen">
@@ -952,8 +1014,16 @@ input[type=file]{display:none;}
           <button type="button" data-theme="system">📱 מערכת</button>
         </div>
       </div>
-      <div class="section-head"><h2>פרטיות ומיקום</h2></div>
-      <div class="privacy-card">
+      <div class="section-head"><h2>פרטיות</h2></div>
+      <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:8px;">
+        <span>מי רואה את הפעילות שלי (צ'ק-אינים, תמונות, תגים)</span>
+        <div class="seg" id="activityVisibilitySeg" style="width:100%;">
+          <button type="button" data-val="private">רק אני</button>
+          <button type="button" data-val="friends">חברים</button>
+          <button type="button" data-val="friends_groups">חברים וקבוצות</button>
+        </div>
+      </div>
+      <div class="privacy-card" style="margin-top:14px;">
         <div class="privacy-head">
           <div class="privacy-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
           <p class="privacy-desc">שתפו עם החברים שאתם עוקבים אחריהם שאתם מטיילים היום, ובאיזה אזור כללי בארץ — בלי לחשוף את המיקום המדויק שלכם. כבוי כברירת מחדל, אפשר לכבות בכל רגע.</p>
@@ -977,9 +1047,24 @@ input[type=file]{display:none;}
           <button class="btn btn-ghost btn-block" id="revokeSharingBtn" style="margin-top:8px;">הפסק שיתוף מיידית</button>
         </div>
       </div>
+      <div class="settings-row" style="margin-top:6px;"><span>משתמשים חסומים</span></div>
+      <div id="blockedUsersList"></div>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin:14px 0 0;">אנחנו שומרים רק את המידע הדרוש להפעלת האפליקציה — פרופיל, ביקורים, רשימת משאלות, חברים וקבוצות. אפשר למחוק את החשבון וכל המידע הזה בכל רגע דרך "חשבון" למטה.</p>
       <div class="section-head"><h2>חשבון</h2></div>
-      <button class="btn btn-outline btn-block hidden" id="adminLinkBtn">לוח ניהול</button>
+      <button class="btn btn-outline btn-block" id="editProfileLinkBtn">עריכת פרופיל</button>
+      <button class="btn btn-outline btn-block hidden" id="adminLinkBtn" style="margin-top:10px;">לוח ניהול</button>
       <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:10px;">התנתקות</button>
+    </div>
+  </div>
+
+  <div class="scrim" id="confirmScrim"></div>
+  <div class="sheet" id="confirmSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-body" style="padding:4px 20px 24px;text-align:center;">
+      <h3 id="confirmTitle" style="margin:6px 0 8px;"></h3>
+      <p id="confirmMessage" style="color:var(--text-muted);font-size:13.5px;line-height:1.5;margin-bottom:18px;"></p>
+      <button class="btn btn-block" id="confirmOkBtn"></button>
+      <button class="btn btn-ghost btn-block" id="confirmCancelBtn" style="margin-top:8px;"></button>
     </div>
   </div>
 
@@ -1004,6 +1089,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
-<script type="module" src="./app.js?v=20260903m"></script>
+<script type="module" src="./app.js?v=20260903o"></script>
 </body>
 </html>
