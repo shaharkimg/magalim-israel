@@ -513,6 +513,8 @@ button{font-family:inherit;}
 .nav-btn span{font-size:10.5px;font-weight:700;}
 .nav-btn .unread-dot{position:absolute;top:6px;inset-inline-end:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--terracotta);border:1.5px solid var(--surface);display:none;}
 .nav-btn .unread-dot.show{display:block;}
+.icon-btn .unread-dot{position:absolute;top:6px;inset-inline-end:6px;width:8px;height:8px;border-radius:50%;background:var(--terracotta);border:1.5px solid var(--surface);display:none;}
+.icon-btn .unread-dot.show{display:block;}
 
 .detail-scrim{position:fixed;inset:0;background:var(--sheet-scrim);z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s;}
 .detail-scrim.open{opacity:1;pointer-events:auto;}
@@ -636,6 +638,15 @@ input[type=file]{display:none;}
     <button class="btn btn-primary btn-block" id="saveProfileBtn" style="margin:20px 0 30px;">שמירה</button>
   </div>
 
+  <div class="full-overlay hidden" id="notificationsScreen">
+    <button class="sheet-close" id="notificationsCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0 16px;">
+      <h1 style="font-size:20px;margin:0;">התראות</h1>
+      <button class="auth-forgot" id="markAllReadBtn">סמן הכל כנקרא</button>
+    </div>
+    <div id="notifList"></div>
+  </div>
+
   <div class="full-overlay hidden" id="aboutScreen">
     <button class="sheet-close" id="aboutCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <h1 style="font-size:20px;margin:6px 0 16px;">אודות Magalim</h1>
@@ -745,6 +756,10 @@ input[type=file]{display:none;}
       <div class="brand-mark"><img src="./logo.png" alt="מגלים את ישראל"></div>
       <div class="brand">מגלים את ישראל</div>
     </div>
+    <button class="icon-btn hidden" id="notifBellBtn" aria-label="התראות" title="התראות" style="position:relative;flex:none;">
+      <span class="unread-dot" id="bellUnreadDot"></span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3a5.5 5.5 0 0 0-5.5 5.5v2.6c0 .7-.25 1.38-.7 1.92L4.6 14.6c-.86 1.03-.14 2.6 1.2 2.6h12.4c1.34 0 2.06-1.57 1.2-2.6l-1.2-1.58a2.9 2.9 0 0 1-.7-1.92V8.5A5.5 5.5 0 0 0 12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
     <div class="stat-pill hidden" id="headerPoints">
       <span><b id="pointsVal">0</b> XP</span>
       <span class="flame hidden">🔥<span id="streakVal">0</span></span>
@@ -910,10 +925,6 @@ input[type=file]{display:none;}
           <div class="journey-stat"><div class="v" id="statRegions">0/6</div><div class="l">אזורים</div></div>
         </div>
       </div>
-      <div class="hidden" id="notifSection">
-        <div class="section-head"><h2>התראות</h2><button class="auth-forgot" id="markAllReadBtn">סמן הכל כנקרא</button></div>
-        <div id="notifList"></div>
-      </div>
       <div class="welcome-banner hidden" id="welcomeBanner">
         <div class="big">🗺️</div>
         <p>ישראל מחכה שתגלו אותה 🗺️<br>צאו לטיול הראשון שלכם והתחילו לפתוח את המפה.</p>
@@ -1076,6 +1087,15 @@ input[type=file]{display:none;}
         <span style="font-size:12.5px;color:var(--text-muted);line-height:1.5;">Magalim משתמשת במיקום שלכם רק כשאתם מבקשים למצוא טיולים קרובים — למשל בסינון "לידי" או ב"מה עושים היום". לעולם לא באופן רציף ברקע.</span>
         <div id="locationPermStatus" style="font-size:13px;font-weight:600;"></div>
       </div>
+      <div class="section-head"><h2>התראות</h2></div>
+      <div class="privacy-toggle-row">
+        <span>אפשר התראות</span>
+        <label class="switch"><input type="checkbox" id="notifEnabledToggle"><span class="track"></span></label>
+      </div>
+      <div id="notifCategoryToggles">
+        <div class="privacy-toggle-row"><span>חברים</span><label class="switch"><input type="checkbox" id="notifFriendsToggle"><span class="track"></span></label></div>
+        <div class="privacy-toggle-row"><span>קבוצות</span><label class="switch"><input type="checkbox" id="notifGroupsToggle"><span class="track"></span></label></div>
+      </div>
       <div class="section-head"><h2>פרטיות</h2></div>
       <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:8px;">
         <span>מי רואה את הפעילות שלי (צ'ק-אינים, תמונות, תגים)</span>
@@ -1156,6 +1176,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
-<script type="module" src="./app.js?v=20260903q"></script>
+<script type="module" src="./app.js?v=20260903s"></script>
 </body>
 </html>

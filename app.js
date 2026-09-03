@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903q";
+const APP_VERSION = "20260903s";
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
 // כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
 const THEME_KEY = "magalim-theme";
@@ -246,11 +246,20 @@ const PENDING_KEY = "magalim-pending-checkins-v1";
 
 /* ============ HELPERS ============ */
 function $(id){ return document.getElementById(id); }
-function toast(msg){
+function toast(msg, action){
   const el = $("toast");
-  el.textContent = msg; el.classList.add("show");
+  el.innerHTML = `<span style="flex:1;">${msg}</span>`;
+  if(action){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = action.label;
+    btn.style.cssText = "background:none;border:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;flex:none;padding:0;font-size:inherit;font-family:inherit;";
+    btn.onclick = ()=>{ el.classList.remove("show"); clearTimeout(toast._t); action.onClick(); };
+    el.appendChild(btn);
+  }
+  el.classList.add("show");
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=>el.classList.remove("show"), 3400);
+  toast._t = setTimeout(()=>el.classList.remove("show"), action ? 4500 : 3400);
 }
 async function submitFeedback(type, textareaEl){
   const message = textareaEl.value.trim();
@@ -289,6 +298,16 @@ async function renderLocationPermStatus(){
     el.style.color = "var(--text-muted)";
   }
 }
+let retryHandlers = {}, retryHandlerSeq = 0;
+function errorStateHtml(message, retryFn){
+  const id = "r"+(retryHandlerSeq++);
+  retryHandlers[id] = retryFn;
+  return `<div class="empty-state">${message}<br><button class="btn btn-outline empty-cta" data-retry="${id}" type="button">🔄 נסה שוב</button></div>`;
+}
+document.addEventListener("click", e=>{
+  const btn = e.target.closest("[data-retry]");
+  if(btn && retryHandlers[btn.dataset.retry]) retryHandlers[btn.dataset.retry]();
+});
 let confirmResolve = null;
 function confirmAction({ title, message, confirmLabel="אישור", cancelLabel="ביטול", destructive=false }){
   return new Promise(resolve=>{
@@ -636,7 +655,7 @@ function switchBoardTab(tab){
   else if(tab==="group") renderGroupPanel();
   else if(tab==="feed") renderFeed();
 }
-const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen", "#/privacy-policy":"privacyPolicyScreen", "#/help":"helpScreen" };
+const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen", "#/privacy-policy":"privacyPolicyScreen", "#/help":"helpScreen", "#/notifications":"notificationsScreen" };
 const SIMPLE_OVERLAY_IDS = Object.values(SIMPLE_OVERLAY_ROUTES);
 function applyRoute(){
   if(!booted) return;
@@ -669,6 +688,7 @@ function applyRoute(){
     SIMPLE_OVERLAY_IDS.forEach(id=> $(id).classList.add("hidden"));
     $(SIMPLE_OVERLAY_ROUTES[hash]).classList.remove("hidden");
     if(SIMPLE_OVERLAY_ROUTES[hash]==="aboutScreen") $("aboutVersionText").textContent = APP_VERSION;
+    if(SIMPLE_OVERLAY_ROUTES[hash]==="notificationsScreen") renderNotifications();
     return;
   }
   $("adminScreen").classList.add("hidden");
@@ -1001,7 +1021,7 @@ async function renderAdminDashboard(){
   statsEl.innerHTML = skeletonRows(3);
   const { data: stats, error: statsErr } = await supabase.rpc("get_admin_stats");
   if(statsErr || !stats){
-    statsEl.innerHTML = '<div class="empty-state">שגיאה בטעינת נתוני הלוח.</div>';
+    statsEl.innerHTML = errorStateHtml("שגיאה בטעינת נתוני הלוח.", renderAdminDashboard);
   } else {
     statsEl.innerHTML = Object.entries(ADMIN_STAT_LABELS).map(([key,label])=>
       `<div class="stat-box"><div class="v">${(stats[key]??0).toLocaleString()}</div><div class="l">${label}</div></div>`
@@ -1022,7 +1042,7 @@ async function renderAdminUsersList(){
   listEl.innerHTML = skeletonRows(4);
   const { data: users, error } = await supabase.rpc("get_admin_users_list", { p_limit: 100 });
   if(error || !users){
-    listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת רשימת המשתמשים.</div>';
+    listEl.innerHTML = errorStateHtml("שגיאה בטעינת רשימת המשתמשים.", renderAdminUsersList);
     return;
   }
   if(!users.length){
@@ -1637,7 +1657,32 @@ function wireStaticUI(){
     renderLocationPermStatus();
     const av = (myProfile && myProfile.activity_visibility) || "friends_groups";
     document.querySelectorAll("#activityVisibilitySeg button").forEach(b=> b.classList.toggle("active", b.dataset.val===av));
+    const np = (myProfile && myProfile.notification_prefs) || { enabled:true, friends:true, groups:true };
+    $("notifEnabledToggle").checked = np.enabled!==false;
+    $("notifFriendsToggle").checked = np.friends!==false;
+    $("notifGroupsToggle").checked = np.groups!==false;
+    $("notifCategoryToggles").classList.toggle("hidden", np.enabled===false);
   };
+  async function saveNotificationPrefs(){
+    const prefs = {
+      enabled: $("notifEnabledToggle").checked,
+      friends: $("notifFriendsToggle").checked,
+      groups: $("notifGroupsToggle").checked,
+    };
+    $("notifCategoryToggles").classList.toggle("hidden", !prefs.enabled);
+    try{
+      const { error } = await supabase.from("profiles").update({ notification_prefs: prefs }).eq("id", session.user.id);
+      if(error) throw error;
+      myProfile.notification_prefs = prefs;
+      toast("✓ ההעדפה נשמרה");
+    }catch(err){
+      console.error(err);
+      toast("לא ניתן לעדכן כרגע (יתכן שהתכונה עדיין לא מופעלת)");
+    }
+  }
+  $("notifEnabledToggle").onchange = saveNotificationPrefs;
+  $("notifFriendsToggle").onchange = saveNotificationPrefs;
+  $("notifGroupsToggle").onchange = saveNotificationPrefs;
   $("closeSettingsSheet").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("confirmOkBtn").onclick = ()=>{ closeSheet("confirmSheet","confirmScrim"); const r=confirmResolve; confirmResolve=null; r && r(true); };
@@ -1694,6 +1739,8 @@ function wireStaticUI(){
   $("termsCloseBtn").onclick = goBack;
   $("privacyPolicyCloseBtn").onclick = goBack;
   $("settingsHelpBtn").onclick = ()=>{ closeSheet("settingsSheet","settingsScrim"); navigate("#/help"); };
+  $("notifBellBtn").onclick = ()=> navigate("#/notifications");
+  $("notificationsCloseBtn").onclick = goBack;
   $("helpCloseBtn").onclick = goBack;
   $("reportProblemToggle").onclick = ()=> $("reportProblemForm").classList.toggle("hidden");
   $("sendIdeaToggle").onclick = ()=> $("sendIdeaForm").classList.toggle("hidden");
@@ -1876,6 +1923,9 @@ function syncDistQuickChips(){
 function skeletonRows(n){
   return Array.from({length:n}).map(()=>`<div class="lb-row skel-row"><div class="skel skel-circle" style="width:22px;height:16px;"></div><div class="skel skel-circle" style="width:38px;height:38px;"></div><div class="skel skel-line" style="flex:1;"></div><div class="skel skel-line" style="width:40px;"></div></div>`).join("");
 }
+function skeletonNotifRows(n){
+  return Array.from({length:n}).map(()=>`<div class="notif-row"><div class="skel skel-circle" style="width:36px;height:36px;"></div><div style="flex:1"><div class="skel skel-line" style="width:70%;margin-bottom:6px;"></div><div class="skel skel-line" style="width:30%;height:9px;"></div></div></div>`).join("");
+}
 function skeletonCards(n){
   return Array.from({length:n}).map(()=>`<div class="feed-card skel-card">
     <div class="feed-head"><div class="skel skel-circle" style="width:34px;height:34px;"></div><div style="flex:1"><div class="skel skel-line" style="width:40%;margin-bottom:6px;"></div><div class="skel skel-line" style="width:65%;height:9px;"></div></div></div>
@@ -1903,16 +1953,41 @@ function amenityChips(l){
   if(l.season) chips.push("🗓 עונה מומלצת: "+SEASON_LABEL[l.season]);
   return chips;
 }
+let pendingWishlistRemovals = {};
+function refreshOpenDetailIfShowing(id){
+  if(location.hash === "#/destination/"+encodeURIComponent(id)) openDetail(id);
+}
 async function toggleWishlist(id){
   let justAdded = false;
   if(myWishlist.includes(id)){
-    const { error } = await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",id);
-    if(!error) myWishlist = myWishlist.filter(x=>x!==id);
+    myWishlist = myWishlist.filter(x=>x!==id);
+    renderMap();
+    pendingWishlistRemovals[id] = setTimeout(async ()=>{
+      delete pendingWishlistRemovals[id];
+      await supabase.from("wishlist").delete().eq("user_id",session.user.id).eq("landmark_id",id);
+    }, 4000);
+    toast("הוסר מהשמורים", { label:"ביטול", onClick: async ()=>{
+      const stillPending = !!pendingWishlistRemovals[id];
+      if(stillPending){ clearTimeout(pendingWishlistRemovals[id]); delete pendingWishlistRemovals[id]; }
+      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); }
+      if(!stillPending){
+        // ה-timer כבר ירה וה-DELETE כבר בוצע בפועל - הביטול חייב להכניס את השורה מחדש,
+        // לא רק לשחזר state מקומי (אחרת המסך יראה "שמור" בזמן שב-DB זה כבר נמחק).
+        const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
+        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
+      }
+    }});
+  } else if(pendingWishlistRemovals[id]){
+    // הוסר ואז נוסף שוב לפני שה-timer ירה - השורה ב-DB מעולם לא נמחקה בפועל, רק מבטלים
+    clearTimeout(pendingWishlistRemovals[id]);
+    delete pendingWishlistRemovals[id];
+    myWishlist.push(id);
+    renderMap();
   } else {
     const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
     if(!error){ myWishlist.push(id); justAdded = true; }
+    renderMap();
   }
-  renderMap();
   return justAdded;
 }
 function openDetail(id){
@@ -2251,6 +2326,7 @@ function totalPoints(){ return myVisits.reduce((s,v)=>s+(v.points_awarded||0),0)
 function refreshHeader(){
   $("headerPoints").classList.toggle("hidden", !session);
   $("headerLoginBtn").classList.toggle("hidden", !!session);
+  $("notifBellBtn").classList.toggle("hidden", !session);
   if(session){
     $("pointsVal").textContent = totalPoints().toLocaleString();
     $("streakVal").textContent = computeStreak();
@@ -2557,7 +2633,7 @@ async function saveProfile(){
 }
 /* ============ PROFILE ============ */
 function renderProfile(){
-  if(!session){ setGuestGate("profile", true); $("navUnreadDot").classList.remove("show"); return; }
+  if(!session){ setGuestGate("profile", true); $("navUnreadDot").classList.remove("show"); $("bellUnreadDot").classList.remove("show"); return; }
   setGuestGate("profile", false);
   if(!myProfile) return;
   $("adminLinkBtn").classList.toggle("hidden", !myProfile.is_admin);
@@ -2802,27 +2878,48 @@ function notificationText(n){
   if(n.type==="friend_checkin") return `${p.visitor_name||"מטייל/ת"} כבש/ה יעד חדש${p.landmark_name?" — "+p.landmark_name:""}`;
   return "התראה חדשה";
 }
+function goToNotificationContext(n){
+  const p = n.payload || {};
+  if(n.type==="friend_request" || n.type==="friend_accepted"){
+    navigate("#/profile");
+    setTimeout(()=> $("friendRequestsBox")?.scrollIntoView({behavior:"smooth",block:"center"}), 250);
+  } else if(n.type==="circle_joined" && p.circle_id){
+    navigate("#/board");
+    switchBoardTab("group");
+  } else if(n.type==="friend_checkin" && p.landmark_id){
+    goToDestination(p.landmark_id);
+  }
+}
 async function renderNotifications(){
   if(!session) return;
+  const listEl = $("notifList");
+  listEl.innerHTML = skeletonNotifRows(4);
   const list = await getNotifications();
   const unread = list.filter(n=>!n.is_read).length;
   $("navUnreadDot").classList.toggle("show", unread>0);
-  const section = $("notifSection");
-  if(!list.length){ section.classList.add("hidden"); return; }
-  section.classList.remove("hidden");
-  $("notifList").innerHTML = list.map(n=>
+  $("bellUnreadDot").classList.toggle("show", unread>0);
+  if(!list.length){
+    listEl.innerHTML = '<div class="empty-state"><div class="big">🔔</div>הכול שקט כאן.<br>התראות חדשות יופיעו כאן.</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(n=>
     `<div class="notif-row${n.is_read?"":" unread"}" data-id="${n.id}">
       <div class="notif-icon">${notificationIcon(n.type)}</div>
       <div><div class="notif-text">${notificationText(n)}</div><div class="notif-time">${timeAgo(n.created_at)}</div></div>
     </div>`
   ).join("");
-  $("notifList").querySelectorAll(".notif-row").forEach(row=>{
+  listEl.querySelectorAll(".notif-row").forEach(row=>{
+    const n = list.find(x=>x.id===row.dataset.id);
     row.onclick = async ()=>{
-      if(!row.classList.contains("unread")) return;
-      row.classList.remove("unread");
-      try{ await markNotificationRead(row.dataset.id); }catch(err){}
-      const stillUnread = $("notifList").querySelectorAll(".notif-row.unread").length;
-      $("navUnreadDot").classList.toggle("show", stillUnread>0);
+      if(row.classList.contains("unread")){
+        row.classList.remove("unread");
+        try{ await markNotificationRead(row.dataset.id); }catch(err){}
+        const stillUnread = listEl.querySelectorAll(".notif-row.unread").length;
+        $("navUnreadDot").classList.toggle("show", stillUnread>0);
+        $("bellUnreadDot").classList.toggle("show", stillUnread>0);
+      }
+      closeSheet("settingsSheet","settingsScrim");
+      if(n) goToNotificationContext(n);
     };
   });
 }
@@ -2933,7 +3030,7 @@ async function renderBoard(){
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
     if(friendsEmptyBanner) $("emptyFriendsCta").onclick = ()=> $("inviteBtn").click();
-  }catch(err){ console.error(err); listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת הדירוג.</div>'; }
+  }catch(err){ console.error(err); listEl.innerHTML = errorStateHtml("שגיאה בטעינת הדירוג.", renderBoard); }
 }
 function stringColor(str){
   const palette = ["#4C7A4A","#3E6E96","#7A5C8C","#B08A3E","#1B7A72","#8C5A3C","#AD8A1E","#5A6572"];
@@ -3035,7 +3132,7 @@ async function renderFeed(){
     wireFeedCards(listEl, renderFeed);
     renderChallenge();
     renderPersonalChallenges();
-  }catch(err){ console.error(err); listEl.innerHTML = '<div class="empty-state">שגיאה בטעינת הפיד.</div>'; }
+  }catch(err){ console.error(err); listEl.innerHTML = errorStateHtml("שגיאה בטעינת הפיד.", renderFeed); }
 }
 async function renderGroupFeed(memberIds){
   const listEl = $("groupFeedList");
@@ -3061,6 +3158,7 @@ async function renderGroupPanel(){
   setGuestGate("board", false);
   updateGroupBarVisibility();
   if(!myGroups.length || !activeGroupId) return;
+  $("groupMemberStats").innerHTML = skeletonRows(3);
   try{
     const { data: members, error: mErr } = await supabase.from("group_members").select("user_id, profiles(name)").eq("group_id", activeGroupId);
     if(mErr) throw mErr;
@@ -3115,7 +3213,10 @@ async function renderGroupPanel(){
 
     renderVoteBox();
     renderGroupFeed(memberIds);
-  }catch(err){ console.error(err); toast("שגיאה בטעינת נתוני הקבוצה: "+(err.message||err)); }
+  }catch(err){
+    console.error(err);
+    $("groupMemberStats").innerHTML = errorStateHtml("שגיאה בטעינת נתוני הקבוצה.", renderGroupPanel);
+  }
 }
 async function renderVoteBox(){
   const box = $("groupVoteBox");
