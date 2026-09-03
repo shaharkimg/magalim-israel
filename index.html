@@ -220,6 +220,9 @@ button{font-family:inherit;}
 .btn-block{width:100%;}
 .icon-btn{border:none;background:var(--bg-elevated);border-radius:var(--radius-input);width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex:none;transition:background .15s;}
 .icon-btn:active{background:var(--border);}
+.profile-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;}
+.settings-row .seg{max-width:220px;}
 
 .lm-hero{height:172px;border-radius:var(--radius-card);position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:14px;flex:none;}
 .lm-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
@@ -762,7 +765,12 @@ input[type=file]{display:none;}
         <button class="btn btn-primary" id="profileGuestBtn">התחברות / הרשמה</button>
       </div>
       <div id="profileRealContent">
-      <h1 style="font-size:20px;margin:16px 0 2px;">המסע שלי בישראל</h1>
+      <div class="profile-title-row">
+        <h1 style="font-size:20px;margin:16px 0 2px;">המסע שלי בישראל</h1>
+        <button class="icon-btn" id="openSettingsBtn" aria-label="הגדרות" title="הגדרות">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
       <div class="journey-hero">
         <div class="journey-head">
           <div class="avatar" id="profAvatar"><span id="avatarLetter">א</span><span class="avatar-level-badge" id="avatarLevelBadge"></span></div>
@@ -815,33 +823,6 @@ input[type=file]{display:none;}
       <div class="section-head"><h2>חברים</h2><span class="hidden" id="inviteQuotaText" style="font-size:11.5px;color:var(--text-muted);"></span></div>
       <div id="friendRequestsBox"></div>
       <div id="friendsListBox"></div>
-      <div class="section-head"><h2>פרטיות ומיקום</h2></div>
-      <div class="privacy-card">
-        <div class="privacy-head">
-          <div class="privacy-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-          <p class="privacy-desc">שתפו עם החברים שאתם עוקבים אחריהם שאתם מטיילים היום, ובאיזה אזור כללי בארץ — בלי לחשוף את המיקום המדויק שלכם. כבוי כברירת מחדל, אפשר לכבות בכל רגע.</p>
-        </div>
-        <div class="privacy-toggle-row">
-          <span>שיתוף מיקום כללי</span>
-          <label class="switch"><input type="checkbox" id="sharingToggle"><span class="track"></span></label>
-        </div>
-        <div id="travelStatusBox" class="hidden">
-          <label class="field-label">איפה אתם מטיילים היום?</label>
-          <div class="chip-row" id="travelRegionChips">
-            <button type="button" class="chip teal" data-region="north">צפון</button>
-            <button type="button" class="chip teal" data-region="center">מרכז</button>
-            <button type="button" class="chip teal" data-region="jerusalem">ירושלים</button>
-            <button type="button" class="chip teal" data-region="south">דרום</button>
-            <button type="button" class="chip teal" data-region="deadsea">ים המלח</button>
-            <button type="button" class="chip teal" data-region="eilat">אילת</button>
-          </div>
-          <button class="btn btn-primary btn-block" id="setTravelingBtn" style="margin-top:10px;">אני מטייל/ת היום</button>
-          <div class="privacy-status" id="travelStatusText"></div>
-          <button class="btn btn-ghost btn-block" id="revokeSharingBtn" style="margin-top:8px;">הפסק שיתוף מיידית</button>
-        </div>
-      </div>
-      <button class="btn btn-outline btn-block hidden" id="adminLinkBtn" style="margin-top:20px;">לוח ניהול</button>
-      <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:10px;">התנתקות</button>
       </div>
     </div>
   </div>
@@ -957,6 +938,51 @@ input[type=file]{display:none;}
     <div class="sheet-body" id="regionSheetBody"></div>
   </div>
 
+  <div class="scrim" id="settingsScrim"></div>
+  <div class="sheet" id="settingsSheet" style="max-height:92%;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2>הגדרות</h2><button class="sheet-close" id="closeSettingsSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body">
+      <div class="section-head" style="margin-top:0;"><h2>מראה</h2></div>
+      <div class="settings-row">
+        <span>ערכת נושא</span>
+        <div class="seg" id="themeSeg">
+          <button type="button" data-theme="light">☀️ בהיר</button>
+          <button type="button" data-theme="dark">🌙 כהה</button>
+          <button type="button" data-theme="system">📱 מערכת</button>
+        </div>
+      </div>
+      <div class="section-head"><h2>פרטיות ומיקום</h2></div>
+      <div class="privacy-card">
+        <div class="privacy-head">
+          <div class="privacy-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <p class="privacy-desc">שתפו עם החברים שאתם עוקבים אחריהם שאתם מטיילים היום, ובאיזה אזור כללי בארץ — בלי לחשוף את המיקום המדויק שלכם. כבוי כברירת מחדל, אפשר לכבות בכל רגע.</p>
+        </div>
+        <div class="privacy-toggle-row">
+          <span>שיתוף מיקום כללי</span>
+          <label class="switch"><input type="checkbox" id="sharingToggle"><span class="track"></span></label>
+        </div>
+        <div id="travelStatusBox" class="hidden">
+          <label class="field-label">איפה אתם מטיילים היום?</label>
+          <div class="chip-row" id="travelRegionChips">
+            <button type="button" class="chip teal" data-region="north">צפון</button>
+            <button type="button" class="chip teal" data-region="center">מרכז</button>
+            <button type="button" class="chip teal" data-region="jerusalem">ירושלים</button>
+            <button type="button" class="chip teal" data-region="south">דרום</button>
+            <button type="button" class="chip teal" data-region="deadsea">ים המלח</button>
+            <button type="button" class="chip teal" data-region="eilat">אילת</button>
+          </div>
+          <button class="btn btn-primary btn-block" id="setTravelingBtn" style="margin-top:10px;">אני מטייל/ת היום</button>
+          <div class="privacy-status" id="travelStatusText"></div>
+          <button class="btn btn-ghost btn-block" id="revokeSharingBtn" style="margin-top:8px;">הפסק שיתוף מיידית</button>
+        </div>
+      </div>
+      <div class="section-head"><h2>חשבון</h2></div>
+      <button class="btn btn-outline btn-block hidden" id="adminLinkBtn">לוח ניהול</button>
+      <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:10px;">התנתקות</button>
+    </div>
+  </div>
+
   <div class="scrim" id="inviteScrim"></div>
   <div class="sheet" id="inviteSheet">
     <div class="sheet-handle"></div>
@@ -978,6 +1004,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
-<script type="module" src="./app.js?v=20260903l"></script>
+<script type="module" src="./app.js?v=20260903m"></script>
 </body>
 </html>

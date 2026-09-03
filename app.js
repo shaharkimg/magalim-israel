@@ -3,7 +3,23 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903l";
+const APP_VERSION = "20260903m";
+// העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
+// כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
+const THEME_KEY = "magalim-theme";
+let themePref = "system";
+try{ themePref = localStorage.getItem(THEME_KEY) || "system"; }catch(e){}
+function applyTheme(theme){
+  if(theme==="system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+}
+function setTheme(theme){
+  themePref = theme;
+  applyTheme(theme);
+  try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
+  document.querySelectorAll("#themeSeg button").forEach(b=> b.classList.toggle("active", b.dataset.theme===theme));
+}
+applyTheme(themePref);
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1545,6 +1561,13 @@ function wireStaticUI(){
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("closeRegionSheet").onclick = ()=> closeSheet("regionSheet","regionScrim");
   $("regionScrim").onclick = ()=> closeSheet("regionSheet","regionScrim");
+  $("openSettingsBtn").onclick = ()=> openSheet("settingsSheet","settingsScrim");
+  $("closeSettingsSheet").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
+  $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
+  document.querySelectorAll("#themeSeg button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.theme===themePref);
+    b.onclick = ()=> setTheme(b.dataset.theme);
+  });
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("profileGuestBtn").onclick = ()=> openAuthSheet();
