@@ -227,6 +227,12 @@ button{font-family:inherit;}
 .icon-btn:active{background:var(--border);}
 .profile-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .settings-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;}
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+.faq-item summary{font-weight:600;font-size:13.5px;cursor:pointer;list-style:none;}
+.faq-item summary::-webkit-details-marker{display:none;}
+.faq-item summary::before{content:"+";display:inline-block;width:16px;color:var(--accent);font-weight:800;}
+.faq-item[open] summary::before{content:"–";}
+.faq-item p{margin:10px 0 0 22px;color:var(--text-muted);font-size:13px;line-height:1.6;}
 .settings-row .seg{max-width:220px;}
 
 .lm-hero{height:172px;border-radius:var(--radius-card);position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:14px;flex:none;}
@@ -630,6 +636,57 @@ input[type=file]{display:none;}
     <button class="btn btn-primary btn-block" id="saveProfileBtn" style="margin:20px 0 30px;">שמירה</button>
   </div>
 
+  <div class="full-overlay hidden" id="aboutScreen">
+    <button class="sheet-close" id="aboutCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
+    <h1 style="font-size:20px;margin:6px 0 16px;">אודות Magalim</h1>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.7;">מגלים את ישראל היא אפליקציית טיולים אינטראקטיבית שנועדה לעזור לכם לגלות, לתכנן ולתעד טיולים בכל רחבי הארץ — ממסלולי הרים ונחלים ועד אתרי מורשת ותצפיות. מפה חיה, אתגרים, תגים ורגעים לשתף עם חברים, כדי שכל טיול יהפוך לחוויה.</p>
+    <div class="section-head"><h2>קישורים</h2></div>
+    <button class="btn btn-outline btn-block" id="aboutTermsBtn" style="margin-bottom:8px;">תנאי שימוש</button>
+    <button class="btn btn-outline btn-block" id="aboutPrivacyBtn">מדיניות פרטיות</button>
+    <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:26px;">Magalim v<span id="aboutVersionText"></span></p>
+  </div>
+
+  <div class="full-overlay hidden" id="termsScreen">
+    <button class="sheet-close" id="termsCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
+    <h1 style="font-size:20px;margin:6px 0 16px;">תנאי שימוש</h1>
+    <div class="wiz-relaxed-note" style="margin-bottom:16px;">📝 טיוטה — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
+    <p style="color:var(--text-muted);font-size:13.5px;line-height:1.7;">השימוש באפליקציית Magalim כפוף לתנאים כלליים: השירות מוצע כפי שהוא ("as-is"), התוכן נועד למטרות מידע והשראה לטיולים ואינו תחליף לבדיקת תנאי שטח/מזג אוויר/הנחיות רשמיות בזמן אמת, והמשתמשים אחראים לשימוש נכון ובטוח באפליקציה במהלך טיולים בפועל. תנאי שימוש מלאים ומחייבים יפורסמו בהמשך.</p>
+  </div>
+
+  <div class="full-overlay hidden" id="privacyPolicyScreen">
+    <button class="sheet-close" id="privacyPolicyCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
+    <h1 style="font-size:20px;margin:6px 0 16px;">מדיניות פרטיות</h1>
+    <div class="wiz-relaxed-note" style="margin-bottom:16px;">📝 טיוטה — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
+    <p style="color:var(--text-muted);font-size:13.5px;line-height:1.7;">Magalim שומרת מידע הדרוש להפעלת השירות בלבד — פרטי חשבון, ביקורים ותמונות שהעליתם, רשימת משאלות, וקשרי חברים/קבוצות. אנחנו לא חושפים מיקום חי בזמן אמת, ואתם שולטים במי רואה את הפעילות שלכם דרך הגדרות → פרטיות. אפשר למחוק את החשבון ואת כל המידע האישי הנלווה בכל עת. מדיניות פרטיות מלאה ומחייבת תפורסם בהמשך.</p>
+  </div>
+
+  <div class="full-overlay hidden" id="helpScreen">
+    <button class="sheet-close" id="helpCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
+    <h1 style="font-size:20px;margin:6px 0 16px;">עזרה ומשוב</h1>
+    <div class="section-head" style="margin-top:0;"><h2>שאלות נפוצות</h2></div>
+    <div class="faq-list">
+      <details class="faq-item"><summary>איך יוצרים חשבון?</summary><p>נרשמים עם אימייל וסיסמה, או ממשיכים כאורח/ת — האפליקציה תציע להירשם ברגע שתרצו לשמור מקום או לבצע צ'ק-אין.</p></details>
+      <details class="faq-item"><summary>מה זה "כבשתי"?</summary><p>כשמגיעים ליעד בפועל, לוחצים "כבשתי", מוסיפים תמונה, ומקבלים XP לפי רמת הקושי של המקום.</p></details>
+      <details class="faq-item"><summary>איך מוסיפים חברים?</summary><p>דרך קישור הזמנה אישי מהפרופיל שלכם — לא דרך חיפוש שם.</p></details>
+      <details class="faq-item"><summary>מה זו קבוצה?</summary><p>קבוצת טיולים משותפת עם חברים, עם דירוג, פיד פעילות ואתגר קבוצתי משותף.</p></details>
+      <details class="faq-item"><summary>איך צוברים XP?</summary><p>כל צ'ק-אין מזכה בנקודות לפי רמת הקושי של היעד (קל/בינוני/קשה/מאתגר), וסך הנקודות קובע את הרמה שלכם.</p></details>
+      <details class="faq-item"><summary>מה זה אוסף (Collection)?</summary><p>קבוצת יעדים עם מאפיין משותף — למשל "צייד המים" — שאפשר להשלים בהדרגה ולעקוב אחרי ההתקדמות.</p></details>
+      <details class="faq-item"><summary>האם המיקום שלי משותף עם אחרים?</summary><p>לא. המיקום משמש רק לחיפוש טיולים קרובים אליכם, ואף פעם לא משותף בזמן אמת עם משתמשים אחרים.</p></details>
+      <details class="faq-item"><summary>מי רואה את מה שאני עושה באפליקציה?</summary><p>אתם שולטים בזה בהגדרות → פרטיות: רק אני / חברים / חברים וקבוצות.</p></details>
+    </div>
+    <div class="section-head"><h2>עוד עזרה</h2></div>
+    <button class="btn btn-outline btn-block" id="reportProblemToggle" type="button" style="margin-bottom:8px;">דווח על בעיה</button>
+    <div class="hidden" id="reportProblemForm">
+      <textarea class="text-input" id="reportProblemText" rows="4" maxlength="600" placeholder="ספרו לנו מה קרה..." style="resize:vertical;margin-bottom:8px;"></textarea>
+      <button class="btn btn-primary btn-block" id="reportProblemSubmit" style="margin-bottom:16px;">שליחה</button>
+    </div>
+    <button class="btn btn-outline btn-block" id="sendIdeaToggle" type="button" style="margin-bottom:8px;">שלח רעיון / הצעה</button>
+    <div class="hidden" id="sendIdeaForm">
+      <textarea class="text-input" id="sendIdeaText" rows="4" maxlength="600" placeholder="נשמח לשמוע..." style="resize:vertical;margin-bottom:8px;"></textarea>
+      <button class="btn btn-primary btn-block" id="sendIdeaSubmit">שליחה</button>
+    </div>
+  </div>
+
   <div class="auth-screen hidden" id="authScreen">
     <button class="sheet-close hidden" id="authCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <div class="auth-logo">
@@ -1014,6 +1071,11 @@ input[type=file]{display:none;}
           <button type="button" data-theme="system">📱 מערכת</button>
         </div>
       </div>
+      <div class="section-head"><h2>מיקום</h2></div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+        <span style="font-size:12.5px;color:var(--text-muted);line-height:1.5;">Magalim משתמשת במיקום שלכם רק כשאתם מבקשים למצוא טיולים קרובים — למשל בסינון "לידי" או ב"מה עושים היום". לעולם לא באופן רציף ברקע.</span>
+        <div id="locationPermStatus" style="font-size:13px;font-weight:600;"></div>
+      </div>
       <div class="section-head"><h2>פרטיות</h2></div>
       <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:8px;">
         <span>מי רואה את הפעילות שלי (צ'ק-אינים, תמונות, תגים)</span>
@@ -1050,10 +1112,15 @@ input[type=file]{display:none;}
       <div class="settings-row" style="margin-top:6px;"><span>משתמשים חסומים</span></div>
       <div id="blockedUsersList"></div>
       <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin:14px 0 0;">אנחנו שומרים רק את המידע הדרוש להפעלת האפליקציה — פרופיל, ביקורים, רשימת משאלות, חברים וקבוצות. אפשר למחוק את החשבון וכל המידע הזה בכל רגע דרך "חשבון" למטה.</p>
+      <div class="section-head"><h2>תמיכה</h2></div>
+      <button class="btn btn-outline btn-block" id="settingsHelpBtn">עזרה ומשוב</button>
       <div class="section-head"><h2>חשבון</h2></div>
       <button class="btn btn-outline btn-block" id="editProfileLinkBtn">עריכת פרופיל</button>
       <button class="btn btn-outline btn-block hidden" id="adminLinkBtn" style="margin-top:10px;">לוח ניהול</button>
       <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:10px;">התנתקות</button>
+      <button type="button" id="deleteAccountBtn" style="display:block;margin:18px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12.5px;text-decoration:underline;cursor:pointer;">מחיקת חשבון</button>
+      <div class="section-head"><h2>אודות Magalim</h2></div>
+      <button class="btn btn-outline btn-block" id="settingsAboutBtn">אודות, תנאי שימוש ומדיניות פרטיות</button>
     </div>
   </div>
 
@@ -1089,6 +1156,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
-<script type="module" src="./app.js?v=20260903o"></script>
+<script type="module" src="./app.js?v=20260903q"></script>
 </body>
 </html>

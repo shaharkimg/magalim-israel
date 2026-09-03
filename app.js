@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903o";
+const APP_VERSION = "20260903q";
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
 // כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
 const THEME_KEY = "magalim-theme";
@@ -251,6 +251,43 @@ function toast(msg){
   el.textContent = msg; el.classList.add("show");
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.classList.remove("show"), 3400);
+}
+async function submitFeedback(type, textareaEl){
+  const message = textareaEl.value.trim();
+  if(!message){ toast("נא לכתוב כמה מילים לפני השליחה"); return; }
+  try{
+    const { error } = await supabase.from("feedback_submissions").insert({
+      user_id: session ? session.user.id : null, type, message,
+    });
+    if(error) throw error;
+    textareaEl.value = "";
+    textareaEl.closest("div").classList.add("hidden");
+    toast(type==="bug" ? "✓ תודה, הדיווח נשלח" : "✓ תודה על הרעיון!");
+  }catch(err){
+    console.error(err);
+    toast("לא הצלחנו לשלוח כרגע. נסה שוב.");
+  }
+}
+async function renderLocationPermStatus(){
+  const el = $("locationPermStatus"); if(!el) return;
+  if(!navigator.permissions || !navigator.permissions.query){
+    el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
+    el.style.color = "var(--text-muted)";
+    return;
+  }
+  try{
+    const status = await navigator.permissions.query({ name:"geolocation" });
+    const labels = {
+      granted: "✓ הרשאה פעילה",
+      prompt: "עדיין לא התבקשה — תתבקשו כשתשתמשו בתכונה שדורשת מיקום",
+      denied: "✕ חסומה — כדי לאפשר, יש לשנות את הרשאת המיקום עבור האתר בהגדרות הדפדפן/מכשיר",
+    };
+    el.textContent = labels[status.state] || status.state;
+    el.style.color = status.state==="denied" ? "var(--danger)" : status.state==="granted" ? "var(--success)" : "var(--text-muted)";
+  }catch(e){
+    el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
+    el.style.color = "var(--text-muted)";
+  }
 }
 let confirmResolve = null;
 function confirmAction({ title, message, confirmLabel="אישור", cancelLabel="ביטול", destructive=false }){
@@ -599,6 +636,8 @@ function switchBoardTab(tab){
   else if(tab==="group") renderGroupPanel();
   else if(tab==="feed") renderFeed();
 }
+const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen", "#/privacy-policy":"privacyPolicyScreen", "#/help":"helpScreen" };
+const SIMPLE_OVERLAY_IDS = Object.values(SIMPLE_OVERLAY_ROUTES);
 function applyRoute(){
   if(!booted) return;
   const hash = location.hash || "#/map";
@@ -625,8 +664,16 @@ function applyRoute(){
     openEditProfile();
     return;
   }
+  if(SIMPLE_OVERLAY_ROUTES[hash]){
+    switchView("map");
+    SIMPLE_OVERLAY_IDS.forEach(id=> $(id).classList.add("hidden"));
+    $(SIMPLE_OVERLAY_ROUTES[hash]).classList.remove("hidden");
+    if(SIMPLE_OVERLAY_ROUTES[hash]==="aboutScreen") $("aboutVersionText").textContent = APP_VERSION;
+    return;
+  }
   $("adminScreen").classList.add("hidden");
   $("editProfileScreen").classList.add("hidden");
+  SIMPLE_OVERLAY_IDS.forEach(id=> $(id).classList.add("hidden"));
   closeSheet("detailSheet","detailScrim");
   closeSheet("inviteSheet","inviteScrim");
   closePreview();
@@ -1587,6 +1634,7 @@ function wireStaticUI(){
   $("openSettingsBtn").onclick = ()=>{
     openSheet("settingsSheet","settingsScrim");
     renderBlockedUsers();
+    renderLocationPermStatus();
     const av = (myProfile && myProfile.activity_visibility) || "friends_groups";
     document.querySelectorAll("#activityVisibilitySeg button").forEach(b=> b.classList.toggle("active", b.dataset.val===av));
   };
@@ -1639,6 +1687,18 @@ function wireStaticUI(){
   $("editNameBtn").onclick = ()=> navigate("#/settings/profile");
   $("editProfileLinkBtn").onclick = ()=>{ closeSheet("settingsSheet","settingsScrim"); navigate("#/settings/profile"); };
   $("editProfileCloseBtn").onclick = closeEditProfile;
+  $("settingsAboutBtn").onclick = ()=>{ closeSheet("settingsSheet","settingsScrim"); navigate("#/about"); };
+  $("aboutCloseBtn").onclick = goBack;
+  $("aboutTermsBtn").onclick = ()=> navigate("#/terms");
+  $("aboutPrivacyBtn").onclick = ()=> navigate("#/privacy-policy");
+  $("termsCloseBtn").onclick = goBack;
+  $("privacyPolicyCloseBtn").onclick = goBack;
+  $("settingsHelpBtn").onclick = ()=>{ closeSheet("settingsSheet","settingsScrim"); navigate("#/help"); };
+  $("helpCloseBtn").onclick = goBack;
+  $("reportProblemToggle").onclick = ()=> $("reportProblemForm").classList.toggle("hidden");
+  $("sendIdeaToggle").onclick = ()=> $("sendIdeaForm").classList.toggle("hidden");
+  $("reportProblemSubmit").onclick = ()=> submitFeedback("bug", $("reportProblemText"));
+  $("sendIdeaSubmit").onclick = ()=> submitFeedback("idea", $("sendIdeaText"));
   $("changeAvatarBtn").onclick = ()=> $("avatarInput").click();
   $("avatarInput").onchange = e=>{
     const file = e.target.files[0]; if(!file) return;
@@ -1682,6 +1742,25 @@ function wireStaticUI(){
   $("adminCloseBtn").onclick = closeAdmin;
   $("admSaveBtn").onclick = saveAdminSettings;
   $("adminLinkBtn").onclick = ()=> navigate("#/admin");
+  $("deleteAccountBtn").onclick = async ()=>{
+    const ok = await confirmAction({
+      title: "למחוק את החשבון?",
+      message: 'הפעולה תמחק לצמיתות את החשבון ואת כל המידע האישי המשויך אליו — פרופיל, ביקורים, רשימת משאלות, חברים וקבוצות שיצרתם. אי אפשר לבטל את זה.',
+      confirmLabel: "מחק את החשבון", destructive: true,
+    });
+    if(!ok) return;
+    try{
+      const { error } = await supabase.rpc("delete_my_account");
+      if(error) throw error;
+      closeSheet("settingsSheet","settingsScrim");
+      await supabase.auth.signOut();
+      toast("החשבון נמחק");
+      navigate("#/map");
+    }catch(err){
+      console.error(err);
+      toast("לא הצלחנו למחוק את החשבון כרגע. נסה שוב.");
+    }
+  };
   $("markAllReadBtn").onclick = async ()=>{ await markAllNotificationsRead(); renderNotifications(); };
   document.querySelectorAll("#boardTabs button").forEach(b=> b.onclick = ()=> switchBoardTab(b.dataset.tab));
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
