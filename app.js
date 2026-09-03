@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903k";
+const APP_VERSION = "20260903l";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -2262,6 +2262,47 @@ async function shareMyMap(){
   }
 }
 
+/* ============ WISHLIST CONTEXT (Smart Wishlist) ============ */
+function currentSeasonKey(){
+  const m = new Date().getMonth()+1;
+  if(m===12||m<=2) return "winter";
+  if(m<=5) return "spring";
+  if(m<=8) return "summer";
+  return "fall";
+}
+let wishlistFriendVisits = {};
+let wishlistFriendVisitsKey = "";
+function loadWishlistFriendVisits(){
+  if(!session || !myWishlist.length) return;
+  const key = myWishlist.slice().sort().join(",");
+  if(key===wishlistFriendVisitsKey) return;
+  wishlistFriendVisitsKey = key;
+  getFriends().then(friends=>{
+    if(!friends.length){ wishlistFriendVisits = {}; return; }
+    const friendIds = friends.map(f=>f.userId);
+    return supabase.from("visits").select("landmark_id,user_id").in("user_id",friendIds).in("landmark_id",myWishlist).then(({data,error})=>{
+      if(error){ console.warn("wishlist friend-visits unavailable:", error.message); return; }
+      const counts = {};
+      data.forEach(v=>{ counts[v.landmark_id] = (counts[v.landmark_id]||0)+1; });
+      wishlistFriendVisits = counts;
+      if(profileListTab==="wishlist") renderProfile();
+    });
+  });
+}
+function wishlistContextLines(l){
+  const lines = [];
+  if(userLoc){
+    const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
+    lines.push("📍 כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך");
+  }
+  const friendCount = wishlistFriendVisits[l.id] || 0;
+  if(friendCount>0){
+    lines.push("👥 "+friendCount+" "+(friendCount===1?"חבר/ה ביקר/ה":"חברים ביקרו")+" כאן");
+  } else if(l.season && l.season===currentSeasonKey()){
+    lines.push("🌸 עונה מומלצת לביקור עכשיו");
+  }
+  return lines.slice(0,2);
+}
 /* ============ PROFILE ============ */
 function renderProfile(){
   if(!session){ setGuestGate("profile", true); $("navUnreadDot").classList.remove("show"); return; }
@@ -2323,10 +2364,18 @@ function renderProfile(){
       listEl.innerHTML = '<div class="empty-state"><div class="big">⭐</div>רשימת המשאלות ריקה.<br>שמרו יעדים מהמפה לטיול הבא.<br><button class="btn btn-primary empty-cta" id="emptyWishlistCta">🗺️ גלו יעדים במפה</button></div>';
       $("emptyWishlistCta").onclick = ()=> navigate("#/map");
     } else {
-      listEl.innerHTML = myWishlist.map(id=>{
+      loadWishlistFriendVisits();
+      const sortedWishlist = userLoc
+        ? myWishlist.slice().sort((a,b)=>{
+            const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
+            return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
+          })
+        : myWishlist;
+      listEl.innerHTML = sortedWishlist.map(id=>{
         const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
+        const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
         return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${l.duration}</div></div>
+          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${l.duration}</div>${ctx}</div>
           <div class="mini-pts">${DIFFS[l.difficulty].label}</div></div>`;
       }).join("");
     }
