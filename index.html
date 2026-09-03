@@ -435,6 +435,10 @@ button{font-family:inherit;}
 .seg{display:flex;background:var(--bg-elevated);border-radius:var(--radius-input);padding:3px;flex:1;}
 .seg button{flex:1;border:none;background:transparent;padding:8px 4px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
 .seg button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-card);}
+/* גרסה קומפקטית - לבקרות משניות/הקשריות (למשל: סינון-תקופה ליד כותרת-סקשן), כדי שלא
+   ייראו כמו עוד שורת-ניווט ראשית מתחת לטאבים העיקריים */
+.seg-compact{flex:none;padding:2px;width:auto;}
+.seg-compact button{flex:none;padding:5px 10px;font-size:11px;}
 .lb-row{display:flex;align-items:center;gap:11px;padding:10px 8px;border-radius:13px;}
 .skel{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--border) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:skelShimmer 1.4s ease-in-out infinite;border-radius:8px;flex:none;}
 .skel-circle{border-radius:50%;}
@@ -875,13 +879,15 @@ input[type=file]{display:none;}
       </div>
 
       <div id="boardPanelLeaders">
-        <div class="seg" id="periodSeg" style="margin-bottom:14px;">
-          <button data-period="week" class="active">שבועי</button>
-          <button data-period="month">חודשי</button>
-          <button data-period="all">כל הזמנים</button>
+        <div class="section-head">
+          <h2>המובילים</h2>
+          <div class="seg seg-compact" id="periodSeg">
+            <button data-period="week" class="active">שבועי</button>
+            <button data-period="month">חודשי</button>
+            <button data-period="all">הכל</button>
+          </div>
         </div>
         <div class="lb-summary hidden" id="lbSummary"></div>
-        <div class="section-head"><h2>המובילים</h2></div>
         <div id="lbList"></div>
       </div>
 
@@ -1246,6 +1252,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260903z6"></script>
+<script type="module" src="./app.js?v=20260903z7"></script>
 </body>
 </html>
