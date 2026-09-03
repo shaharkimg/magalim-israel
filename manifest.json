@@ -1,0 +1,19 @@
+{
+  "name": "מגלים את ישראל",
+  "short_name": "Magalim",
+  "description": "אפליקציית טיולים אינטראקטיבית לגילוי, תכנון ותיעוד טיולים בישראל",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F7F5EF",
+  "theme_color": "#F7F5EF",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

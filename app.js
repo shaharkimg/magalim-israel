@@ -3,7 +3,60 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903v";
+const APP_VERSION = "20260903w";
+// רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
+// לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
+// עם APP_VERSION הזה בכל דיפלוי.
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+}
+/* ============ INSTALL UX (App Essentials Phase 0D, Round 3) ============ */
+// לא מבקשים התקנה מיד - רק אחרי שימוש אמיתי (סעיף 18 בבקשה), ולא שוב אחרי דחייה/התקנה.
+let deferredInstallPrompt = null;
+function isStandaloneDisplay(){
+  try{ return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true; }catch(e){ return false; }
+}
+function isIOSSafariNotStandalone(){
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  return isIOS && !isStandaloneDisplay();
+}
+function bumpVisitCount(){
+  try{
+    const n = Number(localStorage.getItem("magalim-visit-count")||"0")+1;
+    localStorage.setItem("magalim-visit-count", String(n));
+    return n;
+  }catch(e){ return 0; }
+}
+function shouldOfferInstall(){
+  try{
+    if(isStandaloneDisplay()) return false;
+    if(localStorage.getItem("magalim-install-dismissed")) return false;
+    return Number(localStorage.getItem("magalim-visit-count")||"0") >= 2;
+  }catch(e){ return false; }
+}
+function maybeShowInstallBanner(){
+  const el = $("installBanner");
+  if(!el || el.dataset.shown) return;
+  if(!shouldOfferInstall()) return;
+  if(!deferredInstallPrompt && !isIOSSafariNotStandalone()) return;
+  el.dataset.shown = "1";
+  $("installBannerText").textContent = deferredInstallPrompt
+    ? "אוהבים לטייל עם Magalim? הוסיפו אותה למסך הבית לגישה מהירה."
+    : 'אוהבים לטייל עם Magalim? הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית".';
+  $("installBannerActionBtn").classList.toggle("hidden", !deferredInstallPrompt);
+  el.classList.remove("hidden");
+}
+window.addEventListener("beforeinstallprompt", (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  maybeShowInstallBanner();
+});
+window.addEventListener("appinstalled", ()=>{
+  deferredInstallPrompt = null;
+  try{ localStorage.setItem("magalim-install-dismissed","1"); }catch(e){}
+  $("installBanner")?.classList.add("hidden");
+});
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
 // כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
 const THEME_KEY = "magalim-theme";
@@ -613,6 +666,9 @@ $("resetPasswordForm").addEventListener("submit", async (e)=>{
 
 let authGateMessage = null;
 let pendingAuthAction = null;
+// דגל שמאפשר לכפתור "אחורה" הפיזי/דפדפן לסגור את מסך ה-auth במקום לנווט/לצאת מהאפליקציה
+// (פער שנמצא ב-audit של Phase 0D - openAuthSheet לא היה מוסיף history entry בכלל).
+let authSheetHistoryPushed = false;
 function openAuthSheet(message, onSuccess){
   authGateMessage = message || null;
   pendingAuthAction = onSuccess || null;
@@ -620,10 +676,18 @@ function openAuthSheet(message, onSuccess){
   $("authCloseBtn").classList.remove("hidden");
   $("authScreen").classList.remove("hidden");
   showAuthTabs();
+  if(!authSheetHistoryPushed){
+    authSheetHistoryPushed = true;
+    history.pushState({magalimAuthSheet:true}, "", location.hash || "#/map");
+  }
 }
 function closeAuthSheet(){
   $("authScreen").classList.add("hidden");
   authGateMessage = null;
+  if(authSheetHistoryPushed){
+    authSheetHistoryPushed = false;
+    history.back();
+  }
 }
 function requireAuth(message, onSuccess){
   if(session) return true;
@@ -663,7 +727,23 @@ function navigate(hash, push){
 }
 function goBack(){ navigate(navStack.pop() || "#/map", false); }
 function goToDestination(id){ navigate("#/destination/"+encodeURIComponent(id)); }
-window.addEventListener("popstate", applyRoute);
+// מקלדת מובייל: כשמקלידים לתוך שדה בתוך sheet, מוודאים שהוא (וה-CTA שמתחתיו) נשארים
+// בתצוגה כשהמקלדת נפתחת ומצמצמת את הגובה הזמין - 100dvh כבר עוזר חלקית, זו תוספת קלה.
+document.addEventListener("focusin", (e)=>{
+  const el = e.target;
+  if(!el.matches || !el.matches("input, textarea")) return;
+  if(!el.closest(".sheet")) return;
+  setTimeout(()=> el.scrollIntoView({block:"center", behavior:"smooth"}), 250);
+});
+window.addEventListener("popstate", ()=>{
+  if(authSheetHistoryPushed && !$("authScreen").classList.contains("hidden")){
+    authSheetHistoryPushed = false;
+    $("authScreen").classList.add("hidden");
+    authGateMessage = null;
+    return;
+  }
+  applyRoute();
+});
 
 function switchView(view){
   if(view==="feed"){ view = "board"; boardTab = "feed"; }
@@ -770,6 +850,8 @@ async function bootPublic(){
     applyRoute();
     initOnboarding();
     setTimeout(checkForNewVersion, 60000);
+    bumpVisitCount();
+    setTimeout(maybeShowInstallBanner, 8000);
   }catch(err){
     console.error(err);
     toast("שגיאה בטעינת הנתונים: "+(err.message||err));
@@ -1792,6 +1874,17 @@ function wireStaticUI(){
   $("termsCloseBtn").onclick = goBack;
   $("privacyPolicyCloseBtn").onclick = goBack;
   $("settingsHelpBtn").onclick = ()=>{ closeSheet("settingsSheet","settingsScrim"); navigate("#/help"); };
+  $("installBannerActionBtn").onclick = async ()=>{
+    if(!deferredInstallPrompt) return;
+    $("installBanner").classList.add("hidden");
+    deferredInstallPrompt.prompt();
+    try{ await deferredInstallPrompt.userChoice; }catch(e){}
+    deferredInstallPrompt = null;
+  };
+  $("installBannerDismissBtn").onclick = ()=>{
+    $("installBanner").classList.add("hidden");
+    try{ localStorage.setItem("magalim-install-dismissed","1"); }catch(e){}
+  };
   $("notifBellBtn").onclick = ()=> navigate("#/notifications");
   $("notificationsCloseBtn").onclick = goBack;
   $("openSearchBtn").onclick = openSearchSheet;
