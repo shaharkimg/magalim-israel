@@ -518,6 +518,14 @@ button{font-family:inherit;}
 .celebrate-actions{display:flex;gap:8px;margin-top:16px;}
 .celebrate-actions .btn{padding:11px 14px;font-size:13px;}
 @media (prefers-reduced-motion: reduce){ .celebrate-card{transition:opacity .2s;} .wish-pop{animation:none;} .lm-pin.pulse{animation:none;} }
+/* App Essentials Phase 0F, Round 3 - כפיית הפחתת-אנימציות ידנית (data-motion="reduce"), בנוסף
+   ל-prefers-reduced-motion של המכשיר. חייב סלקטור עם ספציפיות גבוהה יותר מ-@media (no-preference)
+   של stampReveal כדי לדרוס אותו גם כש-OS לא מוגדר reduce אבל המשתמש כפה את זה ידנית באפליקציה. */
+:root[data-motion="reduce"] .badge.unlocked .circ{animation:none;}
+:root[data-motion="reduce"] .skel{animation:none;}
+:root[data-motion="reduce"] .celebrate-card{transition:opacity .2s;}
+:root[data-motion="reduce"] .wish-pop{animation:none;}
+:root[data-motion="reduce"] .lm-pin.pulse{animation:none;}
 @keyframes pulse-marker{ 0%{transform:rotate(-45deg) scale(1);} 40%{transform:rotate(-45deg) scale(1.55);box-shadow:0 0 0 8px rgba(23,107,91,.28);} 100%{transform:rotate(-45deg) scale(1);} }
 .lm-pin.pulse{animation:pulse-marker .9s ease-out;}
 .wish-pop{animation:wishPop .38s ease;}
@@ -1115,6 +1123,10 @@ input[type=file]{display:none;}
           <button type="button" data-theme="system">📱 מערכת</button>
         </div>
       </div>
+      <div class="privacy-toggle-row">
+        <span>הפחתת אנימציות</span>
+        <label class="switch"><input type="checkbox" id="reduceMotionToggle"><span class="track"></span></label>
+      </div>
       <div class="section-head"><h2>מיקום</h2></div>
       <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
         <span style="font-size:12.5px;color:var(--text-muted);line-height:1.5;">Magalim משתמשת במיקום שלכם רק כשאתם מבקשים למצוא טיולים קרובים — למשל בסינון "לידי" או ב"מה עושים היום". לעולם לא באופן רציף ברקע.</span>
@@ -1228,6 +1240,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260903z"></script>
+<script type="module" src="./app.js?v=20260903z2"></script>
 </body>
 </html>

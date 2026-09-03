@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903z";
+const APP_VERSION = "20260903z2";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -73,6 +73,27 @@ function setTheme(theme){
   document.querySelectorAll("#themeSeg button").forEach(b=> b.classList.toggle("active", b.dataset.theme===theme));
 }
 applyTheme(themePref);
+// App Essentials Phase 0F, Round 3 - כפיית הפחתת-אנימציות ידנית, בנוסף ל-prefers-reduced-motion
+// של המכשיר (שתמיד מכובד ממילא דרך ה-media query הקיים ב-CSS/JS). ברירת מחדל: כבוי (עוקב אחרי
+// המכשיר בלבד), בדיוק כמו "system" ב-theme.
+const REDUCE_MOTION_KEY = "magalim-reduce-motion";
+let reduceMotionPref = false;
+try{ reduceMotionPref = localStorage.getItem(REDUCE_MOTION_KEY)==="1"; }catch(e){}
+function applyReduceMotion(on){
+  if(on) document.documentElement.setAttribute("data-motion","reduce");
+  else document.documentElement.removeAttribute("data-motion");
+}
+function setReduceMotion(on){
+  reduceMotionPref = on;
+  applyReduceMotion(on);
+  try{ localStorage.setItem(REDUCE_MOTION_KEY, on?"1":"0"); }catch(e){}
+  const t = $("reduceMotionToggle"); if(t) t.checked = on;
+}
+function prefersReducedMotion(){
+  if(reduceMotionPref) return true;
+  return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+applyReduceMotion(reduceMotionPref);
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -400,7 +421,10 @@ function confirmAction({ title, message, confirmLabel="אישור", cancelLabel=
     $("confirmOkBtn").textContent = confirmLabel;
     $("confirmOkBtn").className = "btn btn-block "+(destructive ? "btn-danger" : "btn-primary");
     $("confirmCancelBtn").textContent = cancelLabel;
-    openSheet("confirmSheet","confirmScrim");
+    openSheet("confirmSheet","confirmScrim", ()=>{
+      closeSheet("confirmSheet","confirmScrim");
+      const r = confirmResolve; confirmResolve = null; r && r(false);
+    });
   });
 }
 function animateXpCount(el, target){
@@ -422,7 +446,7 @@ function celebrate(steps){
   if(!steps || !steps.length) return;
   const overlay = $("celebrateOverlay");
   const card = $("celebrateCard");
-  const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reducedMotion = prefersReducedMotion();
   let i = 0;
   clearTimeout(celebrate._t);
   const dismiss = ()=>{
@@ -1844,6 +1868,8 @@ function wireStaticUI(){
     b.classList.toggle("active", b.dataset.theme===themePref);
     b.onclick = ()=> setTheme(b.dataset.theme);
   });
+  $("reduceMotionToggle").checked = reduceMotionPref;
+  $("reduceMotionToggle").onchange = e=> setReduceMotion(e.target.checked);
   $("headerLoginBtn").onclick = ()=> openAuthSheet();
   $("boardGuestBtn").onclick = ()=> openAuthSheet();
   $("profileGuestBtn").onclick = ()=> openAuthSheet();
@@ -2091,8 +2117,35 @@ function setGuestGate(prefix, isGuest){
   $(prefix+"GuestGate").classList.toggle("hidden", !isGuest);
   $(prefix+"RealContent").classList.toggle("hidden", isGuest);
 }
-function openSheet(sheetId, scrimId){ $(sheetId).classList.add("open"); $(scrimId).classList.add("open"); }
-function closeSheet(sheetId, scrimId){ $(sheetId).classList.remove("open"); $(scrimId).classList.remove("open"); }
+// App Essentials Phase 0F, Round 3 - ניהול focus: פותח מזיז focus לתוך ה-sheet (כפתור-סגירה או
+// ראשון-בר-פוקוס), סוגר מחזיר אותו לאלמנט שהפעיל את הפתיחה - כדי שמשתמש מקלדת/קורא-מסך לא
+// "יברח" ל-scroll/ילדים מאחורי ה-scrim. onEscape אופציונלי: sheets עם ניקוי-state ייעודי
+// (כמו confirmSheet שצריך לפתור promise) מעבירים callback משלהם במקום סגירה גנרית.
+let sheetFocusReturnEl = null;
+let openSheetStack = [];
+function openSheet(sheetId, scrimId, onEscape){
+  sheetFocusReturnEl = document.activeElement;
+  $(sheetId).classList.add("open"); $(scrimId).classList.add("open");
+  openSheetStack.push({ sheetId, scrimId, onEscape });
+  const sheetEl = $(sheetId);
+  const target = sheetEl.querySelector(".sheet-close") || sheetEl.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if(target) setTimeout(()=> target.focus(), 60);
+}
+function closeSheet(sheetId, scrimId){
+  $(sheetId).classList.remove("open"); $(scrimId).classList.remove("open");
+  openSheetStack = openSheetStack.filter(s=> s.sheetId!==sheetId);
+  if(sheetFocusReturnEl && typeof sheetFocusReturnEl.focus==="function" && document.contains(sheetFocusReturnEl)){
+    sheetFocusReturnEl.focus();
+  }
+  sheetFocusReturnEl = null;
+}
+document.addEventListener("keydown", e=>{
+  if(e.key!=="Escape") return;
+  const top = openSheetStack[openSheetStack.length-1];
+  if(!top) return;
+  if(top.onEscape) top.onEscape();
+  else closeSheet(top.sheetId, top.scrimId);
+});
 
 /* ============ LANDMARK DETAIL & CHECK-IN ============ */
 let activeCheckinPhoto = null, demoMode = false;
