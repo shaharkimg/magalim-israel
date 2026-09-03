@@ -147,8 +147,8 @@ button{font-family:inherit;}
 .locate-btn{position:absolute;right:12px;bottom:24px;width:40px;height:40px;border-radius:var(--radius-input);border:none;background:var(--surface);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
 .filter-fab{flex:none;display:flex;align-items:center;gap:6px;background:var(--surface);border-radius:999px;padding:0 14px;font-weight:700;font-size:13px;box-shadow:var(--shadow-elevated);cursor:pointer;color:var(--text);}
 .filter-fab .fab-count{color:var(--accent);font-weight:700;font-size:13px;white-space:nowrap;}
-.dest-preview{position:absolute;left:12px;right:12px;bottom:12px;z-index:1050;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;height:92px;transform:translateY(140%);transition:transform .28s cubic-bezier(.2,.8,.3,1);cursor:pointer;}
-.dest-preview.open{transform:translateY(0);}
+.dest-preview{position:absolute;left:12px;right:12px;bottom:12px;z-index:1050;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;height:92px;transform:translateY(140%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.3,1), visibility 0s linear .28s;cursor:pointer;}
+.dest-preview.open{transform:translateY(0);visibility:visible;transition-delay:0s;}
 .dest-preview-hero{width:92px;flex:none;position:relative;overflow:hidden;}
 .dest-preview-hero > div{width:100%;height:100%;}
 .dest-preview-hero img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -204,8 +204,13 @@ button{font-family:inherit;}
 
 .scrim{position:absolute;inset:0;background:var(--sheet-scrim);z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s;}
 .scrim.open{opacity:1;pointer-events:auto;}
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1101;background:var(--surface);border-radius:var(--radius-card) var(--radius-card) 0 0;box-shadow:0 -8px 30px var(--shadow);max-height:82%;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.3,1);padding-bottom:env(safe-area-inset-bottom);}
-.sheet.open{transform:translateY(0);}
+/* מגן נוסף (לצד transform) נגד sheet סגור שנשאר גלוי חזותית במכשירים אמיתיים מסוימים -
+   דווח כ-"גליץ'" (תוכן מסך אחד דולף מתחת למסך אחר) גם אחרי שהוודא ש-classList לא כולל
+   "open". visibility:hidden מובטח ברמת ה-CSS ללא תלות בחישוב ה-transform של הדפדפן/מכשיר;
+   ה-delay על ה-transition שומר על אנימציית-הסגירה הרגילה (visibility מתעדכן רק אחרי
+   שהיא מסתיימת), וב-.open אין delay כדי שהפתיחה תישאר מיידית. */
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1101;background:var(--surface);border-radius:var(--radius-card) var(--radius-card) 0 0;box-shadow:0 -8px 30px var(--shadow);max-height:82%;display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s cubic-bezier(.2,.8,.3,1), visibility 0s linear .25s;padding-bottom:env(safe-area-inset-bottom);}
+.sheet.open{transform:translateY(0);visibility:visible;transition-delay:0s;}
 .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:10px auto 4px;flex:none;}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 10px;flex:none;}
 .sheet-head h2{margin:0;font-size:19px;}
@@ -1255,6 +1260,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260903z10"></script>
+<script type="module" src="./app.js?v=20260903z11"></script>
 </body>
 </html>
