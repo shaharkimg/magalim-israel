@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903h";
+const APP_VERSION = "20260903i";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1073,6 +1073,100 @@ function wizExplain(l){
   parts.push("מתאים ל"+(l.duration||DURATION_LABEL[wizState.duration]||""));
   return parts.join(" · ");
 }
+function getRecommendedDestination(){
+  if(!session || !myVisits.length) return null;
+  const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+  const visitedLandmarks = myVisits.map(v=>lmById[v.landmark_id]).filter(Boolean);
+  if(!visitedLandmarks.length) return null;
+  const diffCounts = {};
+  visitedLandmarks.forEach(l=>{ diffCounts[l.difficulty] = (diffCounts[l.difficulty]||0)+1; });
+  const preferredDiff = Object.keys(diffCounts).sort((a,b)=>diffCounts[b]-diffCounts[a])[0] || null;
+  const waterShare = visitedLandmarks.filter(l=>l.category==="water"||l.hasWater).length/visitedLandmarks.length;
+  const familyShare = visitedLandmarks.filter(l=>l.familyFriendly).length/visitedLandmarks.length;
+  const candidates = LANDMARKS.filter(l=>!visitedIds.has(l.id));
+  if(!candidates.length) return null;
+  let best = null, bestScore = -Infinity;
+  candidates.forEach(l=>{
+    let score = 0;
+    const reasons = [];
+    if(userLoc){
+      const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
+      score += Math.max(0, 30-km);
+      if(km<30) reasons.push(km<1 ? "ממש לידך" : "כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך");
+    }
+    if(preferredDiff && l.difficulty===preferredDiff){ score += 18; reasons.push("ברמת הקושי שאתם הכי אוהבים"); }
+    if(waterShare>0.4 && (l.category==="water"||l.hasWater)){ score += 14; reasons.push("יש שם מים, בדיוק כמו שאתם אוהבים"); }
+    if(familyShare>0.5 && l.familyFriendly){ score += 12; reasons.push("מתאים למשפחה"); }
+    const pct = regionDiscoveryPct(l.region);
+    if(pct<0.3){ score += 10; reasons.push("אזור שכמעט לא גיליתם"); }
+    score += Math.random()*4;
+    if(score>bestScore){ bestScore = score; best = { l, reasons }; }
+  });
+  if(!best) return null;
+  return { landmark: best.l, reason: best.reasons.slice(0,2).join(" · ") || DIFFS[best.l.difficulty].label };
+}
+function wizIntroWhyText(l){
+  const parts = [DIFFS[l.difficulty].label];
+  if(l.category==="water"||l.hasWater) parts.push("יש מים");
+  if(l.accessible) parts.push("♿ נגיש");
+  if(l.priceType==="free") parts.push("🆓 חינם");
+  if(userLoc) parts.push("כ-"+estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+" דק' נסיעה");
+  return parts.join(" · ");
+}
+function wizIntroDismissKey(){ return "magalim-wiz-intro-"+(session ? session.user.id : "guest"); }
+function renderWizIntro(){
+  const introEl = $("wizIntro");
+  const actionsEl = $("todaySheetActions");
+  if(!introEl) return false;
+  const today = new Date().toDateString();
+  let dismissed = false;
+  try{ dismissed = localStorage.getItem(wizIntroDismissKey())===today; }catch(e){}
+  const rec = !dismissed ? getRecommendedDestination() : null;
+  if(!rec){
+    introEl.classList.add("hidden");
+    $("wizForm").classList.remove("hidden");
+    $("wizResults").classList.add("hidden");
+    if(actionsEl) actionsEl.classList.remove("hidden");
+    $("wizFindBtn").classList.remove("hidden");
+    $("wizBackBtn").classList.add("hidden");
+    return false;
+  }
+  const l = rec.landmark;
+  const cat = CATEGORIES[l.category];
+  const photoUrl = landmarkPhotos[l.id];
+  introEl.classList.remove("hidden");
+  $("wizForm").classList.add("hidden");
+  $("wizResults").classList.add("hidden");
+  if(actionsEl) actionsEl.classList.add("hidden");
+  introEl.innerHTML = `
+    <p class="wiz-intro-greet">👋 לאן ממשיכים?</p>
+    <div class="wiz-intro-card">
+      <div class="wiz-intro-hero" style="${photoUrl?`background-image:url('${photoUrl}')`:`background:${cat.color}`}">${photoUrl?"":catIconSvg(cat.icon,32)}</div>
+      <div class="wiz-intro-body">
+        <div class="wiz-intro-name">${l.name}</div>
+        <div class="wiz-intro-sub">${rec.reason}</div>
+        <button class="wiz-intro-why" id="wizIntroWhy" type="button">למה דווקא זה?</button>
+        <div class="wiz-intro-reason hidden" id="wizIntroReason">${wizIntroWhyText(l)}</div>
+      </div>
+    </div>
+    <div class="wiz-intro-actions">
+      <button class="btn btn-outline" id="wizIntroOther" type="button">תציע לי משהו אחר</button>
+      <button class="btn btn-primary" id="wizIntroGo" type="button">נראה מעולה</button>
+    </div>`;
+  $("wizIntroGo").onclick = ()=>{ closeSheet("todaySheet","todayScrim"); goToDestination(l.id); };
+  $("wizIntroOther").onclick = ()=>{
+    try{ localStorage.setItem(wizIntroDismissKey(), today); }catch(e){}
+    introEl.classList.add("hidden");
+    $("wizForm").classList.remove("hidden");
+    if(actionsEl) actionsEl.classList.remove("hidden");
+  };
+  $("wizIntroWhy").onclick = ()=> $("wizIntroReason").classList.toggle("hidden");
+  return true;
+}
+function openTodaySheet(){
+  openSheet("todaySheet","todayScrim");
+  renderWizIntro();
+}
 function renderWizardResults(){
   const { results, relaxed } = wizardMatches();
   $("wizForm").classList.add("hidden");
@@ -1380,8 +1474,8 @@ function wireStaticUI(){
     $("wizBackBtn").classList.add("hidden");
     $("wizFindBtn").classList.remove("hidden");
   };
-  $("openTodayWizard").onclick = ()=> openSheet("todaySheet","todayScrim");
-  $("welcomeFindBtn").onclick = ()=> { navigate("#/map"); openSheet("todaySheet","todayScrim"); };
+  $("openTodayWizard").onclick = openTodaySheet;
+  $("welcomeFindBtn").onclick = ()=> { navigate("#/map"); openTodaySheet(); };
   $("closeToday").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("closeRegionSheet").onclick = ()=> closeSheet("regionSheet","regionScrim");
