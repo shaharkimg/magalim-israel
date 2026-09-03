@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903j";
+const APP_VERSION = "20260903k";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -62,6 +62,24 @@ const BADGES = [
   {id:"all",label:"כל הארץ",icon:"🏆",target:()=>LANDMARKS.length||259,current:v=>v.length},
   ...regionTierBadges(),
 ];
+// אוספים קיוריטד - כמו BADGES, כל אחד הוא פילטר על LANDMARKS הקיימים (לא רשימת-ID ידנית).
+const COLLECTIONS = [
+  { id:"water", label:"צייד המים", icon:"💦", filter:l=> l.category==="water"||l.hasWater },
+  { id:"heritage", label:"עתיקות ומורשת", icon:"🏛️", filter:l=> l.category==="archaeology"||l.category==="heritage" },
+  { id:"mountains", label:"מסלולי הרים", icon:"⛰️", filter:l=> l.category==="mountains" },
+  { id:"nature", label:"טבע ונופים", icon:"🌿", filter:l=> l.category==="nature" },
+  { id:"desertsea", label:"מדבר וים המלח", icon:"🏜️", filter:l=> l.region==="south"||l.region==="deadsea"||l.region==="eilat" },
+  { id:"reserves", label:"שמורות ופארקים לאומיים", icon:"🌲", filter:l=> l.category==="reserves"||l.category==="parks" },
+  { id:"family", label:"מושלם למשפחות", icon:"👪", filter:l=> !!l.familyFriendly },
+  { id:"accessible", label:"פתוח לכולם", icon:"♿", filter:l=> !!l.accessible },
+];
+function collectionLandmarks(c){ return LANDMARKS.filter(c.filter); }
+function collectionProgress(c, visits){
+  visits = visits || myVisits;
+  const total = collectionLandmarks(c);
+  const visitedIds = new Set(visits.map(v=>v.landmark_id));
+  return { done: total.filter(l=>visitedIds.has(l.id)).length, total: total.length };
+}
 function countCat(visited,cat){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].category===cat).length;}
 function countDiff(visited,d){return visited.filter(v=>lmById[v.landmark_id]&&lmById[v.landmark_id].difficulty===d).length;}
 function regionCount(r){ return LANDMARKS.filter(l=>l.region===r).length; }
@@ -2158,10 +2176,9 @@ function renderRegionProgress(){
   }).join("");
   el.querySelectorAll(".region-row").forEach(row=> row.onclick = ()=> openRegionSheet(row.dataset.region));
 }
-function openRegionSheet(r){
-  $("regionSheetTitle").textContent = REGIONS[r];
+function renderPlaceListSheet(title, list){
+  $("regionSheetTitle").textContent = title;
   const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
-  const list = LANDMARKS.filter(l=>l.region===r);
   $("regionSheetBody").innerHTML = list.map(l=>{
     const cat = CATEGORIES[l.category];
     if(visitedIds.has(l.id)){
@@ -2173,6 +2190,24 @@ function openRegionSheet(r){
   }).join("");
   $("regionSheetBody").querySelectorAll("[data-goto]").forEach(elm=> elm.onclick = ()=>{ closeSheet("regionSheet","regionScrim"); goToDestination(elm.dataset.goto); });
   openSheet("regionSheet","regionScrim");
+}
+function openRegionSheet(r){
+  renderPlaceListSheet(REGIONS[r], LANDMARKS.filter(l=>l.region===r));
+}
+function renderCollections(){
+  const el = $("collectionGrid");
+  if(!el) return;
+  el.innerHTML = COLLECTIONS.map(c=>{
+    const { done, total } = collectionProgress(c);
+    const on = total>0 && done>=total;
+    const progressLine = on ? "" : `<div class="badge-progress">${done}/${total}</div>`;
+    return `<div class="badge${on?" unlocked":""}" data-id="${c.id}"><div class="circ">${c.icon}</div><div class="lbl">${c.label}</div>${progressLine}</div>`;
+  }).join("");
+  el.querySelectorAll("[data-id]").forEach(elm=> elm.onclick = ()=> openCollectionSheet(elm.dataset.id));
+}
+function openCollectionSheet(id){
+  const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
+  renderPlaceListSheet(c.icon+" "+c.label, collectionLandmarks(c));
 }
 async function generateShareCard(){
   const W=1080, H=1600;
@@ -2267,6 +2302,7 @@ function renderProfile(){
     const progressLine = on ? "" : `<div class="badge-progress">${cur}/${tgt}</div>`;
     return `<div class="badge${on?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div>${progressLine}</div>`;
   }).join("");
+  renderCollections();
   const listEl = $("profList");
   if(profileListTab==="visited"){
     if(!myVisits.length){
