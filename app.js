@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903x";
+const APP_VERSION = "20260903y";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -975,7 +975,7 @@ async function loadMyGroups(){
 }
 function populateGroupSelect(){
   const sel = $("groupSelect");
-  sel.innerHTML = myGroups.map(g=>`<option value="${g.id}">${g.name}</option>`).join("");
+  sel.innerHTML = myGroups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
   if(activeGroupId) sel.value = activeGroupId;
 }
 function updateGroupBarVisibility(){
@@ -997,7 +997,7 @@ async function createGroup(){
   myGroups.push({ id:data.id, name:data.name });
   activeGroupId = data.id;
   populateGroupSelect(); updateGroupBarVisibility();
-  toast('הקבוצה "'+data.name+'" נוצרה!');
+  toast('הקבוצה "'+escapeHtml(data.name)+'" נוצרה!');
   renderGroupPanel();
 }
 async function handleInviteLinks(){
@@ -1031,7 +1031,7 @@ async function joinGroupFromLink(groupId){
   myGroups.push({ id:g.id, name:g.name });
   activeGroupId = g.id;
   populateGroupSelect();
-  toast('הצטרפת לקבוצה "'+g.name+'"!');
+  toast('הצטרפת לקבוצה "'+escapeHtml(g.name)+'"!');
 }
 
 /* ============ INVITE CODES (Phase 5) ============ */
@@ -1093,10 +1093,10 @@ async function handleInviteCode(code){
   openInvitePreview(code, data);
 }
 function openInvitePreview(code, data){
-  const actionText = data.invite_type==="circle" ? `הצטרפות למעגל "${data.circle_name||''}"` : "הצטרפות כחברים";
+  const actionText = data.invite_type==="circle" ? `הצטרפות למעגל "${escapeHtml(data.circle_name||'')}"` : "הצטרפות כחברים";
   $("inviteBody").innerHTML = `
     <div style="font-size:38px;margin:10px 0 8px;">✉️</div>
-    <h2 style="margin:0 0 6px;font-size:19px;">${data.inviter_name||'מטייל/ת'} הזמינ/ה אותך</h2>
+    <h2 style="margin:0 0 6px;font-size:19px;">${escapeHtml(data.inviter_name||'מטייל/ת')} הזמינ/ה אותך</h2>
     <p style="color:var(--text-muted);font-size:13.5px;margin:0 0 20px;">${actionText}</p>
     <button class="btn btn-primary btn-block" id="inviteAcceptBtn">אישור ההזמנה</button>
     <button class="btn btn-ghost btn-block" id="inviteDismissBtn" style="margin-top:8px;">לא עכשיו</button>
@@ -1170,15 +1170,16 @@ async function renderAdminUsersList(){
     return;
   }
   listEl.innerHTML = users.map(u=>{
-    const name = (u.name || "מטייל/ת").trim();
+    const name = escapeHtml((u.name || "מטייל/ת").trim());
+    const email = escapeHtml(u.email||"");
     const statusBadge = u.account_status && u.account_status!=="active"
-      ? `<span class="admin-badge suspended">${u.account_status}</span>` : "";
+      ? `<span class="admin-badge suspended">${escapeHtml(u.account_status)}</span>` : "";
     const adminBadge = u.is_admin ? `<span class="admin-badge">מנהל</span>` : "";
     return `<div class="admin-user-row">
       <div class="lb-avatar" style="background:${stringColor(name)}">${name.charAt(0)||"א"}</div>
       <div class="admin-user-info">
         <div class="admin-user-name">${name}${adminBadge}${statusBadge}</div>
-        <div class="admin-user-sub">${u.email||""} · ${timeAgo(u.created_at)}</div>
+        <div class="admin-user-sub">${email} · ${timeAgo(u.created_at)}</div>
       </div>
     </div>`;
   }).join("");
@@ -3021,7 +3022,7 @@ async function renderBlockedUsers(){
   if(!blocked.length){ el.innerHTML = '<div class="friends-empty">אין לך משתמשים חסומים.</div>'; return; }
   const ids = blocked.map(b=>b.userId);
   const { data } = await supabase.from("profiles").select("id,name").in("id", ids);
-  const names = {}; (data||[]).forEach(p=> names[p.id]=p.name);
+  const names = {}; (data||[]).forEach(p=> names[p.id]=escapeHtml(p.name));
   el.innerHTML = blocked.map(b=>{
     const name = names[b.userId] || "מטייל/ת";
     return `<div class="friend-row" data-id="${b.friendshipId}">
@@ -3058,7 +3059,7 @@ async function renderFriends(){
   let names = {};
   if(otherIds.length){
     const { data } = await supabase.from("profiles").select("id,name").in("id", otherIds);
-    (data||[]).forEach(p=> names[p.id]=p.name);
+    (data||[]).forEach(p=> names[p.id]=escapeHtml(p.name));
   }
   reqBox.innerHTML = pending.length ? pending.map(p=>{
     const name = names[p.requester_id] || "מטייל/ת";
@@ -3139,10 +3140,15 @@ function notificationIcon(type){
 }
 function notificationText(n){
   const p = n.payload || {};
-  if(n.type==="friend_request") return `${p.from_name||"מטייל/ת"} שלח/ה לך בקשת חברות`;
-  if(n.type==="friend_accepted") return `${p.from_name||"מטייל/ת"} אישר/ה את בקשת החברות שלך`;
-  if(n.type==="circle_joined") return `${p.joiner_name||"מטייל/ת"} הצטרפ/ה למעגל "${p.circle_name||""}"`;
-  if(n.type==="friend_checkin") return `${p.visitor_name||"מטייל/ת"} כבש/ה יעד חדש${p.landmark_name?" — "+p.landmark_name:""}`;
+  const fromName = escapeHtml(p.from_name||"מטייל/ת");
+  const joinerName = escapeHtml(p.joiner_name||"מטייל/ת");
+  const circleName = escapeHtml(p.circle_name||"");
+  const visitorName = escapeHtml(p.visitor_name||"מטייל/ת");
+  const landmarkName = escapeHtml(p.landmark_name||"");
+  if(n.type==="friend_request") return `${fromName} שלח/ה לך בקשת חברות`;
+  if(n.type==="friend_accepted") return `${fromName} אישר/ה את בקשת החברות שלך`;
+  if(n.type==="circle_joined") return `${joinerName} הצטרפ/ה למעגל "${circleName}"`;
+  if(n.type==="friend_checkin") return `${visitorName} כבש/ה יעד חדש${landmarkName?" — "+landmarkName:""}`;
   return "התראה חדשה";
 }
 function goToNotificationContext(n){
@@ -3236,7 +3242,7 @@ async function renderFriendsTravelBanner(){
     const { data, error } = await supabase.from("travel_status").select("user_id,region,profiles(name)").in("user_id", ids);
     if(error) throw error;
     if(!data || !data.length){ box.classList.add("hidden"); return; }
-    const names = data.map(r=> `${r.profiles?.name||"מטייל/ת"} (${REGIONS[r.region]||r.region})`).join(", ");
+    const names = data.map(r=> `${escapeHtml(r.profiles?.name||"מטייל/ת")} (${REGIONS[r.region]||r.region})`).join(", ");
     box.innerHTML = `👀 ${data.length===1?"חבר/ה אחד/ת מטייל/ת":data.length+" מהחברים שלכם מטיילים"} היום: ${names}`;
     box.classList.remove("hidden");
   }catch(err){ box.classList.add("hidden"); }
@@ -3258,10 +3264,11 @@ function renderLbSummary(rows){
   let sub = "";
   if(myIndex>0){
     const above = rows[myIndex-1];
+    const aboveName = escapeHtml(above.name);
     const gap = above.val - rows[myIndex].val;
-    sub = gap>0 ? `${above.name} מוביל/ה עליך ב-${gap.toLocaleString()} XP` : `את/ה צמוד/ה ל${above.name}!`;
+    sub = gap>0 ? `${aboveName} מוביל/ה עליך ב-${gap.toLocaleString()} XP` : `את/ה צמוד/ה ל${aboveName}!`;
   } else if(rows.length>1){
-    sub = `${(rows[0].val-rows[1].val).toLocaleString()} XP לפני ${rows[1].name}`;
+    sub = `${(rows[0].val-rows[1].val).toLocaleString()} XP לפני ${escapeHtml(rows[1].name)}`;
   }
   el.innerHTML = `<div class="lb-summary-head">${headline}</div><div class="lb-summary-sub">${sub}</div><button class="btn btn-primary lb-summary-cta" id="lbFindNext">מצא את היעד הבא</button>`;
   $("lbFindNext").onclick = ()=> navigate("#/map");
@@ -3291,9 +3298,10 @@ async function renderBoard(){
     listEl.innerHTML = friendsEmptyBanner + rows.map((r,i)=>{
       const isMe = r.id===session.user.id;
       const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
+      const safeName = escapeHtml(r.name);
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
-        <div class="lb-avatar" style="background:${stringColor(r.name)}">${r.name.charAt(0)}</div>
-        <div class="lb-name">${r.name}${isMe?'<small>הדירוג שלך</small>':''}</div>
+        <div class="lb-avatar" style="background:${stringColor(r.name)}">${safeName.charAt(0)}</div>
+        <div class="lb-name">${safeName}${isMe?'<small>הדירוג שלך</small>':''}</div>
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
     if(friendsEmptyBanner) $("emptyFriendsCta").onclick = ()=> $("inviteBtn").click();
@@ -3309,7 +3317,7 @@ function stringColor(str){
 function feedCardHtml(row){
   const l = lmById[row.landmark_id]; if(!l) return "";
   const cat = CATEGORIES[l.category];
-  const name = row.profiles ? row.profiles.name : "מטייל/ת";
+  const name = escapeHtml(row.profiles ? row.profiles.name : "מטייל/ת");
   const likedByMe = row.likes.some(x=>x.user_id===session.user.id);
   const wished = myWishlist.includes(l.id);
   const visited = myVisits.some(v=>v.landmark_id===l.id);
@@ -3318,7 +3326,7 @@ function feedCardHtml(row){
     <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
     <div class="feed-photo" data-goto="${l.id}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
-    ${row.note ? `<div class="feed-note">"${row.note}"</div>` : ""}
+    ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
     <div class="feed-actions">
       <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
       ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${wished?"❤️ ברשימת המשאלות":"🤍 הוסף לרשימת המשאלות"}</button>`}
@@ -3353,7 +3361,7 @@ function wireFeedCards(listEl, onChange){
   });
 }
 function badgeFeedCardHtml(row){
-  const name = row.profiles ? row.profiles.name : "מטייל/ת";
+  const name = escapeHtml(row.profiles ? row.profiles.name : "מטייל/ת");
   const badge = BADGES.find(b=>b.id===row.badge_id);
   if(!badge) return "";
   return `<div class="feed-card badge-feed-card">
@@ -3430,7 +3438,7 @@ async function renderGroupPanel(){
     const { data: members, error: mErr } = await supabase.from("group_members").select("user_id, profiles(name)").eq("group_id", activeGroupId);
     if(mErr) throw mErr;
     const memberIds = members.map(m=>m.user_id);
-    const nameById = Object.fromEntries(members.map(m=>[m.user_id, m.profiles?.name || "מטייל/ת"]));
+    const nameById = Object.fromEntries(members.map(m=>[m.user_id, escapeHtml(m.profiles?.name || "מטייל/ת")]));
     const { data: visits, error: vErr } = await supabase.from("visits").select("user_id,landmark_id,points_awarded,visited_at").in("user_id", memberIds);
     if(vErr) throw vErr;
     const byMember = {};
@@ -3571,6 +3579,17 @@ function timeAgo(iso){
   if(hrs<24) return "לפני "+hrs+" שעות";
   const days = Math.floor(hrs/24);
   return days===1?"אתמול":"לפני "+days+" ימים";
+}
+// App Essentials Phase 0F, Round 1 - מונע XSS מאוחסן: כל טקסט-חופשי שמשתמש הזין (שם/הערה/וכו')
+// חייב לעבור דרך זה לפני הזרקה ל-innerHTML, כי הוא עלול להיות מוצג למשתמשים אחרים.
+function escapeHtml(str){
+  if(str===null || str===undefined) return "";
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
 }
 async function renderChallenge(){
   try{
