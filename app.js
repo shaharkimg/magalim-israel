@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903z3";
+const APP_VERSION = "20260903z4";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -317,6 +317,36 @@ let prevBadgeSet = new Set();
 let lbPeriod="week";
 let profileListTab="visited";
 const PENDING_KEY = "magalim-pending-checkins-v1";
+
+// App Essentials Phase 0F, Round 5 - לוגינג שגיאות-קליינט אמיתי: window.onerror/
+// unhandledrejection נכתבים ל-client_errors (fire-and-forget, לא חוסם כלום). דה-דופ לפי
+// חתימת-שגיאה בתוך sessionStorage כדי לא להציף בלולאת-שגיאות חוזרת, מוגבל ל-20 דיווחים
+// לסשן. אם הטבלה עוד לא קיימת (migration טרם רצה) - נכשל בשקט כרגיל כל טבלה חדשה בשיחה הזו.
+let clientErrorCount = 0;
+function reportClientError(message, stack, url){
+  if(clientErrorCount>=20) return;
+  const sig = String(message||"").slice(0,200);
+  if(!sig) return;
+  let seen = [];
+  try{ seen = JSON.parse(sessionStorage.getItem("magalim-reported-errors")||"[]"); }catch(e){}
+  if(seen.includes(sig)) return;
+  seen.push(sig);
+  try{ sessionStorage.setItem("magalim-reported-errors", JSON.stringify(seen.slice(-30))); }catch(e){}
+  clientErrorCount++;
+  supabase.from("client_errors").insert({
+    user_id: session ? session.user.id : null,
+    message: sig,
+    stack: stack ? String(stack).slice(0,4000) : null,
+    url: url || location.href,
+  }).then(()=>{}, ()=>{});
+}
+window.addEventListener("error", e=>{
+  reportClientError(e.message, e.error && e.error.stack, location.href);
+});
+window.addEventListener("unhandledrejection", e=>{
+  const reason = e.reason;
+  reportClientError(reason && reason.message ? reason.message : String(reason), reason && reason.stack, location.href);
+});
 
 /* ============ HELPERS ============ */
 function $(id){ return document.getElementById(id); }
