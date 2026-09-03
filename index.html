@@ -299,6 +299,7 @@ button{font-family:inherit;}
 .friend-row .friend-name{font-weight:700;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .friend-row .friend-actions{display:flex;gap:6px;flex:none;}
 .friend-row .friend-actions .btn{flex:none;padding:7px 12px;font-size:12px;}
+.friend-row .icon-btn{width:34px;height:34px;flex:none;}
 .admin-user-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:9px 12px;margin-bottom:8px;}
 .admin-user-info{flex:1;min-width:0;}
 .admin-user-name{font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px;}
@@ -1158,6 +1159,17 @@ input[type=file]{display:none;}
     </div>
   </div>
 
+  <div class="scrim" id="reportScrim"></div>
+  <div class="sheet" id="reportSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="reportSheetTitle">דיווח</h2><button class="sheet-close" id="closeReportSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body">
+      <div class="chip-row" id="reportReasonChips"></div>
+      <textarea class="text-input" id="reportMessageText" rows="3" maxlength="400" placeholder="פרטים נוספים (לא חובה)" style="margin-top:12px;resize:vertical;"></textarea>
+      <button class="btn btn-primary btn-block" id="reportSubmitBtn" style="margin-top:14px;">שליחת דיווח</button>
+    </div>
+  </div>
+
   <div class="scrim" id="confirmScrim"></div>
   <div class="sheet" id="confirmSheet">
     <div class="sheet-handle"></div>
@@ -1190,6 +1202,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
-<script type="module" src="./app.js?v=20260903t"></script>
+<script type="module" src="./app.js?v=20260903v"></script>
 </body>
 </html>

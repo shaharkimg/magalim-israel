@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903t";
+const APP_VERSION = "20260903v";
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
 // כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
 const THEME_KEY = "magalim-theme";
@@ -308,6 +308,36 @@ document.addEventListener("click", e=>{
   const btn = e.target.closest("[data-retry]");
   if(btn && retryHandlers[btn.dataset.retry]) retryHandlers[btn.dataset.retry]();
 });
+let reportSheetState = { reason:null, onSubmit:null };
+function openReportSheet(title, reasons, onSubmit){
+  reportSheetState = { reason:null, onSubmit };
+  $("reportSheetTitle").textContent = title;
+  $("reportMessageText").value = "";
+  $("reportReasonChips").innerHTML = reasons.map(r=>`<button type="button" class="chip" data-reason="${r.id}">${r.label}</button>`).join("");
+  $("reportReasonChips").querySelectorAll(".chip").forEach(chip=>{
+    chip.onclick = ()=>{
+      reportSheetState.reason = chip.dataset.reason;
+      $("reportReasonChips").querySelectorAll(".chip").forEach(c=> c.classList.toggle("active", c===chip));
+    };
+  });
+  openSheet("reportSheet","reportScrim");
+}
+const USER_REPORT_REASONS = [
+  { id:"behavior", label:"התנהגות לא הולמת" },
+  { id:"content", label:"תוכן פוגעני" },
+  { id:"spam", label:"ספאם" },
+  { id:"impersonation", label:"התחזות" },
+  { id:"other", label:"אחר" },
+];
+const PLACE_REPORT_REASONS = [
+  { id:"closed", label:"המקום סגור" },
+  { id:"location", label:"המיקום במפה לא מדויק" },
+  { id:"hours", label:"שעות פתיחה שגויות" },
+  { id:"price", label:"מחיר לא נכון" },
+  { id:"access", label:"המסלול/הגישה השתנו" },
+  { id:"photo", label:"התמונה אינה נכונה" },
+  { id:"other", label:"מידע אחר" },
+];
 let confirmResolve = null;
 function confirmAction({ title, message, confirmLabel="אישור", cancelLabel="ביטול", destructive=false }){
   return new Promise(resolve=>{
@@ -671,6 +701,13 @@ function applyRoute(){
   if(inviteMatch){
     switchView("map");
     handleInviteCode(decodeURIComponent(inviteMatch[1]));
+    return;
+  }
+  const collectionMatch = hash.match(/^#\/collection\/(.+)$/);
+  if(collectionMatch){
+    const cid = decodeURIComponent(collectionMatch[1]);
+    switchView("profile");
+    if(COLLECTIONS.some(c=>c.id===cid)) openCollectionSheet(cid); else navigate("#/profile", false);
     return;
   }
   if(hash==="#/admin"){
@@ -1685,6 +1722,22 @@ function wireStaticUI(){
   $("notifGroupsToggle").onchange = saveNotificationPrefs;
   $("closeSettingsSheet").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
+  $("closeReportSheet").onclick = ()=> closeSheet("reportSheet","reportScrim");
+  $("reportScrim").onclick = ()=> closeSheet("reportSheet","reportScrim");
+  $("reportSubmitBtn").onclick = async ()=>{
+    if(!reportSheetState.reason){ toast("בחרו סיבה לפני השליחה"); return; }
+    const btn = $("reportSubmitBtn"); btn.disabled = true;
+    try{
+      await reportSheetState.onSubmit(reportSheetState.reason, $("reportMessageText").value.trim());
+      closeSheet("reportSheet","reportScrim");
+      toast("✓ תודה, הדיווח נשלח");
+    }catch(err){
+      console.error(err);
+      toast("לא הצלחנו לשלוח את הדיווח. נסה שוב.");
+    }finally{
+      btn.disabled = false;
+    }
+  };
   $("confirmOkBtn").onclick = ()=>{ closeSheet("confirmSheet","confirmScrim"); const r=confirmResolve; confirmResolve=null; r && r(true); };
   $("confirmCancelBtn").onclick = ()=>{ closeSheet("confirmSheet","confirmScrim"); const r=confirmResolve; confirmResolve=null; r && r(false); };
   $("confirmScrim").onclick = ()=>{ closeSheet("confirmSheet","confirmScrim"); const r=confirmResolve; confirmResolve=null; r && r(false); };
@@ -2028,12 +2081,28 @@ function openDetail(id){
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
       <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
+      <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
       <button class="btn btn-outline" id="wishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
     <div id="checkinFlow"></div>
+    <button type="button" id="reportPlaceInfoBtn" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
+  $("detailShareBtn").onclick = ()=>{
+    const url = `${location.origin}${location.pathname}#/destination/${encodeURIComponent(id)}`;
+    shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים את ישראל!`);
+  };
+  $("reportPlaceInfoBtn").onclick = ()=>{
+    openReportSheet("דיווח על "+l.name, PLACE_REPORT_REASONS, async (reason, message)=>{
+      const { error } = await supabase.from("place_corrections").insert({
+        landmark_id: id, user_id: session ? session.user.id : null, reason, message: message||null,
+      });
+      if(error) throw error;
+    });
+  };
   const toggleWish = async ()=>{
     $("wishBtn").disabled = true;
     const justAdded = await toggleWishlist(id);
@@ -2457,7 +2526,7 @@ function renderCollections(){
     const progressLine = on ? "" : `<div class="badge-progress">${done}/${total}</div>`;
     return `<div class="badge${on?" unlocked":""}" data-id="${c.id}"><div class="circ">${c.icon}</div><div class="lbl">${c.label}</div>${progressLine}</div>`;
   }).join("");
-  el.querySelectorAll("[data-id]").forEach(elm=> elm.onclick = ()=> openCollectionSheet(elm.dataset.id));
+  el.querySelectorAll("[data-id]").forEach(elm=> elm.onclick = ()=> navigate("#/collection/"+elm.dataset.id));
 }
 function openCollectionSheet(id){
   const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
@@ -2919,6 +2988,7 @@ async function renderFriends(){
       return `<div class="friend-row" data-id="${f.friendshipId}" data-user="${f.userId}">
         <div class="avatar">${name.trim().charAt(0)||"א"}</div>
         <div class="friend-name">${name}</div>
+        <button class="icon-btn" data-act="report" aria-label="דיווח על משתמש" title="דיווח">🚩</button>
         <button class="icon-btn" data-act="block" aria-label="חסימת משתמש" title="חסום">🚫</button>
         <button class="icon-btn" data-act="remove" aria-label="הסרת חבר">✕</button>
       </div>`;
@@ -2935,6 +3005,16 @@ async function renderFriends(){
         if(!ok) return;
         await blockUser(row.dataset.user);
         toast("המשתמש נחסם"); renderFriends(); renderBlockedUsers();
+      };
+      row.querySelector('[data-act="report"]').onclick = ()=>{
+        const name = row.querySelector(".friend-name").textContent;
+        const reportedId = row.dataset.user;
+        openReportSheet("דיווח על "+name, USER_REPORT_REASONS, async (reason, message)=>{
+          const { error } = await supabase.from("user_reports").insert({
+            reporter_id: session.user.id, reported_user_id: reportedId, reason, message: message||null,
+          });
+          if(error) throw error;
+        });
       };
     });
   }
