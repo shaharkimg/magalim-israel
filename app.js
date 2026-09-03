@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903s";
+const APP_VERSION = "20260903t";
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
 // כאן רק קוראים/כותבים אותה. "system" = בלי override, עוקב אחרי prefers-color-scheme כרגיל.
 const THEME_KEY = "magalim-theme";
@@ -1741,6 +1741,13 @@ function wireStaticUI(){
   $("settingsHelpBtn").onclick = ()=>{ closeSheet("settingsSheet","settingsScrim"); navigate("#/help"); };
   $("notifBellBtn").onclick = ()=> navigate("#/notifications");
   $("notificationsCloseBtn").onclick = goBack;
+  $("openSearchBtn").onclick = openSearchSheet;
+  $("closeSearchSheet").onclick = ()=> closeSheet("searchSheet","searchScrim");
+  $("searchScrim").onclick = ()=> closeSheet("searchSheet","searchScrim");
+  $("searchInput").oninput = ()=>{
+    const q = $("searchInput").value;
+    if(q.trim()) renderSearchResults(q); else renderSearchDefault();
+  };
   $("helpCloseBtn").onclick = goBack;
   $("reportProblemToggle").onclick = ()=> $("reportProblemForm").classList.toggle("hidden");
   $("sendIdeaToggle").onclick = ()=> $("sendIdeaForm").classList.toggle("hidden");
@@ -1993,6 +2000,7 @@ async function toggleWishlist(id){
 function openDetail(id){
   closePreview();
   const l = lmById[id];
+  if(l) addRecentlyViewed(id);
   const visitedEntry = myVisits.find(v=>v.landmark_id===id);
   const wished = myWishlist.includes(id);
   const cat = CATEGORIES[l.category];
@@ -2631,6 +2639,77 @@ async function saveProfile(){
     btn.disabled = false; btn.textContent = "שמירה";
   }
 }
+/* ============ GLOBAL SEARCH + RECENT/HISTORY (per-device localStorage) ============ */
+const RECENT_SEARCHES_KEY = "magalim-recent-searches";
+const RECENTLY_VIEWED_KEY = "magalim-recently-viewed";
+function getRecentSearches(){ try{ return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)||"[]"); }catch(e){ return []; } }
+function addRecentSearch(q){
+  q = (q||"").trim(); if(!q) return;
+  let list = getRecentSearches().filter(x=>x!==q);
+  list.unshift(q);
+  try{ localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(list.slice(0,5))); }catch(e){}
+}
+function getRecentlyViewed(){ try{ return JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY)||"[]"); }catch(e){ return []; } }
+function addRecentlyViewed(id){
+  let list = getRecentlyViewed().filter(x=>x!==id);
+  list.unshift(id);
+  try{ localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(list.slice(0,15))); }catch(e){}
+}
+function searchLandmarks(query){
+  const q = query.trim().toLowerCase();
+  if(!q) return [];
+  return LANDMARKS.filter(l=>{
+    const cat = CATEGORIES[l.category];
+    return l.name.toLowerCase().includes(q)
+      || (REGIONS[l.region]||"").toLowerCase().includes(q)
+      || (cat && cat.label.toLowerCase().includes(q));
+  }).slice(0,40);
+}
+function searchMiniCardHtml(l, subLine){
+  const cat = CATEGORIES[l.category];
+  return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+    <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${subLine}</div></div></div>`;
+}
+function renderSearchDefault(){
+  const el = $("searchResults");
+  const recent = getRecentSearches();
+  const viewed = getRecentlyViewed().map(id=>lmById[id]).filter(Boolean).slice(0,10);
+  let html = "";
+  if(recent.length){
+    html += `<div class="section-head" style="margin-top:0;"><h2>חיפשת לאחרונה</h2></div>
+      <div class="chip-row">${recent.map(q=>`<button type="button" class="chip" data-recent-q="${q.replace(/"/g,"&quot;")}">${q}</button>`).join("")}</div>`;
+  }
+  if(viewed.length){
+    html += `<div class="section-head"${recent.length?"":' style="margin-top:0;"'}><h2>נצפו לאחרונה</h2></div>`
+      + viewed.map(l=> searchMiniCardHtml(l, REGIONS[l.region])).join("");
+  }
+  el.innerHTML = html || '<div class="empty-state">חפשו יעד לפי שם, אזור או קטגוריה.</div>';
+  el.querySelectorAll("[data-recent-q]").forEach(chip=> chip.onclick = ()=>{
+    $("searchInput").value = chip.dataset.recentQ;
+    renderSearchResults(chip.dataset.recentQ);
+  });
+  el.querySelectorAll(".mini-card").forEach(card=> card.onclick = ()=>{ closeSheet("searchSheet","searchScrim"); goToDestination(card.dataset.id); });
+}
+function renderSearchResults(query){
+  const el = $("searchResults");
+  const results = searchLandmarks(query);
+  if(!results.length){
+    el.innerHTML = '<div class="empty-state">לא מצאנו יעדים תואמים.</div>';
+    return;
+  }
+  el.innerHTML = results.map(l=> searchMiniCardHtml(l, REGIONS[l.region]+" · "+DIFFS[l.difficulty].label)).join("");
+  el.querySelectorAll(".mini-card").forEach(card=> card.onclick = ()=>{
+    addRecentSearch(query);
+    closeSheet("searchSheet","searchScrim");
+    goToDestination(card.dataset.id);
+  });
+}
+function openSearchSheet(){
+  $("searchInput").value = "";
+  renderSearchDefault();
+  openSheet("searchSheet","searchScrim");
+  setTimeout(()=> $("searchInput").focus(), 150);
+}
 /* ============ PROFILE ============ */
 function renderProfile(){
   if(!session){ setGuestGate("profile", true); $("navUnreadDot").classList.remove("show"); $("bellUnreadDot").classList.remove("show"); return; }
@@ -2687,7 +2766,7 @@ function renderProfile(){
           <div class="mini-pts">+${v.points_awarded}</div></div>`;
       }).join("");
     }
-  } else {
+  } else if(profileListTab==="wishlist"){
     if(!myWishlist.length){
       listEl.innerHTML = '<div class="empty-state"><div class="big">⭐</div>רשימת המשאלות ריקה.<br>שמרו יעדים מהמפה לטיול הבא.<br><button class="btn btn-primary empty-cta" id="emptyWishlistCta">🗺️ גלו יעדים במפה</button></div>';
       $("emptyWishlistCta").onclick = ()=> navigate("#/map");
@@ -2705,6 +2784,18 @@ function renderProfile(){
         return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
           <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${l.duration}</div>${ctx}</div>
           <div class="mini-pts">${DIFFS[l.difficulty].label}</div></div>`;
+      }).join("");
+    }
+  } else {
+    const recentlyViewed = getRecentlyViewed().map(id=>lmById[id]).filter(Boolean);
+    if(!recentlyViewed.length){
+      listEl.innerHTML = '<div class="empty-state"><div class="big">🕓</div>עדיין אין היסטוריה.<br>יעדים שתצפו בהם יופיעו כאן.<br><button class="btn btn-primary empty-cta" id="emptyHistoryCta">🗺️ גלו יעדים במפה</button></div>';
+      $("emptyHistoryCta").onclick = ()=> navigate("#/map");
+    } else {
+      listEl.innerHTML = recentlyViewed.map(l=>{
+        const cat = CATEGORIES[l.category];
+        return `<div class="mini-card" data-id="${l.id}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${DIFFS[l.difficulty].label}</div></div></div>`;
       }).join("");
     }
   }
