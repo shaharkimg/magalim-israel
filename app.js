@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903i";
+const APP_VERSION = "20260903j";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -1179,18 +1179,65 @@ function renderWizardResults(){
   }
   let note = "";
   if(relaxed.length){
-    const labels = { water:"מים", duration:"משך הזמן", difficulty:"רמת הקושי" };
+    const labels = { water:"מים", duration:"משך הזמן", difficulty:"רמת הקושי", accessible:"נגישות", free:"חינם" };
     note = `<div class="wiz-relaxed-note">לא מצאנו התאמה מלאה, אז הרחבנו את החיפוש (בלי דרישת ${relaxed.map(r=>labels[r]).join(", ")})</div>`;
   }
+  const scored = results.map(l=>({ l, pct: wizMatchScore(l) }));
+  const tagLabels = assignWizLabels(scored);
   $("wizResults").innerHTML = `<h3 style="margin:4px 0 12px;">מצאנו לך ${results.length} טיולים להיום 🎉</h3>${note}` +
-    results.map(l=>{
+    scored.map((s,i)=>{
+      const l = s.l;
       const cat = CATEGORIES[l.category];
+      const tag = tagLabels[i] ? `<div class="wiz-match-tag">${tagLabels[i]}</div>` : "";
+      const pctChip = s.pct!=null ? `<div class="wiz-match-pct">${s.pct}% התאמה</div>` : "";
       return `<div class="mini-card wiz-result-card" data-id="${l.id}">
         <div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-        <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${wizExplain(l)}</div></div>
+        <div class="mini-info">${tag}<div class="name">${l.name}</div><div class="sub">${wizExplain(l)}</div>${pctChip}</div>
       </div>`;
     }).join("");
   $("wizResults").querySelectorAll(".wiz-result-card").forEach(el=> el.onclick = ()=>{ closeSheet("todaySheet","todayScrim"); goToDestination(el.dataset.id); });
+}
+function wizMatchScore(l){
+  const criteria = [];
+  if(wizState.difficulty) criteria.push(l.difficulty===wizState.difficulty);
+  if(wizState.duration){
+    const h = l.durationHours!=null ? l.durationHours : estimateHours(l);
+    criteria.push(!!DURATION_BUCKETS[wizState.duration](h));
+  }
+  if(wizState.water) criteria.push(l.category==="water"||l.hasWater);
+  if(wizState.accessible) criteria.push(!!l.accessible);
+  if(wizState.free) criteria.push(l.priceType==="free");
+  if(wizState.company==="family") criteria.push(!!l.familyFriendly);
+  if(!criteria.length) return null;
+  return Math.round(criteria.filter(Boolean).length/criteria.length*100);
+}
+function assignWizLabels(scored){
+  const labels = {};
+  const n = scored.length;
+  if(!n) return labels;
+  let bestIdx = 0;
+  for(let i=1;i<n;i++){ if((scored[i].pct??-1) > (scored[bestIdx].pct??-1)) bestIdx=i; }
+  labels[bestIdx] = "🎯 הכי מתאים";
+  if(n>1){
+    let closestIdx = -1;
+    if(wizState.loc){
+      let minDist = Infinity;
+      scored.forEach((s,i)=>{
+        if(labels[i]) return;
+        const d = haversine(wizState.loc.lat,wizState.loc.lon,s.l.lat,s.l.lon);
+        if(d<minDist){ minDist=d; closestIdx=i; }
+      });
+    }
+    if(closestIdx>=0) labels[closestIdx] = "📍 הכי קרוב";
+    let adventureIdx = -1, maxPts = -1;
+    scored.forEach((s,i)=>{
+      if(labels[i]) return;
+      const pts = DIFFS[s.l.difficulty].points;
+      if(pts>maxPts){ maxPts=pts; adventureIdx=i; }
+    });
+    if(adventureIdx>=0) labels[adventureIdx] = "🧭 יותר הרפתקני";
+  }
+  return labels;
 }
 
 let israelBounds = null;
