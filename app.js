@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903g";
+const APP_VERSION = "20260903h";
 
 /* ============ STATIC APP DATA ============ */
 const CATEGORIES = {
@@ -251,17 +251,26 @@ function celebrate(steps){
     const hero = s.photoUrl
       ? `<div class="celebrate-hero"><img src="${s.photoUrl}" alt=""></div>`
       : s.emoji ? `<div class="celebrate-emoji">${s.emoji}</div>` : "";
+    const actionsHtml = s.actions
+      ? `<div class="celebrate-actions">${s.actions.map((a,ai)=>`<button class="btn ${a.primary?"btn-primary":"btn-outline"}" data-action-i="${ai}">${a.label}</button>`).join("")}</div>`
+      : "";
     card.innerHTML = hero
       + `<h2>${s.title}</h2>`
       + (s.xp!=null ? `<div class="celebrate-xp" id="celebrateXpNum">+0 XP</div>` : "")
       + (s.sub ? `<div class="celebrate-bonus">${s.sub}</div>` : "")
-      + (s.region ? `<div class="celebrate-region">${s.region}</div>` : "");
+      + (s.region ? `<div class="celebrate-region">${s.region}</div>` : "")
+      + actionsHtml;
     if(s.xp!=null) animateXpCount($("celebrateXpNum"), s.xp);
     if(s.confetti && !reducedMotion && window.confetti){
       window.confetti({ particleCount:60, spread:65, origin:{y:0.35}, scalar:0.9, ticks:150 });
     }
+    if(s.actions){
+      card.querySelectorAll("[data-action-i]").forEach(btn=>{
+        btn.onclick = (e)=>{ e.stopPropagation(); s.actions[Number(btn.dataset.actionI)].onClick(); dismiss(); };
+      });
+    }
     clearTimeout(celebrate._t);
-    celebrate._t = setTimeout(advance, 1900);
+    celebrate._t = setTimeout(advance, s.actions ? 5000 : 1900);
   };
   const advance = ()=>{
     i++;
@@ -1805,6 +1814,9 @@ async function confirmCheckin(l){
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     const firstInCat = pts>DIFFS[l.difficulty].points;
     const newBadges = checkNewBadges();
+    if(newBadges.length){
+      supabase.from("user_badges").insert(newBadges.map(b=>({ user_id:session.user.id, badge_id:b.id }))).then(()=>{});
+    }
     const newLevelIndex = getLevel(totalPoints()).index;
     const leveledUpTo = newLevelIndex>prevLevelIndex ? LEVELS[newLevelIndex] : null;
     const regionLabel = REGIONS[l.region];
@@ -1819,6 +1831,25 @@ async function confirmCheckin(l){
     }];
     newBadges.forEach(b=> steps.push({ emoji:"🏅", title:"תג חדש נפתח — "+b.icon+" "+b.label, confetti:false }));
     if(leveledUpTo) steps.push({ emoji:"⭐", title:"עלית לרמה "+leveledUpTo.icon+" "+leveledUpTo.name+"!", confetti:true });
+    // Next Adventure - הצעת המשך מיידית מהיעד שזה עתה נכבש, לא מהמיקום החי (עובד גם ב-demo mode)
+    const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+    let nextPlace = null, nextDist = Infinity;
+    LANDMARKS.forEach(cand=>{
+      if(visitedIds.has(cand.id) || cand.id===l.id) return;
+      const d = haversine(l.lat,l.lon,cand.lat,cand.lon);
+      if(d<=15 && d<nextDist){ nextDist=d; nextPlace=cand; }
+    });
+    if(nextPlace){
+      steps.push({
+        emoji:"🌳",
+        title:"כבר באזור? יש עוד מקום קרוב",
+        sub: nextPlace.name+" · כ-"+estimateDriveMinutes(nextDist)+" דק' נסיעה",
+        actions: [
+          { label:"קחו אותי לשם", primary:true, onClick:()=> goToDestination(nextPlace.id) },
+          { label:"שמור לפעם הבאה", onClick:()=>{ if(!myWishlist.includes(nextPlace.id)) toggleWishlist(nextPlace.id).then(()=>renderProfile()); } },
+        ],
+      });
+    }
     celebrate(steps);
     justCheckedInId = l.id;
     loadVisitCounts().then(()=>{
@@ -2436,6 +2467,16 @@ function wireFeedCards(listEl, onChange){
     };
   });
 }
+function badgeFeedCardHtml(row){
+  const name = row.profiles ? row.profiles.name : "מטייל/ת";
+  const badge = BADGES.find(b=>b.id===row.badge_id);
+  if(!badge) return "";
+  return `<div class="feed-card badge-feed-card">
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
+      <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.unlocked_at)} · פתח/ה תג חדש</div></div></div>
+    <div class="badge-feed-body"><span class="badge-feed-icon">${badge.icon}</span><span class="badge-feed-label">${badge.label}</span></div>
+  </div>`;
+}
 async function renderFeed(){
   if(!session){ setGuestGate("board", true); return; }
   setGuestGate("board", false);
@@ -2451,12 +2492,25 @@ async function renderFeed(){
         .order("visited_at",{ascending:false}).limit(20));
     }
     if(error) throw error;
-    if(!data.length){
+    // user_badges - הרחבה תוספתית לפיד (Round A) - אם עדיין לא רץ ה-migration, נופל בחזרה
+    // בחן לפיד-צ'ק-אינים-בלבד הקיים, בלי לשבור כלום.
+    let badgeEvents = [];
+    try{
+      const { data: bdata, error: bErr } = await supabase.from("user_badges")
+        .select("id,user_id,badge_id,unlocked_at,profiles!user_badges_user_id_fkey(name)")
+        .order("unlocked_at",{ascending:false}).limit(15);
+      if(!bErr && bdata) badgeEvents = bdata;
+    }catch(e){}
+    if(!data.length && !badgeEvents.length){
       listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!<br><button class="btn btn-primary empty-cta" id="emptyFeedCta">🗺️ גלו יעדים במפה</button></div>';
       $("emptyFeedCta").onclick = ()=> navigate("#/map");
       renderChallenge(); renderPersonalChallenges(); return;
     }
-    listEl.innerHTML = data.map(feedCardHtml).join("");
+    const merged = [
+      ...data.map(row=>({type:"checkin", ts:row.visited_at, row})),
+      ...badgeEvents.map(row=>({type:"badge", ts:row.unlocked_at, row})),
+    ].sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+    listEl.innerHTML = merged.map(item=> item.type==="checkin" ? feedCardHtml(item.row) : badgeFeedCardHtml(item.row)).join("");
     wireFeedCards(listEl, renderFeed);
     renderChallenge();
     renderPersonalChallenges();

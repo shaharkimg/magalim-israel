@@ -440,6 +440,9 @@ button{font-family:inherit;}
 .feed-time{font-size:11.5px;color:var(--text-muted);}
 .feed-photo{height:190px;margin:10px 0 0;display:flex;align-items:center;justify-content:center;position:relative;background-size:cover;background-position:center;}
 .feed-photo svg{width:52px;height:52px;opacity:.55;}
+.badge-feed-body{display:flex;align-items:center;gap:10px;padding:10px 12px 14px;}
+.badge-feed-icon{font-size:28px;line-height:1;flex:none;}
+.badge-feed-label{font-weight:700;font-size:13.5px;}
 .feed-photo .lm-label{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.4);color:#fff;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;}
 .feed-actions{display:flex;align-items:center;gap:16px;padding:10px 12px 12px;}
 .like-btn{border:none;background:none;display:flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13px;font-weight:700;cursor:pointer;padding:0;}
@@ -464,6 +467,8 @@ button{font-family:inherit;}
 .celebrate-xp{font-family:"Suez One";font-size:30px;color:var(--accent-strong);font-variant-numeric:tabular-nums;}
 .celebrate-bonus{font-size:12.5px;color:var(--text-muted);margin-top:6px;}
 .celebrate-region{font-size:12.5px;font-weight:700;color:var(--accent);background:var(--accent-light);display:inline-block;padding:4px 12px;border-radius:999px;margin-top:10px;}
+.celebrate-actions{display:flex;gap:8px;margin-top:16px;}
+.celebrate-actions .btn{padding:11px 14px;font-size:13px;}
 @media (prefers-reduced-motion: reduce){ .celebrate-card{transition:opacity .2s;} .wish-pop{animation:none;} .lm-pin.pulse{animation:none;} }
 @keyframes pulse-marker{ 0%{transform:rotate(-45deg) scale(1);} 40%{transform:rotate(-45deg) scale(1.55);box-shadow:0 0 0 8px rgba(23,107,91,.28);} 100%{transform:rotate(-45deg) scale(1);} }
 .lm-pin.pulse{animation:pulse-marker .9s ease-out;}
@@ -957,6 +962,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
-<script type="module" src="./app.js?v=20260903g"></script>
+<script type="module" src="./app.js?v=20260903h"></script>
 </body>
 </html>
