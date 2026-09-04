@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260904a1";
+const APP_VERSION = "20260904a2";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -2439,13 +2439,13 @@ function startCheckin(l){
     <div class="demo-toggle"><span>מצב הדגמה (עוקף בדיקת מרחק לצורך בדיקה)</span>
       <label class="switch"><input type="checkbox" id="demoSwitch" ${demoMode?"checked":""}><span class="track"></span></label></div>
     <div id="photoStep" class="hidden">
-      <div class="photo-drop" id="photoDrop">📷 הקש כדי לצלם תמונת אימות במיקום</div>
+      <div class="photo-drop" id="photoDrop">📷 הוסיפו תמונה מהמקום (אופציונלי)</div>
       <input type="file" accept="image/*" capture="environment" id="photoInput">
       <img class="photo-preview hidden" id="photoPreview">
       <label class="field-label" style="margin-top:6px;">הערה קצרה לחברים (אופציונלי)</label>
       <input class="text-input" id="checkinNote" maxlength="120" placeholder="לדוגמה: יש מים עכשיו, המסלול מעולה!">
       ${fieldReportChips(l)}
-      <button class="btn btn-primary btn-block" id="confirmCheckin" disabled style="margin-top:12px;">אשר צ'ק-אין</button>
+      <button class="btn btn-primary btn-block" id="confirmCheckin" style="margin-top:12px;">אשר צ'ק-אין</button>
     </div>`;
   $("demoSwitch").onchange = e=>{ demoMode=e.target.checked; runGpsCheck(l); };
   $("photoDrop").onclick=()=>$("photoInput").click();
@@ -3180,12 +3180,12 @@ async function renderBlockedUsers(){
   const blocked = await getBlockedUsers();
   if(!blocked.length){ el.innerHTML = '<div class="friends-empty">אין לך משתמשים חסומים.</div>'; return; }
   const ids = blocked.map(b=>b.userId);
-  const { data } = await supabase.from("profiles").select("id,name").in("id", ids);
-  const names = {}; (data||[]).forEach(p=> names[p.id]=escapeHtml(p.name));
+  const { data } = await supabase.from("profiles").select("id,name,avatar_url").in("id", ids);
+  const names = {}, avatars = {}; (data||[]).forEach(p=>{ names[p.id]=escapeHtml(p.name); avatars[p.id]=p.avatar_url; });
   el.innerHTML = blocked.map(b=>{
     const name = names[b.userId] || "מטייל/ת";
     return `<div class="friend-row" data-id="${b.friendshipId}">
-      <div class="avatar">${name.trim().charAt(0)||"א"}</div>
+      <div class="avatar">${avatarInner(name,avatars[b.userId])}</div>
       <div class="friend-name">${name}</div>
       <button class="btn btn-ghost" data-act="unblock">בטל חסימה</button>
     </div>`;
@@ -3215,15 +3215,15 @@ async function renderFriends(){
   }).catch(()=>{});
   const [pending, friends] = await Promise.all([ getPendingFriendRequests(), getFriends() ]);
   const otherIds = [...new Set([...pending.map(p=>p.requester_id), ...friends.map(f=>f.userId)])];
-  let names = {};
+  let names = {}, avatars = {};
   if(otherIds.length){
-    const { data } = await supabase.from("profiles").select("id,name").in("id", otherIds);
-    (data||[]).forEach(p=> names[p.id]=escapeHtml(p.name));
+    const { data } = await supabase.from("profiles").select("id,name,avatar_url").in("id", otherIds);
+    (data||[]).forEach(p=>{ names[p.id]=escapeHtml(p.name); avatars[p.id]=p.avatar_url; });
   }
   reqBox.innerHTML = pending.length ? pending.map(p=>{
     const name = names[p.requester_id] || "מטייל/ת";
     return `<div class="friend-row" data-id="${p.id}">
-      <div class="avatar">${name.trim().charAt(0)||"א"}</div>
+      <div class="avatar">${avatarInner(name,avatars[p.requester_id])}</div>
       <div class="friend-name">${name}</div>
       <div class="friend-actions">
         <button class="btn btn-primary" data-act="accept">אישור</button>
@@ -3242,7 +3242,7 @@ async function renderFriends(){
     listBox.innerHTML = friends.map(f=>{
       const name = names[f.userId] || "מטייל/ת";
       return `<div class="friend-row" data-id="${f.friendshipId}" data-user="${f.userId}">
-        <div class="avatar">${name.trim().charAt(0)||"א"}</div>
+        <div class="avatar">${avatarInner(name,avatars[f.userId])}</div>
         <div class="friend-name">${name}</div>
         <button class="icon-btn" data-act="report" aria-label="דיווח על משתמש" title="דיווח">🚩</button>
         <button class="icon-btn" data-act="block" aria-label="חסימת משתמש" title="חסום">🚫</button>
@@ -3441,7 +3441,7 @@ async function renderBoard(){
     const friends = await getFriends();
     const ids = Array.from(new Set([...friends.map(f=>f.userId), session.user.id]));
     const [{ data: profs, error: pErr }, { data: visits, error: vErr }] = await Promise.all([
-      supabase.from("profiles").select("id,name").in("id", ids),
+      supabase.from("profiles").select("id,name,avatar_url").in("id", ids),
       supabase.from("visits").select("user_id,points_awarded,visited_at").in("user_id", ids),
     ]);
     if(pErr) throw pErr; if(vErr) throw vErr;
@@ -3449,7 +3449,7 @@ async function renderBoard(){
     const totals = {};
     profs.forEach(p=> totals[p.id]=0);
     visits.forEach(v=>{ if(new Date(v.visited_at).getTime()>=cutoff) totals[v.user_id]=(totals[v.user_id]||0)+v.points_awarded; });
-    const rows = profs.map(p=>({ id:p.id, name:p.name, val:totals[p.id]||0 })).sort((a,b)=>b.val-a.val);
+    const rows = profs.map(p=>({ id:p.id, name:p.name, avatarUrl:p.avatar_url, val:totals[p.id]||0 })).sort((a,b)=>b.val-a.val);
     renderLbSummary(rows);
     const friendsEmptyBanner = (rows.length<=1)
       ? '<div class="empty-state"><div class="big">👥</div>עדיין אין לך חברים באפליקציה.<br>הזמינו חברים כדי להתחרות יחד!<br><button class="btn btn-primary empty-cta" id="emptyFriendsCta">👥 הזמן חברים</button></div>'
@@ -3459,7 +3459,7 @@ async function renderBoard(){
       const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
       const safeName = escapeHtml(r.name);
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
-        <div class="lb-avatar" style="background:${stringColor(r.name)}">${safeName.charAt(0)}</div>
+        <div class="lb-avatar" style="background:${stringColor(r.name)}">${avatarInner(r.name,r.avatarUrl)}</div>
         <div class="lb-name">${safeName}${isMe?'<small>הדירוג שלך</small>':''}</div>
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
@@ -3471,18 +3471,25 @@ function stringColor(str){
   let h=0; for(let i=0;i<str.length;i++) h = (h*31+str.charCodeAt(i))>>>0;
   return palette[h%palette.length];
 }
+// תוכן פנימי לעיגול-אווטאר (lb-avatar/avatar) של משתמש אחר - תמונת-פרופיל אם הועלתה, אחרת
+// האות הראשונה בשם (ההתנהגות הקיימת). ה-img נראה זהה בכל מקום כי .avatar/.lb-avatar כבר
+// מוגדרים ל-overflow:hidden+border-radius:50%.
+function avatarInner(name, avatarUrl){
+  return avatarUrl ? `<img src="${avatarUrl}" alt="">` : ((name||"א").trim().charAt(0)||"א");
+}
 
 /* ============ FEED ============ */
 function feedCardHtml(row){
   const l = lmById[row.landmark_id]; if(!l) return "";
   const cat = CATEGORIES[l.category];
   const name = escapeHtml(row.profiles ? row.profiles.name : "מטייל/ת");
+  const avatarUrl = row.profiles ? row.profiles.avatar_url : null;
   const likedByMe = row.likes.some(x=>x.user_id===session.user.id);
   const wished = myWishlist.includes(l.id);
   const visited = myVisits.some(v=>v.landmark_id===l.id);
   const bg = row.photo_url ? `background-image:url('${row.photo_url}')` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%))`;
   return `<div class="feed-card">
-    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${avatarInner(name,avatarUrl)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
     <div class="feed-photo" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
     ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
@@ -3524,10 +3531,11 @@ function wireFeedCards(listEl, onChange){
 }
 function badgeFeedCardHtml(row){
   const name = escapeHtml(row.profiles ? row.profiles.name : "מטייל/ת");
+  const avatarUrl = row.profiles ? row.profiles.avatar_url : null;
   const badge = BADGES.find(b=>b.id===row.badge_id);
   if(!badge) return "";
   return `<div class="feed-card badge-feed-card">
-    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${name.charAt(0)}</div>
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${avatarInner(name,avatarUrl)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.unlocked_at)} · פתח/ה תג חדש</div></div></div>
     <div class="badge-feed-body"><span class="badge-feed-icon">${badge.icon}</span><span class="badge-feed-label">${badge.label}</span></div>
   </div>`;
@@ -3539,11 +3547,11 @@ async function renderFeed(){
   listEl.innerHTML = skeletonCards(3);
   try{
     let { data, error } = await supabase.from("visits")
-      .select("id,visited_at,photo_url,points_awarded,note,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+      .select("id,visited_at,photo_url,points_awarded,note,landmark_id,user_id,profiles!visits_user_id_fkey(name,avatar_url),likes(user_id)")
       .order("visited_at",{ascending:false}).limit(20);
     if(error && /note/i.test(error.message||"")){
       ({ data, error } = await supabase.from("visits")
-        .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+        .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name,avatar_url),likes(user_id)")
         .order("visited_at",{ascending:false}).limit(20));
     }
     if(error) throw error;
@@ -3552,7 +3560,7 @@ async function renderFeed(){
     let badgeEvents = [];
     try{
       const { data: bdata, error: bErr } = await supabase.from("user_badges")
-        .select("id,user_id,badge_id,unlocked_at,profiles!user_badges_user_id_fkey(name)")
+        .select("id,user_id,badge_id,unlocked_at,profiles!user_badges_user_id_fkey(name,avatar_url)")
         .order("unlocked_at",{ascending:false}).limit(15);
       if(!bErr && bdata) badgeEvents = bdata;
     }catch(e){}
@@ -3577,11 +3585,11 @@ async function renderGroupFeed(memberIds){
   listEl.innerHTML = skeletonCards(2);
   try{
     let { data, error } = await supabase.from("visits")
-      .select("id,visited_at,photo_url,points_awarded,note,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+      .select("id,visited_at,photo_url,points_awarded,note,landmark_id,user_id,profiles!visits_user_id_fkey(name,avatar_url),likes(user_id)")
       .in("user_id", memberIds).order("visited_at",{ascending:false}).limit(10);
     if(error && /note/i.test(error.message||"")){
       ({ data, error } = await supabase.from("visits")
-        .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name),likes(user_id)")
+        .select("id,visited_at,photo_url,points_awarded,landmark_id,user_id,profiles!visits_user_id_fkey(name,avatar_url),likes(user_id)")
         .in("user_id", memberIds).order("visited_at",{ascending:false}).limit(10));
     }
     if(error) throw error;
@@ -3597,10 +3605,11 @@ async function renderGroupPanel(){
   if(!myGroups.length || !activeGroupId) return;
   $("groupMemberStats").innerHTML = skeletonRows(3);
   try{
-    const { data: members, error: mErr } = await supabase.from("group_members").select("user_id, profiles(name)").eq("group_id", activeGroupId);
+    const { data: members, error: mErr } = await supabase.from("group_members").select("user_id, profiles(name,avatar_url)").eq("group_id", activeGroupId);
     if(mErr) throw mErr;
     const memberIds = members.map(m=>m.user_id);
     const nameById = Object.fromEntries(members.map(m=>[m.user_id, escapeHtml(m.profiles?.name || "מטייל/ת")]));
+    const avatarById = Object.fromEntries(members.map(m=>[m.user_id, m.profiles?.avatar_url || null]));
     const { data: visits, error: vErr } = await supabase.from("visits").select("user_id,landmark_id,points_awarded,visited_at").in("user_id", memberIds);
     if(vErr) throw vErr;
     const byMember = {};
@@ -3610,13 +3619,13 @@ async function renderGroupPanel(){
     const statRows = memberIds.map(id=>{
       const vs = byMember[id];
       const xp = vs.reduce((s,v)=>s+(v.points_awarded||0),0);
-      return { id, name: nameById[id], xp, streak: streakFromVisits(vs), badgeCount: BADGES.filter(b=>b.current(vs)>=b.target(vs)).length };
+      return { id, name: nameById[id], avatarUrl: avatarById[id], xp, streak: streakFromVisits(vs), badgeCount: BADGES.filter(b=>b.current(vs)>=b.target(vs)).length };
     }).sort((a,b)=>b.xp-a.xp);
     $("groupMemberStats").innerHTML = statRows.length ? statRows.map((r,i)=>{
       const isMe = r.id===session.user.id;
       const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
-        <div class="lb-avatar" style="background:${stringColor(r.name)}">${r.name.charAt(0)}</div>
+        <div class="lb-avatar" style="background:${stringColor(r.name)}">${avatarInner(r.name,r.avatarUrl)}</div>
         <div class="lb-name">${r.name}${isMe?'<small>אתה/את</small>':''}</div>
         <div class="lb-mini-stats"><span>🔥${r.streak}</span><span>🏅${r.badgeCount}</span></div>
         <div class="lb-pts">${r.xp.toLocaleString()}</div></div>`;

@@ -472,7 +472,8 @@ button{font-family:inherit;}
 .lb-rank.top1{color:#C9A227;}
 .lb-rank.top2{color:#9AA0A6;}
 .lb-rank.top3{color:#B0713A;}
-.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13.5px;flex:none;font-family:"Suez One";transition:width .15s,height .15s;}
+.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13.5px;flex:none;font-family:"Suez One";transition:width .15s,height .15s;overflow:hidden;}
+.lb-avatar img{width:100%;height:100%;object-fit:cover;}
 .lb-row:has(.lb-rank.top1) .lb-avatar,.lb-row:has(.lb-rank.top2) .lb-avatar,.lb-row:has(.lb-rank.top3) .lb-avatar{width:45px;height:45px;font-size:16px;}
 .lb-row:has(.lb-rank.top1) .lb-avatar{box-shadow:0 0 0 2px var(--sand);}
 .lb-name{flex:1;font-weight:700;font-size:14px;}
@@ -1273,6 +1274,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260904a1"></script>
+<script type="module" src="./app.js?v=20260904a2"></script>
 </body>
 </html>
