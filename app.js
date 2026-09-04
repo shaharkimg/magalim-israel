@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260904a5";
+const APP_VERSION = "20260904a6";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -919,7 +919,7 @@ async function bootPublic(){
     if(lmErr) throw lmErr;
     LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, points:l.points, baseVisits:l.base_visits,
       familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null,
-      officialUrl:l.official_url||null }));
+      officialUrl:l.official_url||null, stockPhotoUrl:l.stock_photo_url||null, stockPhotoCredit:l.stock_photo_credit||null }));
     lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));
     await loadVisitCounts();
     loadLandmarkPhotos().then(()=>{
@@ -1052,12 +1052,13 @@ async function loadLandmarkPhotos(){
   if(!aggErr && agg){
     landmarkPhotos = {};
     agg.forEach(r=>{ landmarkPhotos[r.landmark_id] = r.photo_url; });
-    return;
+  } else {
+    const { data, error } = await supabase.from("visits").select("landmark_id,photo_url,visited_at").not("photo_url","is",null).order("visited_at",{ascending:false}).limit(500);
+    if(error) throw error;
+    landmarkPhotos = {};
+    data.forEach(r=>{ if(!landmarkPhotos[r.landmark_id]) landmarkPhotos[r.landmark_id] = r.photo_url; });
   }
-  const { data, error } = await supabase.from("visits").select("landmark_id,photo_url,visited_at").not("photo_url","is",null).order("visited_at",{ascending:false}).limit(500);
-  if(error) throw error;
-  landmarkPhotos = {};
-  data.forEach(r=>{ if(!landmarkPhotos[r.landmark_id]) landmarkPhotos[r.landmark_id] = r.photo_url; });
+  LANDMARKS.forEach(l=>{ if(!landmarkPhotos[l.id] && l.stockPhotoUrl) landmarkPhotos[l.id] = l.stockPhotoUrl; });
 }
 async function loadMyGroups(){
   const { data, error } = await supabase.from("group_members").select("group_id, groups(id,name)").eq("user_id", session.user.id);
@@ -2340,8 +2341,9 @@ function openDetail(id){
   const photoUrl = landmarkPhotos[id];
   $("detailBody").innerHTML = `
     <div class="lm-hero${photoUrl?" has-photo":""}"${photoUrl?"":` style="background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))"`}>
-      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}">` : catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
+      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}" loading="eager">` : catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
       <span class="badge-count">${totalVisits.toLocaleString()} כובשים</span>
+      ${photoUrl && photoUrl===l.stockPhotoUrl && l.stockPhotoCredit ? `<span class="lm-photo-credit">${escapeHtml(l.stockPhotoCredit)}</span>` : ""}
     </div>
     <div class="lm-title-row"><div><h2>${l.name}</h2>
       <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>

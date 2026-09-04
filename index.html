@@ -16,7 +16,7 @@
      המקורות שהאפליקציה באמת טוענת: esm.sh (supabase-js), unpkg.com (Leaflet+markercluster+
      canvas-confetti, מוצמדים ל-SRI), fonts.google/gstatic, Supabase (API+Storage+Realtime),
      טיילי OSM. נבדק בקפידה מקומית+production לפני שנחשב גמור (ראו plan). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://unpkg.com https://*.supabase.co https://*.tile.openstreetmap.org; connect-src 'self' https://esm.sh https://*.supabase.co wss://*.supabase.co; base-uri 'self'; object-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://unpkg.com https://*.supabase.co https://*.tile.openstreetmap.org https://upload.wikimedia.org; connect-src 'self' https://esm.sh https://*.supabase.co wss://*.supabase.co; base-uri 'self'; object-src 'none';">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Suez+One&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -288,6 +288,7 @@ button{font-family:inherit;}
 .lm-hero.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.4), transparent 55%);}
 .lm-hero svg{position:absolute;opacity:.5;width:110px;height:110px;left:-14px;top:-16px;}
 .lm-hero .badge-count{position:relative;z-index:1;background:rgba(0,0,0,.32);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;backdrop-filter:blur(2px);}
+.lm-hero .lm-photo-credit{position:absolute;z-index:1;left:8px;bottom:6px;font-size:9px;color:rgba(255,255,255,.75);background:rgba(0,0,0,.28);padding:2px 6px;border-radius:6px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cat-tag{display:inline-flex;align-items:center;gap:5px;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;}
 .lm-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-top:12px;}
 .lm-title-row h2{margin:0;font-size:21px;}
@@ -1298,6 +1299,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260904a5"></script>
+<script type="module" src="./app.js?v=20260904a6"></script>
 </body>
 </html>
