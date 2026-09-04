@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260904a2";
+const APP_VERSION = "20260904a3";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -1692,7 +1692,7 @@ function renderDiscoveryCarousel(){
     const photoUrl = landmarkPhotos[l.id];
     const thumb = photoUrl
       ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">'
-      : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,26).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+      : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,20).replace('<svg ','<svg style="color:#fff" ')+'</div>';
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
       + '<div class="discovery-card-thumb">'+thumb+'</div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
@@ -2246,6 +2246,36 @@ document.addEventListener("keydown", e=>{
   if(top.onEscape) top.onEscape();
   else closeSheet(top.sheetId, top.scrimId);
 });
+// גרירה-למטה-לסגירה: גנרית לכל ה-sheets (לא רק עמוד-יעד) דרך ה-sheet-handle שכבר קיים בכולם -
+// אותו דפוס בדיוק כמו Escape (openSheetStack, כולל onEscape ל-sheets עם ניקוי-state ייעודי כמו
+// confirmSheet). מבוטל דרך transform מוטבע-inline בזמן הגרירה בלבד; ברגע שהוא מוסר (touchend)
+// חוזרים לחלוטין למנגנון ה-CSS class-based הקיים (transform:translateY(100%)/(0)) - לא נבנה
+// מנגנון-אנימציה מקביל.
+(function wireSheetSwipeToClose(){
+  let drag = null;
+  document.addEventListener("touchstart", e=>{
+    const handle = e.target.closest(".sheet-handle");
+    const sheetEl = handle && handle.closest(".sheet");
+    if(!sheetEl || !sheetEl.classList.contains("open")) return;
+    drag = { sheetEl, startY: e.touches[0].clientY, dy: 0, height: sheetEl.getBoundingClientRect().height };
+    sheetEl.style.transition = "none";
+  }, {passive:true});
+  document.addEventListener("touchmove", e=>{
+    if(!drag) return;
+    drag.dy = Math.max(0, e.touches[0].clientY - drag.startY);
+    drag.sheetEl.style.transform = `translateY(${drag.dy}px)`;
+  }, {passive:true});
+  document.addEventListener("touchend", ()=>{
+    if(!drag) return;
+    const { sheetEl, dy, height } = drag;
+    sheetEl.style.transition = ""; sheetEl.style.transform = "";
+    drag = null;
+    if(dy > Math.min(110, height*0.28)){
+      const entry = openSheetStack.find(s=> s.sheetId===sheetEl.id);
+      if(entry){ if(entry.onEscape) entry.onEscape(); else closeSheet(entry.sheetId, entry.scrimId); }
+    }
+  }, {passive:true});
+})();
 
 /* ============ LANDMARK DETAIL & CHECK-IN ============ */
 let activeCheckinPhoto = null, demoMode = false;
