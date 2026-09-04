@@ -72,15 +72,24 @@
 .topo-texture{position:relative;}
 .topo-texture::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.05;background-repeat:repeat;background-size:220px 220px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cpath d='M0 40 Q55 8 110 40 T220 40' stroke='%23176B5B' fill='none' stroke-width='1.5'/%3E%3Cpath d='M0 100 Q55 68 110 100 T220 100' stroke='%23176B5B' fill='none' stroke-width='1.5'/%3E%3Cpath d='M0 160 Q55 128 110 160 T220 160' stroke='%23176B5B' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");}
 .topo-texture > *{position:relative;z-index:1;}
-html,body{margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:"Heebo",system-ui,sans-serif;min-height:100%;-webkit-font-smoothing:antialiased;}
+/* overflow:hidden כאן הוא רשת-ביטחון נוספת (לא הפתרון עצמו - זה .app-shell{position:fixed}
+   למטה): גם אם מכשיר כלשהו עדיין יחשב איזשהו ילד גדול-מדי, הדף כולו לעולם לא יוכל לגלול -
+   .app-shell מנהל את כל הגלילה הפנימית שלו בעצמו (overflow:hidden + כל view גולל בתוך עצמו). */
+html,body{margin:0;padding:0;height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:"Heebo",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.brand{font-family:"Suez One","Heebo",serif;text-wrap:balance;}
 button{font-family:inherit;}
 ::selection{background:var(--accent);color:var(--accent-ink);}
-.app-shell{max-width:480px;margin:0 auto;height:100vh;height:100dvh;background:var(--bg);position:relative;display:flex;flex-direction:column;box-shadow:0 0 60px var(--shadow);overflow:hidden;}
+/* position:fixed;inset:0 (לא height:100dvh+position:relative) - אותו תיקון-שורש שכבר הוכח
+   עובד עבור .sheet/.scrim/9 overlays/.bottom-nav: על מכשירים ניידים אמיתיים מסוימים 100dvh
+   יכול להיות מחושב גדול מהאזור-הנראה-בפועל של המסך (למשל תוך כדי כיווץ/הרחבה של שורת-הכתובת),
+   ומכיוון של-body אין overflow:hidden משלו, ה-DOC כולו נהיה גלילה - המשתמש צריך "לגלול למטה"
+   כדי לראות תוכן (כמו bottom-nav) שאמור להיות תמיד גלוי. position:fixed;inset:0 מוצמד לגבולות
+   ה-viewport האמיתיים כפי שהדפדפן מרנדר אותם ברגע נתון - לא לערך-גובה מחושב שעלול לטעות. */
+.app-shell{max-width:480px;margin:0 auto;background:var(--bg);position:fixed;inset:0;display:flex;flex-direction:column;box-shadow:0 0 60px var(--shadow);overflow:hidden;}
 @media (min-width:520px){
   body{padding:24px 0;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;min-height:100vh;}
-  .app-shell{min-height:0;height:min(844px,92vh);width:390px;max-width:390px;border-radius:28px;overflow:hidden;border:1px solid var(--border);}
+  .app-shell{position:relative;inset:auto;min-height:0;height:min(844px,92vh);width:390px;max-width:390px;border-radius:28px;overflow:hidden;border:1px solid var(--border);}
 }
 
 /* ---------- Auth screen ---------- */
@@ -230,7 +239,7 @@ button{font-family:inherit;}
    מיידית (getBoundingClientRect().bottom חזר ל-812 המדויק במקום עצירה מוקדמת). */
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:1101;background:var(--surface);border-radius:var(--radius-card) var(--radius-card) 0 0;box-shadow:0 -8px 30px var(--shadow);max-height:82%;display:flex;flex-direction:column;transform:translateY(100%);visibility:hidden;transition:transform .25s cubic-bezier(.2,.8,.3,1), visibility 0s linear .25s;padding-bottom:env(safe-area-inset-bottom);}
 .sheet.open{transform:translateY(0);visibility:visible;transition-delay:0s;}
-.sheet-handle{width:64px;height:22px;margin:6px auto -4px;flex:none;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;}
+.sheet-handle{width:64px;height:22px;margin:4px auto 0;flex:none;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;position:relative;z-index:2;}
 .sheet-handle::after{content:"";width:36px;height:4px;background:var(--border);border-radius:99px;}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 10px;flex:none;}
 .sheet-head h2{margin:0;font-size:19px;}
@@ -1289,6 +1298,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260904a4"></script>
+<script type="module" src="./app.js?v=20260904a5"></script>
 </body>
 </html>
