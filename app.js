@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260903z13";
+const APP_VERSION = "20260904a1";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -256,11 +256,11 @@ function renderFogOfWar(){
 /* ============ LEVELS ============ */
 const LEVELS = [
   {name:"מטייל מתחיל",icon:"🥾",min:0},
-  {name:"מגלה ארצות",icon:"🧭",min:200},
-  {name:"סייר",icon:"🏕️",min:600},
-  {name:"חוקר הארץ",icon:"🗺️",min:1500},
-  {name:"מומחה ישראל",icon:"🎖️",min:3500},
-  {name:"אלוף הארץ",icon:"👑",min:7000},
+  {name:"מגלה ארצות",icon:"🧭",min:50},
+  {name:"סייר",icon:"🏕️",min:200},
+  {name:"חוקר הארץ",icon:"🗺️",min:500},
+  {name:"מומחה ישראל",icon:"🎖️",min:1100},
+  {name:"אלוף הארץ",icon:"👑",min:2300},
 ];
 /* ============ CHALLENGES ============ */
 const CHALLENGES = [
@@ -487,7 +487,7 @@ function animateXpCount(el, target){
   function tick(now){
     const t = Math.min(1, (now-start)/dur);
     const val = Math.round(target*(1-Math.pow(1-t,3)));
-    el.textContent = "+"+val.toLocaleString()+" XP";
+    el.textContent = "+"+val.toLocaleString()+" נקודות";
     if(t<1) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
@@ -518,7 +518,7 @@ function celebrate(steps){
       : "";
     card.innerHTML = hero
       + `<h2>${s.title}</h2>`
-      + (s.xp!=null ? `<div class="celebrate-xp" id="celebrateXpNum">+0 XP</div>` : "")
+      + (s.xp!=null ? `<div class="celebrate-xp" id="celebrateXpNum">+0 נקודות</div>` : "")
       + (s.sub ? `<div class="celebrate-bonus">${s.sub}</div>` : "")
       + (s.region ? `<div class="celebrate-region">${s.region}</div>` : "")
       + actionsHtml;
@@ -2322,7 +2322,7 @@ function openDetail(id){
       <div class="lm-stat"><div class="v">${DIFFS[l.difficulty].label}</div><div class="l">קושי</div></div>
       <div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>
       <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
-      <div class="lm-stat"><div class="v">+${DIFFS[l.difficulty].points}</div><div class="l">XP</div></div>
+      <div class="lm-stat"><div class="v">+${DIFFS[l.difficulty].points}</div><div class="l">נקודות</div></div>
     </div>
     <div class="lm-important-head">⚠️ חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
@@ -2557,7 +2557,7 @@ async function confirmCheckin(l){
       photoUrl: photoUrl || landmarkPhotos[l.id] || null,
       title: "🎉 גילית את "+l.name+"!",
       xp: pts,
-      sub: firstInCat ? "+15 XP בונוס — קטגוריה חדשה!" : null,
+      sub: firstInCat ? "+15 נקודות בונוס — קטגוריה חדשה!" : null,
       region: regionInfo,
       confetti: true,
     }];
@@ -2811,7 +2811,7 @@ async function generateShareCard(){
   ctx.textAlign = "right";
   ctx.fillText(myVisits.length+" יעדים כבשתי", W-110, 1465);
   ctx.fillStyle = teal; ctx.font = "700 34px Heebo, sans-serif";
-  ctx.fillText(totalPoints().toLocaleString()+" XP · רצף "+computeStreak()+" שבועות", W-110, 1515);
+  ctx.fillText(totalPoints().toLocaleString()+" נקודות · רצף "+computeStreak()+" שבועות", W-110, 1515);
   ctx.textAlign = "center";
   ctx.fillStyle = muted; ctx.font = "400 28px Heebo, sans-serif";
   ctx.fillText("magalim-israel.vercel.app", W/2, H-40);
@@ -3058,10 +3058,10 @@ function renderProfile(){
   const bracketCurrent = level.next ? xp-level.min : 0;
   const levelPct = level.next ? Math.round(bracketCurrent/bracketTotal*100) : 100;
   $("progNum").firstChild.textContent = level.next ? bracketCurrent.toLocaleString() : xp.toLocaleString();
-  $("progNum").querySelector("span").textContent = level.next ? "/ "+bracketTotal.toLocaleString()+" XP" : "XP · רמה מקסימלית";
+  $("progNum").querySelector("span").textContent = level.next ? "/ "+bracketTotal.toLocaleString()+" נקודות" : "נקודות · רמה מקסימלית";
   $("progPct").textContent = levelPct+"%";
   $("progBar").style.width = levelPct+"%";
-  $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} XP לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} נקודות לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
   $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
   $("progressSection").classList.toggle("hidden", myVisits.length===0);
   document.querySelector(".journey-stats-3")?.classList.toggle("hidden", myVisits.length===0);
@@ -3425,9 +3425,9 @@ function renderLbSummary(rows){
     const above = rows[myIndex-1];
     const aboveName = escapeHtml(above.name);
     const gap = above.val - rows[myIndex].val;
-    sub = gap>0 ? `${aboveName} מוביל/ה עליך ב-${gap.toLocaleString()} XP` : `את/ה צמוד/ה ל${aboveName}!`;
+    sub = gap>0 ? `${aboveName} מוביל/ה עליך ב-${gap.toLocaleString()} נקודות` : `את/ה צמוד/ה ל${aboveName}!`;
   } else if(rows.length>1){
-    sub = `${(rows[0].val-rows[1].val).toLocaleString()} XP לפני ${escapeHtml(rows[1].name)}`;
+    sub = `${(rows[0].val-rows[1].val).toLocaleString()} נקודות לפני ${escapeHtml(rows[1].name)}`;
   }
   el.innerHTML = `<div class="lb-summary-head">${headline}</div><div class="lb-summary-sub">${sub}</div><button class="btn btn-primary lb-summary-cta" id="lbFindNext">מצא את היעד הבא</button>`;
   $("lbFindNext").onclick = ()=> navigate("#/map");

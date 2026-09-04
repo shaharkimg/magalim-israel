@@ -598,7 +598,7 @@ input[type=file]{display:none;}
       <div class="onboarding-slide" data-step="1">
         <div class="onboarding-icon">🏆</div>
         <h2>כבשו ואספו נקודות</h2>
-        <p>סמנו צ'ק-אין ביעד שהגעתם אליו, צברו XP ותגים, ועלו ברמות</p>
+        <p>סמנו צ'ק-אין ביעד שהגעתם אליו, צברו נקודות ותגים, ועלו ברמות</p>
       </div>
       <div class="onboarding-slide" data-step="2">
         <div class="onboarding-icon">🤝</div>
@@ -731,10 +731,10 @@ input[type=file]{display:none;}
     <div class="section-head" style="margin-top:0;"><h2>שאלות נפוצות</h2></div>
     <div class="faq-list">
       <details class="faq-item"><summary>איך יוצרים חשבון?</summary><p>נרשמים עם אימייל וסיסמה, או ממשיכים כאורח/ת — האפליקציה תציע להירשם ברגע שתרצו לשמור מקום או לבצע צ'ק-אין.</p></details>
-      <details class="faq-item"><summary>מה זה "כבשתי"?</summary><p>כשמגיעים ליעד בפועל, לוחצים "כבשתי", מוסיפים תמונה, ומקבלים XP לפי רמת הקושי של המקום.</p></details>
+      <details class="faq-item"><summary>מה זה "כבשתי"?</summary><p>כשמגיעים ליעד בפועל, לוחצים "כבשתי", מוסיפים תמונה, ומקבלים נקודות לפי רמת הקושי של המקום.</p></details>
       <details class="faq-item"><summary>איך מוסיפים חברים?</summary><p>דרך קישור הזמנה אישי מהפרופיל שלכם — לא דרך חיפוש שם.</p></details>
       <details class="faq-item"><summary>מה זו קבוצה?</summary><p>קבוצת טיולים משותפת עם חברים, עם דירוג, פיד פעילות ואתגר קבוצתי משותף.</p></details>
-      <details class="faq-item"><summary>איך צוברים XP?</summary><p>כל צ'ק-אין מזכה בנקודות לפי רמת הקושי של היעד (קל/בינוני/קשה/מאתגר), וסך הנקודות קובע את הרמה שלכם.</p></details>
+      <details class="faq-item"><summary>איך צוברים נקודות?</summary><p>כל צ'ק-אין מזכה בנקודות לפי רמת הקושי של היעד (קל/בינוני/קשה/מאתגר), וסך הנקודות קובע את הרמה שלכם.</p></details>
       <details class="faq-item"><summary>מה זה אוסף (Collection)?</summary><p>קבוצת יעדים עם מאפיין משותף — למשל "צייד המים" — שאפשר להשלים בהדרגה ולעקוב אחרי ההתקדמות.</p></details>
       <details class="faq-item"><summary>האם המיקום שלי משותף עם אחרים?</summary><p>לא. המיקום משמש רק לחיפוש טיולים קרובים אליכם, ואף פעם לא משותף בזמן אמת עם משתמשים אחרים.</p></details>
       <details class="faq-item"><summary>מי רואה את מה שאני עושה באפליקציה?</summary><p>אתם שולטים בזה בהגדרות → פרטיות: רק אני / חברים / חברים וקבוצות.</p></details>
@@ -815,7 +815,7 @@ input[type=file]{display:none;}
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3a5.5 5.5 0 0 0-5.5 5.5v2.6c0 .7-.25 1.38-.7 1.92L4.6 14.6c-.86 1.03-.14 2.6 1.2 2.6h12.4c1.34 0 2.06-1.57 1.2-2.6l-1.2-1.58a2.9 2.9 0 0 1-.7-1.92V8.5A5.5 5.5 0 0 0 12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
     </button>
     <div class="stat-pill hidden" id="headerPoints">
-      <span><b id="pointsVal">0</b> XP</span>
+      <span><b id="pointsVal">0</b> נקודות</span>
       <span class="flame hidden">🔥<span id="streakVal">0</span></span>
     </div>
     <button class="btn btn-primary hidden" id="headerLoginBtn" style="flex:none;padding:8px 16px;font-size:13px;">התחברות</button>
@@ -982,7 +982,7 @@ input[type=file]{display:none;}
           </div>
         </div>
         <div class="journey-progress">
-          <div class="progress-top"><div class="n" id="progNum">0<span>/ 200 XP</span></div><div class="n" id="progPct">0%</div></div>
+          <div class="progress-top"><div class="n" id="progNum">0<span>/ 50 נקודות</span></div><div class="n" id="progPct">0%</div></div>
           <div class="bar journey-bar"><i id="progBar" style="width:0%"></i></div>
           <div class="level-hint" id="levelHint"></div>
         </div>
@@ -999,7 +999,7 @@ input[type=file]{display:none;}
       </div>
       <div id="progressSection">
       <div class="stat-grid stat-grid-2">
-        <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">XP סה"כ</div></div>
+        <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">נקודות סה"כ</div></div>
         <div class="stat-box"><div class="v" id="statStreak">0</div><div class="l">רצף שבועות</div></div>
       </div>
       <div class="section-head"><h2>ישראל שלי 🇮🇱</h2></div>
@@ -1273,6 +1273,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260903z13"></script>
+<script type="module" src="./app.js?v=20260904a1"></script>
 </body>
 </html>
