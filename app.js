@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a4";
+const APP_VERSION = "20260905a5";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -1049,6 +1049,12 @@ async function bootUserData(){
     updateGroupBarVisibility();
     refreshHeader();
     renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    // Gamification Overhaul, Phase 5 - אם המשתמש נכנס דרך deep-link ישיר ל-#/destination/<id>
+    // (openDetail כבר רץ פעם אחת ב-bootPublic, לפני ש-myVisits/myConquests נטענו), מרעננים
+    // אותו עכשיו כדי שמצב-נכבש/XP יוצג נכון - אותו דפוס-race בדיוק כמו ה-refresh הקיים
+    // ל-landmarkPhotos, רק שכאן מכוסה גם visitedEntry/conquestEntry לא רק תמונה.
+    const detailMatch = location.hash.match(/^#\/destination\/(.+)$/);
+    if(detailMatch && lmById[decodeURIComponent(detailMatch[1])]) openDetail(decodeURIComponent(detailMatch[1]));
     if(pendingGroupSwitch){
       pendingGroupSwitch = false;
       boardTab = "group";
@@ -1707,7 +1713,7 @@ function openPreview(id){
     : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
-  $("destPreviewFacts").textContent = distText+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+" · "+l.duration;
+  $("destPreviewFacts").textContent = distText+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"");
   $("destPreviewWish").textContent = wished ? "❤️" : "🤍";
   wireWazeButton($("destPreviewNav"), l);
   $("destPreview").classList.add("open");
@@ -1783,7 +1789,7 @@ function renderDiscoveryCarousel(){
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
       + '<div class="discovery-card-thumb">'+thumb+'</div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
-      + '<div class="discovery-card-facts">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+" · "+l.duration+'</div>'
+      + '<div class="discovery-card-facts">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"")+'</div>'
       + '</div>';
   }).join("");
   el.querySelectorAll(".discovery-card").forEach(card=>{
@@ -1806,6 +1812,7 @@ function renderMapSidePanel(){
     const cat = CATEGORIES[l.category];
     const wished = myWishlist.includes(l.id);
     const photoUrl = landmarkPhotos[l.id];
+    const panelConquest = myConquests.find(c=>c.landmark_id===l.id);
     panel.innerHTML = `
       <div class="lm-hero${photoUrl?" has-photo":""}" style="height:150px;${photoUrl?"":`background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`}">
         ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}">` : catIconSvg(cat.icon,90).replace('<svg ','<svg style="color:#fff" ')}
@@ -1815,8 +1822,9 @@ function renderMapSidePanel(){
       </div></div>
       <div class="lm-stats">
         <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
-        <div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>
-        <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
+        ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
+        ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
+        <div class="lm-stat"><div class="v">${panelConquest ? "✓ "+panelConquest.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${panelConquest ? "נכבש" : "נקודות"}</div></div>
       </div>
       <p class="lm-desc">${l.desc}</p>
       <div class="lm-actions">
@@ -1844,7 +1852,7 @@ function renderMapSidePanel(){
       const photoUrl = landmarkPhotos[l.id];
       const thumb = photoUrl ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">' : catIconSvg(cat.icon,24);
       return '<div class="mini-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
-        + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+" · "+l.duration+'</div></div></div>';
+        + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"")+'</div></div></div>';
     }).join("") + '</div>';
     panel.querySelectorAll(".mini-card").forEach(card=>{
       const go = ()=>{
@@ -2450,8 +2458,8 @@ function openDetail(id){
     <p class="lm-desc">${l.desc}</p>
     <div class="lm-stats">
       <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
-      <div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>
-      <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
+      ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
+      ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
       <div class="lm-stat"><div class="v">${conquestEntry ? "✓ "+conquestEntry.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${conquestEntry ? "נכבש" : "נקודות"}</div></div>
     </div>
     <div class="lm-important-head">⚠️ חשוב לדעת לפני שיוצאים</div>
@@ -3359,7 +3367,7 @@ function renderProfile(){
         const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
         const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
         return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${l.duration}</div>${ctx}</div>
+          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]}${l.duration?" · "+l.duration:""}</div>${ctx}</div>
           <div class="mini-pts">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div></div>`;
       }).join("");
     }
