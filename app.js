@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260904a7";
+const APP_VERSION = "20260905a1";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -114,6 +114,19 @@ const DIFFS = {
   easy:{label:"קל",points:50}, medium:{label:"בינוני",points:100},
   hard:{label:"קשה",points:150}, extreme:{label:"מאתגר",points:250},
 };
+// Gamification Overhaul, Phase 1 - מיפוי-קושי חדש (easy/medium/challenging/hard, 10/20/35/50
+// נקודות, אימוג'י-צבע) בלי לגעת ב-landmarks.difficulty בפועל (עדיין easy/medium/hard/extreme -
+// טקסט חופשי בלי check-constraint, ראו schema.sql). אותו סדר-אורדינלי בדיוק כמו DIFFS הקיים:
+// hard הקיים (3-שי) -> "מאתגר" החדש, extreme הקיים (4-שי, הכי הרבה נקודות) -> "קשה" החדש.
+// קונפיג-JS טהור, אפס מיגרציית-DB. עדיין לא בשימוש בשום מקום (Phase 1 = תשתית בלבד).
+const DIFF_TIERS = [
+  { key:"easy", dbValue:"easy", label:"קל", emoji:"🟢", xp:10 },
+  { key:"medium", dbValue:"medium", label:"בינוני", emoji:"🔵", xp:20 },
+  { key:"challenging", dbValue:"hard", label:"מאתגר", emoji:"🟠", xp:35 },
+  { key:"hard", dbValue:"extreme", label:"קשה", emoji:"🔴", xp:50 },
+];
+const DIFF_TIER_BY_DB = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t]));
+function tierForDb(rawDifficulty){ return DIFF_TIER_BY_DB[rawDifficulty] || DIFF_TIERS[0]; }
 // שם-אזור בצורת "עם ה' הידיעה" לתגי חוקר/מומחה (חלק מהאזורים שמות פרטיים - ירושלים/אילת/ים
 // המלח - לא לוקחים ה' הידיעה בעברית, אז אי אפשר פשוט לשרשר "ה"+שם לכל האזורים).
 const REGION_THE = { north:"הצפון", center:"המרכז", jerusalem:"ירושלים", south:"הדרום", deadsea:"ים המלח", eilat:"אילת" };
@@ -281,6 +294,60 @@ function getLevel(xp){
   while(i>0 && xp<LEVELS[i].min) i--;
   const cur = LEVELS[i], next = LEVELS[i+1] || null;
   return { name:cur.name, icon:cur.icon, index:i, min:cur.min, next, toNext: next ? next.min-xp : 0 };
+}
+
+// Gamification Overhaul, Phase 1 - עקומת 20-הרמות החדשה + 4 פונקציות-utility בשם מדויק
+// לפי המפרט. מקור-אמת יחיד (LEVELS_V2), נפרד מ-LEVELS/getLevel הקיימים כדי ש-Phase 1
+// יישאר אינרטי לגמרי (אפס שינוי-UI גלוי) - renderProfile/confirmCheckin ימשיכו לצרוך את
+// LEVELS/getLevel/totalPoints() הישנים עד ש-Phase 2 יחליף גם את מקור ה-XP (totalXP()) וגם
+// את מקור-הרמות בבת-אחת, כדי לא להציג למשתמשים קיימים רמה מוטעית-זמנית (סכום בסולם-הישן
+// מול ספים בסולם-החדש).
+const LEVELS_V2 = [
+  { min:0, name:"יוצאים לדרך", icon:"🌱" },
+  { min:50, name:"מתחילים לטייל", icon:"🎒" },
+  { min:120, name:"צועדים קדימה", icon:"👣" },
+  { min:220, name:"מגלי שבילים", icon:"🧭" },
+  { min:350, name:"מטיילים מנוסים", icon:"🥾" },
+  { min:520, name:"חוקרי טבע", icon:"🌿" },
+  { min:730, name:"מגלי הארץ", icon:"🗺️" },
+  { min:980, name:"כובשי שבילים", icon:"⛰️" },
+  { min:1270, name:"חוקרי מרחבים", icon:"🦅" },
+  { min:1600, name:"מטיילי ישראל", icon:"🇮🇱" },
+  { min:1980, name:"מומחי שבילים", icon:"🧭" },
+  { min:2410, name:"רודפי נופים", icon:"🌄" },
+  { min:2890, name:"חוקרי ישראל", icon:"🗺️" },
+  { min:3420, name:"ותיקי השבילים", icon:"🥾" },
+  { min:4000, name:"אדוני השטח", icon:"⛰️" },
+  { min:4640, name:"מגלי אופקים", icon:"🦅" },
+  { min:5340, name:"מומחי הארץ", icon:"🇮🇱" },
+  { min:6100, name:"אלופי השבילים", icon:"🏆" },
+  { min:6920, name:"אגדות מטיילות", icon:"👑" },
+  { min:7800, name:"אגדת ישראל", icon:"⭐" },
+];
+// מוצא את אינדקס-הרמה הנכון גם כשה-XP מדלג על כמה ספים בבת-אחת (הלולאה יורדת מלמעלה,
+// לא +1 נאיבי מלמטה) - עונה במפורש על דרישת "עדכון-XP שחוצה כמה ספים בבת-אחת".
+function getLevelFromXP(totalXPValue){
+  let i = LEVELS_V2.length-1;
+  while(i>0 && totalXPValue<LEVELS_V2[i].min) i--;
+  return i;
+}
+function getCurrentLevelProgress(totalXPValue){
+  const index = getLevelFromXP(totalXPValue);
+  const level = LEVELS_V2[index], next = LEVELS_V2[index+1] || null;
+  return {
+    index, level, next,
+    xpIntoLevel: totalXPValue-level.min,
+    xpForLevel: next ? next.min-level.min : 0,
+    isMax: !next,
+  };
+}
+function getXPToNextLevel(totalXPValue){
+  const p = getCurrentLevelProgress(totalXPValue);
+  return p.next ? p.next.min-totalXPValue : 0;
+}
+function getLevelProgressPercentage(totalXPValue){
+  const p = getCurrentLevelProgress(totalXPValue);
+  return p.isMax ? 100 : Math.round((p.xpIntoLevel/p.xpForLevel)*100);
 }
 
 function catIconSvg(cat,size){
@@ -974,12 +1041,13 @@ async function bootUserData(){
   await publicBootPromise;
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
+    myConquests = []; myBonusGrants = [];
     refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
   try{
     await loadMyProfile();
-    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadMyGroups(), loadMyTravelStatus() ]);
+    await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadMyGroups(), loadMyTravelStatus(), loadMyConquestsAndBonuses() ]);
     prevBadgeSet = new Set(unlockedBadges().map(b=>b.id));
     flushPendingQueue();
     await handleInviteLinks();
@@ -2699,6 +2767,27 @@ function streakFromVisits(visits){
 }
 function computeStreak(){ return streakFromVisits(myVisits); }
 function totalPoints(){ return myVisits.reduce((s,v)=>s+(v.points_awarded||0),0); }
+
+// Gamification Overhaul, Phase 1 - טעינת שתי הטבלאות החדשות + totalXP() החדש. עדיין לא
+// בשימוש בשום renderX/confirmCheckin (Phase 1 = תשתית אינרטית בלבד) - totalPoints() הישן
+// ממשיך להזין את כל התצוגה הקיימת עד ש-Phase 2 יחליף את מקור-ה-XP ואת עקומת-הרמות יחד.
+let myConquests = [];   // שורות landmark_conquests של המשתמש הנוכחי
+let myBonusGrants = []; // שורות xp_bonus_grants של המשתמש הנוכחי
+async function loadMyConquestsAndBonuses(){
+  try{
+    const { data, error } = await supabase.from("landmark_conquests").select("*").eq("user_id", session.user.id);
+    if(error) throw error;
+    myConquests = data || [];
+  }catch(err){ myConquests = []; }
+  try{
+    const { data, error } = await supabase.from("xp_bonus_grants").select("*").eq("user_id", session.user.id);
+    if(error) throw error;
+    myBonusGrants = data || [];
+  }catch(err){ myBonusGrants = []; }
+}
+function totalXP(){
+  return myConquests.reduce((s,c)=>s+(c.xp_awarded||0),0) + myBonusGrants.reduce((s,b)=>s+(b.xp_awarded||0),0);
+}
 
 /* ============ HEADER ============ */
 function refreshHeader(){
