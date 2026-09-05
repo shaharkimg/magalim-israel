@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a1";
+const APP_VERSION = "20260905a2";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -110,15 +110,11 @@ const CATEGORIES = {
   urban:{label:"אתרים אורבניים",color:"var(--cat-urban)",icon:"urban"},
 };
 const REGIONS = { north:"צפון", center:"מרכז", jerusalem:"ירושלים", south:"דרום", deadsea:"ים המלח", eilat:"אילת" };
-const DIFFS = {
-  easy:{label:"קל",points:50}, medium:{label:"בינוני",points:100},
-  hard:{label:"קשה",points:150}, extreme:{label:"מאתגר",points:250},
-};
-// Gamification Overhaul, Phase 1 - מיפוי-קושי חדש (easy/medium/challenging/hard, 10/20/35/50
-// נקודות, אימוג'י-צבע) בלי לגעת ב-landmarks.difficulty בפועל (עדיין easy/medium/hard/extreme -
-// טקסט חופשי בלי check-constraint, ראו schema.sql). אותו סדר-אורדינלי בדיוק כמו DIFFS הקיים:
-// hard הקיים (3-שי) -> "מאתגר" החדש, extreme הקיים (4-שי, הכי הרבה נקודות) -> "קשה" החדש.
-// קונפיג-JS טהור, אפס מיגרציית-DB. עדיין לא בשימוש בשום מקום (Phase 1 = תשתית בלבד).
+// Gamification Overhaul - מיפוי-קושי חדש (easy/medium/challenging/hard, 10/20/35/50 נקודות,
+// אימוג'י-צבע) בלי לגעת ב-landmarks.difficulty בפועל (עדיין easy/medium/hard/extreme - טקסט
+// חופשי בלי check-constraint, ראו schema.sql). אותו סדר-אורדינלי בדיוק כמו הסולם הישן שהוחלף
+// (easy<medium<hard<extreme): hard הישן (3-שי) -> "מאתגר" החדש, extreme הישן (4-שי, הכי הרבה
+// נקודות) -> "קשה" החדש. קונפיג-JS טהור, אפס מיגרציית-DB.
 const DIFF_TIERS = [
   { key:"easy", dbValue:"easy", label:"קל", emoji:"🟢", xp:10 },
   { key:"medium", dbValue:"medium", label:"בינוני", emoji:"🔵", xp:20 },
@@ -127,6 +123,9 @@ const DIFF_TIERS = [
 ];
 const DIFF_TIER_BY_DB = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t]));
 function tierForDb(rawDifficulty){ return DIFF_TIER_BY_DB[rawDifficulty] || DIFF_TIERS[0]; }
+// dict בצורת {dbValue:{label}} - לשימוש ב-buildChips/צ'יפים ידניים שממפתחים data-id=dbValue
+// (מסנן/wizard/העדפות) בלי לשבור את ה-id הגולמי שנשלח ל-filters/DB - רק התווית משתנה.
+const DIFF_CHIPS_DICT = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,{label:t.emoji+" "+t.label}]));
 // שם-אזור בצורת "עם ה' הידיעה" לתגי חוקר/מומחה (חלק מהאזורים שמות פרטיים - ירושלים/אילת/ים
 // המלח - לא לוקחים ה' הידיעה בעברית, אז אי אפשר פשוט לשרשר "ה"+שם לכל האזורים).
 const REGION_THE = { north:"הצפון", center:"המרכז", jerusalem:"ירושלים", south:"הדרום", deadsea:"ים המלח", eilat:"אילת" };
@@ -266,15 +265,6 @@ function renderFogOfWar(){
   });
 }
 
-/* ============ LEVELS ============ */
-const LEVELS = [
-  {name:"מטייל מתחיל",icon:"🥾",min:0},
-  {name:"מגלה ארצות",icon:"🧭",min:50},
-  {name:"סייר",icon:"🏕️",min:200},
-  {name:"חוקר הארץ",icon:"🗺️",min:500},
-  {name:"מומחה ישראל",icon:"🎖️",min:1100},
-  {name:"אלוף הארץ",icon:"👑",min:2300},
-];
 /* ============ CHALLENGES ============ */
 const CHALLENGES = [
   {id:"icons25", title:"25 המקומות שכל ישראלי חייב לראות", icon:"🏆", color:"var(--cat-heritage)", target:25, match:l=>!l.id.startsWith("tiuli-"), reward:"תג ייחודי בפרופיל"},
@@ -289,19 +279,8 @@ function challengeProgress(ch){
   const matched = myVisits.filter(v=> lmById[v.landmark_id] && ch.match(lmById[v.landmark_id]));
   return { current: Math.min(matched.length, ch.target), remaining: LANDMARKS.filter(l=>ch.match(l) && !myVisits.some(v=>v.landmark_id===l.id)) };
 }
-function getLevel(xp){
-  let i = LEVELS.length-1;
-  while(i>0 && xp<LEVELS[i].min) i--;
-  const cur = LEVELS[i], next = LEVELS[i+1] || null;
-  return { name:cur.name, icon:cur.icon, index:i, min:cur.min, next, toNext: next ? next.min-xp : 0 };
-}
-
-// Gamification Overhaul, Phase 1 - עקומת 20-הרמות החדשה + 4 פונקציות-utility בשם מדויק
-// לפי המפרט. מקור-אמת יחיד (LEVELS_V2), נפרד מ-LEVELS/getLevel הקיימים כדי ש-Phase 1
-// יישאר אינרטי לגמרי (אפס שינוי-UI גלוי) - renderProfile/confirmCheckin ימשיכו לצרוך את
-// LEVELS/getLevel/totalPoints() הישנים עד ש-Phase 2 יחליף גם את מקור ה-XP (totalXP()) וגם
-// את מקור-הרמות בבת-אחת, כדי לא להציג למשתמשים קיימים רמה מוטעית-זמנית (סכום בסולם-הישן
-// מול ספים בסולם-החדש).
+// Gamification Overhaul - עקומת 20-הרמות + 4 פונקציות-utility בשם מדויק לפי המפרט. מקור-אמת
+// יחיד לכל מערכת-הרמות באפליקציה (מחליף את עקומת-6-הרמות הישנה ואת totalPoints(), שהוסרו).
 const LEVELS_V2 = [
   { min:0, name:"יוצאים לדרך", icon:"🌱" },
   { min:50, name:"מתחילים לטייל", icon:"🎒" },
@@ -1013,7 +992,7 @@ async function bootPublic(){
       if(m && lmById[decodeURIComponent(m[1])]) openDetail(decodeURIComponent(m[1]));
     }).catch(()=>{});
     buildChips("catChips", CATEGORIES, "cats");
-    buildChips("diffChips", DIFFS, "diffs", "teal");
+    buildChips("diffChips", DIFF_CHIPS_DICT, "diffs", "teal");
     buildChips("regionChips", REGIONS, "regions", "teal");
     $("loadingScreen").classList.add("hidden");
     $("topbar").classList.remove("hidden");
@@ -1501,7 +1480,7 @@ function wizExplain(l){
     const mins = Math.round(km/55*60/5)*5;
     parts.push(km<1 ? "ממש לידך" : `כ-${mins<5?5:mins} דק' נסיעה ממך`);
   }
-  parts.push(DIFFS[l.difficulty].label);
+  parts.push(tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label);
   if(l.category==="water"||l.hasWater) parts.push("יש מים");
   if(l.accessible) parts.push("♿ נגיש");
   if(l.priceType==="free") parts.push("🆓 חינם");
@@ -1538,10 +1517,10 @@ function getRecommendedDestination(){
     if(score>bestScore){ bestScore = score; best = { l, reasons }; }
   });
   if(!best) return null;
-  return { landmark: best.l, reason: best.reasons.slice(0,2).join(" · ") || DIFFS[best.l.difficulty].label };
+  return { landmark: best.l, reason: best.reasons.slice(0,2).join(" · ") || tierForDb(best.l.difficulty).label };
 }
 function wizIntroWhyText(l){
-  const parts = [DIFFS[l.difficulty].label];
+  const parts = [tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label];
   if(l.category==="water"||l.hasWater) parts.push("יש מים");
   if(l.accessible) parts.push("♿ נגיש");
   if(l.priceType==="free") parts.push("🆓 חינם");
@@ -1671,7 +1650,7 @@ function assignWizLabels(scored){
     let adventureIdx = -1, maxPts = -1;
     scored.forEach((s,i)=>{
       if(labels[i]) return;
-      const pts = DIFFS[s.l.difficulty].points;
+      const pts = tierForDb(s.l.difficulty).xp;
       if(pts>maxPts){ maxPts=pts; adventureIdx=i; }
     });
     if(adventureIdx>=0) labels[adventureIdx] = "🧭 יותר הרפתקני";
@@ -1712,7 +1691,7 @@ function openPreview(id){
     : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
-  $("destPreviewFacts").textContent = distText+DIFFS[l.difficulty].label+" · "+l.duration;
+  $("destPreviewFacts").textContent = distText+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+" · "+l.duration;
   $("destPreviewWish").textContent = wished ? "❤️" : "🤍";
   wireWazeButton($("destPreviewNav"), l);
   $("destPreview").classList.add("open");
@@ -1783,7 +1762,7 @@ function renderDiscoveryCarousel(){
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
       + '<div class="discovery-card-thumb">'+thumb+'</div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
-      + '<div class="discovery-card-facts">'+DIFFS[l.difficulty].label+" · "+l.duration+'</div>'
+      + '<div class="discovery-card-facts">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+" · "+l.duration+'</div>'
       + '</div>';
   }).join("");
   el.querySelectorAll(".discovery-card").forEach(card=>{
@@ -1814,7 +1793,7 @@ function renderMapSidePanel(){
         <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
       </div></div>
       <div class="lm-stats">
-        <div class="lm-stat"><div class="v">${DIFFS[l.difficulty].label}</div><div class="l">קושי</div></div>
+        <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
         <div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>
         <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
       </div>
@@ -1844,7 +1823,7 @@ function renderMapSidePanel(){
       const photoUrl = landmarkPhotos[l.id];
       const thumb = photoUrl ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">' : catIconSvg(cat.icon,24);
       return '<div class="mini-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
-        + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+DIFFS[l.difficulty].label+" · "+l.duration+'</div></div></div>';
+        + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+" · "+l.duration+'</div></div></div>';
     }).join("") + '</div>';
     panel.querySelectorAll(".mini-card").forEach(card=>{
       const go = ()=>{
@@ -1924,12 +1903,12 @@ function wireStaticUI(){
     };
   });
   $("shareMapBtn").onclick = ()=> shareMyMap();
-  Object.entries(DIFFS).forEach(([id,d])=>{
+  Object.entries(DIFF_CHIPS_DICT).forEach(([id,d])=>{
     const chip = document.createElement("button");
     chip.className = "chip teal"; chip.dataset.id = id; chip.textContent = d.label;
     $("wizDifficulty").appendChild(chip);
   });
-  Object.entries(DIFFS).forEach(([id,d])=>{
+  Object.entries(DIFF_CHIPS_DICT).forEach(([id,d])=>{
     const chip = document.createElement("button");
     chip.className = "chip teal"; chip.dataset.id = id; chip.textContent = d.label;
     $("prefDifficulty").appendChild(chip);
@@ -2420,6 +2399,7 @@ function openDetail(id){
   const l = lmById[id];
   if(l) addRecentlyViewed(id);
   const visitedEntry = myVisits.find(v=>v.landmark_id===id);
+  const conquestEntry = myConquests.find(c=>c.landmark_id===id);
   const wished = myWishlist.includes(id);
   const cat = CATEGORIES[l.category];
   const totalVisits = l.baseVisits + (visitCounts[id]||0);
@@ -2437,10 +2417,10 @@ function openDetail(id){
     </div></div>
     <p class="lm-desc">${l.desc}</p>
     <div class="lm-stats">
-      <div class="lm-stat"><div class="v">${DIFFS[l.difficulty].label}</div><div class="l">קושי</div></div>
+      <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
       <div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>
       <div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>
-      <div class="lm-stat"><div class="v">+${DIFFS[l.difficulty].points}</div><div class="l">נקודות</div></div>
+      <div class="lm-stat"><div class="v">${conquestEntry ? "✓ "+conquestEntry.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${conquestEntry ? "נכבש" : "נקודות"}</div></div>
     </div>
     <div class="lm-important-head">⚠️ חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
@@ -2616,9 +2596,71 @@ function runGpsCheck(l){
   }, ()=>{ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> לא ניתן לאתר מיקום — יש לאשר הרשאת GPS בדפדפן'; }, {enableHighAccuracy:true, timeout:8000});
 }
 
-function pointsFor(l){
-  const firstInCat = countCat(myVisits, l.category)===0;
-  return DIFFS[l.difficulty].points + (firstInCat?15:0);
+// Gamification Overhaul, Phase 2 - מענק XP אטומי ואידמפוטנטי: בסיס-כיבוש-ראשון דרך
+// landmark_conquests (PK על user_id+landmark_id - insert-on-conflict-do-nothing ברמת ה-DB,
+// לא רק דגל-בזיכרון, כך שדאבל-קליק/רענון/race לא יכולים להעניק פעמיים) + כל בונוסי-החד-פעם
+// דרך xp_bonus_grants (unique על user_id+bonus_type+source_id). נצרך גם מ-confirmCheckin
+// (אונליין) וגם מ-flushPendingQueue (סנכרון-אופליין) - לוגיקה אחת בלבד, לא משוכפלת.
+// מחזיר {baseXP, bonuses:[{type,label,xp}], totalGranted, isFirstConquest} - כל השדות
+// מבוססים על מה שבאמת נכנס ל-DB (data.length אחרי upsert-ignoreDuplicates), לא ניחוש.
+async function grantConquestAndBonuses(l){
+  const tier = tierForDb(l.difficulty);
+  const result = { baseXP:0, bonuses:[], totalGranted:0, isFirstConquest:false };
+  const { data: conquestRows, error: cErr } = await supabase.from("landmark_conquests")
+    .upsert({ user_id:session.user.id, landmark_id:l.id, xp_awarded:tier.xp, difficulty_at_conquest:l.difficulty },
+      { onConflict:"user_id,landmark_id", ignoreDuplicates:true })
+    .select();
+  if(cErr){ console.warn("landmark_conquests לא זמינה עדיין (יתכן שה-migration טרם רץ):", cErr.message||cErr); return result; }
+  if(!conquestRows || !conquestRows.length) return result; // ביקור חוזר - 0 XP, לא בונוסים
+  result.isFirstConquest = true;
+  result.baseXP = tier.xp;
+  result.totalGranted = tier.xp;
+  const prevConquests = myConquests.slice();
+  myConquests.push(conquestRows[0]);
+
+  const grantBonus = async (bonusType, sourceId, xp, label)=>{
+    const { data, error } = await supabase.from("xp_bonus_grants")
+      .upsert({ user_id:session.user.id, bonus_type:bonusType, source_id:sourceId||"", xp_awarded:xp },
+        { onConflict:"user_id,bonus_type,source_id", ignoreDuplicates:true })
+      .select();
+    if(error){ console.warn("xp_bonus_grants לא זמינה עדיין:", error.message||error); return; }
+    if(data && data.length){
+      myBonusGrants.push(data[0]);
+      result.bonuses.push({ type:bonusType, label, xp });
+      result.totalGranted += xp;
+    }
+  };
+
+  if(prevConquests.length===0) await grantBonus("first_destination", "", 10, "יעד ראשון!");
+  const hadRegionBefore = prevConquests.some(c=> lmById[c.landmark_id] && lmById[c.landmark_id].region===l.region);
+  if(!hadRegionBefore) await grantBonus("new_region", l.region, 5, "אזור חדש!");
+  const hadCatBefore = prevConquests.some(c=> lmById[c.landmark_id] && lmById[c.landmark_id].category===l.category);
+  if(!hadCatBefore) await grantBonus("new_category", l.category, 5, "קטגוריה חדשה!");
+
+  // אבני-דרך אזוריות - 25/50/75/100%, מבוסס יעדים-ייחודיים-שנכבשו (landmark_conquests), לא
+  // visits (שיכולים לכלול ביקורים חוזרים) - תומך גם בקפיצה מעל כמה ספים בבת-אחת באזור קטן.
+  const regionTotal = regionCount(l.region);
+  if(regionTotal){
+    const beforeCount = prevConquests.filter(c=> lmById[c.landmark_id] && lmById[c.landmark_id].region===l.region).length;
+    const afterCount = beforeCount+1;
+    const milestones = [[0.25,"region_25",10],[0.5,"region_50",20],[0.75,"region_75",30],[1,"region_100",50]];
+    for(const [pct,type,xp] of milestones){
+      if(beforeCount/regionTotal<pct && afterCount/regionTotal>=pct){
+        await grantBonus(type, l.region, xp, Math.round(pct*100)+"% מ"+REGIONS[l.region]+"!");
+      }
+    }
+  }
+
+  // השלמת-אוסף - כל אוסף שהיעד הזה חבר בו ושעכשיו הושלם לראשונה (reuse COLLECTIONS/collectionLandmarks הקיימים)
+  const conqueredIds = new Set(myConquests.map(c=>c.landmark_id));
+  for(const col of COLLECTIONS){
+    if(!col.filter(l)) continue;
+    const members = collectionLandmarks(col);
+    if(members.length && members.every(m=>conqueredIds.has(m.id))){
+      await grantBonus("collection_complete", col.id, 20, "אוסף הושלם: "+col.label+"!");
+    }
+  }
+  return result;
 }
 async function submitFieldReport(landmarkId){
   if(!reportState.water && !reportState.crowding && !reportState.parking) return;
@@ -2632,14 +2674,17 @@ async function submitFieldReport(landmarkId){
 }
 
 async function confirmCheckin(l){
-  const prevLevelIndex = getLevel(totalPoints()).index;
-  const pts = pointsFor(l);
+  const prevTotalXP = totalXP();
+  const tier = tierForDb(l.difficulty);
   const note = ($("checkinNote")?.value || "").trim().slice(0,120) || null;
   if(!navigator.onLine){
-    const pending = { landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, points:pts, note, ts:new Date().toISOString() };
+    // אופליין - אין גישה ל-DB כדי להריץ את מנגנון-הדה-דופ האמיתי, אז שומרים בתור עם הערכה
+    // אופטימית בלבד (בסיס-קושי, בלי בונוסים) לתצוגה מקומית; המענק האמיתי (כולל בונוסים)
+    // מתבצע ב-flushPendingQueue כשמתחברים מחדש - שם totalXP() מתעדכן לערך הנכון.
+    const pending = { landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, note, ts:new Date().toISOString() };
     const queue = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
     queue.push(pending); localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
-    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:pts, note, pending:true });
+    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:tier.xp, note, pending:true });
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     toast("נשמר במצב אופליין — יסונכרן כשהחיבור יחזור");
     renderMap(); renderProfile(); return;
@@ -2653,34 +2698,43 @@ async function confirmCheckin(l){
       if(upErr) throw upErr;
       photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
     }
-    let { data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:pts, note }).select().single();
+    const grant = await grantConquestAndBonuses(l);
+    let { data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:grant.totalGranted, note }).select().single();
     if(error && /note/i.test(error.message||"")){
-      ({ data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:pts }).select().single());
+      ({ data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:grant.totalGranted }).select().single());
     }
     if(error) throw error;
     myVisits.push(data);
     track("checkin_completed", { landmark_id: l.id });
     submitFieldReport(l.id);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
-    const firstInCat = pts>DIFFS[l.difficulty].points;
+    if(!grant.isFirstConquest){
+      // ביקור חוזר (למשל דאבל-קליק/race/סנכרון-כפול) - נרשם בהיסטוריה, בלי XP נוסף ובלי חגיגה
+      toast("היעד הזה כבר נכבש בעבר — לא הוענקו נקודות נוספות");
+      renderProfile(); renderBoard(); renderFeed();
+      return;
+    }
     const newBadges = checkNewBadges();
     if(newBadges.length){
       supabase.from("user_badges").insert(newBadges.map(b=>({ user_id:session.user.id, badge_id:b.id }))).then(()=>{});
     }
-    const newLevelIndex = getLevel(totalPoints()).index;
-    const leveledUpTo = newLevelIndex>prevLevelIndex ? LEVELS[newLevelIndex] : null;
+    const newTotalXP = totalXP();
+    const prevLevelIndex = getLevelFromXP(prevTotalXP);
+    const newLevelIndex = getLevelFromXP(newTotalXP);
+    const leveledUpTo = newLevelIndex>prevLevelIndex ? LEVELS_V2[newLevelIndex] : null;
     const regionLabel = REGIONS[l.region];
     const regionInfo = regionLabel ? regionLabel+" — "+regionVisited(myVisits,l.region)+"/"+regionCount(l.region) : null;
+    const bonusLines = grant.bonuses.map(b=>"+"+b.xp+" נקודות — "+b.label);
     const steps = [{
       photoUrl: photoUrl || landmarkPhotos[l.id] || null,
-      title: "🎉 גילית את "+l.name+"!",
-      xp: pts,
-      sub: firstInCat ? "+15 נקודות בונוס — קטגוריה חדשה!" : null,
+      title: tier.emoji+" גילית את "+l.name+"!",
+      xp: grant.baseXP,
+      sub: bonusLines.length ? bonusLines.join(" · ") : null,
       region: regionInfo,
       confetti: true,
     }];
     newBadges.forEach(b=> steps.push({ emoji:"🏅", title:"תג חדש נפתח — "+b.icon+" "+b.label, confetti:false }));
-    if(leveledUpTo) steps.push({ emoji:"⭐", title:"עלית לרמה "+leveledUpTo.icon+" "+leveledUpTo.name+"!", confetti:true });
+    if(leveledUpTo) steps.push({ emoji:leveledUpTo.icon, title:"עלית לרמה "+leveledUpTo.icon+" "+leveledUpTo.name+"!", confetti:true });
     // Next Adventure - הצעת המשך מיידית מהיעד שזה עתה נכבש, לא מהמיקום החי (עובד גם ב-demo mode)
     const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
     let nextPlace = null, nextDist = Infinity;
@@ -2721,6 +2775,7 @@ async function flushPendingQueue(){
   const remaining = [];
   for(const item of queue){
     try{
+      const l = lmById[item.landmarkId];
       let photoUrl = null;
       if(item.dataUrl){
         const blob = await (await fetch(item.dataUrl)).blob();
@@ -2728,13 +2783,17 @@ async function flushPendingQueue(){
         const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, blob, { contentType:"image/jpeg" });
         if(!upErr) photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
       }
-      let { error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:item.points, note:item.note||null });
+      // מענק-XP אמיתי מתבצע כאן, לא בזמן ההוספה-לתור (ראו grantConquestAndBonuses) - כך
+      // שדה-דופ/בונוסים מחושבים נכון מול המצב האמיתי בזמן הסנכרון. l חסר = היעד נמחק בין
+      // הצ'ק-אין האופליין לסנכרון (edge case) - נרשם עם 0 נקודות בלי קריסה.
+      const grant = l ? await grantConquestAndBonuses(l) : { totalGranted:0 };
+      let { error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:grant.totalGranted, note:item.note||null });
       if(error && /note/i.test(error.message||"")){
-        ({ error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:item.points }));
+        ({ error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:grant.totalGranted }));
       }
       if(error) throw error;
       myVisits = myVisits.filter(v=>!(v.pending && v.landmark_id===item.landmarkId));
-      toast("סונכרן צ'ק-אין: "+(lmById[item.landmarkId]?lmById[item.landmarkId].name:item.landmarkId));
+      toast("סונכרן צ'ק-אין: "+(l?l.name:item.landmarkId));
     }catch(err){ remaining.push(item); }
   }
   localStorage.setItem(PENDING_KEY, JSON.stringify(remaining));
@@ -2766,11 +2825,10 @@ function streakFromVisits(visits){
   return streak;
 }
 function computeStreak(){ return streakFromVisits(myVisits); }
-function totalPoints(){ return myVisits.reduce((s,v)=>s+(v.points_awarded||0),0); }
 
-// Gamification Overhaul, Phase 1 - טעינת שתי הטבלאות החדשות + totalXP() החדש. עדיין לא
-// בשימוש בשום renderX/confirmCheckin (Phase 1 = תשתית אינרטית בלבד) - totalPoints() הישן
-// ממשיך להזין את כל התצוגה הקיימת עד ש-Phase 2 יחליף את מקור-ה-XP ואת עקומת-הרמות יחד.
+// Gamification Overhaul - טעינת שתי הטבלאות החדשות + totalXP() - מקור-האמת היחיד ל-XP-כולל
+// בכל האפליקציה (header/פרופיל/כרטיס-שיתוף/ליברבורד). מחליף את totalPoints() הישן (סכום
+// visits.points_awarded), שהיה מערבב נתונים היסטוריים בסולם-הישן עם נתונים חדשים בסולם-החדש.
 let myConquests = [];   // שורות landmark_conquests של המשתמש הנוכחי
 let myBonusGrants = []; // שורות xp_bonus_grants של המשתמש הנוכחי
 async function loadMyConquestsAndBonuses(){
@@ -2795,7 +2853,7 @@ function refreshHeader(){
   $("headerLoginBtn").classList.toggle("hidden", !!session);
   $("notifBellBtn").classList.toggle("hidden", !session);
   if(session){
-    $("pointsVal").textContent = totalPoints().toLocaleString();
+    $("pointsVal").textContent = totalXP().toLocaleString();
     $("streakVal").textContent = computeStreak();
   }
   // בכוונה לא מציגים "0%"/"0 מתוך" למשתמש שעוד לא ביקר בשום מקום - נשאר רק ה-welcome-banner
@@ -2897,9 +2955,9 @@ function renderPlaceListSheet(title, list){
     if(visitedIds.has(l.id)){
       const photoUrl = landmarkPhotos[l.id];
       const thumb = photoUrl ? `<img src="${photoUrl}" loading="lazy" decoding="async" alt="${l.name}">` : catIconSvg(cat.icon,20);
-      return `<div class="region-place-row visited" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${DIFFS[l.difficulty].label} · ${cat.label}</div></div></div>`;
+      return `<div class="region-place-row visited" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
     }
-    return `<div class="region-place-row locked"><div class="thumb mystery">?</div><div class="info"><div class="name">מקום שעוד לא גילית</div><div class="sub">${DIFFS[l.difficulty].label} · ${cat.label}</div></div></div>`;
+    return `<div class="region-place-row locked"><div class="thumb mystery">?</div><div class="info"><div class="name">מקום שעוד לא גילית</div><div class="sub">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
   }).join("");
   $("regionSheetBody").querySelectorAll("[data-goto]").forEach(elm=>{
     const go = ()=>{ closeSheet("regionSheet","regionScrim"); goToDestination(elm.dataset.goto); };
@@ -2950,7 +3008,7 @@ async function generateShareCard(){
   ctx.textAlign = "right";
   ctx.fillText(myVisits.length+" יעדים כבשתי", W-110, 1465);
   ctx.fillStyle = teal; ctx.font = "700 34px Heebo, sans-serif";
-  ctx.fillText(totalPoints().toLocaleString()+" נקודות · רצף "+computeStreak()+" שבועות", W-110, 1515);
+  ctx.fillText(totalXP().toLocaleString()+" נקודות · רצף "+computeStreak()+" שבועות", W-110, 1515);
   ctx.textAlign = "center";
   ctx.fillStyle = muted; ctx.font = "400 28px Heebo, sans-serif";
   ctx.fillText("magalim-israel.vercel.app", W/2, H-40);
@@ -3167,7 +3225,7 @@ function renderSearchResults(query){
     el.innerHTML = '<div class="empty-state">לא מצאנו יעדים תואמים.</div>';
     return;
   }
-  el.innerHTML = results.map(l=> searchMiniCardHtml(l, REGIONS[l.region]+" · "+DIFFS[l.difficulty].label)).join("");
+  el.innerHTML = results.map(l=> searchMiniCardHtml(l, REGIONS[l.region]+" · "+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label)).join("");
   el.querySelectorAll(".mini-card").forEach(card=> card.onclick = ()=>{
     addRecentSearch(query);
     closeSheet("searchSheet","searchScrim");
@@ -3187,20 +3245,22 @@ function renderProfile(){
   setGuestGate("profile", false);
   if(!myProfile) return;
   $("adminLinkBtn").classList.toggle("hidden", !myProfile.is_admin);
-  const xp = totalPoints();
-  const level = getLevel(xp);
+  // Gamification Overhaul, Phase 2 - totalXP()/getCurrentLevelProgress() (עקומת-20-הרמות
+  // החדשה) מחליפים את totalPoints()/getLevel() (עקומת-6-הרמות הישנה) - יחד, לא בנפרד, כדי
+  // לא להציג רמה מוטעית-זמנית תוך כדי מעבר (ראו הערה ב-Phase 1).
+  const xp = totalXP();
+  const progress = getCurrentLevelProgress(xp);
+  const level = progress.level;
   $("avatarLetter").innerHTML = myProfile.avatar_url ? `<img src="${myProfile.avatar_url}" alt="">` : (myProfile.name.trim().charAt(0) || "א");
   $("avatarLevelBadge").textContent = level.icon;
   $("profName").firstChild.textContent = myProfile.name;
   $("profSub").innerHTML = `<span class="level-chip">${level.icon} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
-  const bracketTotal = level.next ? level.next.min-level.min : 0;
-  const bracketCurrent = level.next ? xp-level.min : 0;
-  const levelPct = level.next ? Math.round(bracketCurrent/bracketTotal*100) : 100;
-  $("progNum").firstChild.textContent = level.next ? bracketCurrent.toLocaleString() : xp.toLocaleString();
-  $("progNum").querySelector("span").textContent = level.next ? "/ "+bracketTotal.toLocaleString()+" נקודות" : "נקודות · רמה מקסימלית";
+  const levelPct = getLevelProgressPercentage(xp);
+  $("progNum").firstChild.textContent = progress.next ? progress.xpIntoLevel.toLocaleString() : xp.toLocaleString();
+  $("progNum").querySelector("span").textContent = progress.next ? "/ "+progress.xpForLevel.toLocaleString()+" נקודות" : "נקודות · רמה מקסימלית";
   $("progPct").textContent = levelPct+"%";
   $("progBar").style.width = levelPct+"%";
-  $("levelHint").textContent = level.next ? `${level.next.icon} עוד ${level.toNext.toLocaleString()} נקודות לרמת "${level.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  $("levelHint").textContent = progress.next ? `${progress.next.icon} עוד ${getXPToNextLevel(xp).toLocaleString()} נקודות לרמת "${progress.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
   $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
   $("progressSection").classList.toggle("hidden", myVisits.length===0);
   document.querySelector(".journey-stats-3")?.classList.toggle("hidden", myVisits.length===0);
@@ -3246,7 +3306,7 @@ function renderProfile(){
         const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
         return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
           <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${l.duration}</div>${ctx}</div>
-          <div class="mini-pts">${DIFFS[l.difficulty].label}</div></div>`;
+          <div class="mini-pts">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div></div>`;
       }).join("");
     }
   } else {
@@ -3258,7 +3318,7 @@ function renderProfile(){
       listEl.innerHTML = recentlyViewed.map(l=>{
         const cat = CATEGORIES[l.category];
         return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${DIFFS[l.difficulty].label}</div></div></div>`;
+          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div></div></div>`;
       }).join("");
     }
   }
@@ -3579,15 +3639,20 @@ async function renderBoard(){
   try{
     const friends = await getFriends();
     const ids = Array.from(new Set([...friends.map(f=>f.userId), session.user.id]));
-    const [{ data: profs, error: pErr }, { data: visits, error: vErr }] = await Promise.all([
+    // Gamification Overhaul - XP מחושב מ-landmark_conquests+xp_bonus_grants (אותו מקור-אמת
+    // בדיוק כמו totalXP() העצמי), לא מ-visits.points_awarded - כדי שלא יתערבבו נתונים
+    // היסטוריים בסולם-הישן עם נתונים חדשים בסולם-החדש בתוך אותה טבלת-דירוג.
+    const [{ data: profs, error: pErr }, { data: conquests, error: cErr }, { data: bonuses, error: bErr }] = await Promise.all([
       supabase.from("profiles").select("id,name,avatar_url").in("id", ids),
-      supabase.from("visits").select("user_id,points_awarded,visited_at").in("user_id", ids),
+      supabase.from("landmark_conquests").select("user_id,xp_awarded,conquered_at").in("user_id", ids),
+      supabase.from("xp_bonus_grants").select("user_id,xp_awarded,granted_at").in("user_id", ids),
     ]);
-    if(pErr) throw pErr; if(vErr) throw vErr;
+    if(pErr) throw pErr; if(cErr) throw cErr; if(bErr) throw bErr;
     const cutoff = lbPeriod==="week" ? Date.now()-7*86400000 : lbPeriod==="month" ? Date.now()-30*86400000 : 0;
     const totals = {};
     profs.forEach(p=> totals[p.id]=0);
-    visits.forEach(v=>{ if(new Date(v.visited_at).getTime()>=cutoff) totals[v.user_id]=(totals[v.user_id]||0)+v.points_awarded; });
+    conquests.forEach(c=>{ if(new Date(c.conquered_at).getTime()>=cutoff) totals[c.user_id]=(totals[c.user_id]||0)+c.xp_awarded; });
+    bonuses.forEach(b=>{ if(new Date(b.granted_at).getTime()>=cutoff) totals[b.user_id]=(totals[b.user_id]||0)+b.xp_awarded; });
     const rows = profs.map(p=>({ id:p.id, name:p.name, avatarUrl:p.avatar_url, val:totals[p.id]||0 })).sort((a,b)=>b.val-a.val);
     renderLbSummary(rows);
     const friendsEmptyBanner = (rows.length<=1)
@@ -3749,16 +3814,26 @@ async function renderGroupPanel(){
     const memberIds = members.map(m=>m.user_id);
     const nameById = Object.fromEntries(members.map(m=>[m.user_id, escapeHtml(m.profiles?.name || "מטייל/ת")]));
     const avatarById = Object.fromEntries(members.map(m=>[m.user_id, m.profiles?.avatar_url || null]));
-    const { data: visits, error: vErr } = await supabase.from("visits").select("user_id,landmark_id,points_awarded,visited_at").in("user_id", memberIds);
-    if(vErr) throw vErr;
+    const [{ data: visits, error: vErr }, { data: conquests, error: cErr }, { data: bonuses, error: bErr }] = await Promise.all([
+      supabase.from("visits").select("user_id,landmark_id,points_awarded,visited_at").in("user_id", memberIds),
+      supabase.from("landmark_conquests").select("user_id,xp_awarded").in("user_id", memberIds),
+      supabase.from("xp_bonus_grants").select("user_id,xp_awarded").in("user_id", memberIds),
+    ]);
+    if(vErr) throw vErr; if(cErr) throw cErr; if(bErr) throw bErr;
     const byMember = {};
     memberIds.forEach(id=> byMember[id] = []);
     visits.forEach(v=> byMember[v.user_id].push(v));
+    // Gamification Overhaul - XP חברי-הקבוצה, כמו בליברבורד, מגיע מ-landmark_conquests+
+    // xp_bonus_grants (לא visits.points_awarded) כדי לא לערבב סולם-ישן/חדש. streak/badges
+    // ממשיכים להיגזר מ-visits, שנשאר לוג-ההיסטוריה המלא.
+    const xpByMember = {};
+    memberIds.forEach(id=> xpByMember[id]=0);
+    conquests.forEach(c=> xpByMember[c.user_id]=(xpByMember[c.user_id]||0)+c.xp_awarded);
+    bonuses.forEach(b=> xpByMember[b.user_id]=(xpByMember[b.user_id]||0)+b.xp_awarded);
 
     const statRows = memberIds.map(id=>{
       const vs = byMember[id];
-      const xp = vs.reduce((s,v)=>s+(v.points_awarded||0),0);
-      return { id, name: nameById[id], avatarUrl: avatarById[id], xp, streak: streakFromVisits(vs), badgeCount: BADGES.filter(b=>b.current(vs)>=b.target(vs)).length };
+      return { id, name: nameById[id], avatarUrl: avatarById[id], xp: xpByMember[id]||0, streak: streakFromVisits(vs), badgeCount: BADGES.filter(b=>b.current(vs)>=b.target(vs)).length };
     }).sort((a,b)=>b.xp-a.xp);
     $("groupMemberStats").innerHTML = statRows.length ? statRows.map((r,i)=>{
       const isMe = r.id===session.user.id;
