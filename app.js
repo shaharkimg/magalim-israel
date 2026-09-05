@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a5";
+const APP_VERSION = "20260905a6";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -1986,6 +1986,7 @@ function wireStaticUI(){
   };
   $("openTodayWizard").onclick = openTodaySheet;
   $("welcomeFindBtn").onclick = ()=> { navigate("#/map"); openTodaySheet(); };
+  $("nextLevelCta").onclick = ()=> { navigate("#/map"); openTodaySheet(); };
   $("closeToday").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("todayScrim").onclick = ()=> closeSheet("todaySheet","todayScrim");
   $("closeRegionSheet").onclick = ()=> closeSheet("regionSheet","regionScrim");
@@ -2686,7 +2687,8 @@ async function grantConquestAndBonuses(l){
     const milestones = [[0.25,"region_25",10],[0.5,"region_50",20],[0.75,"region_75",30],[1,"region_100",50]];
     for(const [pct,type,xp] of milestones){
       if(beforeCount/regionTotal<pct && afterCount/regionTotal>=pct){
-        await grantBonus(type, l.region, xp, Math.round(pct*100)+"% מ"+REGIONS[l.region]+"!");
+        // אותו שם-אבן-דרך בדיוק כמו ב"המסע שלי" (regionMilestoneLabel) - לא ניסוח נפרד לחגיגה
+        await grantBonus(type, l.region, xp, regionMilestoneLabel(Math.round(pct*100), l.region)+"!");
       }
     }
   }
@@ -2994,16 +2996,28 @@ function drawPersonalMap(canvas){
   if(!canvas) return;
   paintIsraelMap(canvas.getContext("2d"), canvas.width, canvas.height, {});
 }
+// Gamification Overhaul, Phase 6 - שם אבן-הדרך הנוכחית באזור, לפי 25/50/75/100% (מפרש
+// נפרד מ-3 דרגות-התג הקיימות ב-BADGES, שם 25/60/100 - כדי לא לבלבל בין "תג שנפתח" לבין
+// "תווית-התקדמות בפרופיל", ראו plan). null אם עוד לא הגיעו ל-25%.
+function regionMilestoneLabel(pct, r){
+  if(pct>=100) return "🏆 אלוף "+REGION_THE[r];
+  if(pct>=75) return "🥇 מומחה "+REGION_THE[r];
+  if(pct>=50) return "🥈 חוקר "+REGION_THE[r];
+  if(pct>=25) return "🥉 מגלה "+REGION_THE[r];
+  return null;
+}
 function renderRegionProgress(){
   const el = $("regionProgressList");
   if(!el) return;
   el.innerHTML = Object.keys(REGIONS).map(r=>{
     const total = regionCount(r), done = regionVisited(myVisits, r);
     const pct = total ? Math.round(done/total*100) : 0;
+    const milestone = regionMilestoneLabel(pct, r);
     const nudge = done>=total ? "" : `<div class="region-row-nudge">עוד ${total-done} להשלמת ${REGIONS[r]}</div>`;
     return `<div class="region-row" data-region="${r}">
-      <div class="region-row-head"><span class="name">${REGIONS[r]}</span><span class="count">${done} מתוך ${total}</span></div>
+      <div class="region-row-head"><span class="name">${REGIONS[r]}</span><span class="count">${done} מתוך ${total} · ${pct}%</span></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
+      ${milestone ? `<div class="region-row-milestone">${milestone}</div>` : ""}
       ${nudge}
     </div>`;
   }).join("");
@@ -3323,14 +3337,21 @@ function renderProfile(){
   $("progPct").textContent = levelPct+"%";
   $("progBar").style.width = levelPct+"%";
   $("levelHint").textContent = progress.next ? `${progress.next.icon} עוד ${getXPToNextLevel(xp).toLocaleString()} נקודות לרמת "${progress.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  // Gamification Overhaul, Phase 6 - "NEXT LEVEL CTA": מצביע לאותו openTodaySheet() הקיים
+  // (המלצה מבוססת בטיחות/העדפות, לא "הכי הרבה XP") - לא מנוע-המלצות חדש. לא מוצג ברמה
+  // מקסימלית (אין "רמה הבאה" למצוא-לקראתה).
+  $("nextLevelCta").classList.toggle("hidden", progress.isMax);
   $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
   $("progressSection").classList.toggle("hidden", myVisits.length===0);
   document.querySelector(".journey-stats-3")?.classList.toggle("hidden", myVisits.length===0);
-  $("statVisited").textContent = myVisits.length;
+  // Gamification Overhaul, Phase 6 - ציר-הסיכום הראשון מציג את אחוז-הגילוי ("ישראל שלי X%",
+  // בדיוק כמו הדוגמה במפרט), לא ספירה גולמית של יעדים - הספירה הגולמית עדיין מוצגת ב-profSub
+  // ("X יעדים נכבשו") וברשימת "כבשתי" למטה, אז שום מידע לא אבד.
+  const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
+  $("statIsraelPct").textContent = discPct+"%";
   const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
   $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
   drawPersonalMap($("profileMapCanvas"));
-  const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
   $("myIsraelPct").textContent = "גילית "+discPct+"% מישראל";
   renderRegionProgress();
   $("statPoints").textContent = xp.toLocaleString();
