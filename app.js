@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a2";
+const APP_VERSION = "20260905a3";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -562,12 +562,28 @@ function celebrate(steps){
     const actionsHtml = s.actions
       ? `<div class="celebrate-actions">${s.actions.map((a,ai)=>`<button class="btn ${a.primary?"btn-primary":"btn-outline"}" data-action-i="${ai}">${a.label}</button>`).join("")}</div>`
       : "";
+    // Gamification Overhaul, Phase 3 - שדות חדשים ואופציונליים (subtitle/tag/totalLine/
+    // progress) על אותו celebrate() הקיים - לא מודל חדש. subtitle/tag משמשים גם לשם-היעד+
+    // תג-קושי בכרטיס-הכיבוש הראשי וגם לרמה+שם-רמה בכרטיס עליית-הרמה (אותם primitives, שני
+    // הקשרים). progress מרנדר פס-התקדמות-לרמה-הבאה בדיוק כמו בפרופיל (reuse .bar/.bar>i).
+    const progressHtml = s.progress ? `
+      <div class="celebrate-progress">
+        <div class="celebrate-progress-top"><span class="lvl">${s.progress.levelLabel}</span><span class="num">${s.progress.isMax ? "רמה מקסימלית" : s.progress.current.toLocaleString()+" / "+s.progress.total.toLocaleString()}</span></div>
+        <div class="bar"><i style="width:${s.progress.pct}%"></i></div>
+        <div class="celebrate-progress-hint">${s.progress.hint}</div>
+      </div>` : "";
+    const tapHint = (!s.actions && i===steps.length-1) ? `<div class="celebrate-tap-hint">געו כדי להמשיך לגלות</div>` : "";
     card.innerHTML = hero
       + `<h2>${s.title}</h2>`
+      + (s.subtitle ? `<div class="celebrate-subtitle">${s.subtitle}</div>` : "")
+      + (s.tag ? `<div class="celebrate-tag">${s.tag}</div>` : "")
       + (s.xp!=null ? `<div class="celebrate-xp" id="celebrateXpNum">+0 נקודות</div>` : "")
       + (s.sub ? `<div class="celebrate-bonus">${s.sub}</div>` : "")
+      + (s.totalLine ? `<div class="celebrate-total">${s.totalLine}</div>` : "")
       + (s.region ? `<div class="celebrate-region">${s.region}</div>` : "")
-      + actionsHtml;
+      + progressHtml
+      + actionsHtml
+      + tapHint;
     if(s.xp!=null) animateXpCount($("celebrateXpNum"), s.xp);
     if(s.confetti && !reducedMotion && window.confetti){
       window.confetti({ particleCount:60, spread:65, origin:{y:0.35}, scalar:0.9, ticks:150 });
@@ -2725,16 +2741,38 @@ async function confirmCheckin(l){
     const regionLabel = REGIONS[l.region];
     const regionInfo = regionLabel ? regionLabel+" — "+regionVisited(myVisits,l.region)+"/"+regionCount(l.region) : null;
     const bonusLines = grant.bonuses.map(b=>"+"+b.xp+" נקודות — "+b.label);
+    // Gamification Overhaul, Phase 3 - פס-התקדמות-לרמה-הבאה בתוך כרטיס-החגיגה הראשי (reuse
+    // getCurrentLevelProgress/getLevelProgressPercentage/getXPToNextLevel מ-Phase 1, אותם
+    // utility functions שכבר משמשים את הפרופיל - לא לוגיקה נפרדת).
+    const lvlProgress = getCurrentLevelProgress(newTotalXP);
+    const levelField = {
+      levelLabel: lvlProgress.level.icon+" רמה "+(lvlProgress.index+1)+" — "+lvlProgress.level.name,
+      current: lvlProgress.xpIntoLevel, total: lvlProgress.xpForLevel,
+      pct: getLevelProgressPercentage(newTotalXP), isMax: lvlProgress.isMax,
+      hint: lvlProgress.isMax ? "🎉 הגעתם לרמה הגבוהה ביותר!" : "עוד "+getXPToNextLevel(newTotalXP).toLocaleString()+" נקודות לרמה הבאה",
+    };
     const steps = [{
       photoUrl: photoUrl || landmarkPhotos[l.id] || null,
-      title: tier.emoji+" גילית את "+l.name+"!",
+      title: "🏆 עוד מקום נכבש!",
+      subtitle: l.name,
+      tag: tier.emoji+" "+tier.label,
       xp: grant.baseXP,
       sub: bonusLines.length ? bonusLines.join(" · ") : null,
+      totalLine: grant.bonuses.length ? "סה\"כ +"+grant.totalGranted.toLocaleString()+" נקודות" : null,
       region: regionInfo,
+      progress: levelField,
       confetti: true,
     }];
     newBadges.forEach(b=> steps.push({ emoji:"🏅", title:"תג חדש נפתח — "+b.icon+" "+b.label, confetti:false }));
-    if(leveledUpTo) steps.push({ emoji:leveledUpTo.icon, title:"עלית לרמה "+leveledUpTo.icon+" "+leveledUpTo.name+"!", confetti:true });
+    if(leveledUpTo){
+      steps.push({
+        emoji: leveledUpTo.icon,
+        title: "🎉 עליתם רמה!",
+        subtitle: "רמה "+(newLevelIndex+1),
+        tag: leveledUpTo.icon+" "+leveledUpTo.name,
+        confetti: true,
+      });
+    }
     // Next Adventure - הצעת המשך מיידית מהיעד שזה עתה נכבש, לא מהמיקום החי (עובד גם ב-demo mode)
     const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
     let nextPlace = null, nextDist = Infinity;
