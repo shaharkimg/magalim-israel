@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a7";
+const APP_VERSION = "20260905a8";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -852,6 +852,7 @@ function requireAuth(message, onSuccess){
 
 supabase.auth.onAuthStateChange((event, newSession)=>{
   const hadNoSession = !session;
+  const hadSession = !hadNoSession;
   session = newSession;
   if(event==="PASSWORD_RECOVERY"){
     $("authScreen").classList.remove("hidden");
@@ -864,6 +865,13 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
     return;
   }
   if(session) closeAuthSheet();
+  // באג-אמת שדווח: לחיצה על "התנתקות" (בתוך settingsSheet) כן מבצעת סיין-אאוט בפועל, אבל
+  // ה-sheet עצמו נשאר פתוח מעל התוכן (עכשיו כ-guest) כי שום קוד לא סגר sheets בזמן
+  // sign-out - נראה למשתמש כאילו "הכפתור לא עובד". סוגרים כל sheet פתוח בכל מעבר
+  // session->guest, לא רק settingsSheet ספציפית (אותו דפוס בדיוק כמו openSheet עצמו).
+  if(hadSession && !session){
+    [...openSheetStack].forEach(s=>{ if(s.onEscape) s.onEscape(); else closeSheet(s.sheetId, s.scrimId); });
+  }
   bootUserData().then(()=>{
     if(session && hadNoSession && pendingAuthAction){
       const action = pendingAuthAction;
