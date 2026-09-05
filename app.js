@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a3";
+const APP_VERSION = "20260905a4";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -116,10 +116,10 @@ const REGIONS = { north:"צפון", center:"מרכז", jerusalem:"ירושלים
 // (easy<medium<hard<extreme): hard הישן (3-שי) -> "מאתגר" החדש, extreme הישן (4-שי, הכי הרבה
 // נקודות) -> "קשה" החדש. קונפיג-JS טהור, אפס מיגרציית-DB.
 const DIFF_TIERS = [
-  { key:"easy", dbValue:"easy", label:"קל", emoji:"🟢", xp:10 },
-  { key:"medium", dbValue:"medium", label:"בינוני", emoji:"🔵", xp:20 },
-  { key:"challenging", dbValue:"hard", label:"מאתגר", emoji:"🟠", xp:35 },
-  { key:"hard", dbValue:"extreme", label:"קשה", emoji:"🔴", xp:50 },
+  { key:"easy", dbValue:"easy", label:"קל", emoji:"🟢", xp:10, color:"var(--success)" },
+  { key:"medium", dbValue:"medium", label:"בינוני", emoji:"🔵", xp:20, color:"var(--teal)" },
+  { key:"challenging", dbValue:"hard", label:"מאתגר", emoji:"🟠", xp:35, color:"var(--warn)" },
+  { key:"hard", dbValue:"extreme", label:"קשה", emoji:"🔴", xp:50, color:"var(--danger)" },
 ];
 const DIFF_TIER_BY_DB = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t]));
 function tierForDb(rawDifficulty){ return DIFF_TIER_BY_DB[rawDifficulty] || DIFF_TIERS[0]; }
@@ -1714,6 +1714,8 @@ function openPreview(id){
   renderMap();
 }
 function closePreview(){
+  $("diffLegendPopover").classList.add("hidden");
+  $("diffLegendBtn").setAttribute("aria-expanded", "false");
   if(!previewId) return;
   previewId = null;
   $("destPreview").classList.remove("open");
@@ -1731,10 +1733,13 @@ function renderMap(){
     const selected = l.id===previewId;
     const justIn = l.id===justCheckedInId;
     const cat = CATEGORIES[l.category];
+    // Gamification Overhaul, Phase 4 - צבע-הפין לפי קושי (לא קטגוריה), האייקון הפנימי נשאר
+    // קטגוריה ללא שינוי - דרישה מפורשת ("לעולם לא להחליף אייקון/קטגוריה"). ראו legend חדש
+    // ב-map-controls להסבר-נגיש (טקסט+צבע, לא צבע-בלבד).
     const icon = L.divIcon({
       className: "lm-divicon",
       html: '<div class="lm-pin-wrap">'
-        + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+cat.color+'">'
+        + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'">'
         + (wished?'<span class="lm-pin-star">★</span>':"")
         + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
         + '</div><div class="lm-pin-label">'+l.name+'</div></div>',
@@ -1863,6 +1868,17 @@ function wireStaticUI(){
   $("zoomIn").onclick=()=> leafletMap.zoomIn();
   $("zoomOut").onclick=()=> leafletMap.zoomOut();
   $("zoomReset").onclick=()=> israelBounds ? leafletMap.fitBounds(israelBounds,{padding:[28,28]}) : leafletMap.setView(ISRAEL_CENTER, DEFAULT_ZOOM);
+  // Gamification Overhaul, Phase 4 - מקרא-קושי: תוכן סטטי מ-DIFF_TIERS (טקסט+אימוג'י-צבעוני,
+  // לא צבע-בלבד), נבנה פעם אחת. נסגר אוטומטית עם closePreview (אותה קריאה שכבר קיימת על
+  // לחיצה על המפה) כדי לא להישאר פתוח ולחסום תוך כדי שימוש רגיל במפה.
+  $("diffLegendPopover").innerHTML = DIFF_TIERS.map(t=>
+    `<div class="diff-legend-row">${t.emoji} ${t.label}</div>`
+  ).join("");
+  $("diffLegendBtn").onclick = (e)=>{
+    e.stopPropagation();
+    const open = $("diffLegendPopover").classList.toggle("hidden")===false;
+    $("diffLegendBtn").setAttribute("aria-expanded", String(open));
+  };
   $("locateBtn").onclick=()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
     navigator.geolocation.getCurrentPosition(pos=>{

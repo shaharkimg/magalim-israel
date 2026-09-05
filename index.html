@@ -170,6 +170,11 @@ button{font-family:inherit;}
 .map-controls button:active{background:var(--bg-elevated);}
 .map-controls button+button{border-top:1px solid var(--border);}
 .locate-btn{position:absolute;right:12px;bottom:24px;width:40px;height:40px;border-radius:var(--radius-input);border:none;background:var(--surface);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
+/* Gamification Overhaul, Phase 4 - מקרא-קושי קומפקטי: כפתור נוסף בתוך .map-controls הקיים
+   (אותו סגנון-כפתור-מוערם, לא רכיב-צף חדש), פותח popover קטן שנפתח מעליו. טקסט+צבע (לא
+   צבע-בלבד) לכל שורה - a11y. */
+.diff-legend{position:absolute;left:12px;bottom:154px;z-index:1000;background:var(--surface);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:10px 14px;font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:6px;white-space:nowrap;}
+.diff-legend-row{display:flex;align-items:center;gap:7px;}
 .filter-fab{flex:none;display:flex;align-items:center;gap:6px;background:var(--surface);border-radius:999px;padding:0 14px;font-weight:700;font-size:13px;box-shadow:var(--shadow-elevated);cursor:pointer;color:var(--text);}
 .filter-fab .fab-count{color:var(--accent);font-weight:700;font-size:13px;white-space:nowrap;}
 .dest-preview{position:absolute;left:12px;right:12px;bottom:12px;z-index:1050;background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;height:92px;transform:translateY(140%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.3,1), visibility 0s linear .28s;cursor:pointer;}
@@ -908,7 +913,9 @@ input[type=file]{display:none;}
         <button id="zoomIn" aria-label="הגדל מפה">+</button>
         <button id="zoomOut" aria-label="הקטן מפה">−</button>
         <button id="zoomReset" style="font-size:13px" aria-label="איפוס תצוגת מפה">⟲</button>
+        <button id="diffLegendBtn" style="font-size:15px" aria-label="מקרא רמות קושי" aria-expanded="false">🎨</button>
       </div>
+      <div class="diff-legend hidden" id="diffLegendPopover" role="dialog" aria-label="מקרא רמות קושי"></div>
       <div class="dest-preview topo-texture" id="destPreview" role="button" tabindex="0" aria-label="פתח את עמוד היעד">
         <div class="dest-preview-hero" id="destPreviewHero"></div>
         <div class="dest-preview-body">
@@ -1325,6 +1332,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260905a3"></script>
+<script type="module" src="./app.js?v=20260905a4"></script>
 </body>
 </html>
