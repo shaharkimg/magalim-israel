@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260904a6";
+const APP_VERSION = "20260904a7";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -589,6 +589,7 @@ function friendlyAuthError(msg){
   if(/registration_disabled/i.test(msg)) return "ההרשמה סגורה כרגע.";
   if(/registration_full/i.test(msg)) return "הגענו כרגע למכסת המשתמשים של גרסת הבטא. נסו שוב מאוחר יותר.";
   if(/invite_required/i.test(msg)) return "כרגע אפשר להירשם רק עם קישור הזמנה תקף.";
+  if(/provider is not enabled/i.test(msg)) return "ההתחברות עם השירות הזה עוד לא זמינה. נסו עם אימייל וסיסמה.";
   return msg;
 }
 
@@ -621,6 +622,8 @@ const WAITLIST_COPY = {
 };
 function showWaitlistView(reason){
   document.querySelector(".auth-tabs").classList.add("hidden");
+  $("oauthRow").classList.add("hidden");
+  $("oauthDivider").classList.add("hidden");
   $("authForm").classList.add("hidden");
   $("resetPasswordForm").classList.add("hidden");
   const copy = WAITLIST_COPY[reason] || WAITLIST_COPY.full;
@@ -632,10 +635,22 @@ function showWaitlistView(reason){
 }
 function showAuthTabs(){
   document.querySelector(".auth-tabs").classList.remove("hidden");
+  $("oauthRow").classList.remove("hidden");
+  $("oauthDivider").classList.remove("hidden");
   $("waitlistView").classList.add("hidden");
   $("resetPasswordForm").classList.add("hidden");
   $("authForm").classList.remove("hidden");
 }
+async function signInWithOAuth(provider){
+  $("authError").classList.remove("show");
+  const { error } = await supabase.auth.signInWithOAuth({ provider, options:{ redirectTo: location.origin + location.pathname } });
+  if(error){
+    $("authError").textContent = friendlyAuthError(error.message);
+    $("authError").classList.add("show");
+  }
+}
+$("googleAuthBtn").onclick = ()=> signInWithOAuth("google");
+$("facebookAuthBtn").onclick = ()=> signInWithOAuth("facebook");
 $("waitlistBackBtn").onclick = ()=> $("tabLogin").click();
 $("waitlistView").addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -779,6 +794,9 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
   if(event==="PASSWORD_RECOVERY"){
     $("authScreen").classList.remove("hidden");
     $("authCloseBtn").classList.add("hidden");
+    document.querySelector(".auth-tabs").classList.add("hidden");
+    $("oauthRow").classList.add("hidden");
+    $("oauthDivider").classList.add("hidden");
     $("authForm").classList.add("hidden");
     $("resetPasswordForm").classList.remove("hidden");
     return;
