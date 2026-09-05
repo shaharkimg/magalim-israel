@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a6";
+const APP_VERSION = "20260905a7";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -167,14 +167,14 @@ const BADGES = [
 ];
 // אוספים קיוריטד - כמו BADGES, כל אחד הוא פילטר על LANDMARKS הקיימים (לא רשימת-ID ידנית).
 const COLLECTIONS = [
-  { id:"water", label:"צייד המים", icon:"💦", filter:l=> l.category==="water"||l.hasWater },
-  { id:"heritage", label:"עתיקות ומורשת", icon:"🏛️", filter:l=> l.category==="archaeology"||l.category==="heritage" },
-  { id:"mountains", label:"מסלולי הרים", icon:"⛰️", filter:l=> l.category==="mountains" },
-  { id:"nature", label:"טבע ונופים", icon:"🌿", filter:l=> l.category==="nature" },
-  { id:"desertsea", label:"מדבר וים המלח", icon:"🏜️", filter:l=> l.region==="south"||l.region==="deadsea"||l.region==="eilat" },
-  { id:"reserves", label:"שמורות ופארקים לאומיים", icon:"🌲", filter:l=> l.category==="reserves"||l.category==="parks" },
-  { id:"family", label:"מושלם למשפחות", icon:"👪", filter:l=> !!l.familyFriendly },
-  { id:"accessible", label:"פתוח לכולם", icon:"♿", filter:l=> !!l.accessible },
+  { id:"water", label:"צייד המים", icon:"💦", description:"נחלים, מעיינות ובריכות טבעיות בכל רחבי הארץ.", filter:l=> l.category==="water"||l.hasWater },
+  { id:"heritage", label:"עתיקות ומורשת", icon:"🏛️", description:"אתרי ארכיאולוגיה ומורשת שמספרים את סיפור הארץ.", filter:l=> l.category==="archaeology"||l.category==="heritage" },
+  { id:"mountains", label:"מסלולי הרים", icon:"⛰️", description:"מסלולי הרים וטיפוס לעבר הפסגות הכי מרשימות בישראל.", filter:l=> l.category==="mountains" },
+  { id:"nature", label:"טבע ונופים", icon:"🌿", description:"נופים פתוחים וטבע ירוק לאורך ולרוחב הארץ.", filter:l=> l.category==="nature" },
+  { id:"desertsea", label:"מדבר וים המלח", icon:"🏜️", description:"מדבר יהודה, הנגב, הערבה וים המלח.", filter:l=> l.region==="south"||l.region==="deadsea"||l.region==="eilat" },
+  { id:"reserves", label:"שמורות ופארקים לאומיים", icon:"🌲", description:"שמורות טבע ופארקים לאומיים מוגנים.", filter:l=> l.category==="reserves"||l.category==="parks" },
+  { id:"family", label:"מושלם למשפחות", icon:"👪", description:"יעדים שמתאימים לטיול עם ילדים.", filter:l=> !!l.familyFriendly },
+  { id:"accessible", label:"פתוח לכולם", icon:"♿", description:"יעדים נגישים לכיסא גלגלים ולעגלות.", filter:l=> !!l.accessible },
 ];
 function collectionLandmarks(c){ return LANDMARKS.filter(c.filter); }
 function collectionProgress(c, visits){
@@ -3023,10 +3023,11 @@ function renderRegionProgress(){
   }).join("");
   el.querySelectorAll(".region-row").forEach(row=> row.onclick = ()=> openRegionSheet(row.dataset.region));
 }
-function renderPlaceListSheet(title, list){
+function renderPlaceListSheet(title, list, subtitle){
   $("regionSheetTitle").textContent = title;
   const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
-  $("regionSheetBody").innerHTML = list.map(l=>{
+  const subtitleHtml = subtitle ? `<p class="region-sheet-subtitle">${escapeHtml(subtitle)}</p>` : "";
+  $("regionSheetBody").innerHTML = subtitleHtml + list.map(l=>{
     const cat = CATEGORIES[l.category];
     if(visitedIds.has(l.id)){
       const photoUrl = landmarkPhotos[l.id];
@@ -3058,7 +3059,9 @@ function renderCollections(){
 }
 function openCollectionSheet(id){
   const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
-  renderPlaceListSheet(c.icon+" "+c.label, collectionLandmarks(c));
+  const { done, total } = collectionProgress(c);
+  const subtitle = (c.description||"")+"  ·  "+done+"/"+total+" הושלמו";
+  renderPlaceListSheet(c.icon+" "+c.label, collectionLandmarks(c), subtitle);
 }
 async function generateShareCard(){
   const W=1080, H=1600;
@@ -3727,7 +3730,7 @@ async function renderBoard(){
     // היסטוריים בסולם-הישן עם נתונים חדשים בסולם-החדש בתוך אותה טבלת-דירוג.
     const [{ data: profs, error: pErr }, { data: conquests, error: cErr }, { data: bonuses, error: bErr }] = await Promise.all([
       supabase.from("profiles").select("id,name,avatar_url").in("id", ids),
-      supabase.from("landmark_conquests").select("user_id,xp_awarded,conquered_at").in("user_id", ids),
+      supabase.from("landmark_conquests").select("user_id,landmark_id,xp_awarded,conquered_at").in("user_id", ids),
       supabase.from("xp_bonus_grants").select("user_id,xp_awarded,granted_at").in("user_id", ids),
     ]);
     if(pErr) throw pErr; if(cErr) throw cErr; if(bErr) throw bErr;
@@ -3736,7 +3739,17 @@ async function renderBoard(){
     profs.forEach(p=> totals[p.id]=0);
     conquests.forEach(c=>{ if(new Date(c.conquered_at).getTime()>=cutoff) totals[c.user_id]=(totals[c.user_id]||0)+c.xp_awarded; });
     bonuses.forEach(b=>{ if(new Date(b.granted_at).getTime()>=cutoff) totals[b.user_id]=(totals[b.user_id]||0)+b.xp_awarded; });
-    const rows = profs.map(p=>({ id:p.id, name:p.name, avatarUrl:p.avatar_url, val:totals[p.id]||0 })).sort((a,b)=>b.val-a.val);
+    // Gamification Overhaul, Phase 7 - יעדים-שנכבשו+אזורים-שהתגלו הם מדדים כלל-זמניים (לא
+    // מסוננים לפי lbPeriod כמו ה-XP) - "מי אתה כמטייל" לא אמור להתאפס כל שבוע, בניגוד ל-XP
+    // התקופתי. נגזר מאותו conquests שכבר נשלף, בלי שאילתה נוספת.
+    const destCount = {}, regionsSet = {};
+    profs.forEach(p=>{ destCount[p.id]=0; regionsSet[p.id]=new Set(); });
+    conquests.forEach(c=>{
+      destCount[c.user_id] = (destCount[c.user_id]||0)+1;
+      const region = lmById[c.landmark_id] && lmById[c.landmark_id].region;
+      if(region) regionsSet[c.user_id].add(region);
+    });
+    const rows = profs.map(p=>({ id:p.id, name:p.name, avatarUrl:p.avatar_url, val:totals[p.id]||0, destCount:destCount[p.id]||0, regionCount:regionsSet[p.id].size })).sort((a,b)=>b.val-a.val);
     renderLbSummary(rows);
     const friendsEmptyBanner = (rows.length<=1)
       ? '<div class="empty-state"><div class="big">👥</div>עדיין אין לך חברים באפליקציה.<br>הזמינו חברים כדי להתחרות יחד!<br><button class="btn btn-primary empty-cta" id="emptyFriendsCta">👥 הזמן חברים</button></div>'
@@ -3748,6 +3761,7 @@ async function renderBoard(){
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
         <div class="lb-avatar" style="background:${stringColor(r.name)}">${avatarInner(r.name,r.avatarUrl)}</div>
         <div class="lb-name">${safeName}${isMe?'<small>הדירוג שלך</small>':''}</div>
+        <div class="lb-mini-stats"><span>🏆${r.destCount}</span><span>🗺️${r.regionCount}</span></div>
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
     if(friendsEmptyBanner) $("emptyFriendsCta").onclick = ()=> $("inviteBtn").click();
