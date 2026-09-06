@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260905a8";
+const APP_VERSION = "20260906a2";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -1012,6 +1012,13 @@ async function bootPublic(){
     await loadVisitCounts();
     loadLandmarkPhotos().then(()=>{
       renderMap();
+      // אם תמונות-הקהילה נטענות לפני שה-boot הסתיים (רשת מהירה) - לא פותחים כאן: applyRoute()
+      // (רץ מיד אחרי booted=true, למטה) יפתח את ה-sheet פעם אחת, כשה-chrome כבר גלוי במלואו,
+      // עם התמונה כבר זמינה. פתיחה כאן *לפני* ש-topbar/bottomNav/view-map גלויים היא בדיוק
+      // הבאג-אמת שדווח ממחשב: ה-sheet מקבל מיקום absolute שגוי (יחסית ל-app-shell עוד לפני
+      // שהיא הפכה גלויה/פעילה), ופתיחה חוזרת מ-applyRoute() לא מתקנת את זה כי ה-class "open"
+      // כבר קיים (אין re-trigger לאנימציה/למיקום-מחדש).
+      if(!booted) return;
       const m = location.hash.match(/^#\/destination\/(.+)$/);
       if(m && lmById[decodeURIComponent(m[1])]) openDetail(decodeURIComponent(m[1]));
     }).catch(()=>{});
