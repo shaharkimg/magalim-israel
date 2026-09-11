@@ -232,6 +232,10 @@ button{font-family:inherit;}
    צבע-בלבד) לכל שורה - a11y. */
 .diff-legend{position:absolute;left:var(--space-3);bottom:154px;z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:var(--space-3) var(--space-4);font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:var(--space-2);white-space:nowrap;}
 .diff-legend-row{display:flex;align-items:center;gap:var(--space-2);}
+.legend-title{font-size:11px;font-weight:800;color:var(--text-muted);letter-spacing:.03em;}
+.legend-title-gap{margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--border);}
+.legend-pts{min-width:30px;font-weight:800;color:var(--color-accent);direction:ltr;font-variant-numeric:tabular-nums;}
+.legend-hint{color:var(--text-muted);font-weight:500;font-size:11px;}
 .dest-preview{position:absolute;left:var(--space-3);right:var(--space-3);bottom:var(--space-3);z-index:1050;background:var(--color-surface-elevated);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;height:92px;transform:translateY(140%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.3,1), visibility 0s linear .28s;cursor:pointer;}
 .dest-preview.open{transform:translateY(0);visibility:visible;transition-delay:0s;}
 .dest-preview-hero{width:92px;flex:none;position:relative;overflow:hidden;}
@@ -785,6 +789,8 @@ button{font-family:inherit;}
 
 svg{overflow:visible;}
 .hidden{display:none!important;}
+/* מספרים עם "+" או "✓" מובילים - כדי ש-bidi של RTL לא יזיז את הסימן לסוף */
+.ltr{direction:ltr;display:inline-block;}
 input[type=file]{display:none;}
 .field-label{font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;}
 .text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:14px;color:var(--text);font-family:inherit;}
