@@ -568,6 +568,20 @@ button{font-family:inherit;}
 .journey-bar > i{background:var(--sand);}
 .personal-map-wrap{background:var(--map-water);border-radius:var(--radius-card);overflow:hidden;border:1px solid var(--border);}
 .personal-map-wrap canvas{width:100%;height:auto;display:block;}
+/* אוספים (§8): כרטיס עם התקדמות אמיתית, כדי שהמשתמש יחשוב "נשארו לי 3" */
+.collection-card{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
+.collection-card:active{transform:scale(.99);}
+.collection-icon{width:46px;height:46px;border-radius:var(--radius-input);background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;}
+.collection-card.done .collection-icon{background:var(--color-primary-light);}
+.collection-body{flex:1;min-width:0;}
+.collection-title{font-weight:700;font-size:var(--font-h3);}
+.collection-left{font-size:var(--font-caption);color:var(--text-muted);margin-top:2px;}
+.collection-left b{color:var(--color-accent);font-weight:800;}
+.collection-card.done .collection-left b{color:var(--color-primary);}
+.collection-bar{height:6px;border-radius:99px;background:var(--bg-elevated);overflow:hidden;margin-top:var(--space-2);}
+.collection-bar > i{display:block;height:100%;border-radius:99px;background:var(--color-primary);transition:width .4s cubic-bezier(.3,.8,.4,1);}
+.collection-count{font-size:var(--font-caption);font-weight:800;color:var(--text-muted);font-variant-numeric:tabular-nums;direction:ltr;flex:none;}
+
 /* ---------- Home (§1) ---------- */
 .home-hero{background:var(--journey-bg);color:#fff;border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-4) 0 var(--space-2);}
 .home-hero-top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);}
@@ -1210,6 +1224,14 @@ input[type=file]{display:none;}
     <div class="map-side-panel" id="mapSidePanel"></div>
   </div>
 
+  <div class="view" id="view-saved">
+    <div class="scroll-area">
+      <h1>שמורים</h1>
+      <p class="t-caption" id="savedSub" style="margin:0 0 var(--space-3);">המקומות שסימנתם לפעם הבאה</p>
+      <div id="savedList"></div>
+    </div>
+  </div>
+
   <div class="view" id="view-board">
     <div class="scroll-area">
       <div class="guest-gate hidden" id="boardGuestGate">
@@ -1357,7 +1379,6 @@ input[type=file]{display:none;}
       </div>
       <div class="tab-row">
         <button class="active" data-list="visited">כבשתי</button>
-        <button data-list="wishlist">רשימת משאלות</button>
         <button data-list="history">היסטוריה</button>
       </div>
       <div id="profList"></div>
@@ -1371,6 +1392,7 @@ input[type=file]{display:none;}
   <div class="bottom-nav hidden" id="bottomNav">
     <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>בית</span></button>
     <button class="nav-btn" data-view="map"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>מפה</span></button>
+    <button class="nav-btn" data-view="saved"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19.5S4.5 14.8 4.5 9.9A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7.5 1.9c0 4.9-7.5 9.6-7.5 9.6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>שמורים</span></button>
     <button class="nav-btn" data-view="board"><svg viewBox="0 0 24 24" fill="none"><path d="M5 21V10M12 21V3M19 21v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>המסע שלנו</span></button>
     <button class="nav-btn" data-view="profile"><span class="unread-dot" id="navUnreadDot"></span><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>פרופיל</span></button>
   </div>

@@ -1054,7 +1054,7 @@ window.addEventListener("popstate", ()=>{
 
 function switchView(view){
   if(view==="feed"){ view = "board"; boardTab = "feed"; }
-  if(!["home","map","board","profile"].includes(view)) view = "home";
+  if(!["home","map","saved","board","profile"].includes(view)) view = "home";
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
@@ -1062,6 +1062,7 @@ function switchView(view){
   if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
   if(view==="home") renderHome();
+  if(view==="saved") renderSaved();
 }
 function switchBoardTab(tab){
   boardTab = tab;
@@ -1194,7 +1195,7 @@ async function bootUserData(){
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
     myConquests = []; myBonusGrants = [];
-    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
   try{
@@ -1205,7 +1206,7 @@ async function bootUserData(){
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
-    renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     // Gamification Overhaul, Phase 5 - אם המשתמש נכנס דרך deep-link ישיר ל-#/destination/<id>
     // (openDetail כבר רץ פעם אחת ב-bootPublic, לפני ש-myVisits/myConquests נטענו), מרעננים
     // אותו עכשיו כדי שמצב-נכבש/XP יוצג נכון - אותו דפוס-race בדיוק כמו ה-refresh הקיים
@@ -2694,12 +2695,12 @@ async function toggleWishlist(id){
     toast("הוסר מהשמורים", { label:"ביטול", onClick: async ()=>{
       const stillPending = !!pendingWishlistRemovals[id];
       if(stillPending){ clearTimeout(pendingWishlistRemovals[id]); delete pendingWishlistRemovals[id]; }
-      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); }
+      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); }
       if(!stillPending){
         // ה-timer כבר ירה וה-DELETE כבר בוצע בפועל - הביטול חייב להכניס את השורה מחדש,
         // לא רק לשחזר state מקומי (אחרת המסך יראה "שמור" בזמן שב-DB זה כבר נמחק).
         const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
-        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
+        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
       }
     }});
   } else if(pendingWishlistRemovals[id]){
@@ -3343,13 +3344,74 @@ function openRegionSheet(r){
 function renderCollections(){
   const el = $("collectionGrid");
   if(!el) return;
-  el.innerHTML = COLLECTIONS.map(c=>{
+  // מיון לפי "כמה קרוב להשלמה" - האוסף שנשאר בו הכי מעט עולה למעלה, כי זה ה-open loop
+  // שהכי סביר שיגרום ליציאה לטיול הבא (§10). אוספים שהושלמו יורדים לסוף.
+  const rows = COLLECTIONS.map(c=>{
     const { done, total } = collectionProgress(c);
-    const on = total>0 && done>=total;
-    const progressLine = on ? "" : `<div class="badge-progress">${done}/${total}</div>`;
-    return `<div class="badge${on?" unlocked":""}" data-id="${c.id}"><div class="circ">${c.icon}</div><div class="lbl">${c.label}</div>${progressLine}</div>`;
+    return { c, done, total, left: total-done, pct: total ? Math.round(done/total*100) : 0 };
+  }).filter(r=> r.total>0)
+    .sort((a,b)=>{
+      const aDone = a.left===0, bDone = b.left===0;
+      if(aDone!==bDone) return aDone ? 1 : -1;
+      if(a.done===0 && b.done>0) return 1;
+      if(b.done===0 && a.done>0) return -1;
+      return a.left-b.left;
+    });
+  el.innerHTML = rows.map(r=>{
+    const left = r.left===0
+      ? "הושלם!"
+      : (r.done===0 ? `${r.total} מקומות באוסף` : `נשאר${r.left===1?"" : "ו"} <b>${r.left===1?"מקום אחד":r.left+" מקומות"}</b> להשלמה`);
+    return `<div class="collection-card${r.left===0?" done":""}" data-id="${r.c.id}" role="button" tabindex="0">
+      <div class="collection-icon">${r.c.icon}</div>
+      <div class="collection-body">
+        <div class="collection-title">${r.c.label}</div>
+        <div class="collection-left">${left}</div>
+        <div class="collection-bar"><i style="width:${r.pct}%"></i></div>
+      </div>
+      <div class="collection-count">${r.done}/${r.total}</div>
+    </div>`;
   }).join("");
-  el.querySelectorAll("[data-id]").forEach(elm=> elm.onclick = ()=> navigate("#/collection/"+elm.dataset.id));
+  el.querySelectorAll("[data-id]").forEach(elm=>{
+    const go = ()=> navigate("#/collection/"+elm.dataset.id);
+    elm.onclick = go;
+    elm.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+/* ============ SAVED (§15) ============ */
+// "שמורים" קיבל טאב ניווט משלו במקום להיות טאב שלישי בתוך הפרופיל. אותה רשימה, אותה
+// לוגיקה (myWishlist + wishlistContextLines) - רק מקום אחד ברור להגיע אליו.
+function renderSaved(){
+  const listEl = $("savedList"); if(!listEl) return;
+  const subEl = $("savedSub");
+  if(!session){
+    subEl.textContent = "";
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "שמרו מקומות לפעם הבאה",
+      sub: "התחברו כדי לשמור יעדים שתרצו להגיע אליהם.", ctaId:"savedGuestCta", ctaLabel:"התחברות / הרשמה" });
+    const cta=$("savedGuestCta"); if(cta) cta.onclick = ()=> openAuthSheet("שמרו את הטיול הראשון שלכם");
+    return;
+  }
+  if(!myWishlist.length){
+    subEl.textContent = "";
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "עוד לא שמרתם מקומות",
+      sub: "סמנו בלב כל מקום שתרצו להגיע אליו, והוא יחכה לכם כאן.", ctaId:"savedEmptyCta", ctaLabel:"גלו מקומות" });
+    const cta=$("savedEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/home");
+    return;
+  }
+  loadWishlistFriendVisits();
+  subEl.textContent = myWishlist.length+" מקומות מחכים לכם";
+  const sorted = userLoc
+    ? myWishlist.slice().sort((a,b)=>{
+        const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
+        return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
+      })
+    : myWishlist;
+  listEl.innerHTML = sorted.map(id=>{
+    const l = lmById[id]; if(!l) return "";
+    const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
+    return placeCardHtml(l, { extra: ctx });
+  }).join("");
+  listEl.querySelectorAll(".mini-card").forEach(elm=> elm.onclick = ()=> goToDestination(elm.dataset.id));
+  wireMiniCardKeydown(listEl);
 }
 function openCollectionSheet(id){
   const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
@@ -3433,7 +3495,7 @@ function loadWishlistFriendVisits(){
       const counts = {};
       data.forEach(v=>{ counts[v.landmark_id] = (counts[v.landmark_id]||0)+1; });
       wishlistFriendVisits = counts;
-      if(profileListTab==="wishlist") renderProfile();
+      renderSaved();   // רשימת השמורים עברה למסך משלה - שם צריכות להופיע שורות "חברים ביקרו כאן"
     });
   });
 }
@@ -3674,25 +3736,6 @@ function renderProfile(){
           metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
           points: v.points_awarded, done: true,
         });
-      }).join("");
-    }
-  } else if(profileListTab==="wishlist"){
-    if(!myWishlist.length){
-      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "רשימת המשאלות ריקה",
-        sub: "שמרו מקומות שתרצו לכבוש בטיול הבא.", ctaId: "emptyWishlistCta", ctaLabel: "גלו מקומות" });
-      $("emptyWishlistCta").onclick = ()=> navigate("#/map");
-    } else {
-      loadWishlistFriendVisits();
-      const sortedWishlist = userLoc
-        ? myWishlist.slice().sort((a,b)=>{
-            const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
-            return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
-          })
-        : myWishlist;
-      listEl.innerHTML = sortedWishlist.map(id=>{
-        const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
-        const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
-        return placeCardHtml(l, { extra: ctx });
       }).join("");
     }
   } else {
