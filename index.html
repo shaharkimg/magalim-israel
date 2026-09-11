@@ -26,11 +26,19 @@
 <style>
 :root{
   --bg:#F7F5EF; --bg-elevated:#ECEDE8; --surface:#FFFFFF; --text:#202622; --text-muted:#6F7772; --border:#E4E1D8;
-  --accent:#176B5B; --accent-strong:#125548; --accent-ink:#FFFFFF; --accent-light:#E5F0EC;
-  --teal:#4D91A8; --teal-ink:#FFFFFF; --success:#3E8A5A; --warn:#C96F4A; --danger:#B3432E; --shadow:rgba(24,39,32,0.12);
+  /* Brand design tokens - derived from logo.png (forest-green mountains, water/sky teal, sun gold).
+     This is the single place to re-brand the app; --accent/--teal/etc below just alias these so the
+     ~150 existing call sites across the file don't need to change. */
+  --color-primary:#1E7A50; --color-primary-dark:#145C3C; --color-primary-light:#E5F0EC; --color-primary-ink:#FFFFFF;
+  --color-secondary:#2D838C; --color-secondary-light:#E3F1F2; --color-secondary-ink:#FFFFFF;
+  --color-accent:#9E6F2E; --color-accent-light:#FBEAD1;
+  --color-background:var(--bg); --color-surface:var(--surface); --color-text:var(--text); --color-text-secondary:var(--text-muted); --color-border:var(--border);
+  --accent:var(--color-primary); --accent-strong:var(--color-primary-dark); --accent-ink:var(--color-primary-ink); --accent-light:var(--color-primary-light);
+  --teal:var(--color-secondary); --teal-ink:var(--color-secondary-ink);
+  --success:#3E8A5A; --warn:#C96F4A; --danger:#B3432E; --shadow:rgba(24,39,32,0.12);
   --sand:#E8C98D; --terracotta:#C96F4A;
   --map-land:#EEE9DA; --map-land-2:#E3DCC6; --map-outline:#C9BF9E; --map-water:#8FC0CE; --sheet-scrim:rgba(20,26,22,0.45);
-  --cat-nature:#176B5B;--cat-mountains:#8C5A3C;--cat-water:#4D91A8;--cat-heritage:#C96F4A;
+  --cat-nature:var(--color-primary);--cat-mountains:#8C5A3C;--cat-water:var(--color-secondary);--cat-heritage:var(--terracotta);
   --cat-archaeology:#B08A3E;--cat-viewpoints:#D9AE5E;--cat-religious:#7A6A9C;--cat-parks:#3E8B6B;
   --cat-reserves:#2F7A62;--cat-urban:#6F7772;
   --teal-gradient-from:var(--accent); --teal-gradient-to:var(--teal);
@@ -42,11 +50,16 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#171E1A; --bg-elevated:#212822; --surface:#242D27; --text:#F1F3EE; --text-muted:#A9B3AC; --border:#374039;
-    --accent:#42AC8E; --accent-strong:#5FC5A6; --accent-ink:#0B211B; --accent-light:#1D3A32;
-    --teal:#6FADC2; --teal-ink:#0B2027; --success:#5FB37E; --warn:#E3906A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.45);
+    --color-primary:#4CBB88; --color-primary-dark:#63CC9D; --color-primary-light:#1D3A32; --color-primary-ink:#0B211B;
+    --color-secondary:#4D9EA6; --color-secondary-light:#1D3436; --color-secondary-ink:#0B2027;
+    --color-accent:#B08447; --color-accent-light:#3A2E1C;
+    --color-background:var(--bg); --color-surface:var(--surface); --color-text:var(--text); --color-text-secondary:var(--text-muted); --color-border:var(--border);
+    --accent:var(--color-primary); --accent-strong:var(--color-primary-dark); --accent-ink:var(--color-primary-ink); --accent-light:var(--color-primary-light);
+    --teal:var(--color-secondary); --teal-ink:var(--color-secondary-ink);
+    --success:#5FB37E; --warn:#E3906A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.45);
     --sand:#E0BC7B; --terracotta:#DB8A67;
     --map-land:#26302A; --map-land-2:#2C372F; --map-outline:#4A5A4F; --map-water:#2E5C68; --sheet-scrim:rgba(6,10,8,0.6);
-    --cat-nature:#42AC8E;--cat-mountains:#A87A56;--cat-water:#6FADC2;--cat-heritage:#DB8A67;
+    --cat-nature:var(--color-primary);--cat-mountains:#A87A56;--cat-water:var(--color-secondary);--cat-heritage:var(--terracotta);
     --cat-archaeology:#C7A25E;--cat-viewpoints:#E0BC7B;--cat-religious:#9C8CC0;--cat-parks:#4FA07E;
     --cat-reserves:#3F9276;--cat-urban:#A9B3AC;
     --teal-gradient-from:#1E7168; --teal-gradient-to:#0B3733;
@@ -56,11 +69,16 @@
 }
 :root[data-theme="dark"]{
   --bg:#171E1A; --bg-elevated:#212822; --surface:#242D27; --text:#F1F3EE; --text-muted:#A9B3AC; --border:#374039;
-  --accent:#42AC8E; --accent-strong:#5FC5A6; --accent-ink:#0B211B; --accent-light:#1D3A32;
-  --teal:#6FADC2; --teal-ink:#0B2027; --success:#5FB37E; --warn:#E3906A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.45);
+  --color-primary:#4CBB88; --color-primary-dark:#63CC9D; --color-primary-light:#1D3A32; --color-primary-ink:#0B211B;
+  --color-secondary:#4D9EA6; --color-secondary-light:#1D3436; --color-secondary-ink:#0B2027;
+  --color-accent:#B08447; --color-accent-light:#3A2E1C;
+  --color-background:var(--bg); --color-surface:var(--surface); --color-text:var(--text); --color-text-secondary:var(--text-muted); --color-border:var(--border);
+  --accent:var(--color-primary); --accent-strong:var(--color-primary-dark); --accent-ink:var(--color-primary-ink); --accent-light:var(--color-primary-light);
+  --teal:var(--color-secondary); --teal-ink:var(--color-secondary-ink);
+  --success:#5FB37E; --warn:#E3906A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.45);
   --sand:#E0BC7B; --terracotta:#DB8A67;
   --map-land:#26302A; --map-land-2:#2C372F; --map-outline:#4A5A4F; --map-water:#2E5C68; --sheet-scrim:rgba(6,10,8,0.6);
-  --cat-nature:#42AC8E;--cat-mountains:#A87A56;--cat-water:#6FADC2;--cat-heritage:#DB8A67;
+  --cat-nature:var(--color-primary);--cat-mountains:#A87A56;--cat-water:var(--color-secondary);--cat-heritage:var(--terracotta);
   --cat-archaeology:#C7A25E;--cat-viewpoints:#E0BC7B;--cat-religious:#9C8CC0;--cat-parks:#4FA07E;
   --cat-reserves:#3F9276;--cat-urban:#A9B3AC;
   --teal-gradient-from:#1E7168; --teal-gradient-to:#0B3733;
@@ -137,16 +155,24 @@ button{font-family:inherit;}
 /* גריד 3-עמודות כדי שהלוגו יתמרכז באמת ביחס לכל הכותרת, לא רק ביחס לתוכן שלצידו - הצד השני
    (topbar-side-end) משמר את אותה קבוצת-כפתורים/פיל שהייתה קודם, רק עטופה יחד כך שהזחה קטנה
    (margin) על notifBellBtn מזיזה אותו בלי להשפיע על חלוקת-המרחב הכללית. */
-.topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:64px;padding:0 16px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;}
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:56px;padding:env(safe-area-inset-top) 16px 0;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;}
 .topbar-side{display:flex;align-items:center;gap:10px;}
 .topbar-side-start{justify-self:start;}
 .topbar-side-end{justify-self:end;}
 .brand-row{display:flex;align-items:center;justify-self:center;}
 .brand-mark{width:56px;height:56px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-card);padding:8px;box-sizing:border-box;}
 .brand-mark img{width:100%;height:100%;object-fit:contain;display:block;border-radius:8px;}
+/* NavigationLogo (header-only) - quiet brand mark: no card/shadow/border, sits directly on the
+   topbar background so it reads as branding, not as a pasted app-icon sticker. .brand-mark (above)
+   stays reserved for App Icon / splash / welcome-screen contexts where the logo should carry more
+   visual weight. FALLBACK NOTE: logo.png is a flat square illustration with no transparent cutout
+   of just the mark, so this still renders that square, just small and uncarded - swap the img src
+   below for a transparent mark-only asset when one exists; no other markup/CSS changes needed. */
+.nav-logo{width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex:none;}
+.nav-logo img{width:100%;height:100%;object-fit:contain;display:block;}
 #notifBellBtn{margin-left:8px;}
 .stat-pill{display:flex;align-items:center;gap:7px;color:var(--text-muted);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums;}
-.stat-pill b{color:var(--text);font-weight:700;}
+.stat-pill b{color:var(--color-accent);font-weight:700;}
 .stat-pill .flame{color:var(--terracotta);font-size:12px;}
 
 .view{display:none;flex:1;min-height:0;flex-direction:column;}
@@ -263,8 +289,8 @@ button{font-family:inherit;}
 .chip{border:1px solid transparent;background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .12s,border-color .12s,color .12s,transform .12s;}
 .chip:active{transform:scale(.94);}
 .chip .sw{width:8px;height:8px;border-radius:50%;flex:none;}
-.chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
-.chip.active.teal{background:var(--teal);border-color:var(--teal);color:var(--teal-ink);}
+.chip.active{background:var(--color-primary-light);border-color:var(--color-primary);color:var(--color-primary);}
+.chip.active.teal{background:var(--color-secondary-light);border-color:var(--color-secondary);color:var(--color-secondary);}
 .sheet-actions{display:flex;gap:10px;padding:0 18px 18px;border-top:1px solid var(--border);margin-top:4px;padding-top:14px;}
 .range-row{display:flex;align-items:center;gap:10px;}
 .range-row input[type=range]{flex:1;accent-color:var(--accent);}
@@ -865,7 +891,7 @@ input[type=file]{display:none;}
   <div class="topbar hidden" id="topbar">
     <div class="topbar-side topbar-side-start"></div>
     <div class="brand-row">
-      <div class="brand-mark"><img src="./logo.png" alt="מגלים את ישראל"></div>
+      <div class="nav-logo"><img src="./logo.png" alt="מגלים את ישראל"></div>
     </div>
     <div class="topbar-side topbar-side-end">
       <button class="icon-btn hidden" id="notifBellBtn" aria-label="התראות" title="התראות" style="position:relative;flex:none;">
