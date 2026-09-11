@@ -4108,6 +4108,15 @@ async function renderGroupPanel(){
         <div class="lb-pts">${r.xp.toLocaleString()}</div></div>`;
     }).join("") : '<div class="empty-state">אין עדיין נתונים.</div>';
 
+    // §11 - hero משותף: פנים החברים, כמה נכבש יחד, ומה היעד הבא. מחושב מאותם נתונים
+    // שכבר נטענו למעלה (members/visits/xpByMember) - בלי שאילתה נוספת.
+    const groupName = (myGroups.find(g=>g.id===activeGroupId) || {}).name || "הקבוצה";
+    const facePile = statRows.slice(0,5).map(r=>
+      `<div class="face" style="background:${stringColor(r.name)}">${avatarInner(r.name, r.avatarUrl)}</div>`).join("")
+      + (statRows.length>5 ? `<div class="face more">+${statRows.length-5}</div>` : "");
+    const groupXp = statRows.reduce((sum,r)=>sum+r.xp, 0);
+    const groupPlaces = new Set(visits.map(v=>v.landmark_id)).size;
+    const groupRegions = new Set(visits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean)).size;
     const combinedVisitedIds = new Set(visits.map(v=>v.landmark_id));
     let chosenChallenge = null, chProgress = 0;
     for(const ch of CHALLENGES){
@@ -4128,6 +4137,27 @@ async function renderGroupPanel(){
     } else {
       $("groupChallengeCard").innerHTML = '<div class="empty-state">🎉 הקבוצה השלימה את כל האתגרים הזמינים!</div>';
     }
+
+    $("groupHero").innerHTML = `<div class="group-hero">
+      <div class="face-pile">${facePile}</div>
+      <div class="group-hero-title">${escapeHtml(groupName)}</div>
+      <div class="group-hero-sub">${groupPlaces} מקומות נכבשו יחד · ${groupXp.toLocaleString()} נקודות · ${groupRegions} אזורים</div>
+      ${chosenChallenge ? `<div class="group-hero-next">${uiIcon("compass",17)}<span>היעד הבא: ${escapeHtml(chosenChallenge.title)} — ${chProgress} מתוך ${chosenChallenge.target}</span></div>` : ""}
+    </div>`;
+
+    // רצועת-פעילות קצרה ("שקד כבשה את נחל השופט") מעל פיד-התמונות המלא
+    const recentActivity = visits.slice()
+      .sort((a,b)=> new Date(b.visited_at) - new Date(a.visited_at)).slice(0,6);
+    $("groupActivityStrip").innerHTML = recentActivity.length ? recentActivity.map(v=>{
+      const lm = lmById[v.landmark_id];
+      const who = nameById[v.user_id] || "מטייל/ת";
+      return `<div class="activity-row">
+        <div class="activity-avatar" style="background:${stringColor(who)}">${avatarInner(who, avatarById[v.user_id])}</div>
+        <div class="activity-text"><b>${who}</b> כבש/ה את ${lm ? escapeHtml(lm.name) : "יעד"}</div>
+        <div class="activity-time">${timeAgo(v.visited_at)}</div>
+      </div>`;
+    }).join("") : emptyStateHtml({ icon: uiIcon("flame",26), title: "עוד לא קרה כלום כאן",
+        sub: "הכיבוש הראשון של הקבוצה מחכה לכם." });
 
     $("groupBadgeGrid").innerHTML = BADGES.map(b=>{
       const count = memberIds.filter(id=> b.current(byMember[id])>=b.target(byMember[id])).length;
