@@ -568,6 +568,21 @@ button{font-family:inherit;}
 .journey-bar > i{background:var(--sand);}
 .personal-map-wrap{background:var(--map-water);border-radius:var(--radius-card);overflow:hidden;border:1px solid var(--border);}
 .personal-map-wrap canvas{width:100%;height:auto;display:block;}
+/* Trip Mode (§14) */
+.trip-mode{position:fixed;inset:0;z-index:1240;background:var(--journey-bg);color:#fff;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + var(--space-4)) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));}
+.trip-top{display:flex;align-items:center;justify-content:space-between;flex:none;}
+.trip-kicker{font-size:var(--font-caption);font-weight:800;color:rgba(255,255,255,.65);letter-spacing:.04em;}
+.trip-close{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:999px;padding:var(--space-2) var(--space-4);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.trip-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-2);}
+.trip-name{font-family:"Suez One","Heebo",serif;font-size:30px;line-height:1.2;}
+.trip-elapsed{font-size:var(--font-body);color:rgba(255,255,255,.7);}
+.trip-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);flex:none;}
+.trip-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);min-height:96px;border:none;border-radius:var(--radius-card);background:rgba(255,255,255,.12);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s;}
+.trip-action:active{transform:scale(.97);}
+.trip-action-primary{background:var(--color-primary);grid-column:1 / -1;}
+.trip-action .ui-ic{opacity:1;}
+.trip-resume{position:fixed;left:var(--space-4);right:var(--space-4);bottom:calc(88px + env(safe-area-inset-bottom));z-index:900;background:var(--journey-bg);color:#fff;border:none;border-radius:999px;padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-elevated);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
+
 /* אתגר מבוסס-זמן (§9) - דחיפות אמיתית, בלי להפוך את המסך למשחק */
 .challenge-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);box-shadow:var(--shadow-card);}
 .challenge-strip-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);}
@@ -886,8 +901,8 @@ input[type=file]{display:none;}
             <circle cx="52" cy="128" r="7" fill="var(--color-accent)"/>
           </svg>
         </div>
-        <h2>גלו את ישראל</h2>
-        <p>מפה אינטראקטיבית עם מאות יעדים — טבע, מורשת ונופים בכל רחבי הארץ</p>
+        <h2>כמה מישראל כבר גיליתם?</h2>
+        <p>הפכו את הטיולים שלכם למסע אחד גדול.</p>
       </div>
       <div class="onboarding-slide" data-step="1">
         <div class="onboarding-art">
@@ -902,8 +917,8 @@ input[type=file]{display:none;}
             <path d="M44 74l2.3 6.4 6.4 2.3-6.4 2.3L44 91.4l-2.3-6.4-6.4-2.3 6.4-2.3L44 74Z" fill="var(--color-accent)" opacity=".65"/>
           </svg>
         </div>
-        <h2>כבשו ואספו נקודות</h2>
-        <p>סמנו צ'ק-אין ביעד שהגעתם אליו, צברו נקודות ותגים, ועלו ברמות</p>
+        <h2>נמצא לכם מקום שמתאים בדיוק להיום</h2>
+        <p>זמן, מרחק, קושי ומצב רוח — אתם בוחרים.</p>
       </div>
       <div class="onboarding-slide" data-step="2">
         <div class="onboarding-art">
@@ -918,8 +933,8 @@ input[type=file]{display:none;}
             <path d="M122 104c2-12 8-19 16-19s14 7 16 19Z" fill="var(--color-accent)"/>
           </svg>
         </div>
-        <h2>המסע טוב יותר ביחד</h2>
-        <p>עקבו אחרי חברים, הצטרפו לקבוצות ותראו מה הם מגלים</p>
+        <h2>כל טיול מקדם אתכם</h2>
+        <p>כבשו מקומות, אספו תגים וגלו אזורים חדשים.</p>
       </div>
     </div>
     <div class="onboarding-dots" id="onboardingDots">
@@ -1154,7 +1169,7 @@ input[type=file]{display:none;}
 
   <!-- Home (§1): לא dashboard - מסך אישי שמוביל לפעולה אחת. מרכיב את הליבה הקיימת
        (מנוע ההמלצות, אחוז הגילוי, אזורים, פיד חברים) לכדי לולאה: איפה אני → מה הבא → יאללה. -->
-  <div class="view" id="view-home">
+  <div class="view active hidden" id="view-home">
     <div class="scroll-area">
       <div class="home-hero">
         <div class="home-hero-top">
@@ -1188,7 +1203,7 @@ input[type=file]{display:none;}
     </div>
   </div>
 
-  <div class="view active hidden" id="view-map">
+  <div class="view hidden" id="view-map">
     <div class="map-wrap" id="mapWrap">
       <div id="mapSvg"></div>
       <div class="map-top-bar">
@@ -1410,6 +1425,26 @@ input[type=file]{display:none;}
       </div>
     </div>
   </div>
+
+  <!-- Trip Mode (§14): מסך מינימלי לשימוש בחוץ - מעט טקסט, מטרות-מגע גדולות, בלי ניווט מסיח -->
+  <div class="trip-mode hidden" id="tripMode">
+    <div class="trip-top">
+      <button class="trip-close" id="tripEndBtn" type="button">סיימתי</button>
+      <div class="trip-kicker">אתם בטיול</div>
+    </div>
+    <div class="trip-center">
+      <div class="trip-name" id="tripName"></div>
+      <div class="trip-elapsed" id="tripElapsed"></div>
+    </div>
+    <div class="trip-actions">
+      <button class="trip-action trip-action-primary" id="tripCheckinBtn" type="button"><span class="trip-action-ic" id="tripCheckinIc"></span><span>כבשתי</span></button>
+      <button class="trip-action" id="tripNavBtn" type="button"><span class="trip-action-ic" id="tripNavIc"></span><span>ניווט</span></button>
+      <button class="trip-action" id="tripInfoBtn" type="button"><span class="trip-action-ic" id="tripInfoIc"></span><span>מידע</span></button>
+    </div>
+  </div>
+
+  <!-- רצועת-חזרה: כשיש טיול פעיל והמשתמש יצא מהמסך, אפשר לחזור אליו בהקשה -->
+  <button class="trip-resume hidden" id="tripResume" type="button"></button>
 
   <div class="bottom-nav hidden" id="bottomNav">
     <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>בית</span></button>

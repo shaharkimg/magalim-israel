@@ -781,7 +781,7 @@ function wireWazeButton(btn, l){
   btn.innerHTML = WAZE_ICON_SVG;
   btn.setAttribute("aria-label", label);
   btn.title = label;
-  btn.onclick = (e)=>{ e.stopPropagation(); openWazeNavigation(l.lat, l.lon, l.name); };
+  btn.onclick = (e)=>{ e.stopPropagation(); track("navigation_started", { landmark_id: l.id }); openWazeNavigation(l.lat, l.lon, l.name); };
 }
 function friendlyAuthError(msg){
   if(!msg) return "משהו השתבש. נסו שוב.";
@@ -974,7 +974,7 @@ function openAuthSheet(message, onSuccess){
   showAuthTabs();
   if(!authSheetHistoryPushed){
     authSheetHistoryPushed = true;
-    history.pushState({magalimAuthSheet:true}, "", location.hash || "#/map");
+    history.pushState({magalimAuthSheet:true}, "", location.hash || "#/home");
   }
 }
 function closeAuthSheet(){
@@ -1028,11 +1028,11 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
 let navStack = [];
 function navigate(hash, push){
   if(push===undefined) push = true;
-  if(push){ navStack.push(location.hash || "#/map"); history.pushState({magalim:true}, "", hash); }
+  if(push){ navStack.push(location.hash || "#/home"); history.pushState({magalim:true}, "", hash); }
   else history.replaceState({magalim:true}, "", hash);
   applyRoute();
 }
-function goBack(){ navigate(navStack.pop() || "#/map", false); }
+function goBack(){ navigate(navStack.pop() || "#/home", false); }
 function goToDestination(id){ navigate("#/destination/"+encodeURIComponent(id)); }
 // מקלדת מובייל: כשמקלידים לתוך שדה בתוך sheet, מוודאים שהוא (וה-CTA שמתחתיו) נשארים
 // בתצוגה כשהמקלדת נפתחת ומצמצמת את הגובה הזמין - 100dvh כבר עוזר חלקית, זו תוספת קלה.
@@ -1093,7 +1093,7 @@ const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen"
 const SIMPLE_OVERLAY_IDS = Object.values(SIMPLE_OVERLAY_ROUTES);
 function applyRoute(){
   if(!booted) return;
-  const hash = location.hash || "#/map";
+  const hash = location.hash || "#/home";
   const destMatch = hash.match(/^#\/destination\/(.+)$/);
   if(destMatch){
     const id = decodeURIComponent(destMatch[1]);
@@ -1138,13 +1138,14 @@ function applyRoute(){
   closeSheet("detailSheet","detailScrim");
   closeSheet("inviteSheet","inviteScrim");
   closePreview();
-  const view = hash.replace(/^#\//,"").split("/")[0] || "map";
+  const view = hash.replace(/^#\//,"").split("/")[0] || "home";
   switchView(view);
 }
 
 /* ============ BOOT / DATA LOAD ============ */
 let booted = false, publicBootPromise = null;
 async function bootPublic(){
+  track("session_started", {});
   try{
     const { data: lms, error: lmErr } = await supabase.from("landmarks").select("*").order("name");
     if(lmErr) throw lmErr;
@@ -1172,7 +1173,7 @@ async function bootPublic(){
     $("topbar").classList.remove("hidden");
     $("bottomNav").classList.remove("hidden");
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("hidden"));
-    $("view-map").classList.add("active");
+    $("view-home").classList.add("active");   // applyRoute() מיד אחר כך יחליף לפי ה-hash אם צריך
     wireStaticUI();
     subscribeRealtime();
     booted = true;
@@ -1195,6 +1196,7 @@ async function bootUserData(){
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
     myConquests = []; myBonusGrants = [];
+    if(!activeTrip){ activeTrip = loadActiveTrip(); if(activeTrip) minimiseTrip(); }
     refreshHeader(); renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
@@ -1764,6 +1766,89 @@ function getRecommendedDestination(){
   if(!rec) return null;
   return { landmark: rec.landmark, reason: rec.reasons.slice(0,2).join(" · ") || tierForDb(rec.landmark.difficulty).label };
 }
+/* ============ TRIP MODE (§14) ============ */
+// מסך-טיול מינימלי לשימוש בחוץ: מעט טקסט, ארבע מטרות-מגע גדולות, בלי ניווט מסיח.
+// המצב נשמר ב-localStorage כדי שסגירת הדפדפן/רענון באמצע טיול לא יאבד אותו.
+const TRIP_KEY = "magalim-active-trip-v1";
+let activeTrip = null, tripTimer = null;
+function loadActiveTrip(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(TRIP_KEY)||"null");
+    // טיול נשכח (מעל 12 שעות) לא נשאר תקוע על המסך לנצח
+    if(raw && Date.now()-raw.startedAt < 12*3600*1000 && lmById[raw.landmarkId]) return raw;
+  }catch(e){}
+  return null;
+}
+function saveActiveTrip(){
+  try{
+    if(activeTrip) localStorage.setItem(TRIP_KEY, JSON.stringify(activeTrip));
+    else localStorage.removeItem(TRIP_KEY);
+  }catch(e){}
+}
+function tripElapsedText(){
+  if(!activeTrip) return "";
+  const mins = Math.max(0, Math.round((Date.now()-activeTrip.startedAt)/60000));
+  if(mins < 1) return "יצאתם ממש עכשיו";
+  if(mins < 60) return "התחלתם לפני "+mins+" דק׳";
+  const h = Math.floor(mins/60), m = mins%60;
+  return "התחלתם לפני "+h+" שע׳"+(m?" ו-"+m+" דק׳":"");
+}
+function startTrip(landmarkId){
+  if(!lmById[landmarkId]) return;
+  activeTrip = { landmarkId, startedAt: Date.now() };
+  saveActiveTrip();
+  track("trip_started", { landmark_id: landmarkId });
+  closeSheet("detailSheet","detailScrim");
+  renderTripMode();
+}
+function endTrip(silent){
+  if(!activeTrip) return;
+  if(!silent) track("trip_ended", { landmark_id: activeTrip.landmarkId,
+    minutes: Math.round((Date.now()-activeTrip.startedAt)/60000) });
+  activeTrip = null;
+  saveActiveTrip();
+  renderTripMode();
+}
+function renderTripMode(){
+  const el = $("tripMode"), resume = $("tripResume");
+  if(!el) return;
+  if(tripTimer){ clearInterval(tripTimer); tripTimer = null; }
+  if(!activeTrip){ el.classList.add("hidden"); resume.classList.add("hidden"); return; }
+  const l = lmById[activeTrip.landmarkId];
+  if(!l){ endTrip(true); return; }
+  $("tripName").textContent = l.name;
+  $("tripElapsed").textContent = tripElapsedText();
+  $("tripCheckinIc").innerHTML = uiIcon("trophy",26);
+  $("tripNavIc").innerHTML = uiIcon("region",24);
+  $("tripInfoIc").innerHTML = uiIcon("duration",24);
+  el.classList.remove("hidden");
+  resume.classList.add("hidden");
+  tripTimer = setInterval(()=>{
+    if(!activeTrip || el.classList.contains("hidden")) return;
+    $("tripElapsed").textContent = tripElapsedText();
+  }, 30000);
+}
+function minimiseTrip(){
+  if(!activeTrip) return;
+  const l = lmById[activeTrip.landmarkId];
+  $("tripMode").classList.add("hidden");
+  $("tripResume").innerHTML = uiIcon("compass",17)+"<span>חזרה לטיול ב"+(l?l.name:"")+"</span>";
+  $("tripResume").classList.remove("hidden");
+}
+function wireTripMode(){
+  const l = ()=> activeTrip ? lmById[activeTrip.landmarkId] : null;
+  $("tripEndBtn").onclick = ()=> endTrip();
+  $("tripResume").onclick = ()=> renderTripMode();
+  $("tripCheckinBtn").onclick = ()=>{
+    const lm = l(); if(!lm) return;
+    minimiseTrip();
+    openDetail(lm.id);
+    setTimeout(()=>{ const b = $("checkinBtn"); if(b && !b.disabled) b.click(); }, 350);
+  };
+  $("tripNavBtn").onclick = ()=>{ const lm = l(); if(lm) openWazeNavigation(lm.lat, lm.lon, lm.name); };
+  $("tripInfoBtn").onclick = ()=>{ const lm = l(); if(!lm) return; minimiseTrip(); openDetail(lm.id); };
+}
+
 /* ============ TIME-BOXED CHALLENGE (§9) ============ */
 // אתגר חודשי מחושב מהנתונים האמיתיים (myVisits.visited_at) - בלי טבלה חדשה ובלי נתונים
 // מומצאים. היעד קבוע (5 מקומות חדשים בחודש) והדחיפות אמיתית: ימים שנותרו בחודש.
@@ -1867,7 +1952,9 @@ function renderHome(){
   const goalEl = $("homeNextGoal");
   if(rec){
     goalEl.innerHTML = nextGoalCardHtml(rec);
-    goalEl.querySelector("[data-go]").onclick = (e)=>{ e.stopPropagation(); goToDestination(rec.landmark.id); };
+    goalEl.querySelector("[data-go]").onclick = (e)=>{ e.stopPropagation();
+      track("next_destination_clicked", { landmark_id: rec.landmark.id, match_pct: rec.matchPct||0 });
+      goToDestination(rec.landmark.id); };
     goalEl.querySelector(".next-goal").onclick = ()=> goToDestination(rec.landmark.id);
     $("homeMoreOptions").onclick = (e)=>{ e.stopPropagation(); openTodaySheet(); };
     track("recommendation_generated", { source:"home", match_pct: rec.matchPct||0 });
@@ -1980,6 +2067,7 @@ function renderWizIntro(){
   return true;
 }
 function openTodaySheet(){
+  track("discovery_started", {});
   openSheet("todaySheet","todayScrim");
   renderWizIntro();
 }
@@ -2251,6 +2339,7 @@ function renderMapSidePanel(){
 }
 
 function wireStaticUI(){
+  wireTripMode();
   initLeafletMap();
   $("onboardingSkip").onclick = closeOnboarding;
   $("onboardingNext").onclick = ()=>{
@@ -2841,6 +2930,7 @@ function refreshOpenDetailIfShowing(id){
   if(location.hash === "#/destination/"+encodeURIComponent(id)) openDetail(id);
 }
 async function toggleWishlist(id){
+  track("destination_saved", { landmark_id: id, saved: !myWishlist.includes(id) });
   let justAdded = false;
   if(myWishlist.includes(id)){
     myWishlist = myWishlist.filter(x=>x!==id);
@@ -2914,10 +3004,13 @@ function openDetail(id){
       <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
+    ${visitedEntry ? "" : `<button class="btn btn-secondary btn-block" id="startTripBtn" style="margin-top:var(--space-2);">יוצאים לדרך</button>`}
     <div id="checkinFlow"></div>
     <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
+  const startTripBtn = $("startTripBtn");
+  if(startTripBtn) startTripBtn.onclick = ()=> startTrip(l.id);
   $("detailShareBtn").onclick = ()=>{
     const url = `${location.origin}${location.pathname}#/destination/${encodeURIComponent(id)}`;
     shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים את ישראל!`);
@@ -2946,6 +3039,7 @@ function openDetail(id){
   };
   setSheetSnap($("detailSheet"), "mid");
   openSheet("detailSheet","detailScrim");
+  track("destination_viewed", { landmark_id: id, points: pointsForLandmark(l) });
   renderFieldReports(id, l);
 }
 
@@ -3187,6 +3281,7 @@ async function confirmCheckin(l){
     }
     if(error) throw error;
     myVisits.push(data);
+    if(activeTrip && activeTrip.landmarkId===l.id) endTrip(true);
     track("checkin_completed", { landmark_id: l.id });
     submitFieldReport(l.id);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
@@ -3573,6 +3668,7 @@ function renderSaved(){
 function openCollectionSheet(id){
   const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
   const { done, total } = collectionProgress(c);
+  track("collection_progressed", { collection: id, done, total });
   const subtitle = (c.description||"")+"  ·  "+done+"/"+total+" הושלמו";
   renderPlaceListSheet(c.icon+" "+c.label, collectionLandmarks(c), subtitle);
 }
