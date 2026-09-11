@@ -974,7 +974,7 @@ function openAuthSheet(message, onSuccess){
   showAuthTabs();
   if(!authSheetHistoryPushed){
     authSheetHistoryPushed = true;
-    history.pushState({magalimAuthSheet:true}, "", location.hash || "#/map");
+    history.pushState({magalimAuthSheet:true}, "", location.hash || "#/home");
   }
 }
 function closeAuthSheet(){
@@ -1028,11 +1028,11 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
 let navStack = [];
 function navigate(hash, push){
   if(push===undefined) push = true;
-  if(push){ navStack.push(location.hash || "#/map"); history.pushState({magalim:true}, "", hash); }
+  if(push){ navStack.push(location.hash || "#/home"); history.pushState({magalim:true}, "", hash); }
   else history.replaceState({magalim:true}, "", hash);
   applyRoute();
 }
-function goBack(){ navigate(navStack.pop() || "#/map", false); }
+function goBack(){ navigate(navStack.pop() || "#/home", false); }
 function goToDestination(id){ navigate("#/destination/"+encodeURIComponent(id)); }
 // מקלדת מובייל: כשמקלידים לתוך שדה בתוך sheet, מוודאים שהוא (וה-CTA שמתחתיו) נשארים
 // בתצוגה כשהמקלדת נפתחת ומצמצמת את הגובה הזמין - 100dvh כבר עוזר חלקית, זו תוספת קלה.
@@ -1093,7 +1093,7 @@ const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen"
 const SIMPLE_OVERLAY_IDS = Object.values(SIMPLE_OVERLAY_ROUTES);
 function applyRoute(){
   if(!booted) return;
-  const hash = location.hash || "#/map";
+  const hash = location.hash || "#/home";
   const destMatch = hash.match(/^#\/destination\/(.+)$/);
   if(destMatch){
     const id = decodeURIComponent(destMatch[1]);
@@ -1138,7 +1138,7 @@ function applyRoute(){
   closeSheet("detailSheet","detailScrim");
   closeSheet("inviteSheet","inviteScrim");
   closePreview();
-  const view = hash.replace(/^#\//,"").split("/")[0] || "map";
+  const view = hash.replace(/^#\//,"").split("/")[0] || "home";
   switchView(view);
 }
 
@@ -1173,7 +1173,7 @@ async function bootPublic(){
     $("topbar").classList.remove("hidden");
     $("bottomNav").classList.remove("hidden");
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("hidden"));
-    $("view-map").classList.add("active");
+    $("view-home").classList.add("active");   // applyRoute() מיד אחר כך יחליף לפי ה-hash אם צריך
     wireStaticUI();
     subscribeRealtime();
     booted = true;
