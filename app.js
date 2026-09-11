@@ -47,15 +47,24 @@ function maybeShowInstallBanner(){
   $("installBannerActionBtn").classList.toggle("hidden", !deferredInstallPrompt);
   el.classList.remove("hidden");
 }
+// כפתור התקנה קבוע בהגדרות (בנוסף לבאנר החד-פעמי למעלה) - כדי שמי שדחה את הבאנר פעם
+// אחת (magalim-install-dismissed נשמר לצמיתות) עדיין יוכל להתקין ביוזמתו מתי שירצה.
+function updateSettingsInstallRow(){
+  const row = $("installAppRow");
+  if(!row) return;
+  row.classList.toggle("hidden", isStandaloneDisplay() || (!deferredInstallPrompt && !isIOSSafariNotStandalone()));
+}
 window.addEventListener("beforeinstallprompt", (e)=>{
   e.preventDefault();
   deferredInstallPrompt = e;
   maybeShowInstallBanner();
+  updateSettingsInstallRow();
 });
 window.addEventListener("appinstalled", ()=>{
   deferredInstallPrompt = null;
   try{ localStorage.setItem("magalim-install-dismissed","1"); }catch(e){}
   $("installBanner")?.classList.add("hidden");
+  updateSettingsInstallRow();
   track("install_prompt_accepted");
 });
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
@@ -2008,6 +2017,7 @@ function wireStaticUI(){
   $("regionScrim").onclick = ()=> closeSheet("regionSheet","regionScrim");
   $("openSettingsBtn").onclick = ()=>{
     openSheet("settingsSheet","settingsScrim");
+    updateSettingsInstallRow();
     renderBlockedUsers();
     renderLocationPermStatus();
     const av = (myProfile && myProfile.activity_visibility) || "friends_groups";
@@ -2122,6 +2132,16 @@ function wireStaticUI(){
   $("installBannerDismissBtn").onclick = ()=>{
     $("installBanner").classList.add("hidden");
     try{ localStorage.setItem("magalim-install-dismissed","1"); }catch(e){}
+  };
+  $("settingsInstallBtn").onclick = async ()=>{
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{ await deferredInstallPrompt.userChoice; }catch(e){}
+      deferredInstallPrompt = null;
+      updateSettingsInstallRow();
+    } else if(isIOSSafariNotStandalone()){
+      toast('הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית"');
+    }
   };
   $("notifBellBtn").onclick = ()=> navigate("#/notifications");
   $("notificationsCloseBtn").onclick = goBack;
