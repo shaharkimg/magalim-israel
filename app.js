@@ -356,6 +356,67 @@ function catIconSvg(cat,size){
   return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="'+(stroke?"none":"currentColor")+'" stroke="'+(stroke?"currentColor":"none")+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">'+paths[cat]+"</svg>";
 }
 
+/* ============ UI ICON SET ============ */
+// משפחת-אייקונים אחת לכל הממשק (stroke, viewBox 24, stroke-width 1.8) - אותה שפה ויזואלית
+// כמו האייקונים שכבר מוטמעים ב-index.html (ניווט תחתון/הגדרות/חיפוש). מחליף emoji ששימשו
+// כאייקוני-ממשק; emoji נשארים רק היכן שהם חלק מהתוכן/gamification (תגים, חגיגות).
+const UI_ICON_PATHS = {
+  difficulty:'<path d="M7 4h6l1 7 4 3.5V20H6v-4l1-3V4Z"/><path d="M6 17h12"/>',
+  duration:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  water:'<path d="M12 3.5c2.6 3.9 5 6.9 5 10a5 5 0 0 1-10 0c0-3.1 2.4-6.1 5-10Z"/>',
+  points:'<path d="M12 3.5 14 9l5.5 2-5.5 2-2 5.5L10 13l-5.5-2L10 9l2-5.5Z"/>',
+  region:'<path d="M12 21s6.5-5.6 6.5-10.2A6.5 6.5 0 0 0 5.5 10.8C5.5 15.4 12 21 12 21Z"/><circle cx="12" cy="10.6" r="2.3"/>',
+  family:'<circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9.5" r="2"/><path d="M4 19c.6-3 2.4-4.6 4.5-4.6S12.4 16 13 19M14 19c.4-2.2 1.6-3.4 3-3.4S19.6 16.8 20 19"/>',
+  dog:'<path d="M5 10V6l3 2h8l3-2v4a4 4 0 0 1-1.5 3.1V19h-11v-5.9A4 4 0 0 1 5 10Z"/><path d="M10 15h4"/>',
+  heart:'<path d="M12 19.5S4.5 14.8 4.5 9.9A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7.5 1.9c0 4.9-7.5 9.6-7.5 9.6Z"/>',
+  check:'<path d="M5 12.5 10 17.5 19 7"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
+  compass:'<circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/>',
+  flame:'<path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/>',
+};
+function uiIcon(name, size){
+  const d = UI_ICON_PATHS[name];
+  if(!d) return "";
+  size = size || 16;
+  return '<svg class="ui-ic" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+d+'</svg>';
+}
+
+/* ============ SHARED PLACE CARD ============ */
+// רכיב-כרטיס אחד לכל המקומות שבהם מוצג יעד ברשימה (חיפוש / רשימת-משאלות / כבשתי /
+// היסטוריה / פאנל-צד בדסקטופ) - במקום 5 העתקים כמעט-זהים של אותו markup.
+// התמונה היא האלמנט המרכזי, והמידע המשני מוצג כאייקונים קטנים ולא כטקסט ארוך.
+function placeMetaHtml(l, opts){
+  opts = opts || {};
+  const tier = tierForDb(l.difficulty);
+  const bits = [];
+  if(opts.region !== false) bits.push('<span class="place-meta-item">'+uiIcon("region",13)+REGIONS[l.region]+'</span>');
+  bits.push('<span class="place-meta-item">'+uiIcon("difficulty",13)+tier.label+'</span>');
+  if(l.duration) bits.push('<span class="place-meta-item">'+uiIcon("duration",13)+l.duration+'</span>');
+  if(l.hasWater) bits.push('<span class="place-meta-item">'+uiIcon("water",13)+'מים</span>');
+  return '<div class="place-meta">'+bits.join("")+'</div>';
+}
+// points: מספר להצגה כ"+40", או null כדי להסתיר. done:true מציג "נכבש" במקום ניקוד עתידי.
+function placeCardHtml(l, opts){
+  opts = opts || {};
+  const cat = CATEGORIES[l.category];
+  const thumb = opts.thumb || (opts.photo
+    ? '<img src="'+opts.photo+'" loading="lazy" decoding="async" alt="'+l.name+'">'
+    : catIconSvg(cat.icon, 26));
+  const meta = opts.metaHtml != null ? opts.metaHtml : placeMetaHtml(l, opts);
+  const pts = opts.points == null ? tierForDb(l.difficulty).xp : opts.points;
+  const ptsHtml = opts.hidePoints ? "" : (opts.done
+    ? '<div class="place-pts done">'+uiIcon("check",13)+pts.toLocaleString()+'</div>'
+    : '<div class="place-pts">+'+pts.toLocaleString()+'</div>');
+  return '<div class="mini-card place-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
+    + '<div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
+    + '<div class="mini-info"><div class="name">'+l.name+'</div>'
+    + meta
+    + (opts.extra||"")
+    + '</div>'
+    + ptsHtml
+    + '</div>';
+}
+
 /* ============ RUNTIME STATE ============ */
 let session = null, myProfile = null;
 let LANDMARKS = [], lmById = {};
@@ -1737,7 +1798,11 @@ function openPreview(id){
     : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
-  $("destPreviewFacts").textContent = distText+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"");
+  const previewTier = tierForDb(l.difficulty);
+  $("destPreviewFacts").innerHTML = (distText ? '<span class="place-meta-item">'+distText.replace(/ · $/,"")+'</span>' : "")
+    + '<span class="place-meta-item">'+uiIcon("difficulty",13)+previewTier.label+'</span>'
+    + (l.duration ? '<span class="place-meta-item">'+uiIcon("duration",13)+l.duration+'</span>' : "")
+    + '<span class="place-pts">+'+previewTier.xp+'</span>';
   $("destPreviewWish").textContent = wished ? "❤️" : "🤍";
   wireWazeButton($("destPreviewNav"), l);
   $("destPreview").classList.add("open");
@@ -1810,10 +1875,11 @@ function renderDiscoveryCarousel(){
     const thumb = photoUrl
       ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">'
       : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,20).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+    const tier = tierForDb(l.difficulty);
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
-      + '<div class="discovery-card-thumb">'+thumb+'</div>'
+      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts">+'+tier.xp+'</span></div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
-      + '<div class="discovery-card-facts">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"")+'</div>'
+      + '<div class="discovery-card-facts">'+uiIcon("difficulty",12)+tier.label+(l.duration?'<span class="dot-sep"></span>'+uiIcon("duration",12)+l.duration:"")+'</div>'
       + '</div>';
   }).join("");
   el.querySelectorAll(".discovery-card").forEach(card=>{
@@ -1872,11 +1938,7 @@ function renderMapSidePanel(){
     const bounds = leafletMap.getBounds();
     const list = filteredLandmarks().filter(l=>bounds.contains([l.lat,l.lon])).slice(0,40);
     panel.innerHTML = '<div class="side-panel-head"><h3>יעדים באזור</h3></div><div class="side-list">' + list.map(l=>{
-      const cat = CATEGORIES[l.category];
-      const photoUrl = landmarkPhotos[l.id];
-      const thumb = photoUrl ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">' : catIconSvg(cat.icon,24);
-      return '<div class="mini-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
-        + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"")+'</div></div></div>';
+      return placeCardHtml(l, { photo: landmarkPhotos[l.id], region:false });
     }).join("") + '</div>';
     panel.querySelectorAll(".mini-card").forEach(card=>{
       const go = ()=>{
@@ -3302,9 +3364,7 @@ function searchLandmarks(query){
   }).slice(0,40);
 }
 function searchMiniCardHtml(l, subLine){
-  const cat = CATEGORIES[l.category];
-  return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-    <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${subLine}</div></div></div>`;
+  return placeCardHtml(l, { metaHtml: subLine ? `<div class="sub">${subLine}</div>` : undefined });
 }
 function wireMiniCardKeydown(container){
   container.querySelectorAll(".mini-card").forEach(card=>{
@@ -3404,10 +3464,12 @@ function renderProfile(){
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
         const l = lmById[v.landmark_id]; if(!l) return "";
         const cat = CATEGORIES[l.category];
-        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,24);
-        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${thumb}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div></div>
-          <div class="mini-pts">+${v.points_awarded}</div></div>`;
+        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,26);
+        return placeCardHtml(l, {
+          thumb,
+          metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
+          points: v.points_awarded, done: true,
+        });
       }).join("");
     }
   } else if(profileListTab==="wishlist"){
@@ -3425,9 +3487,7 @@ function renderProfile(){
       listEl.innerHTML = sortedWishlist.map(id=>{
         const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
         const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
-        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]}${l.duration?" · "+l.duration:""}</div>${ctx}</div>
-          <div class="mini-pts">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div></div>`;
+        return placeCardHtml(l, { extra: ctx });
       }).join("");
     }
   } else {
@@ -3436,11 +3496,7 @@ function renderProfile(){
       listEl.innerHTML = '<div class="empty-state"><div class="big">🕓</div>עדיין אין היסטוריה.<br>יעדים שתצפו בהם יופיעו כאן.<br><button class="btn btn-primary empty-cta" id="emptyHistoryCta">🗺️ גלו יעדים במפה</button></div>';
       $("emptyHistoryCta").onclick = ()=> navigate("#/map");
     } else {
-      listEl.innerHTML = recentlyViewed.map(l=>{
-        const cat = CATEGORIES[l.category];
-        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div></div></div>`;
-      }).join("");
+      listEl.innerHTML = recentlyViewed.map(l=> placeCardHtml(l)).join("");
     }
   }
   listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>goToDestination(el.dataset.id));
