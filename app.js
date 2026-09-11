@@ -1764,6 +1764,163 @@ function getRecommendedDestination(){
   if(!rec) return null;
   return { landmark: rec.landmark, reason: rec.reasons.slice(0,2).join(" · ") || tierForDb(rec.landmark.difficulty).label };
 }
+/* ============ TIME-BOXED CHALLENGE (§9) ============ */
+// אתגר חודשי מחושב מהנתונים האמיתיים (myVisits.visited_at) - בלי טבלה חדשה ובלי נתונים
+// מומצאים. היעד קבוע (5 מקומות חדשים בחודש) והדחיפות אמיתית: ימים שנותרו בחודש.
+const MONTHLY_CHALLENGE_TARGET = 5;
+const HE_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+function monthlyChallenge(){
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  const done = myVisits.filter(v=>{ const d=new Date(v.visited_at); return d>=monthStart && d<=now; }).length;
+  const daysLeft = Math.max(0, Math.ceil((monthEnd-now)/86400000));
+  return { target:MONTHLY_CHALLENGE_TARGET, done:Math.min(done,MONTHLY_CHALLENGE_TARGET), daysLeft,
+           monthName:HE_MONTHS[now.getMonth()], pct:Math.min(100,Math.round(done/MONTHLY_CHALLENGE_TARGET*100)),
+           complete: done>=MONTHLY_CHALLENGE_TARGET };
+}
+function monthlyChallengeHtml(){
+  const c = monthlyChallenge();
+  const days = c.daysLeft===0 ? "היום האחרון" : (c.daysLeft===1 ? "נשאר יום אחד" : "נשארו "+c.daysLeft+" ימים");
+  return `<div class="challenge-strip${c.complete?" done":""}">
+    <div class="challenge-strip-head"><div class="challenge-strip-title">אתגר ${c.monthName}</div>
+      <div class="challenge-strip-days">${c.complete ? "הושלם!" : days}</div></div>
+    <div class="challenge-strip-sub">${c.complete ? "השלמתם את האתגר החודשי — כל הכבוד" : "לגלות "+c.target+" מקומות חדשים"}</div>
+    <div class="bar"><i style="width:${c.pct}%"></i></div>
+    <div class="challenge-strip-foot"><span class="ltr">${c.done}/${c.target}</span></div>
+  </div>`;
+}
+
+/* ============ WEEKEND PLANNER (§12) ============ */
+function isWeekendWindow(){ const d=new Date().getDay(); return d===4||d===5||d===6; }
+const WEEKEND_PICKS = [
+  { key:"water", label:"מקום מים", icon:"water",      match:l=> l.category==="water" || l.hasWater },
+  { key:"trail", label:"מסלול",    icon:"difficulty", match:l=> ["nature","mountains","parks","reserves"].includes(l.category) },
+  { key:"view",  label:"תצפית",    icon:"region",     match:l=> l.category==="viewpoints" },
+];
+function weekendIdeas(){
+  const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+  const profile = travelProfile();
+  const salt = recommendationSeed("weekend");
+  const used = new Set();
+  return WEEKEND_PICKS.map(pick=>{
+    const pool = LANDMARKS.filter(l=> !visitedIds.has(l.id) && !used.has(l.id) && pick.match(l));
+    if(!pool.length) return null;
+    let best = null;
+    pool.forEach(l=>{ const sc = scoreLandmarkFor(l, profile, salt); if(!best || sc.score>best.score) best = sc; });
+    if(!best) return null;
+    used.add(best.l.id);
+    return { pick, landmark: best.l };
+  }).filter(Boolean);
+}
+
+/* ============ HOME (§1,§2,§9,§10,§12) ============ */
+function landmarkPhotoStyle(l){
+  const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
+  const cat = CATEGORIES[l.category];
+  return url ? `background-image:url('${url}')`
+             : `background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`;
+}
+function whyRowsHtml(reasons){
+  if(!reasons || !reasons.length) return "";
+  return '<div class="next-goal-why"><div class="next-goal-why-title">למה בחרנו לכם את זה?</div>'
+    + reasons.map(r=>`<div class="why-row">${uiIcon("check",15)}<span>${r}</span></div>`).join("")
+    + '</div>';
+}
+function nextGoalCardHtml(rec){
+  const l = rec.landmark;
+  const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
+  return `<div class="next-goal" data-id="${l.id}">
+    <div class="next-goal-photo" style="${landmarkPhotoStyle(l)}">
+      ${hasPhoto ? "" : catIconSvg(CATEGORIES[l.category].icon,54).replace('<svg ','<svg style="color:#fff;opacity:.65" ')}
+      ${rec.matchPct ? `<span class="match">${rec.matchPct}% התאמה</span>` : ""}
+      <span class="pts">+${pointsForLandmark(l)}</span>
+    </div>
+    <div class="next-goal-body">
+      <div class="next-goal-name">${l.name}</div>
+      <div class="place-meta">
+        <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+        <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
+        ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
+        ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
+      </div>
+      ${whyRowsHtml(rec.reasons)}
+      <div class="next-goal-actions">
+        <button class="btn btn-primary" data-go="${l.id}">יאללה, יוצאים</button>
+        <button class="btn btn-outline btn-sm" id="homeMoreOptions">עוד אפשרויות</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderHome(){
+  if(!$("homeNextGoal") || !LANDMARKS.length) return;
+  const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
+  $("homeRingPct").textContent = discPct+"%";
+  $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
+  const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
+  $("homeGreet").textContent = firstName ? firstName+", המסע שלך בישראל" : "המסע שלך בישראל";
+  $("homeHeroSub").textContent = myVisits.length
+    ? myVisits.length+" מקומות נכבשו · "+(LANDMARKS.length-myVisits.length)+" מחכים לכם"
+    : "המקום הראשון שלכם מחכה ממש מעבר לפינה";
+
+  const rec = recommendDestination();
+  const goalEl = $("homeNextGoal");
+  if(rec){
+    goalEl.innerHTML = nextGoalCardHtml(rec);
+    goalEl.querySelector("[data-go]").onclick = (e)=>{ e.stopPropagation(); goToDestination(rec.landmark.id); };
+    goalEl.querySelector(".next-goal").onclick = ()=> goToDestination(rec.landmark.id);
+    $("homeMoreOptions").onclick = (e)=>{ e.stopPropagation(); openTodaySheet(); };
+    track("recommendation_generated", { source:"home", match_pct: rec.matchPct||0 });
+  } else {
+    goalEl.innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title:"כבשתם הכול!",
+      sub:"גיליתם את כל המקומות שיש לנו כרגע. עוד יעדים בדרך.", ctaId:"homeEmptyCta", ctaLabel:"למפה" });
+    const cta = $("homeEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/map");
+  }
+
+  const daily = recommendDestination({ salt:"daily", excludeId: rec ? rec.landmark.id : null });
+  const dailyEl = $("homeDaily");
+  $("homeDailyHead").classList.toggle("hidden", !daily);
+  if(daily){
+    const l = daily.landmark;
+    const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
+    dailyEl.innerHTML = `<div class="daily-card" data-id="${l.id}">
+      <div class="daily-thumb" style="${landmarkPhotoStyle(l)}">${hasPhoto?"":catIconSvg(CATEGORIES[l.category].icon,26).replace('<svg ','<svg style="color:#fff" ')}</div>
+      <div class="daily-body"><div class="daily-kicker">מצאנו לכם מקום שאולי לא הכרתם</div>
+        <div class="daily-name">${l.name}</div>
+        <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span></div></div>
+      <div class="place-pts">+${pointsForLandmark(l)}</div></div>`;
+    dailyEl.querySelector(".daily-card").onclick = ()=> goToDestination(l.id);
+  } else dailyEl.innerHTML = "";
+
+  // אתגר חודשי + מתכנן סופ״ש - שני מנועי-חזרה מבוססי-זמן (§9, §12)
+  $("homeChallenge").innerHTML = session ? monthlyChallengeHtml() : "";
+  const ideas = isWeekendWindow() ? weekendIdeas() : [];
+  $("homeWeekendHead").classList.toggle("hidden", !ideas.length);
+  $("homeWeekend").innerHTML = ideas.map(({pick,landmark})=>
+    `<button class="weekend-idea" data-id="${landmark.id}" type="button">
+       <span class="weekend-idea-ic">${uiIcon(pick.icon,17)}</span>
+       <span class="weekend-idea-body"><span class="weekend-idea-kind">${pick.label}</span>
+         <span class="weekend-idea-name">${landmark.name}</span></span>
+       <span class="place-pts">+${pointsForLandmark(landmark)}</span></button>`).join("");
+  $("homeWeekend").querySelectorAll("[data-id]").forEach(b=> b.onclick = ()=> goToDestination(b.dataset.id));
+  if(ideas.length) track("weekend_planner_shown", { ideas: ideas.length });
+
+  // "כמעט שם" - open loop אמיתי מתוך התקדמות האזורים הקיימת (§10)
+  const almostEl = $("homeAlmost");
+  const almost = Object.keys(REGIONS).map(r=>{
+    const all = LANDMARKS.filter(l=>l.region===r);
+    const done = all.filter(l=> myVisits.some(v=>v.landmark_id===l.id)).length;
+    return { r, done, total: all.length, left: all.length-done };
+  }).filter(x=> x.total>0 && x.left>0 && x.done>0).sort((a,b)=>a.left-b.left)[0];
+  if(almost && almost.left<=3){
+    almostEl.innerHTML = `<div class="almost-card" id="homeAlmostCard">${uiIcon("trophy",20)}
+      <div class="almost-text">נשאר${almost.left===1?"":"ו"} <b>${almost.left===1?"מקום אחד":almost.left+" מקומות"}</b> כדי להשלים את ${REGIONS[almost.r]}</div>
+      ${uiIcon("compass",18)}</div>`;
+    $("homeAlmostCard").onclick = ()=> navigate("#/map");
+  } else almostEl.innerHTML = "";
+}
+
 function wizIntroWhyText(l){
   const parts = [tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label];
   if(l.category==="water"||l.hasWater) parts.push("יש מים");

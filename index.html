@@ -568,6 +568,23 @@ button{font-family:inherit;}
 .journey-bar > i{background:var(--sand);}
 .personal-map-wrap{background:var(--map-water);border-radius:var(--radius-card);overflow:hidden;border:1px solid var(--border);}
 .personal-map-wrap canvas{width:100%;height:auto;display:block;}
+/* אתגר מבוסס-זמן (§9) - דחיפות אמיתית, בלי להפוך את המסך למשחק */
+.challenge-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);box-shadow:var(--shadow-card);}
+.challenge-strip-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);}
+.challenge-strip-title{font-weight:800;font-size:var(--font-h3);}
+.challenge-strip-days{font-size:var(--font-caption);font-weight:700;color:var(--color-accent);}
+.challenge-strip.done .challenge-strip-days{color:var(--color-primary);}
+.challenge-strip-sub{font-size:var(--font-caption);color:var(--text-muted);margin:2px 0 var(--space-2);}
+.challenge-strip-foot{display:flex;justify-content:flex-end;font-size:11px;font-weight:800;color:var(--text-muted);margin-top:var(--space-1);}
+/* מתכנן סופ״ש (§12) */
+.weekend-idea{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
+.weekend-idea:active{transform:scale(.99);}
+.weekend-idea-ic{width:38px;height:38px;border-radius:50%;background:var(--color-secondary-light);color:var(--color-secondary);display:flex;align-items:center;justify-content:center;flex:none;}
+.weekend-idea-ic .ui-ic{opacity:1;}
+.weekend-idea-body{flex:1;min-width:0;display:flex;flex-direction:column;}
+.weekend-idea-kind{font-size:11px;font-weight:800;color:var(--color-secondary);}
+.weekend-idea-name{font-weight:700;font-size:var(--font-h3);}
+
 /* אוספים (§8): כרטיס עם התקדמות אמיתית, כדי שהמשתמש יחשוב "נשארו לי 3" */
 .collection-card{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
 .collection-card:active{transform:scale(.99);}
@@ -1160,6 +1177,11 @@ input[type=file]{display:none;}
 
       <div class="section-head" id="homeDailyHead"><h2>הגילוי היומי</h2></div>
       <div id="homeDaily"></div>
+
+      <div id="homeChallenge"></div>
+
+      <div class="section-head hidden" id="homeWeekendHead"><h2>מה מגלים בסופ״ש?</h2></div>
+      <div id="homeWeekend"></div>
 
       <div id="homeAlmost"></div>
       <div id="homeFriends"></div>
