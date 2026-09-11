@@ -2972,10 +2972,10 @@ function paintIsraelMap(ctx, w, h, { padFrac, landColor, outlineColor, dotVisite
   ctx.beginPath();
   SHARE_OUTLINE.forEach(([la,lo],i)=>{ const [x,y]=project(la,lo); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
   ctx.closePath();
-  ctx.fillStyle = landColor || getCssVar("--map-land","#E4DEC9");
+  ctx.fillStyle = landColor || getCssVar("--map-land","#EEE9DA");
   ctx.fill();
   ctx.lineWidth = Math.max(1, w/300);
-  ctx.strokeStyle = outlineColor || getCssVar("--map-outline","#B7A97E");
+  ctx.strokeStyle = outlineColor || getCssVar("--map-outline","#C9BF9E");
   ctx.stroke();
   // ערפל לפי אזור - אותה גיאומטריה בדיוק כמו שכבת ה-Fog of War על ה-Leaflet map (Phase 1),
   // מוקרנת דרך אותה fitIsraelTransform - כך שגם כרטיס השיתוף (generateShareCard) מקבל את זה בחינם.
@@ -3001,7 +3001,7 @@ function paintIsraelMap(ctx, w, h, { padFrac, landColor, outlineColor, dotVisite
     ctx.beginPath();
     ctx.arc(x,y, visited?r*1.5:r*0.75, 0, Math.PI*2);
     ctx.globalAlpha = visited?1:0.4;
-    ctx.fillStyle = visited ? (dotVisited || getCssVar("--accent-strong","#96610F")) : (dotOther || outlineColor || getCssVar("--map-outline","#B7A97E"));
+    ctx.fillStyle = visited ? (dotVisited || getCssVar("--accent-strong","#145C3C")) : (dotOther || outlineColor || getCssVar("--map-outline","#C9BF9E"));
     ctx.fill();
     if(visited){ ctx.lineWidth = Math.max(0.6, w/500); ctx.strokeStyle = "#fff"; ctx.stroke(); }
   });
@@ -3083,7 +3083,7 @@ async function generateShareCard(){
   const canvas = document.createElement("canvas");
   canvas.width=W; canvas.height=H;
   const ctx = canvas.getContext("2d");
-  const bg = getCssVar("--bg","#EDEAE0"), surface = getCssVar("--surface","#FFFFFF"), text = getCssVar("--text","#241F1A"), muted = getCssVar("--text-muted","#6B6255"), accent = getCssVar("--accent-strong","#96610F"), teal = getCssVar("--teal","#146F67");
+  const bg = getCssVar("--bg","#F7F5EF"), surface = getCssVar("--surface","#FFFFFF"), text = getCssVar("--text","#202622"), muted = getCssVar("--text-muted","#6F7772"), accent = getCssVar("--accent-strong","#145C3C"), teal = getCssVar("--teal","#2D838C");
   ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
   ctx.textAlign = "center";
   ctx.fillStyle = text; ctx.font = "700 54px Heebo, sans-serif";
