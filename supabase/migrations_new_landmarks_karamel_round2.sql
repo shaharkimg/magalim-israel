@@ -15,38 +15,31 @@
 -- לעקרון "לא לנחש" שהונחה לאורך כל היוזמה).
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ariel-sharon-park', 'פארק אריאל שרון',
    'אחד מפרויקטי-השיקום הסביבתי הגדולים בישראל - הר-הזבל לשעבר "חיריה" הפך לגבעה ירוקה ולפארק מטרופוליני ענק, עם שבילי הליכה ואופניים, אגמים מלאכותיים ותצפית פנורמית על גוש דן.',
-   'parks', 'easy', 'center', 32.03041, 34.82171, 'שעתיים-שלוש', 5,
-   10, 200, true, true, true, true, 'free',
+   'parks', 'easy', 'center', 32.03041, 34.82171, 'שעתיים-שלוש', 5, 200, true, true, true, true, 'free',
    null, 2.5, null),
 
   ('ein-hod', 'עין הוד',
    'כפר-אמנים ציורי במורדות הכרמל, המאכלס גלריות, בתי-קפה וסדנאות-אמנות בבתי-אבן ישנים - שילוב נדיר של נוף כרמל ירוק וסצנת-תרבות פעילה, מתאים לטיול-בוקר רגוע.',
-   'urban', 'easy', 'north', 32.700292, 34.982716, 'שעה-שעתיים', 1,
-   10, 130, true, false, false, false, 'free',
+   'urban', 'easy', 'north', 32.700292, 34.982716, 'שעה-שעתיים', 1, 130, true, false, false, false, 'free',
    null, 1.5, null),
 
   ('netanya-iris-reserve', 'שמורת האירוסים בנתניה',
    'שמורת טבע עירונית קטנה על גבעת-כורכר בלב נתניה, המשמרת אוכלוסיית אירוס החוף הנדיר - יעד קליל ופתוח לביקור, פורח בעיקר בחודשי החורף.',
-   'reserves', 'easy', 'center', 32.2816794, 34.8402083, 'חצי שעה-שעה', 1,
-   10, 80, true, false, true, false, 'free',
+   'reserves', 'easy', 'center', 32.2816794, 34.8402083, 'חצי שעה-שעה', 1, 80, true, false, true, false, 'free',
    null, 0.75, null),
 
   ('hod-hasharon-eco-park', 'הפארק האקולוגי הוד השרון',
    'פארק עירוני המשלב שיקום-נחל ובריכות-חלחול טבעיות, עם שבילי הליכה ואזורי-צפייה בבעלי-חיים - דוגמה ליוזמת קיימות-עירונית בלב מרכז הארץ.',
-   'parks', 'easy', 'center', 32.1328765, 34.8899315, 'שעה-שעה וחצי', 2,
-   10, 70, true, true, true, true, 'free',
+   'parks', 'easy', 'center', 32.1328765, 34.8899315, 'שעה-שעה וחצי', 2, 70, true, true, true, true, 'free',
    null, 1, null),
 
   ('nahariya-promenade', 'טיילת נהריה',
    'טיילת-חוף ארוכה ונעימה לאורך קו החוף של נהריה, מוקפת בתי-קפה ומסעדות - יעד קליל לטיול-משפחות, אופניים או שקיעה ליד הים בצפון הארץ.',
-   'water', 'easy', 'north', 33.0045589, 35.0876922, 'כרצונך', 2,
-   10, 120, true, true, true, true, 'free',
+   'water', 'easy', 'north', 33.0045589, 35.0876922, 'כרצונך', 2, 120, true, true, true, true, 'free',
    null, 1, null)
 
 on conflict (id) do nothing;

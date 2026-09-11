@@ -13,44 +13,36 @@
 -- אחד מהם אומתו בנפרד מול Google Maps (לא נוחשו).
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('tel-beit-tzaida', 'תל בית ציידא',
    'תל ארכיאולוגי ברמת הגולן, מזוהה כבירת ממלכת גשור המקראית ולימים כעיר ביתסאידה מהברית החדשה - שער עתיק, ארמון מלכותי ותצפית אל בקעת הירדן ומצפון הכנרת.',
-   'archaeology', 'easy', 'north', 32.91081, 35.630906, 'עד שעה', 0.45,
-   10, 90, true, false, false, false, 'paid',
+   'archaeology', 'easy', 'north', 32.91081, 35.630906, 'עד שעה', 0.45, 90, true, false, false, false, 'paid',
    null, 1, 'https://www.maslulim-israel.co.il/tracks/%d7%aa%d7%9c-%d7%91%d7%99%d7%aa-%d7%a6%d7%99%d7%99%d7%93%d7%90-%d7%91%d7%99%d7%9f-%d7%a2%d7%aa%d7%99%d7%a7%d7%95%d7%aa-%d7%95%d7%a0%d7%95%d7%a4%d7%99%d7%9d-%d7%91%d7%aa%d7%9c-%d7%91%d7%99%d7%aa/'),
 
   ('wadi-al-jorum', 'ואדי אל ג''ורם',
    'קניון בזלת ציורי בעמק הירדן, סמוך למנחמיה, עם מפלים וסולמות-יתדות בין קירות סלע כהים - כשהנחל זורם, המסלול כולל הליכה במים רדודים ו"מקלחת" תחת המפלים.',
-   'water', 'medium', 'north', 32.6620284, 35.544599, '4-3 שעות', 4.2,
-   25, 70, false, false, false, true, 'free',
+   'water', 'medium', 'north', 32.6620284, 35.544599, '4-3 שעות', 4.2, 70, false, false, false, true, 'free',
    null, 3.5, 'https://www.maslulim-israel.co.il/tracks/%d7%95%d7%90%d7%93%d7%99-%d7%90%d7%9c-%d7%92%d7%95%d7%a8%d7%9d-%d7%a7%d7%a0%d7%99%d7%95%d7%9f-%d7%91%d7%96%d7%9c%d7%aa-%d7%a6%d7%99%d7%95%d7%a8%d7%99-%d7%95%d7%a0%d7%95%d7%a3-%d7%9e%d7%a8%d7%94/'),
 
   ('nahal-yavniel', 'נחל יבנאל',
    'מסלול מעיינות ופלגי מים בגליל התחתון, לצד המושבה יבנאל - הליכה נעימה ומוצלת לאורך זרימת מים קבועה, בין צמחייה ירוקה ובריכות שכשוך קטנות.',
-   'water', 'medium', 'north', 32.759625, 35.482433, '3.5-3 שעות', 6.5,
-   25, 85, true, false, false, true, 'free',
+   'water', 'medium', 'north', 32.759625, 35.482433, '3.5-3 שעות', 6.5, 85, true, false, false, true, 'free',
    null, 3.25, 'https://www.maslulim-israel.co.il/tracks/%d7%90%d7%9c-%d7%9e%d7%a2%d7%99%d7%99%d7%a0%d7%95%d7%aa-%d7%95%d7%a4%d7%9c%d7%92%d7%99-%d7%9e%d7%99%d7%9d-%d7%91%d7%a0%d7%97%d7%9c-%d7%99%d7%91%d7%a0%d7%90%d7%9c/'),
 
   ('rekhet-trail', 'שביל רקית',
    'מסלול מעגלי ירוק ומגוון בלב הכרמל, מתחיל ומסתיים בחניון רקית ומשלב את חורבת רקית העתיקה - מסלול קליל ונעים למשפחות.',
-   'nature', 'easy', 'north', 32.7151043, 35.0121034, 'עד שעתיים', 1.5,
-   10, 75, true, false, false, false, 'free',
+   'nature', 'easy', 'north', 32.7151043, 35.0121034, 'עד שעתיים', 1.5, 75, true, false, false, false, 'free',
    null, 1.5, 'https://www.maslulim-israel.co.il/tracks/%d7%a9%d7%91%d7%99%d7%9c-%d7%a8%d7%a7%d7%99%d7%aa-%d7%9e%d7%a1%d7%9c%d7%95%d7%9c-%d7%9e%d7%a9%d7%a4%d7%97%d7%aa%d7%99-%d7%99%d7%a8%d7%95%d7%a7-%d7%95%d7%9e%d7%92%d7%95%d7%95%d7%9f-%d7%91%d7%9b/'),
 
   ('tel-dor', 'גן לאומי תל דור',
    'תל ארכיאולוגי על חוף הים התיכון, נמל קדום ומרכזי מהתקופה הכנענית ועד הרומית, עם לגונות טורקיז יפהפיות, מפרצים טבעיים וחורבות עמוקות.',
-   'archaeology', 'medium', 'center', 32.6202955, 34.9206011, 'כשעתיים', 2,
-   25, 200, true, false, false, true, 'paid',
+   'archaeology', 'medium', 'center', 32.6202955, 34.9206011, 'כשעתיים', 2, 200, true, false, false, true, 'paid',
    null, 2, 'https://www.maslulim-israel.co.il/tracks/%d7%aa%d7%9c-%d7%93%d7%95%d7%a8-%d7%9e%d7%a4%d7%a8%d7%a6%d7%99%d7%9d-%d7%98%d7%91%d7%a2%d7%99%d7%99%d7%9d-%d7%a0%d7%9e%d7%9c-%d7%a7%d7%93%d7%95%d7%9d-%d7%95%d7%9c%d7%92%d7%95%d7%a0%d7%95%d7%aa/'),
 
   ('dor-habonim-beach', 'חוף דור-הבונים',
    'שמורת טבע ימית עם חוף פראי ומפרצים סלעיים ציוריים במישור החוף - מערות-ים, בריכות-סלע ושונית אלמוגים רדודה, בין חוף הבונים לחוף דור.',
-   'water', 'medium', 'center', 32.6503462, 34.9262967, '3.5-2.5 שעות', 4,
-   25, 150, true, false, false, true, 'free',
+   'water', 'medium', 'center', 32.6503462, 34.9262967, '3.5-2.5 שעות', 4, 150, true, false, false, true, 'free',
    null, 3, 'https://www.maslulim-israel.co.il/tracks/%d7%9e%d7%94%d7%91%d7%95%d7%a0%d7%99%d7%9d-%d7%9c%d7%97%d7%95%d7%a3-%d7%93%d7%95%d7%a8-%d7%9e%d7%a4%d7%a8%d7%a6%d7%99%d7%9d-%d7%95%d7%97%d7%95%d7%a3-%d7%9e%d7%a8%d7%94%d7%99%d7%91-%d7%91%d7%99/')
 
 on conflict (id) do nothing;

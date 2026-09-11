@@ -18,50 +18,41 @@
 -- 7 יעדים אושרו ונוספו, כולם עם קואורדינטות שאומתו בנפרד מול Google Maps:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-almin', 'עין עלמין - בריכת הקצינים',
    'בריכת מעיין קטנה וצלולה ברמת הגולן, מוקפת עצי הרדוף ועצי פרי בר - נקודת-עצירה נעימה וקרירה לצינון קליל בתוך מסלול ארוך יותר באזור.',
-   'water', 'easy', 'north', 32.994262, 35.639815, 'כחצי שעה', 0.5,
-   10, 90, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.994262, 35.639815, 'כחצי שעה', 0.5, 90, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-pik', 'עין פיק',
    'מעיין זורם בדרום רמת הגולן עם בריכת-טבילה טבעית בצל עצים גבוהים, קרוב לחניה ונגיש להליכה קצרה - אחד המעיינות האהובים והמבוקרים באזור.',
-   'water', 'easy', 'north', 32.775199, 35.701358, 'כחצי שעה', 1,
-   10, 320, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.775199, 35.701358, 'כחצי שעה', 1, 320, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('maayan-mitzpe-hashalom', 'מעיין מצפה השלום',
    'מעיין וברכת-מים באזור טיולים רגליים ליד מצפה השלום ברמת הגולן, בתוך שטח ירוק ושליו עם תצפית פתוחה על הסביבה.',
-   'water', 'easy', 'north', 32.7583482, 35.6572712, 'כשעה', 2,
-   10, 140, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.7583482, 35.6572712, 'כשעה', 2, 140, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-shoko', 'עין שוקו',
    'מעיין טבעי בלב יער תיירותי ברמת הגולן, עם ברכת-מים צלולה מוצלת ופינות-ישיבה מסביב - יעד קליל ונוח למשפחות.',
-   'water', 'easy', 'north', 32.7396964, 35.6521549, 'כחצי שעה', 1,
-   10, 220, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.7396964, 35.6521549, 'כחצי שעה', 1, 220, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-keshatot', 'עין קשתות (אום אל קנטיר)',
    'אתר ארכיאולוגי משוחזר ברמת הגולן סביב בית-כנסת עתיק ואמת-מים רומית, ולצדו מעיין זורם עם בריכה - שילוב נדיר של היסטוריה וטבע בדרכי-הליכה נוחות ומשופצות.',
-   'archaeology', 'easy', 'north', 32.8496085, 35.7398508, 'שעה-שעה וחצי', 1,
-   10, 900, true, false, true, true, 'paid',
+   'archaeology', 'easy', 'north', 32.8496085, 35.7398508, 'שעה-שעה וחצי', 1, 900, true, false, true, true, 'paid',
    null, 1.25, null),
 
   ('ein-gones', 'עין ג''ונס',
    'מעיין מים חמים ברמת הגולן עם בריכות טבעיות ומרחצאות עתיקים, יעד תיירותי מבוקש הפתוח לאורך כל השנה.',
-   'water', 'easy', 'north', 32.6820921, 35.6664943, 'כשעה', 1,
-   10, 650, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.6820921, 35.6664943, 'כשעה', 1, 650, true, false, false, true, 'free',
    null, 1, null),
 
   ('maayan-nov', 'מעיין נוב',
    'בריכת מעיין שלווה ליד אבני איתן ברמת הגולן, מוקפת צמחייה ירוקה - יעד קטן ופחות מוכר, מתאים לביקור קליל ורגוע הרחק מהקהל.',
-   'water', 'easy', 'north', 32.8341545, 35.7675057, 'כחצי שעה', 0.5,
-   10, 40, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.8341545, 35.7675057, 'כחצי שעה', 0.5, 40, true, false, false, true, 'free',
    null, 0.5, null)
 
 on conflict (id) do nothing;

@@ -18,32 +18,26 @@
 -- עלול לכוון משתמשים למקום הלא-נכון, ולכן דולג).
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-kef', 'עין כיף',
    'בריכת מעיין קטנה ומוצלת בעצי תות בדרום רמת הגולן, סמוך לנחל אל-על - פינת-צינון שקטה עם שולחנות פיקניק, פחות מוכרת מהאתרים הגדולים בסביבה.',
-   'water', 'easy', 'north', 32.8308, 35.7644, 'כחצי שעה', 0.5,
-   10, 60, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.8308, 35.7644, 'כחצי שעה', 0.5, 60, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('maayan-alonei-habashan', 'מעיין אלוני הבשן (עין ג''ואיזה)',
    'בריכת מעיין עגולה הבנויה מאבני בזלת שחורות, בתוך מושב אלוני הבשן במזרח רמת הגולן - מים זורמים וחיות-בריכה כמו דגי-זהב וצפרדעים, בגישה נוחה מהכביש הראשי.',
-   'water', 'easy', 'north', 33.0316, 35.838, 'כחצי שעה', 0.3,
-   10, 45, true, false, false, true, 'free',
+   'water', 'easy', 'north', 33.0316, 35.838, 'כחצי שעה', 0.3, 45, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('bental-reservoir', 'מאגר בנטל',
    'מאגר-מים חקלאי גדול ברמת הגולן שהפך עם השנים ליעד-רחצה קיצי מוכר בקרב מטיילים - מים פתוחים ונוף ירוק מסביב.',
-   'water', 'easy', 'north', 33.1398457, 35.7829898, 'כחצי שעה - שעה', 0.5,
-   10, 250, true, false, false, true, 'free',
+   'water', 'easy', 'north', 33.1398457, 35.7829898, 'כחצי שעה - שעה', 0.5, 250, true, false, false, true, 'free',
    null, 0.75, null),
 
   ('ein-orcha-jauhadar', 'עין אורחה (ג''וחדר)',
    'בריכה משופצת ומוצלת ברמת הגולן, ניזונה ממימי מעיין הזורמים למרגלות תל ג''וחדר - לצדה שרידי חאן מהמאה ה-14 ושרידי ביצורים צלבניים וממלוכיים, שילוב של רחצה והיסטוריה.',
-   'water', 'easy', 'north', 32.9319, 35.854, 'כחצי שעה - שעה', 0.5,
-   10, 70, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.9319, 35.854, 'כחצי שעה - שעה', 0.5, 70, true, false, false, true, 'free',
    null, 0.75, null)
 
 on conflict (id) do nothing;

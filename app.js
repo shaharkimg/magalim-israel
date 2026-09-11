@@ -156,9 +156,8 @@ function effortClassFor(l){
 }
 // הניקוד שיוענק על כיבוש ראשון של היעד. מעוגל ל-5 הקרוב כדי שהמספרים יישארו "עגולים"
 // בממשק (10/20/40/60/80) ולא 41.8.
-// מכוון: עמודת landmarks.points שב-DB *לא* נקראת כאן. היא שריד מהמערכת הישנה ומכילה
-// 10/25/50/100 שנגזרים מדרגת-הקושי בלבד - בדיוק העיוות שהשינוי הזה בא לתקן (מוחרקה,
-// תצפית של שעה, מתויגת שם 25 כמו מסלול של שעתיים). האפליקציה ממילא לא קראה אותה מעולם.
+// עמודת landmarks.points הוסרה מהסכמה (migrations_drop_landmarks_points.sql): היא החזיקה
+// 10/25/50/100 שנגזרו מדרגת-הקושי בלבד - בדיוק העיוות שהחישוב הזה בא לתקן.
 function pointsForLandmark(l){
   const base = effortClassFor(l).xp;
   const mult = DIFF_XP_MULTIPLIER[l.difficulty] != null ? DIFF_XP_MULTIPLIER[l.difficulty] : 1;
@@ -1147,7 +1146,7 @@ async function bootPublic(){
   try{
     const { data: lms, error: lmErr } = await supabase.from("landmarks").select("*").order("name");
     if(lmErr) throw lmErr;
-    LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, points:l.points, baseVisits:l.base_visits,
+    LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, baseVisits:l.base_visits,
       familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null,
       officialUrl:l.official_url||null, stockPhotoUrl:l.stock_photo_url||null, stockPhotoCredit:l.stock_photo_credit||null }));
     lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));

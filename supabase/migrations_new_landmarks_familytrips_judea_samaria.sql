@@ -12,26 +12,21 @@
 -- 3 מעיינות אושרו ונוספו, קואורדינטות מאומתות בנפרד לכל אחד מול Google Maps:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('einot-aner', 'עיינות ענר (גן הנערים)',
    'אתר מעיינות שלֵו בגוש עציון, עם בריכות-מים ופינות-צל בין הגבעות - יעד טיול משפחתי מוכר באזור.',
-   'water', 'easy', 'jerusalem', 31.9555728, 35.1075443, 'שעה', 1,
-   10, 29, true, false, false, true, 'free',
+   'water', 'easy', 'jerusalem', 31.9555728, 35.1075443, 'שעה', 1, 29, true, false, false, true, 'free',
    null, 1, null),
 
   ('maayan-atarot', 'מעיין עטרת',
    'מעיין זורם באזור לטיילים רגליים בשומרון, עם בריכת-מים טבעית בנוף גבעות פתוח.',
-   'water', 'medium', 'center', 31.9982384, 35.18393, 'שעה', 2,
-   10, 25, true, false, false, true, 'free',
+   'water', 'medium', 'center', 31.9982384, 35.18393, 'שעה', 2, 25, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-auja', 'עין עוג''ה (עין ייט"ב)',
    'מעיין גדול וזורם בבקעת הירדן, עם מפל קטן ובריכת-מים רחבה - יעד רחצה מוכר באזור יריחו.',
-   'water', 'easy', 'jerusalem', 31.9482226, 35.4085023, 'שעה', 1,
-   10, 96, true, false, false, true, 'free',
+   'water', 'easy', 'jerusalem', 31.9482226, 35.4085023, 'שעה', 1, 96, true, false, false, true, 'free',
    null, 1, null)
 
 on conflict (id) do nothing;
