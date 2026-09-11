@@ -568,6 +568,21 @@ button{font-family:inherit;}
 .journey-bar > i{background:var(--sand);}
 .personal-map-wrap{background:var(--map-water);border-radius:var(--radius-card);overflow:hidden;border:1px solid var(--border);}
 .personal-map-wrap canvas{width:100%;height:auto;display:block;}
+/* Trip Mode (§14) */
+.trip-mode{position:fixed;inset:0;z-index:1240;background:var(--journey-bg);color:#fff;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + var(--space-4)) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));}
+.trip-top{display:flex;align-items:center;justify-content:space-between;flex:none;}
+.trip-kicker{font-size:var(--font-caption);font-weight:800;color:rgba(255,255,255,.65);letter-spacing:.04em;}
+.trip-close{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:999px;padding:var(--space-2) var(--space-4);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.trip-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-2);}
+.trip-name{font-family:"Suez One","Heebo",serif;font-size:30px;line-height:1.2;}
+.trip-elapsed{font-size:var(--font-body);color:rgba(255,255,255,.7);}
+.trip-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);flex:none;}
+.trip-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);min-height:96px;border:none;border-radius:var(--radius-card);background:rgba(255,255,255,.12);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s;}
+.trip-action:active{transform:scale(.97);}
+.trip-action-primary{background:var(--color-primary);grid-column:1 / -1;}
+.trip-action .ui-ic{opacity:1;}
+.trip-resume{position:fixed;left:var(--space-4);right:var(--space-4);bottom:calc(88px + env(safe-area-inset-bottom));z-index:900;background:var(--journey-bg);color:#fff;border:none;border-radius:999px;padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-elevated);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
+
 /* אתגר מבוסס-זמן (§9) - דחיפות אמיתית, בלי להפוך את המסך למשחק */
 .challenge-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);box-shadow:var(--shadow-card);}
 .challenge-strip-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);}
@@ -1410,6 +1425,26 @@ input[type=file]{display:none;}
       </div>
     </div>
   </div>
+
+  <!-- Trip Mode (§14): מסך מינימלי לשימוש בחוץ - מעט טקסט, מטרות-מגע גדולות, בלי ניווט מסיח -->
+  <div class="trip-mode hidden" id="tripMode">
+    <div class="trip-top">
+      <button class="trip-close" id="tripEndBtn" type="button">סיימתי</button>
+      <div class="trip-kicker">אתם בטיול</div>
+    </div>
+    <div class="trip-center">
+      <div class="trip-name" id="tripName"></div>
+      <div class="trip-elapsed" id="tripElapsed"></div>
+    </div>
+    <div class="trip-actions">
+      <button class="trip-action trip-action-primary" id="tripCheckinBtn" type="button"><span class="trip-action-ic" id="tripCheckinIc"></span><span>כבשתי</span></button>
+      <button class="trip-action" id="tripNavBtn" type="button"><span class="trip-action-ic" id="tripNavIc"></span><span>ניווט</span></button>
+      <button class="trip-action" id="tripInfoBtn" type="button"><span class="trip-action-ic" id="tripInfoIc"></span><span>מידע</span></button>
+    </div>
+  </div>
+
+  <!-- רצועת-חזרה: כשיש טיול פעיל והמשתמש יצא מהמסך, אפשר לחזור אליו בהקשה -->
+  <button class="trip-resume hidden" id="tripResume" type="button"></button>
 
   <div class="bottom-nav hidden" id="bottomNav">
     <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>בית</span></button>
