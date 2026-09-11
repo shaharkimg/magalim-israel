@@ -419,15 +419,42 @@ function placeCardHtml(l, opts){
   const ptsHtml = opts.hidePoints ? "" : (opts.done
     ? '<div class="place-pts done">'+uiIcon("check",13)+pts.toLocaleString()+'</div>'
     : '<div class="place-pts">+'+pts.toLocaleString()+'</div>');
+  const wished = myWishlist.includes(l.id);
+  const wishBtn = opts.hideWish ? "" :
+    '<button type="button" class="card-wish'+(wished?" active":"")+'" data-lm="'+l.id+'"'
+    + ' aria-pressed="'+(wished?"true":"false")+'" aria-label="'+(wished?"הסר מרשימת המשאלות":"הוסף לרשימת המשאלות")+'">'
+    + uiIcon("heart",17)+'</button>';
   return '<div class="mini-card place-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
     + '<div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
     + '<div class="mini-info"><div class="name">'+l.name+'</div>'
     + meta
     + (opts.extra||"")
     + '</div>'
-    + ptsHtml
+    + '<div class="card-side">'+ptsHtml+wishBtn+'</div>'
     + '</div>';
 }
+// מאזין-על אחד לכל כפתורי ה-favorite שבכרטיסים (§5). capture:true כדי שהלחיצה על הלב
+// לא תיפול גם על onclick של הכרטיס עצמו (שמנווט ליעד) - בלי לגעת בשום wiring קיים.
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest(".card-wish");
+  if(!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id = btn.dataset.lm;
+  const run = async ()=>{
+    btn.disabled = true;
+    const justAdded = await toggleWishlist(id);
+    btn.disabled = false;
+    btn.classList.toggle("active", justAdded);
+    btn.setAttribute("aria-pressed", justAdded ? "true" : "false");
+    btn.setAttribute("aria-label", justAdded ? "הסר מרשימת המשאלות" : "הוסף לרשימת המשאלות");
+    if(justAdded){
+      btn.classList.remove("wish-pop"); void btn.offsetWidth; btn.classList.add("wish-pop");
+    }
+  };
+  if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם", run)) return;
+  run();
+}, true);
 
 /* ============ RUNTIME STATE ============ */
 let session = null, myProfile = null;
@@ -2616,17 +2643,17 @@ function openDetail(id){
       <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
       ${userLoc ? `<div class="lm-from-you">📍 ${Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} ק"מ ממך · כ-${estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} דק׳ נסיעה (משוער)</div>` : ""}
     </div></div>
-    <p class="lm-desc">${l.desc}</p>
-    <div class="lm-stats">
+    <p class="lm-desc" data-stage="mid">${l.desc}</p>
+    <div class="lm-stats" data-stage="mid">
       <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
       ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
       ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
       <div class="lm-stat"><div class="v">${conquestEntry ? "✓ "+conquestEntry.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${conquestEntry ? "נכבש" : "נקודות"}</div></div>
     </div>
-    <div class="lm-important-head">⚠️ חשוב לדעת לפני שיוצאים</div>
-    <div class="amenity-row">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
-    <div id="fieldReportsBox"></div>
-    ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link">🔗 מידע נוסף באתר הרשמי</a>` : ""}
+    <div class="lm-important-head" data-stage="full">⚠️ חשוב לדעת לפני שיוצאים</div>
+    <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
+    <div id="fieldReportsBox" data-stage="full"></div>
+    ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
       <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
@@ -2637,7 +2664,7 @@ function openDetail(id){
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
     <div id="checkinFlow"></div>
-    <button type="button" id="reportPlaceInfoBtn" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
+    <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
   $("detailShareBtn").onclick = ()=>{
@@ -2731,6 +2758,8 @@ function wireFieldReportChips(){
   });
 }
 function startCheckin(l){
+  // הצ׳ק-אין דורש את כל המסך - פותחים את ה-sheet למדרגה המלאה כדי שהזרימה לא תיחתך
+  setSheetSnap($("detailSheet"), "full");
   activeCheckinPhoto = null;
   reportState = { water:null, crowding:null, parking:null };
   $("checkinFlow").innerHTML = `
