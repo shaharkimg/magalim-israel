@@ -14,26 +14,21 @@
 -- אחד מהם אומתו בנפרד מול Google Maps (לא נוחשו).
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('shiloh-ancient', 'שילה הקדומה',
    'אתר ארכיאולוגי בהרי בנימין, בירתה הראשונה של עם ישראל בארץ כנען ומקום משכן-ה'' לפני בניית בית המקדש - שרידי בית-כנסת ביזנטי, ומרכז-מבקרים המספר את סיפורי התנ"ך שקרו במקום.',
-   'archaeology', 'easy', 'center', 32.0543463, 35.2899853, 'שעה-שעתיים', 1,
-   10, 110, true, false, false, false, 'paid',
+   'archaeology', 'easy', 'center', 32.0543463, 35.2899853, 'שעה-שעתיים', 1, 110, true, false, false, false, 'paid',
    null, 1.5, 'https://www.maslulim-israel.co.il/tracks/%d7%91%d7%a9%d7%91%d7%99%d7%9c%d7%99-%d7%a9%d7%99%d7%9c%d7%94-%d7%94%d7%a7%d7%93%d7%95%d7%9e%d7%94-%d7%91%d7%99%d7%a8%d7%aa%d7%95-%d7%94%d7%a8%d7%90%d7%a9%d7%95%d7%a0%d7%94-%d7%a9%d7%9c-%d7%a2%d7%9d/'),
 
   ('tel-azekah', 'תל עזקה',
    'תל מקראי הצופה על עמק האלה - זירת קרב דוד וגלית - בתוך פארק בריטניה (יער יהודה), עם תצפית פנורמית מרשימה על השפלה ושדות החקלאות שמסביב.',
-   'archaeology', 'medium', 'center', 31.69999, 34.936008, '2-1.5 שעות', 2,
-   25, 130, true, false, false, false, 'free',
+   'archaeology', 'medium', 'center', 31.69999, 34.936008, '2-1.5 שעות', 2, 130, true, false, false, false, 'free',
    null, 1.75, 'https://www.maslulim-israel.co.il/tracks/%d7%aa%d7%9c-%d7%a2%d7%96%d7%a7%d7%94-%d7%95%d7%aa%d7%a6%d7%a4%d7%99%d7%95%d7%aa-%d7%91%d7%a4%d7%90%d7%a8%d7%a7-%d7%91%d7%a8%d7%99%d7%98%d7%a0%d7%99%d7%94-%d7%9e%d7%a1%d7%9c%d7%95%d7%9c-%d7%98%d7%99/'),
 
   ('shaar-poleg-reserve', 'שמורת שער פולג',
    'שמורת טבע חופית קטנה בין נתניה לחדרה, עם רכסי כורכר ייחודיים, שלוחת נחל פולג הזורמת אל הים ושלל פריחת בר עונתית - פינת טבע פראית בלב מישור החוף הצפוף.',
-   'reserves', 'medium', 'center', 32.256896, 34.8425323, '3-2.5 שעות', 5,
-   25, 100, true, false, false, true, 'free',
+   'reserves', 'medium', 'center', 32.256896, 34.8425323, '3-2.5 שעות', 5, 100, true, false, false, true, 'free',
    null, 2.75, 'https://www.maslulim-israel.co.il/tracks/%d7%91%d7%99%d7%9f-%d7%a8%d7%9b%d7%a1%d7%99-%d7%9b%d7%95%d7%a8%d7%9b%d7%a8-%d7%95%d7%a9%d7%9c%d7%9c-%d7%a4%d7%a8%d7%97%d7%99%d7%9d-%d7%91%d7%a9%d7%9e%d7%95%d7%a8%d7%aa-%d7%a9%d7%a2%d7%a8-%d7%a4%d7%95/')
 
 on conflict (id) do nothing;

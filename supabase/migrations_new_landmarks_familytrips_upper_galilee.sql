@@ -15,50 +15,41 @@
 -- עצמאי כשהחיפוש הישיר לא הספיק, למשל עין פילטר שאומת מול tiplatrip.com):
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-divsha', 'עין דיבשה',
    'מעיין זורם קטן וצלול בגליל העליון, עם מסלול-הליכה קליל בתוך אפיק הנחל - יעד רגוע ומוצל, פחות עמוס מהמעיינות הגדולים בסביבה.',
-   'water', 'easy', 'north', 33.09, 35.6472222, 'כחצי שעה', 1,
-   10, 150, true, false, false, true, 'free',
+   'water', 'easy', 'north', 33.09, 35.6472222, 'כחצי שעה', 1, 150, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-filter', 'עין פילטר',
    'מעיין עם בריכת-אגירה עגולה ועמוקה בלב העיר צפת, סמוך למגרש הכדורגל העירוני - שוחזר והונגש בשנים האחרונות, ולפי המסורת המקומית הוא המשך זרימתם של מי עין הארי.',
-   'water', 'easy', 'north', 32.964648, 35.495997, 'כחצי שעה', 0.3,
-   10, 60, true, false, true, true, 'free',
+   'water', 'easy', 'north', 32.964648, 35.495997, 'כחצי שעה', 0.3, 60, true, false, true, true, 'free',
    null, 0.5, null),
 
   ('ein-yarda', 'עין ירדה',
    'מעיין טבעי סמוך לראש פינה, באזור טיולים רגליים נעים - נקודת-מים שקטה בתוך נוף גלילי ירוק.',
-   'water', 'easy', 'north', 33.0092865, 35.5900929, 'כחצי שעה', 1,
-   10, 70, true, false, false, true, 'free',
+   'water', 'easy', 'north', 33.0092865, 35.5900929, 'כחצי שעה', 1, 70, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-dvir', 'עין דביר',
    'בריכת מעיין נעימה בסמוך לקיבוץ עמיעד, עם דק-עץ ופינות-ישיבה מוצלות - יעד קליל ונגיש למשפחות באזור רמת כורזים.',
-   'water', 'easy', 'north', 32.925641, 35.557463, 'כחצי שעה', 0.5,
-   10, 130, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.925641, 35.557463, 'כחצי שעה', 0.5, 130, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('emek-hatkhelet-park', 'פארק עמק התכלת',
    'פארק לאומי בסמוך לצפת עם מספר מעיינות ובריכות-אבן היסטוריות, שבילי-הליכה נוחים ופינות-צל - יעד משפחתי מבוקש.',
-   'parks', 'easy', 'north', 32.9728877, 35.4992642, 'שעה-שעה וחצי', 2,
-   10, 380, true, true, false, true, 'free',
+   'parks', 'easy', 'north', 32.9728877, 35.4992642, 'שעה-שעה וחצי', 2, 380, true, true, false, true, 'free',
    null, 1.25, null),
 
   ('maayan-habokrim', 'מעיין הבוקרים',
    'מעיין זורם ליד כפר הנשיא ברמת כורזים, עם בריכה טבעית ומעבר-גשר-עץ קטן - יעד תיירותי שקט הרחק מהצירים הראשיים.',
-   'water', 'easy', 'north', 32.9698647, 35.6187353, 'כחצי שעה', 1,
-   10, 55, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.9698647, 35.6187353, 'כחצי שעה', 1, 55, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-hadayag', 'עין הדייג',
    'מעיין צלול ונסתר בלב עמק החולה, סמוך ליסוד המעלה - נחל קטן וירוק המספק פינת-טבע שקטה הרחק מהעין.',
-   'water', 'easy', 'north', 33.073438, 35.5881812, 'כחצי שעה', 0.5,
-   10, 80, true, false, false, true, 'free',
+   'water', 'easy', 'north', 33.073438, 35.5881812, 'כחצי שעה', 0.5, 80, true, false, false, true, 'free',
    null, 0.5, null)
 
 on conflict (id) do nothing;

@@ -13,44 +13,36 @@
 -- 6 מעיינות אושרו ונוספו, קואורדינטות מאומתות בנפרד לכל אחד:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-shaal', 'עין שעל',
    'מעיין קטן ופחות מוכר בנחל שעל בגליל המערבי, בתוך נוף פתוח ושקט - יעד לחובבי מעיינות-נסתרים.',
-   'water', 'medium', 'north', 33.0311111, 35.2158333, 'שעה', 2,
-   10, 15, true, false, false, true, 'free',
+   'water', 'medium', 'north', 33.0311111, 35.2158333, 'שעה', 2, 15, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-majnuna', 'עין מג''נונה',
    'מעיין בשמורת נחל בית העמק בגליל המערבי, המכונה גם "המעיין המשוגע" בזכות זרימתו הבלתי-סדירה - אתר טבע ייחודי.',
-   'water', 'medium', 'north', 32.9616667, 35.2279722, 'שעה', 1.5,
-   10, 25, true, false, false, true, 'free',
+   'water', 'medium', 'north', 32.9616667, 35.2279722, 'שעה', 1.5, 25, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-hotem', 'עין חותם',
    'מעיין זורם בנחל כזיב העליון, בתוך שמורת הטבע נחל כזיב - בריכת-מים צלולה בסביבה ירוקה ומוצלת.',
-   'water', 'medium', 'north', 33.004496, 35.344056, 'שעה', 2,
-   10, 90, true, false, false, true, 'free',
+   'water', 'medium', 'north', 33.004496, 35.344056, 'שעה', 2, 90, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-hardelit', 'עין חרדלית',
    'אחד המעיינות המוכרים והפופולריים בנחל כזיב - בריכת-מים גדולה ועמוקה מוקפת צמחייה ירוקה, יעד מבוקש בעונה החמה.',
-   'water', 'easy', 'north', 33.0431136, 35.1857872, 'שעה', 1,
-   10, 750, true, false, false, true, 'free',
+   'water', 'easy', 'north', 33.0431136, 35.1857872, 'שעה', 1, 750, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-ziv', 'עין זיו',
    'מפל ובריכת-מעיין ציוריים בנחל כזיב, במרחק הליכה מעין טמיר ומצפור מונפורט - אחד המקומות היפים באזור בעונת הזרימה.',
-   'water', 'medium', 'north', 33.0366667, 35.2727778, 'שעה', 2,
-   10, 60, true, false, false, true, 'free',
+   'water', 'medium', 'north', 33.0366667, 35.2727778, 'שעה', 2, 60, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-kovshim', 'עין כובשים',
    'מעיין ופארק-חיות-בר קטן ביער חניתה בגליל המערבי, סמוך לאתר חומה ומגדל ולנחל הבאר - יעד משפחתי שקט.',
-   'water', 'easy', 'north', 33.0822513, 35.1697351, 'כחצי שעה', 0.5,
-   10, 40, true, false, false, true, 'free',
+   'water', 'easy', 'north', 33.0822513, 35.1697351, 'כחצי שעה', 0.5, 40, true, false, false, true, 'free',
    null, 0.5, null)
 
 on conflict (id) do nothing;

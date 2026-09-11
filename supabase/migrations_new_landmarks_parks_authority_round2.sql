@@ -13,44 +13,36 @@
 -- לגישה הזהירה שננקטה לאורך כל השיחה כלפי אתרים מעבר לקו הירוק.
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('makhtesh-gadol', 'המכתש הגדול (מכתש חתירה)',
    'שלישי מבין שלושת המכתשים הייחודיים בישראל (יחד עם מכתש רמון והמכתש הקטן) - מבנה-סחיפה ענק בנגב עם שכבות-סלע צבעוניות חשופות, פחות מבוקר מאחיו הגדול אך לא פחות מרשים.',
-   'mountains', 'medium', 'south', 30.9369988, 34.983731, '3-4 שעות', 6,
-   25, 90, false, false, false, false, 'free',
+   'mountains', 'medium', 'south', 30.9369988, 34.983731, '3-4 שעות', 6, 90, false, false, false, false, 'free',
    null, 3.5, null),
 
   ('ein-hanya', 'גן לאומי עין חניה',
    'מעיין ובריכת-רחצה טבעית בעמק רפאים בכניסה לירושלים, משוחזר ומתוחזק כגן לאומי - יעד קליל ומשפחתי במרחק דקות מהעיר, עם צל ומים זורמים.',
-   'water', 'easy', 'jerusalem', 31.7439425, 35.157429, 'שעה-שעה וחצי', 1,
-   10, 140, true, false, true, true, 'free',
+   'water', 'easy', 'jerusalem', 31.7439425, 35.157429, 'שעה-שעה וחצי', 1, 140, true, false, true, true, 'free',
    null, 1, null),
 
   ('har-hatayasim', 'שמורת הר הטייסים',
    'שמורת טבע במדבר יהודה בין ירושלים לים המלח, הנקראת על שם אתר-הנצחה לטייסים - נוף מדברי פתוח ומסלולי הליכה אל עבר עין נסתרת בתחתית הערוץ.',
-   'mountains', 'medium', 'jerusalem', 31.7743225, 35.0912609, '2-3 שעות', 4,
-   25, 80, false, false, false, true, 'free',
+   'mountains', 'medium', 'jerusalem', 31.7743225, 35.0912609, '2-3 שעות', 4, 80, false, false, false, true, 'free',
    null, 2.5, null),
 
   ('evrona', 'שמורת טבע עברונה',
    'שמורת טבע במישור החוף הערבתי מצפון לאילת, המשמרת חורש-שיטה מדברי נדיר ובריכות-מים עונתיות - בית-גידול חשוב לציפורים נודדות ולבעלי-חיים מדבריים.',
-   'reserves', 'easy', 'eilat', 29.6536379, 34.999155, 'שעה-שעתיים', 3,
-   10, 70, true, false, false, false, 'free',
+   'reserves', 'easy', 'eilat', 29.6536379, 34.999155, 'שעה-שעתיים', 3, 70, true, false, false, false, 'free',
    null, 1.5, null),
 
   ('maagan-michael-beach-reserve', 'שמורת חוף וים מעגן מיכאל',
    'שמורת טבע ימית-חופית לחוף קיבוץ מעגן מיכאל, הכוללת איים קטנים סמוכים לחוף וחיים ימיים עשירים - חוף פראי ושקט הרחק מריכוזי-הנופש.',
-   'water', 'easy', 'center', 32.5553868, 34.9059288, 'שעה-שעתיים', 2,
-   10, 90, true, true, false, true, 'free',
+   'water', 'easy', 'center', 32.5553868, 34.9059288, 'שעה-שעתיים', 2, 90, true, true, false, true, 'free',
    null, 1.5, null),
 
   ('alonei-kadima', 'שמורת טבע אלוני קדימה',
    'שמורת יער-אלונים טבעי במישור החוף המרכזי, השרידים האחרונים של יער-הבר שכיסה פעם את השרון - שבילי הליכה מוצלים בין עצי אלון-התבור עתיקים.',
-   'nature', 'easy', 'center', 32.2872984, 34.9211473, 'שעה-שעה וחצי', 2,
-   10, 70, true, true, false, false, 'free',
+   'nature', 'easy', 'center', 32.2872984, 34.9211473, 'שעה-שעה וחצי', 2, 70, true, true, false, false, 'free',
    null, 1, null)
 
 on conflict (id) do nothing;

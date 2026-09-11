@@ -24,32 +24,26 @@
 -- משמש official_url של יעד קיים אחר) - עדיף להשאיר ריק מאשר לקשר למקור לא-מדויק.
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('tel-dan-reserve', 'שמורת תל דן',
    'שמורת טבע ואתר מקראי בקצה הצפוני של ישראל, סביב מעיינות הדן - המקור העשיר ביותר של מי הירדן - עם שביל-מים צלול בצל עצי ערבה וצפצפה עתיקים, ותל ובו שער כנעני עתיק ומזבח ישראלי.',
-   'reserves', 'easy', 'north', 33.2484674, 35.651321, '4-2 שעות', 3,
-   10, 420, true, false, false, true, 'paid',
+   'reserves', 'easy', 'north', 33.2484674, 35.651321, '4-2 שעות', 3, 420, true, false, false, true, 'paid',
    null, 3, 'https://www.maslulim-israel.co.il/tracks/%d7%aa%d7%9c-%d7%93%d7%9f-%d7%91%d7%99%d7%9f-%d7%a4%d7%9c%d7%92%d7%99-%d7%94%d7%9e%d7%99%d7%9d-%d7%95%d7%94%d7%a2%d7%aa%d7%99%d7%a7%d7%95%d7%aa-%d7%91%d7%aa%d7%9c-%d7%93%d7%9f-%d7%91%d7%a2%d7%a7/'),
 
   ('tel-megiddo', 'גן לאומי תל מגידו',
    'תל ארכיאולוגי עתיק בעמק יזרעאל, אתר מורשת עולמי של אונסק"ו, עם שכבות-יישוב מ-20 תקופות היסטוריות, שערי-ענק כנעניים, ומנהרת-מים חצובה בסלע היורדת אל נחל הקיני.',
-   'archaeology', 'medium', 'north', 32.5865272, 35.1861405, '5-4 שעות', 6.5,
-   25, 350, true, false, false, true, 'paid',
+   'archaeology', 'medium', 'north', 32.5865272, 35.1861405, '5-4 שעות', 6.5, 350, true, false, false, true, 'paid',
    null, 4.5, 'https://www.maslulim-israel.co.il/tracks/%d7%90%d7%9c-%d7%aa%d7%9c-%d7%9e%d7%92%d7%99%d7%93%d7%95-%d7%92%d7%91%d7%a2%d7%aa-%d7%99%d7%90%d7%a9%d7%99%d7%94%d7%95-%d7%95%d7%a0%d7%97%d7%9c-%d7%94%d7%a7%d7%99%d7%a0%d7%99-%d7%91%d7%a2%d7%a7/'),
 
   ('tel-hazor', 'גן לאומי תל חצור',
    'תל ארכיאולוגי גדול בגליל העליון, אתר מורשת עולמי של אונסק"ו לצד מגידו ובאר-שבע - העיר המקראית הגדולה בישראל, עם שרידי ארמון כנעני, שערי-ענק ומערכת-מים תת-קרקעית מרשימה.',
-   'archaeology', 'medium', 'north', 33.017442, 35.56818, 'כשעתיים', 1.2,
-   25, 150, true, false, false, false, 'paid',
+   'archaeology', 'medium', 'north', 33.017442, 35.56818, 'כשעתיים', 1.2, 150, true, false, false, false, 'paid',
    null, 2, 'https://www.maslulim-israel.co.il/tracks/%d7%91%d7%a9%d7%91%d7%99%d7%9c%d7%99-%d7%aa%d7%9c-%d7%97%d7%a6%d7%95%d7%a8-%d7%94%d7%a2%d7%99%d7%a8-%d7%94%d7%9e%d7%a7%d7%a8%d7%90%d7%99%d7%aa-%d7%94%d7%92%d7%93%d7%95%d7%9c%d7%94-%d7%91%d7%99%d7%a9/'),
 
   ('montfort-castle', 'מצודת מונפורט',
    'שרידי מצודת אבירים צלבנית דרמטית, בנויה על רכס-סלע צר ותלול המשקיף על נחל כזיב בגליל המערבי - מהמצודות המצולמות והמבוקרות ביותר בישראל, בסוף שביל-הליכה משמעותי דרך היער.',
-   'heritage', 'medium', 'north', 33.0444555, 35.2266186, 'כשעתיים', 3,
-   25, 300, true, false, false, false, 'free',
+   'heritage', 'medium', 'north', 33.0444555, 35.2266186, 'כשעתיים', 3, 300, true, false, false, false, 'free',
    null, 2, null)
 
 on conflict (id) do nothing;

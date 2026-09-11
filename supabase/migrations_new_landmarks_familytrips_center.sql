@@ -15,20 +15,16 @@
 -- 2 יעדים אושרו ונוספו:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('nahal-yarmut', 'נחל ירמות (פארק האקליפטוס)',
    'פארק-מעיינות עירוני נעים ליד בית שמש, עם ברכות-מים קטנות ועצי-איקליפטוס גבוהים - יעד משפחתי נגיש לביקור קצר.',
-   'water', 'easy', 'center', 31.713927, 34.977661, 'כחצי שעה', 0.5,
-   10, 110, true, false, true, true, 'free',
+   'water', 'easy', 'center', 31.713927, 34.977661, 'כחצי שעה', 0.5, 110, true, false, true, true, 'free',
    null, 0.5, null),
 
   ('beer-shem-tov', 'באר שם טוב',
    'באר עתיקה ומשוחזרת בשמורת שבע במרכז הארץ, מוקפת עצים - אתר-מים היסטורי ושקט לביקור קליל.',
-   'water', 'easy', 'center', 31.5604725, 34.9355394, 'כחצי שעה', 0.5,
-   10, 68, true, false, false, true, 'free',
+   'water', 'easy', 'center', 31.5604725, 34.9355394, 'כחצי שעה', 0.5, 68, true, false, false, true, 'free',
    null, 0.5, null)
 
 on conflict (id) do nothing;

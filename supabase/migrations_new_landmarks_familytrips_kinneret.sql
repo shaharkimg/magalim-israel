@@ -12,20 +12,16 @@
 -- 2 מעיינות אושרו ונוספו:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-nun', 'עין נון',
    'מעיין קסום סמוך למגדל, לצד נופי הכנרת - בריכת-מים קטנה ומוצלת בתוך שטח חקלאי-ירוק, יעד שקט לביקור קליל.',
-   'water', 'easy', 'north', 32.8411111, 35.5102778, 'כחצי שעה', 0.5,
-   10, 100, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.8411111, 35.5102778, 'כחצי שעה', 0.5, 100, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-poriya', 'עין פוריה',
    'מעיין קטן מול נופי הכנרת בגבעות פוריה שמעל טבריה - בריכת-אבן צנועה בשטח פתוח, עם תצפית פתוחה על האגם.',
-   'water', 'easy', 'north', 32.7305556, 35.5541667, 'כחצי שעה', 0.5,
-   10, 35, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.7305556, 35.5541667, 'כחצי שעה', 0.5, 35, true, false, false, true, 'free',
    null, 0.5, null)
 
 on conflict (id) do nothing;

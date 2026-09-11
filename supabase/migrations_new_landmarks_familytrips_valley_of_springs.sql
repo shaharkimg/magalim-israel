@@ -12,62 +12,51 @@
 -- 9 מעיינות אושרו ונוספו - האזור הפורה ביותר עד כה:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-yizrael', 'עין יזרעאל',
    'מעיין זורם לצד הגלבוע בעמק יזרעאל, עם בריכת-מים גדולה ומרפסת-עץ מעליה - יעד רחצה מבוקש ופופולרי באזור.',
-   'water', 'easy', 'north', 32.559681, 35.337471, 'שעה', 1,
-   10, 400, true, false, true, true, 'free',
+   'water', 'easy', 'north', 32.559681, 35.337471, 'שעה', 1, 400, true, false, true, true, 'free',
    null, 1, null),
 
   ('ein-shokek', 'עין שוקק',
    'מעיין יפהפה בפארק המעיינות בעמק בית שאן, עם מסלול-מים קליל המתאים לכל המשפחה ומים צלולים לאורך כל השנה.',
-   'water', 'easy', 'north', 32.4963889, 35.445, 'שעה', 1.5,
-   10, 150, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.4963889, 35.445, 'שעה', 1.5, 150, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-moda', 'עין מודע',
    'אחד המעיינות המוכרים בפארק המעיינות בעמק בית שאן - בריכת-מים גדולה וטבעית, יעד רחצה מבוקש בעונה החמה.',
-   'water', 'easy', 'north', 32.4790587, 35.4559664, 'שעה', 1.5,
-   10, 950, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.4790587, 35.4559664, 'שעה', 1.5, 950, true, false, false, true, 'free',
    null, 1, null),
 
   ('nahal-haasi-green-beach', 'החוף הירוק - נחל האסי',
    'קטע-רחצה ירוק ושליו על נחל האסי בקיבוץ ניר דוד, בתוך שמורת טבע - מים זורמים וצללים נעימים, פחות עמוס מגן השלושה הסמוך.',
-   'reserves', 'easy', 'north', 32.5056419, 35.4519386, 'שעה', 1,
-   10, 200, true, false, false, true, 'free',
+   'reserves', 'easy', 'north', 32.5056419, 35.4519386, 'שעה', 1, 200, true, false, false, true, 'free',
    null, 1, null),
 
   ('brechat-gidona', 'בריכת גדעונה (חורשת גדעון)',
    'בריכת-מעיין בתוך חורשה ירוקה בעמק חרוד, אזור טיולים רגליים שקט הרחוק מהעומס של אתרי-הדגל בעמק.',
-   'water', 'easy', 'north', 32.5500474, 35.3655649, 'שעה', 1,
-   10, 250, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.5500474, 35.3655649, 'שעה', 1, 250, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-zemed', 'עין צמד',
    'מעיין קטן וירוק בעמק בית שאן, סמוך לנחל אבוקה - נקודת-מים שקטה ופחות מוכרת מהמעיינות הגדולים בסביבה.',
-   'water', 'easy', 'north', 32.4769444, 35.5208333, 'כחצי שעה', 0.5,
-   10, 20, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.4769444, 35.5208333, 'כחצי שעה', 0.5, 20, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-hanatziv', 'עין הנצי"ב',
    'מעיין זורם בקיבוץ עין הנצי"ב בעמק בית שאן, עם בריכה ומפל קטן - יעד רגוע לצד היישוב.',
-   'water', 'easy', 'north', 32.47071, 35.501973, 'שעה', 1,
-   10, 60, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.47071, 35.501973, 'שעה', 1, 60, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-nezem', 'עין נזם',
    'מעיין בלב השדות בעמק בית שאן, עם בריכת-מים טבעית מוקפת ירק - יעד קליל ופחות תיירותי.',
-   'water', 'easy', 'north', 32.4322222, 35.5133333, 'שעה', 1,
-   10, 190, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.4322222, 35.5133333, 'שעה', 1, 190, true, false, false, true, 'free',
    null, 1, null),
 
   ('ganey-hugga', 'גני חוגה - פארק מעיינות וקמפינג',
    'פארק מעיינות משפחתי בעמק בית שאן, סביב בריכות-מים טבעיות עם מגלשות-מים ואזורי קמפינג - יעד מבוקש לחופשה שלמה בטבע.',
-   'water', 'easy', 'north', 32.5184303, 35.5381805, 'יום שלם', 1,
-   10, 3450, true, false, true, true, 'paid',
+   'water', 'easy', 'north', 32.5184303, 35.5381805, 'יום שלם', 1, 3450, true, false, true, true, 'paid',
    null, 4, null)
 
 on conflict (id) do nothing;

@@ -11,86 +11,71 @@
 -- מהאתרים המקוריים).
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('jaffa-old-city', 'יפו העתיקה',
    'סיור עירוני קליל בסמטאות יפו העתיקה - משער הכניסה ליד כיכר השעון, דרך חומת העיר ההיסטורית, מסגד אל-מחמודיה ומוזיאון העתיקות, ועד תצפית אל חוף תל אביב. מתאים לכל המשפחה ומושלם לשעת שקיעה.',
-   'heritage', 'easy', 'center', 32.0553541, 34.7566139, 'שעה-שעתיים', 2,
-   10, 300, true, false, false, false, 'free',
+   'heritage', 'easy', 'center', 32.0553541, 34.7566139, 'שעה-שעתיים', 2, 300, true, false, false, false, 'free',
    null, 1.5, 'https://www.teva.org.il/tracks/19122'),
 
   ('ein-prat', 'שמורת עין פרת (נחל פרת)',
    'שמורת טבע במדבר יהודה סמוך לענתות, עם זרימת מים קבועה כל השנה בין צוקי קניון מרשימים - בריכות טבעיות, עצי אקליפטוס ענקיים ותצפית אל מנזר פארן העתיק. אחד ממקורות המים היפים והמפתיעים ביותר ליד ירושלים.',
-   'water', 'medium', 'jerusalem', 31.8314794, 35.3069669, '2-3 שעות', 4,
-   25, 150, true, false, false, true, 'paid',
+   'water', 'medium', 'jerusalem', 31.8314794, 35.3069669, '2-3 שעות', 4, 150, true, false, false, true, 'paid',
    null, 2.5, null),
 
   ('sataf', 'הסטף',
    'אתר חקלאי-היסטורי בהרי ירושלים עם טרסות עתיקות, בוסתנים ושני מעיינות (עין ביקורה ועין סטף) הזורמים אל בריכות אגירה ומהם אל השבילים שמתחת - מסלול משפחות פופולרי עם נוף פסטורלי.',
-   'water', 'easy', 'jerusalem', 31.771742, 35.1276556, 'שעה-שעתיים', 3,
-   10, 130, true, false, false, true, 'free',
+   'water', 'easy', 'jerusalem', 31.771742, 35.1276556, 'שעה-שעתיים', 3, 130, true, false, false, true, 'free',
    null, 1.5, null),
 
   ('shehoret-canyon', 'קניון שחורת',
    'קניון גרניט מרשים בהרי אילת, עם דפנות סלע כהות שהעניקו לו את שמו - מסלול הליכה מדברי מאתגר בין קירות תלולים, מומלץ להתחיל השכם בבוקר בעונה הקרירה.',
-   'mountains', 'hard', 'eilat', 29.6219417, 34.9351267, '3-4 שעות', 6,
-   50, 120, false, false, false, false, 'free',
+   'mountains', 'hard', 'eilat', 29.6219417, 34.9351267, '3-4 שעות', 6, 120, false, false, false, false, 'free',
    null, 3.5, null),
 
   ('ein-saharonim', 'עין סהרונים',
    'מעיין מדברי בלב מכתש רמון, בקרבת נחל נקרות - נווה מדבר קטן המושך צבי ויעלים, ותחנת-ביניים פופולרית במסלולי חציית המכתש.',
-   'water', 'medium', 'south', 30.6025, 34.9347222, '3-4 שעות', 7,
-   25, 90, false, false, false, true, 'free',
+   'water', 'medium', 'south', 30.6025, 34.9347222, '3-4 שעות', 7, 90, false, false, false, true, 'free',
    null, 3.5, null),
 
   ('ben-shemen-forest', 'יער בן שמן',
    'אחד היערות הנטועים הוותיקים והגדולים בישראל, במרכז הארץ - שבילי הליכה ורכיבה מוצלים, שטחי פיקניק ואתרי-מורשת קטנים (בהם קברי-אבות ומצפורים), פופולרי כטיול-משפחות קליל.',
-   'parks', 'easy', 'center', 31.9230115, 34.9667634, 'שעה-שעתיים', 3,
-   10, 100, true, true, false, false, 'free',
+   'parks', 'easy', 'center', 31.9230115, 34.9667634, 'שעה-שעתיים', 3, 100, true, true, false, false, 'free',
    null, 1.5, null),
 
   ('amram-pillars', 'עמודי עמרם',
    'תצורות סלע חול אדמדם ייחודיות בהרי אילת, שנוצרו על ידי בליה ומזכירות עמודי-ענק טבעיים - אתר גיאולוגי מרשים וקל להגעה, פופולרי לצילום בשעות אור רכות.',
-   'viewpoints', 'easy', 'eilat', 29.652746, 34.932271, 'שעה', 2,
-   10, 110, true, false, false, false, 'free',
+   'viewpoints', 'easy', 'eilat', 29.652746, 34.932271, 'שעה', 2, 110, true, false, false, false, 'free',
    null, 1, null),
 
   ('yarkon-park', 'פארק הירקון',
    'הפארק העירוני הגדול בישראל, לאורך נהר הירקון בתל אביב - שבילי הליכה ואופניים, גני-אירועים, פארק-הרפתקאות ואגם סירות, יעד פנאי מרכזי לכל המשפחה במרכז הארץ.',
-   'parks', 'easy', 'center', 32.1009693, 34.8069446, 'כרצונך', 5,
-   10, 250, true, true, true, true, 'free',
+   'parks', 'easy', 'center', 32.1009693, 34.8069446, 'כרצונך', 5, 250, true, true, true, true, 'free',
    null, 2, null),
 
   ('kishon-park', 'פארק הקישון',
    'פינה ירוקה לאורך נהר הקישון בלב חיפה, עם טיילת, מזח סירות ושטחי דשא - מקום נעים לטיול רגוע או פיקניק משפחתי בתוך העיר.',
-   'parks', 'easy', 'north', 32.8040862, 35.029311, 'שעה-שעתיים', 2,
-   10, 90, true, true, true, true, 'free',
+   'parks', 'easy', 'north', 32.8040862, 35.029311, 'שעה-שעתיים', 2, 90, true, true, true, true, 'free',
    null, 1.5, null),
 
   ('poriya-switzerland-forest', 'יער שוויץ (פוריה)',
    'יער נטוע על מצוק פוריה מעל הכנרת, עם תצפית פנורמית מרהיבה אל האגם וסביבותיו - שבילים קצרים ומונגשים המתאימים למגוון רחב של מטיילים.',
-   'viewpoints', 'easy', 'north', 32.7733277, 35.5299201, 'שעה', 2,
-   10, 100, true, true, true, false, 'free',
+   'viewpoints', 'easy', 'north', 32.7733277, 35.5299201, 'שעה', 2, 100, true, true, true, false, 'free',
    null, 1, null),
 
   ('ein-ayov', 'עין איוב ומפל איוב',
    'מעיין ומפל נסתר בגליל התחתון, סמוך לכפר נחום ולחוף הצפוני של הכנרת - יעד קטן ופחות מוכר שדורש קצת חיפוש, אך מתגמל בבריכת-מים צלולה בצל עצים.',
-   'water', 'medium', 'north', 32.872285, 35.5524399, 'שעה-שעה וחצי', 1.5,
-   25, 70, true, false, false, true, 'free',
+   'water', 'medium', 'north', 32.872285, 35.5524399, 'שעה-שעה וחצי', 1.5, 70, true, false, false, true, 'free',
    null, 1.25, null),
 
   ('gaash-beach', 'חוף געש',
    'חוף ים שקט וקליל במישור החוף המרכזי, ליד קיבוץ געש - מתאים לטיול-חוף נינוח, שקיעה או זמן איכות עם הכלב.',
-   'water', 'easy', 'center', 32.228206, 34.819122, 'כרצונך', 1,
-   10, 110, true, true, false, true, 'free',
+   'water', 'easy', 'center', 32.228206, 34.819122, 'כרצונך', 1, 110, true, true, false, true, 'free',
    null, 1, null),
 
   ('ein-yorkeam', 'עין ירקעם',
    'מעיין מדברי נידח באזור מכתש רמון, בסמוך למצפה רמון - יעד לא-מוכר-מדי המשולב לרוב במסלולי-הליכה ארוכים וארוכי-טווח בהרי הנגב.',
-   'water', 'hard', 'south', 30.9377778, 35.04, '4-5 שעות', 9,
-   50, 60, false, false, false, true, 'free',
+   'water', 'hard', 'south', 30.9377778, 35.04, '4-5 שעות', 9, 60, false, false, false, true, 'free',
    null, 4.5, null)
 
 on conflict (id) do nothing;

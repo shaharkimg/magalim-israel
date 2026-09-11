@@ -21,44 +21,36 @@
 -- אחד מהם אומתו בנפרד מול Google Maps (לא נוחשו).
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('nahal-bazelet-falls', 'מפל בזלת',
    'מפל בזלת גבוה ומרשים בערוץ נחל בזלת ברמת הגולן, הנשקף מנקודת תצפית לאורך מצוקי הנחל - מרשים במיוחד בשיא החורף, לאחר גשמים מרובים והפשרת שלגים.',
-   'water', 'easy', 'north', 32.919258, 35.797064, 'כשעה', 2.4,
-   10, 55, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.919258, 35.797064, 'כשעה', 2.4, 55, true, false, false, true, 'free',
    'winter', 1, 'https://www.maslulim-israel.co.il/tracks/%d7%a9%d7%99%d7%98%d7%a4%d7%95%d7%9f-%d7%91%d7%9e%d7%a4%d7%9c-%d7%91%d7%96%d7%9c%d7%aa-%d7%a6%d7%a4%d7%99%d7%99%d7%94-%d7%91%d7%a9%d7%99%d7%98%d7%a4%d7%95%d7%9f-%d7%91%d7%9e%d7%a4%d7%9c-%d7%a0/'),
 
   ('horvat-erza', 'חורבת ארזה',
    'חורבה של חווה חקלאית ויישוב קטן מימי בית שני, על רכס בגובה 850 מטר בקצה הדרומי של ירושלים (גילה), עם פרגולות וספסלים מטופחים הצופים אל נוף ירושלים וההרים שסביבה.',
-   'archaeology', 'easy', 'jerusalem', 31.732994, 35.1842957, 'כשעה', 0.5,
-   10, 65, true, false, false, false, 'free',
+   'archaeology', 'easy', 'jerusalem', 31.732994, 35.1842957, 'כשעה', 0.5, 65, true, false, false, false, 'free',
    null, 1, 'https://www.maslulim-israel.co.il/tracks/%d7%97%d7%95%d7%a8%d7%91%d7%aa-%d7%90%d7%a8%d7%96%d7%94-%d7%a1%d7%a4%d7%a1%d7%9c%d7%99%d7%9d-%d7%95%d7%a0%d7%95%d7%a3-%d7%9e%d7%a8%d7%a4%d7%a1%d7%95%d7%aa-%d7%94%d7%a0%d7%95%d7%a3-%d7%91%d7%97%d7%95/'),
 
   ('jerusalem-botanical-garden', 'הגן הבוטני בירושלים',
    'גן בוטני נרחב למרגלות גבעת רם בירושלים, עם מגוון עצים משירים שהופכים אותו ליעד מיוחד בעונת השלכת - אך יפה ומטופח לאורך כל השנה.',
-   'parks', 'easy', 'jerusalem', 31.7657885, 35.2018268, 'כשעה', 1,
-   10, 140, true, false, true, false, 'paid',
+   'parks', 'easy', 'jerusalem', 31.7657885, 35.2018268, 'כשעה', 1, 140, true, false, true, false, 'paid',
    'autumn', 1, 'https://www.maslulim-israel.co.il/tracks/%d7%9e%d7%92%d7%95%d7%95%d7%9f-%d7%a8%d7%97%d7%91-%d7%a9%d7%9c-%d7%a6%d7%91%d7%a2%d7%99-%d7%a9%d7%9c%d7%9b%d7%aa-%d7%91%d7%92%d7%9f-%d7%94%d7%91%d7%95%d7%98%d7%a0%d7%99-%d7%91%d7%99%d7%a8%d7%95-2/'),
 
   ('jerusalem-chords-bridge', 'גשר המיתרים',
    'גשר תלוי מרשים בכניסה לירושלים, מעל ערוצו של גיא בן-הינום, המחובר בכבלי-פלדה לתורן אחד גבוה - מרהיב גם ביום וגם מואר בלילה, עם נוף אל הר ציון והעיר החדשה.',
-   'urban', 'medium', 'jerusalem', 31.7889343, 35.1999677, '45-30 דקות', 0.8,
-   25, 190, true, false, true, false, 'free',
+   'urban', 'medium', 'jerusalem', 31.7889343, 35.1999677, '45-30 דקות', 0.8, 190, true, false, true, false, 'free',
    null, 0.75, 'https://www.maslulim-israel.co.il/tracks/%d7%94%d7%92%d7%a9%d7%a8-%d7%94%d7%aa%d7%9c%d7%95%d7%99-%d7%91%d7%99%d7%a8%d7%95%d7%a9%d7%9c%d7%99%d7%9d-%d7%a1%d7%99%d7%95%d7%a8-%d7%9c%d7%99%d7%9c%d7%99-%d7%9c%d7%90%d7%95%d7%a8%d7%9a-%d7%94%d7%92/'),
 
   ('mitzpe-yair-ramat-rachel', 'מצפה יאיר',
    'נקודת תצפית קצרה וקסומה בקיבוץ רמת רחל בדרום ירושלים, עם נוף שקיעה עוצר-נשימה על העיר וסיפור זיכרון נוגע-ללב.',
-   'viewpoints', 'easy', 'jerusalem', 31.7403163, 35.2178825, 'עד רבע שעה', 0.2,
-   10, 80, true, false, false, false, 'free',
+   'viewpoints', 'easy', 'jerusalem', 31.7403163, 35.2178825, 'עד רבע שעה', 0.2, 80, true, false, false, false, 'free',
    null, 0.25, 'https://www.maslulim-israel.co.il/tracks/%d7%9e%d7%a6%d7%a4%d7%94-%d7%99%d7%90%d7%99%d7%a8-%d7%91%d7%a9%d7%a7%d7%99%d7%a2%d7%94-%d7%aa%d7%a6%d7%a4%d7%99%d7%aa-%d7%a9%d7%a7%d7%99%d7%a2%d7%94-%d7%a7%d7%a1%d7%95%d7%9e%d7%94-%d7%a2%d7%9c-%d7%99/'),
 
   ('nahal-refaim-ein-lavan', 'נחל רפאים ועין לבן',
    'פארק נחל אורבני ירוק במערב ירושלים, לאורך נחל רפאים ועד למעיין עין לבן, עם מורדות שמתמלאים בפריחת שקדיות לבנה וורודה בשיא החורף.',
-   'water', 'easy', 'jerusalem', 31.7492799, 35.1593708, 'עד 3 שעות', 5,
-   10, 100, true, true, true, true, 'free',
+   'water', 'easy', 'jerusalem', 31.7492799, 35.1593708, 'עד 3 שעות', 5, 100, true, true, true, true, 'free',
    'winter', 3, 'https://www.maslulim-israel.co.il/tracks/%d7%a0%d7%97%d7%9c-%d7%a8%d7%a4%d7%90%d7%99%d7%9d-%d7%95%d7%a2%d7%99%d7%9f-%d7%9c%d7%91%d7%9f-%d7%9e%d7%a1%d7%9c%d7%95%d7%9c-%d7%90%d7%9c-%d7%a4%d7%a8%d7%99%d7%97%d7%aa-%d7%a9%d7%a7%d7%93%d7%99%d7%95/')
 
 on conflict (id) do nothing;
