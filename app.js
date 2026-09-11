@@ -381,6 +381,18 @@ function uiIcon(name, size){
   return '<svg class="ui-ic" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+d+'</svg>';
 }
 
+/* ============ SHARED EMPTY STATE ============ */
+// מצב-ריק אחד לכל האפליקציה (§12): אייקון עדין, כותרת קצרה, משפט מעודד ו-CTA אחד -
+// במקום שורות טקסט מופרדות ב-<br> שהיו משוכפלות בכל מסך.
+function emptyStateHtml(o){
+  return '<div class="empty-state">'
+    + (o.icon ? '<div class="empty-icon">'+o.icon+'</div>' : "")
+    + '<div class="empty-title">'+o.title+'</div>'
+    + (o.sub ? '<div class="empty-sub">'+o.sub+'</div>' : "")
+    + (o.ctaLabel ? '<button class="btn btn-primary empty-cta" id="'+o.ctaId+'" type="button">'+o.ctaLabel+'</button>' : "")
+    + '</div>';
+}
+
 /* ============ SHARED PLACE CARD ============ */
 // רכיב-כרטיס אחד לכל המקומות שבהם מוצג יעד ברשימה (חיפוש / רשימת-משאלות / כבשתי /
 // היסטוריה / פאנל-צד בדסקטופ) - במקום 5 העתקים כמעט-זהים של אותו markup.
@@ -1360,12 +1372,21 @@ async function handleInviteCode(code){
 }
 function openInvitePreview(code, data){
   const actionText = data.invite_type==="circle" ? `הצטרפות למעגל "${escapeHtml(data.circle_name||'')}"` : "הצטרפות כחברים";
+  const inviterName = escapeHtml(data.inviter_name||'מטייל/ת');
   $("inviteBody").innerHTML = `
-    <div style="font-size:38px;margin:10px 0 8px;">✉️</div>
-    <h2 style="margin:0 0 6px;font-size:19px;">${escapeHtml(data.inviter_name||'מטייל/ת')} הזמינ/ה אותך</h2>
-    <p style="color:var(--text-muted);font-size:13.5px;margin:0 0 20px;">${actionText}</p>
-    <button class="btn btn-primary btn-block" id="inviteAcceptBtn">אישור ההזמנה</button>
-    <button class="btn btn-ghost btn-block" id="inviteDismissBtn" style="margin-top:8px;">לא עכשיו</button>
+    <div class="invite-hero">
+      <div class="invite-mark"><img src="./logo.png" alt=""></div>
+      <h2 class="invite-title">${inviterName} הזמינ/ה אותך למסע</h2>
+      <p class="invite-sub">תגלו מקומות, תצברו נקודות ותראו מי מכיר את ישראל טוב יותר.</p>
+      <div class="invite-preview">
+        <div class="invite-preview-item">${uiIcon("region",16)}<b>${LANDMARKS.length||''}</b> מקומות בישראל</div>
+        <div class="invite-preview-item">${uiIcon("points",16)}נקודות על כל כיבוש</div>
+        <div class="invite-preview-item">${uiIcon("trophy",16)}תגים והישגים</div>
+      </div>
+      <p class="invite-action-note">${actionText}</p>
+    </div>
+    <button class="btn btn-primary btn-block" id="inviteAcceptBtn">הצטרפו למסע</button>
+    <button class="btn btn-ghost btn-block" id="inviteDismissBtn" style="margin-top:var(--space-2);">לא עכשיו</button>
   `;
   $("inviteAcceptBtn").onclick = async ()=>{
     $("inviteAcceptBtn").disabled = true;
@@ -1695,7 +1716,8 @@ function renderWizardResults(){
   $("wizBackBtn").classList.remove("hidden");
   $("wizFindBtn").classList.add("hidden");
   if(!results.length){
-    $("wizResults").innerHTML = '<div class="empty-state"><div class="big">🤔</div>לא מצאנו טיול שמתאים לכל הקריטריונים.<br>נסו להרחיב את המרחק או לשחרר קריטריון.</div>';
+    $("wizResults").innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title: "לא מצאנו התאמה מדויקת",
+      sub: "נסו להרחיב את המרחק או לשחרר קריטריון." });
     return;
   }
   let note = "";
@@ -2455,29 +2477,69 @@ document.addEventListener("keydown", e=>{
 // confirmSheet). מבוטל דרך transform מוטבע-inline בזמן הגרירה בלבד; ברגע שהוא מוסר (touchend)
 // חוזרים לחלוטין למנגנון ה-CSS class-based הקיים (transform:translateY(100%)/(0)) - לא נבנה
 // מנגנון-אנימציה מקביל.
+// snap-sheets (§6): גובה ה-sheet נעצר באחת משלוש מדרגות במקום להיות קבוע. אותו handler
+// של הגרירה משרת גם אותם - גרירה למעלה מגדילה את הגובה, גרירה למטה מקטינה ובסוף סוגרת.
+const SHEET_SNAPS = { collapsed:0.42, mid:0.68, full:0.92 };
+function sheetContainerHeight(sheetEl){
+  return (sheetEl.offsetParent || document.documentElement).clientHeight || window.innerHeight;
+}
+function setSheetSnap(sheetEl, name){
+  if(!sheetEl || !sheetEl.classList.contains("snap-sheet")) return;
+  sheetEl.classList.remove("snap-collapsed","snap-mid","snap-full");
+  sheetEl.classList.add("snap-"+name);
+  sheetEl.style.height = "";
+  const scrim = $("detailScrim");
+  if(scrim) scrim.classList.toggle("soft", name !== "full");
+}
 (function wireSheetSwipeToClose(){
   let drag = null;
   document.addEventListener("touchstart", e=>{
     const handle = e.target.closest(".sheet-handle");
     const sheetEl = handle && handle.closest(".sheet");
     if(!sheetEl || !sheetEl.classList.contains("open")) return;
-    drag = { sheetEl, startY: e.touches[0].clientY, dy: 0, height: sheetEl.getBoundingClientRect().height };
-    sheetEl.style.transition = "none";
+    drag = { sheetEl, startY: e.touches[0].clientY, dy: 0,
+             height: sheetEl.getBoundingClientRect().height,
+             snap: sheetEl.classList.contains("snap-sheet") };
+    if(drag.snap) sheetEl.classList.add("dragging"); else sheetEl.style.transition = "none";
   }, {passive:true});
   document.addEventListener("touchmove", e=>{
     if(!drag) return;
-    drag.dy = Math.max(0, e.touches[0].clientY - drag.startY);
+    const raw = e.touches[0].clientY - drag.startY;
+    if(drag.snap){
+      const containerH = sheetContainerHeight(drag.sheetEl);
+      const maxH = containerH*SHEET_SNAPS.full;
+      const wanted = drag.height - raw;            // גרירה למעלה (raw שלילי) מגדילה
+      if(wanted <= maxH){
+        drag.dy = Math.max(0, raw);
+        drag.sheetEl.style.height = Math.max(60, wanted)+"px";
+        drag.sheetEl.style.transform = "";
+      }
+      return;
+    }
+    drag.dy = Math.max(0, raw);
     drag.sheetEl.style.transform = `translateY(${drag.dy}px)`;
   }, {passive:true});
   document.addEventListener("touchend", ()=>{
     if(!drag) return;
-    const { sheetEl, dy, height } = drag;
-    sheetEl.style.transition = ""; sheetEl.style.transform = "";
+    const { sheetEl, dy, height, snap } = drag;
     drag = null;
-    if(dy > Math.min(110, height*0.28)){
+    const closeIt = ()=>{
       const entry = openSheetStack.find(s=> s.sheetId===sheetEl.id);
       if(entry){ if(entry.onEscape) entry.onEscape(); else closeSheet(entry.sheetId, entry.scrimId); }
+    };
+    if(snap){
+      sheetEl.classList.remove("dragging");
+      const containerH = sheetContainerHeight(sheetEl);
+      const frac = sheetEl.getBoundingClientRect().height / containerH;
+      sheetEl.style.height = "";
+      if(frac < SHEET_SNAPS.collapsed*0.72){ closeIt(); return; }
+      const nearest = Object.keys(SHEET_SNAPS).reduce((best,k)=>
+        Math.abs(SHEET_SNAPS[k]-frac) < Math.abs(SHEET_SNAPS[best]-frac) ? k : best, "mid");
+      setSheetSnap(sheetEl, nearest);
+      return;
     }
+    sheetEl.style.transition = ""; sheetEl.style.transform = "";
+    if(dy > Math.min(110, height*0.28)) closeIt();
   }, {passive:true});
 })();
 
@@ -2603,7 +2665,7 @@ function openDetail(id){
     if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם", ()=>startCheckin(l))) return;
     startCheckin(l);
   };
-  $("detailSheet").style.maxHeight="90%";
+  setSheetSnap($("detailSheet"), "mid");
   openSheet("detailSheet","detailScrim");
   renderFieldReports(id, l);
 }
@@ -3464,7 +3526,8 @@ function renderProfile(){
   const listEl = $("profList");
   if(profileListTab==="visited"){
     if(!myVisits.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">🗺️</div>עדיין לא כבשת יעדים.<br>צאו לטייל ועשו צ׳ק-אין ביעד הראשון!<br><button class="btn btn-primary empty-cta" id="emptyVisitedCta">🗺️ גלו יעדים במפה</button></div>';
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title: "עוד לא כבשת אף מקום",
+        sub: "הטיול הראשון שלך מחכה ממש מעבר לפינה.", ctaId: "emptyVisitedCta", ctaLabel: "גלו מקומות" });
       $("emptyVisitedCta").onclick = ()=> navigate("#/map");
     } else {
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
@@ -3480,7 +3543,8 @@ function renderProfile(){
     }
   } else if(profileListTab==="wishlist"){
     if(!myWishlist.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">⭐</div>רשימת המשאלות ריקה.<br>שמרו יעדים מהמפה לטיול הבא.<br><button class="btn btn-primary empty-cta" id="emptyWishlistCta">🗺️ גלו יעדים במפה</button></div>';
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "רשימת המשאלות ריקה",
+        sub: "שמרו מקומות שתרצו לכבוש בטיול הבא.", ctaId: "emptyWishlistCta", ctaLabel: "גלו מקומות" });
       $("emptyWishlistCta").onclick = ()=> navigate("#/map");
     } else {
       loadWishlistFriendVisits();
@@ -3499,7 +3563,8 @@ function renderProfile(){
   } else {
     const recentlyViewed = getRecentlyViewed().map(id=>lmById[id]).filter(Boolean);
     if(!recentlyViewed.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">🕓</div>עדיין אין היסטוריה.<br>יעדים שתצפו בהם יופיעו כאן.<br><button class="btn btn-primary empty-cta" id="emptyHistoryCta">🗺️ גלו יעדים במפה</button></div>';
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("duration",26), title: "עדיין אין היסטוריה",
+        sub: "מקומות שתצפו בהם יופיעו כאן.", ctaId: "emptyHistoryCta", ctaLabel: "גלו מקומות" });
       $("emptyHistoryCta").onclick = ()=> navigate("#/map");
     } else {
       listEl.innerHTML = recentlyViewed.map(l=> placeCardHtml(l)).join("");
@@ -3713,7 +3778,8 @@ async function renderNotifications(){
   $("navUnreadDot").classList.toggle("show", unread>0);
   $("bellUnreadDot").classList.toggle("show", unread>0);
   if(!list.length){
-    listEl.innerHTML = '<div class="empty-state"><div class="big">🔔</div>הכול שקט כאן.<br>התראות חדשות יופיעו כאן.</div>';
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("flame",26), title: "הכול שקט כאן",
+      sub: "התראות חדשות יופיעו כאן." });
     return;
   }
   listEl.innerHTML = list.map(n=>
@@ -3849,7 +3915,8 @@ async function renderBoard(){
     const rows = profs.map(p=>({ id:p.id, name:p.name, avatarUrl:p.avatar_url, val:totals[p.id]||0, destCount:destCount[p.id]||0, regionCount:regionsSet[p.id].size })).sort((a,b)=>b.val-a.val);
     renderLbSummary(rows);
     const friendsEmptyBanner = (rows.length<=1)
-      ? '<div class="empty-state"><div class="big">👥</div>עדיין אין לך חברים באפליקציה.<br>הזמינו חברים כדי להתחרות יחד!<br><button class="btn btn-primary empty-cta" id="emptyFriendsCta">👥 הזמן חברים</button></div>'
+      ? emptyStateHtml({ icon: uiIcon("family",26), title: "המסע מהנה יותר ביחד",
+          sub: "הזמינו חברים ותראו מי מכיר את ישראל טוב יותר.", ctaId: "emptyFriendsCta", ctaLabel: "הזמן חברים" })
       : "";
     listEl.innerHTML = friendsEmptyBanner + rows.map((r,i)=>{
       const isMe = r.id===session.user.id;
@@ -3963,7 +4030,8 @@ async function renderFeed(){
       if(!bErr && bdata) badgeEvents = bdata;
     }catch(e){}
     if(!data.length && !badgeEvents.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!<br><button class="btn btn-primary empty-cta" id="emptyFeedCta">🗺️ גלו יעדים במפה</button></div>';
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("trophy",26), title: "הפיד עוד ריק",
+      sub: "היו הראשונים לכבוש מקום ולספר עליו.", ctaId: "emptyFeedCta", ctaLabel: "גלו מקומות" });
       $("emptyFeedCta").onclick = ()=> navigate("#/map");
       renderChallenge(); renderPersonalChallenges(); return;
     }
