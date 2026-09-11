@@ -3768,11 +3768,11 @@ async function markAllNotificationsRead(){
   await supabase.from("notifications").update({ is_read:true }).eq("user_id",session.user.id).eq("is_read",false);
 }
 function notificationIcon(type){
-  if(type==="friend_request") return "👋";
-  if(type==="friend_accepted") return "🤝";
-  if(type==="circle_joined") return "👥";
-  if(type==="friend_checkin") return "🏆";
-  return "🔔";
+  if(type==="friend_request") return uiIcon("family",18);
+  if(type==="friend_accepted") return uiIcon("check",18);
+  if(type==="circle_joined") return uiIcon("family",18);
+  if(type==="friend_checkin") return uiIcon("trophy",18);
+  return uiIcon("flame",18);
 }
 function notificationText(n){
   const p = n.payload || {};
