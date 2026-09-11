@@ -1684,7 +1684,6 @@ function wizExplain(l){
 //      לפי משתמש+יום, כך ש"היעד הבא שלך" נשאר אותו יעד לאורך היום.
 //   3. לא היה אחוז-התאמה. עכשיו יש, והוא מחושב מהאותות האמיתיים - ומוצג רק כשיש
 //      מספיק אותות כדי שהמספר יהיה אמיתי (ראו MIN_SIGNALS_FOR_PCT).
-const REC_MAX_SCORE = 30 + 18 + 14 + 12 + 10;   // סכום כל הרכיבים האפשריים
 const MIN_SIGNALS_FOR_PCT = 2;
 function stableSeed(str){
   let h = 0;
@@ -1695,26 +1694,33 @@ function recommendationCandidates(){
   const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
   return LANDMARKS.filter(l=>!visitedIds.has(l.id));
 }
+// מחזירה earned/applicable בנפרד: אחוז-ההתאמה הוא "כמה מהקריטריונים הרלוונטיים למשתמש
+// הזה המקום באמת עונה עליהם", ולא ציון גולמי חלקי מקסימום תיאורטי שאף מקום לא מגיע אליו
+// (בגרסה הראשונה זה נתן 60% כמעט תמיד - כלומר מספר חסר-משמעות).
 function scoreLandmarkFor(l, profile, seedSalt){
-  let score = 0;
+  let earned = 0, applicable = 0, signals = 0;
   const reasons = [];
-  let signals = 0;
+  const add = (weight, matched, reason)=>{
+    applicable += weight;
+    if(matched){ earned += weight; signals++; if(reason) reasons.push(reason); }
+  };
   if(userLoc){
     const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
-    score += Math.max(0, 30-km);
-    if(km<40){ reasons.push(km<1 ? "ממש לידך" : "כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך"); signals++; }
+    const near = km < 40;
+    applicable += 30;
+    earned += Math.max(0, 30-km);
+    if(near){ signals++; reasons.push(km<1 ? "ממש לידך" : "כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך"); }
   }
-  if(profile.preferredDiff && l.difficulty===profile.preferredDiff){ score += 18; reasons.push("ברמת הקושי שאתם הכי אוהבים"); signals++; }
-  else if(!profile.preferredDiff && l.difficulty==="easy"){ score += 10; reasons.push("מסלול קל"); signals++; }
-  if(profile.waterShare>0.4 && (l.category==="water"||l.hasWater)){ score += 14; reasons.push("יש שם מים, בדיוק כמו שאתם אוהבים"); signals++; }
-  else if(!profile.hasHistory && (l.category==="water"||l.hasWater)){ score += 8; reasons.push("יש מים"); signals++; }
-  if(profile.familyShare>0.5 && l.familyFriendly){ score += 12; reasons.push("מתאים למשפחה"); signals++; }
-  else if(!profile.hasHistory && l.familyFriendly){ score += 7; reasons.push("מתאים למשפחות"); signals++; }
-  const pct = regionDiscoveryPct(l.region);
-  if(profile.hasHistory && pct<0.3){ score += 10; reasons.push("אזור שכמעט לא גיליתם"); signals++; }
-  if(!profile.hasHistory && l.baseVisits){ score += Math.min(8, l.baseVisits/3000); reasons.push("אחד האהובים על המטיילים"); signals++; }
-  score += stableSeed(l.id + "|" + seedSalt) * 4;   // שובר-שוויון יציב, לא אקראי
-  return { l, score, reasons, signals };
+  if(profile.preferredDiff) add(18, l.difficulty===profile.preferredDiff, "ברמת הקושי שאתם הכי אוהבים");
+  else add(10, l.difficulty==="easy", "מסלול קל");
+  if(profile.waterShare>0.4) add(14, l.category==="water"||l.hasWater, "יש שם מים, בדיוק כמו שאתם אוהבים");
+  else if(!profile.hasHistory) add(8, l.category==="water"||l.hasWater, "יש מים");
+  if(profile.familyShare>0.5) add(12, l.familyFriendly, "מתאים למשפחה");
+  else if(!profile.hasHistory) add(7, l.familyFriendly, "מתאים למשפחות");
+  if(profile.hasHistory) add(10, regionDiscoveryPct(l.region)<0.3, "אזור שכמעט לא גיליתם");
+  else add(8, !!l.baseVisits && l.baseVisits>3000, "אחד האהובים על המטיילים");
+  const tieBreak = stableSeed(l.id + "|" + seedSalt) * 4;   // שובר-שוויון יציב, לא אקראי
+  return { l, score: earned + tieBreak, earned, applicable, reasons, signals };
 }
 function travelProfile(){
   const visitedLandmarks = myVisits.map(v=>lmById[v.landmark_id]).filter(Boolean);
@@ -1728,7 +1734,6 @@ function travelProfile(){
     familyShare: visitedLandmarks.filter(l=>l.familyFriendly).length/visitedLandmarks.length,
   };
 }
-// seedSalt קובע יציבות: אותו משתמש + אותו יום => אותה המלצה
 function recommendationSeed(extra){
   const day = new Date().toISOString().slice(0,10);
   return (session ? session.user.id.slice(0,8) : "guest") + "|" + day + (extra ? "|"+extra : "");
@@ -1745,114 +1750,13 @@ function recommendDestination(opts){
     if(!best || scored.score > best.score) best = scored;
   });
   if(!best) return null;
+  const pct = best.applicable > 0 ? Math.round(best.earned/best.applicable*100) : 0;
   return {
     landmark: best.l,
     reasons: best.reasons.slice(0,4),
-    // מוצג רק כשיש מספיק אותות אמיתיים - אחרת null, ולא מספר שנשמע מדויק אבל אינו
-    matchPct: best.signals >= MIN_SIGNALS_FOR_PCT
-      ? Math.max(60, Math.min(99, Math.round(best.score/REC_MAX_SCORE*100)))
-      : null,
+    // מוצג רק כשבאמת יש על מה לבסס אותו - אחרת null, ולא מספר שנשמע מדויק אבל אינו
+    matchPct: (best.signals >= MIN_SIGNALS_FOR_PCT && pct >= 50) ? Math.min(99, pct) : null,
   };
-}
-// נשמר לשם תאימות עם קוראים קיימים (wizard/פרופיל) שמצפים ל-{landmark, reason}
-/* ============ HOME (§1,§2,§10) ============ */
-function landmarkPhotoStyle(l){
-  const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
-  const cat = CATEGORIES[l.category];
-  return url ? `background-image:url('${url}')`
-             : `background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`;
-}
-function whyRowsHtml(reasons){
-  if(!reasons || !reasons.length) return "";
-  return '<div class="next-goal-why"><div class="next-goal-why-title">למה בחרנו לכם את זה?</div>'
-    + reasons.map(r=>`<div class="why-row">${uiIcon("check",15)}<span>${r}</span></div>`).join("")
-    + '</div>';
-}
-function nextGoalCardHtml(rec){
-  const l = rec.landmark;
-  const cat = CATEGORIES[l.category];
-  const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
-  return `<div class="next-goal" data-id="${l.id}">
-    <div class="next-goal-photo" style="${landmarkPhotoStyle(l)}">
-      ${hasPhoto ? "" : catIconSvg(cat.icon,54).replace('<svg ','<svg style="color:#fff;opacity:.65" ')}
-      ${rec.matchPct ? `<span class="match">${rec.matchPct}% התאמה</span>` : ""}
-      <span class="pts">+${pointsForLandmark(l)}</span>
-    </div>
-    <div class="next-goal-body">
-      <div class="next-goal-name">${l.name}</div>
-      <div class="place-meta">
-        <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
-        <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
-        ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
-        ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
-      </div>
-      ${whyRowsHtml(rec.reasons)}
-      <div class="next-goal-actions">
-        <button class="btn btn-primary" data-go="${l.id}">יאללה, יוצאים</button>
-        <button class="btn btn-outline btn-sm" id="homeMoreOptions">עוד אפשרויות</button>
-      </div>
-    </div>
-  </div>`;
-}
-function renderHome(){
-  if(!LANDMARKS.length) return;
-  const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
-  $("homeRingPct").textContent = discPct+"%";
-  $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
-  const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
-  $("homeGreet").textContent = firstName ? `${firstName}, המסע שלך בישראל` : "המסע שלך בישראל";
-  $("homeHeroSub").textContent = myVisits.length
-    ? `${myVisits.length} מקומות נכבשו · ${LANDMARKS.length-myVisits.length} מחכים לכם`
-    : "המקום הראשון שלכם מחכה ממש מעבר לפינה";
-
-  // היעד הבא - פעולה ראשית אחת, לא רשימה אינסופית
-  const rec = recommendDestination();
-  const goalEl = $("homeNextGoal");
-  if(rec){
-    goalEl.innerHTML = nextGoalCardHtml(rec);
-    goalEl.querySelector("[data-go]").onclick = (e)=>{ e.stopPropagation(); goToDestination(rec.landmark.id); };
-    goalEl.querySelector(".next-goal").onclick = ()=> goToDestination(rec.landmark.id);
-    $("homeMoreOptions").onclick = (e)=>{ e.stopPropagation(); openTodaySheet(); };
-    track("recommendation_generated", { source:"home", match_pct: rec.matchPct||0 });
-  } else {
-    goalEl.innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title: "כבשתם הכול!",
-      sub: "גיליתם את כל המקומות שיש לנו כרגע. עוד יעדים בדרך.", ctaId:"homeEmptyCta", ctaLabel:"למפה" });
-    const cta = $("homeEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/map");
-  }
-
-  // הגילוי היומי - מקום אחר מהיעד הבא, יציב לאורך היום
-  const daily = recommendDestination({ salt:"daily", excludeId: rec ? rec.landmark.id : null });
-  const dailyEl = $("homeDaily");
-  $("homeDailyHead").classList.toggle("hidden", !daily);
-  if(daily){
-    const l = daily.landmark;
-    const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
-    dailyEl.innerHTML = `<div class="daily-card" data-id="${l.id}">
-      <div class="daily-thumb" style="${landmarkPhotoStyle(l)}">${hasPhoto?"":catIconSvg(CATEGORIES[l.category].icon,26).replace('<svg ','<svg style="color:#fff" ')}</div>
-      <div class="daily-body">
-        <div class="daily-kicker">מצאנו לכם מקום שאולי לא הכרתם</div>
-        <div class="daily-name">${l.name}</div>
-        <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
-          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span></div>
-      </div>
-      <div class="place-pts">+${pointsForLandmark(l)}</div>
-    </div>`;
-    dailyEl.querySelector(".daily-card").onclick = ()=> goToDestination(l.id);
-  } else dailyEl.innerHTML = "";
-
-  // "כמעט שם" - open loop אמיתי מתוך התקדמות האזורים הקיימת
-  const almostEl = $("homeAlmost");
-  const almost = Object.keys(REGIONS).map(r=>{
-    const all = LANDMARKS.filter(l=>l.region===r);
-    const done = all.filter(l=> myVisits.some(v=>v.landmark_id===l.id)).length;
-    return { r, done, total: all.length, left: all.length-done };
-  }).filter(x=> x.total>0 && x.left>0 && x.done>0).sort((a,b)=>a.left-b.left)[0];
-  if(almost && almost.left<=3){
-    almostEl.innerHTML = `<div class="almost-card" id="homeAlmostCard">${uiIcon("trophy",20)}
-      <div class="almost-text">נשאר${almost.left===1?"" : "ו"} <b>${almost.left===1?"מקום אחד":almost.left+" מקומות"}</b> כדי להשלים את ${REGIONS[almost.r]}</div>
-      ${uiIcon("compass",18)}</div>`;
-    $("homeAlmostCard").onclick = ()=>{ navigate("#/map"); };
-  } else almostEl.innerHTML = "";
 }
 function getRecommendedDestination(){
   const rec = recommendDestination();
