@@ -313,6 +313,11 @@ button{font-family:inherit;}
 .sheet.snap-sheet.snap-mid{--sheet-h:68%;}
 .sheet.snap-sheet.snap-full{--sheet-h:92%;}
 .sheet.snap-sheet.dragging{transition:none;}
+/* §6 - תוכן מדורג לפי מדרגת ה-sheet: מכווץ = תמונה/שם/מידע בסיסי + הפעולות,
+   בינוני = מוסיף תיאור, קושי, משך וניקוד, מורחב = כל הפרטים. */
+.sheet.snap-collapsed [data-stage="mid"],
+.sheet.snap-collapsed [data-stage="full"],
+.sheet.snap-mid [data-stage="full"]{display:none;}
 /* כשה-sheet לא מורחב-מלא, ההצללה מעל המפה חלשה יותר - המפה נשארת קריאה מאחוריו */
 .detail-scrim.soft{background:color-mix(in srgb, var(--sheet-scrim) 40%, transparent);}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 10px;flex:none;}
@@ -433,6 +438,12 @@ button{font-family:inherit;}
 .place-pts{align-self:center;flex:none;background:var(--color-accent-light);color:var(--color-accent);font-weight:800;font-size:12.5px;padding:var(--space-1) 9px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;}
 .place-pts.done{background:var(--color-primary-light);color:var(--color-primary);display:inline-flex;align-items:center;gap:3px;}
 .place-pts{transition:transform .15s;}
+.card-side{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);flex:none;}
+.card-wish{border:none;background:transparent;color:var(--text-muted);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s,background .15s,transform .12s;}
+.card-wish:active{transform:scale(.88);}
+.card-wish.active{color:var(--danger);}
+.card-wish.active .ui-ic{fill:currentColor;opacity:1;}
+.card-wish:disabled{opacity:.5;}
 .mini-card:active .place-pts{transform:scale(.93);}
 .mini-pts{font-weight:800;color:var(--accent-strong);font-size:13.5px;font-variant-numeric:tabular-nums;}
 .friend-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:9px 12px;margin-bottom:8px;}
