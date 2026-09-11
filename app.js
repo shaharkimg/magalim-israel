@@ -557,7 +557,7 @@ let retryHandlers = {}, retryHandlerSeq = 0;
 function errorStateHtml(message, retryFn){
   const id = "r"+(retryHandlerSeq++);
   retryHandlers[id] = retryFn;
-  return `<div class="empty-state">${message}<br><button class="btn btn-outline empty-cta" data-retry="${id}" type="button">🔄 נסה שוב</button></div>`;
+  return `<div class="empty-state"><div class="empty-title">${message}</div><button class="btn btn-outline empty-cta" data-retry="${id}" type="button">נסו שוב</button></div>`;
 }
 document.addEventListener("click", e=>{
   const btn = e.target.closest("[data-retry]");
@@ -1825,7 +1825,8 @@ function openPreview(id){
     + '<span class="place-meta-item">'+uiIcon("difficulty",13)+previewTier.label+'</span>'
     + (l.duration ? '<span class="place-meta-item">'+uiIcon("duration",13)+l.duration+'</span>' : "")
     + '<span class="place-pts">+'+previewTier.xp+'</span>';
-  $("destPreviewWish").textContent = wished ? "❤️" : "🤍";
+  $("destPreviewWish").innerHTML = uiIcon("heart",17);
+  $("destPreviewWish").classList.toggle("active", !!wished);
   wireWazeButton($("destPreviewNav"), l);
   $("destPreview").classList.add("open");
   renderMap();
@@ -1941,7 +1942,7 @@ function renderMapSidePanel(){
       <p class="lm-desc">${l.desc}</p>
       <div class="lm-actions">
         <button class="icon-btn waze-btn" id="panelWazeBtn"></button>
-        <button class="btn btn-outline" id="panelWishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
+        <button class="btn btn-outline${wished?" is-wished":""}" id="panelWishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
         <button class="btn btn-primary" id="panelDetailBtn">פרטים מלאים</button>
       </div>
     `;
@@ -2020,7 +2021,7 @@ function wireStaticUI(){
     const id = previewId;
     const run = async ()=>{
       const justAdded = await toggleWishlist(id);
-      $("destPreviewWish").textContent = justAdded ? "❤️" : "🤍";
+      $("destPreviewWish").classList.toggle("active", justAdded);
       if(justAdded){
         $("destPreviewWish").classList.remove("wish-pop");
         void $("destPreviewWish").offsetWidth;
@@ -2632,7 +2633,7 @@ function openDetail(id){
       <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       </button>
-      <button class="btn btn-outline" id="wishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
+      <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
     <div id="checkinFlow"></div>
@@ -3960,7 +3961,7 @@ function feedCardHtml(row){
     ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
     <div class="feed-actions">
       <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
-      ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${wished?"❤️ ברשימת המשאלות":"🤍 הוסף לרשימת המשאלות"}</button>`}
+      ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${uiIcon("heart",14)}${wished?"ברשימת המשאלות":"הוסף לרשימת המשאלות"}</button>`}
     </div>
   </div>`;
 }

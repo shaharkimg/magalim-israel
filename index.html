@@ -215,7 +215,7 @@ button{font-family:inherit;}
 .quick-chip{flex:none;padding:var(--space-2) var(--space-3);font-size:12.5px;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);}
 .quick-chip.active{box-shadow:none;}
 .map-controls{position:absolute;left:var(--space-3);bottom:var(--space-5);display:flex;flex-direction:column;gap:1px;z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);overflow:hidden;box-shadow:var(--shadow-elevated);}
-.map-controls button{width:38px;height:38px;border:none;background:transparent;color:var(--text);font-size:19px;cursor:pointer;line-height:1;}
+.map-controls button{width:44px;height:44px;border:none;background:transparent;color:var(--text);font-size:19px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
 .map-controls button:active{background:var(--bg-elevated);}
 .map-controls button+button{border-top:1px solid var(--border);}
 .locate-btn{position:absolute;right:var(--space-3);bottom:var(--space-5);width:44px;height:44px;border-radius:var(--radius-input);border:none;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
@@ -232,7 +232,12 @@ button{font-family:inherit;}
 .dest-preview-body{flex:1;min-width:0;padding:11px 14px;display:flex;flex-direction:column;justify-content:center;}
 .dest-preview-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .dest-preview-top h3{margin:0;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.dest-preview-wish,.dest-preview-nav{border:none;background:var(--bg-elevated);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;cursor:pointer;}
+.dest-preview-wish,.dest-preview-nav{border:none;background:var(--bg-elevated);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;cursor:pointer;color:var(--text-muted);transition:color .15s,background .15s;}
+.dest-preview-wish.active{color:var(--danger);background:color-mix(in srgb, var(--danger) 12%, transparent);}
+.dest-preview-wish.active .ui-ic{fill:currentColor;opacity:1;}
+.btn.is-wished{color:var(--danger);border-color:color-mix(in srgb, var(--danger) 45%, transparent);}
+.btn.is-wished .ui-ic{fill:currentColor;}
+.feed-wish-btn.active .ui-ic{fill:currentColor;}
 .dest-preview-actions{display:flex;gap:6px;flex:none;}
 .waze-btn{color:var(--accent);}
 /* pointer-events:none על העטיפה כדי שקטע-הכותרת/רווחים ריקים לא יחסמו הקשות על הפינים
@@ -1012,7 +1017,7 @@ input[type=file]{display:none;}
         <button id="zoomIn" aria-label="הגדל מפה">+</button>
         <button id="zoomOut" aria-label="הקטן מפה">−</button>
         <button id="zoomReset" style="font-size:13px" aria-label="איפוס תצוגת מפה">⟲</button>
-        <button id="diffLegendBtn" style="font-size:15px" aria-label="מקרא רמות קושי" aria-expanded="false">🎨</button>
+        <button id="diffLegendBtn" aria-label="מקרא רמות קושי" aria-expanded="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 12h9M5 17h5"/></svg></button>
       </div>
       <div class="diff-legend hidden" id="diffLegendPopover" role="dialog" aria-label="מקרא רמות קושי"></div>
       <div class="dest-preview topo-texture" id="destPreview" role="button" tabindex="0" aria-label="פתח את עמוד היעד">
@@ -1025,7 +1030,7 @@ input[type=file]{display:none;}
             </div>
             <div class="dest-preview-actions">
               <button class="dest-preview-nav waze-btn" id="destPreviewNav" aria-label="נווט" title="נווט ב-Waze"></button>
-              <button class="dest-preview-wish" id="destPreviewWish" aria-label="רשימת משאלות">🤍</button>
+              <button class="dest-preview-wish" id="destPreviewWish" aria-label="רשימת משאלות"></button>
             </div>
           </div>
         </div>
