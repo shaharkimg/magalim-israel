@@ -1054,13 +1054,14 @@ window.addEventListener("popstate", ()=>{
 
 function switchView(view){
   if(view==="feed"){ view = "board"; boardTab = "feed"; }
-  if(!["map","board","profile"].includes(view)) view = "map";
+  if(!["home","map","board","profile"].includes(view)) view = "home";
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
   if(view==="map") setTimeout(()=>{ if(leafletMap) leafletMap.invalidateSize(); renderMap(); },0);
   if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
+  if(view==="home") renderHome();
 }
 function switchBoardTab(tab){
   boardTab = tab;
@@ -1193,7 +1194,7 @@ async function bootUserData(){
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
     myConquests = []; myBonusGrants = [];
-    refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
   try{
@@ -1204,7 +1205,7 @@ async function bootUserData(){
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
-    renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     // Gamification Overhaul, Phase 5 - אם המשתמש נכנס דרך deep-link ישיר ל-#/destination/<id>
     // (openDetail כבר רץ פעם אחת ב-bootPublic, לפני ש-myVisits/myConquests נטענו), מרעננים
     // אותו עכשיו כדי שמצב-נכבש/XP יוצג נכון - אותו דפוס-race בדיוק כמו ה-refresh הקיים
@@ -1674,37 +1675,93 @@ function wizExplain(l){
   parts.push("מתאים ל"+(l.duration||DURATION_LABEL[wizState.duration]||""));
   return parts.join(" · ");
 }
-function getRecommendedDestination(){
-  if(!session || !myVisits.length) return null;
+// המלצה אישית: מחזירה {landmark, matchPct, reasons[]}.
+// שלושה תיקונים מהותיים לגרסה הקודמת:
+//   1. עבדה רק למשתמש מחובר עם היסטוריית ביקורים - כלומר בדיוק למי שכבר בפנים, ולא
+//      למשתמש חדש או אורח, שהם הקהל שהכי צריך "היעד הבא שלך". עכשיו יש fallback
+//      שמבוסס על קרבה, התאמה למשפחות, נגישות ופופולריות.
+//   2. הניקוד כלל Math.random(), כך שההמלצה התחלפה בכל רינדור. עכשיו הזרע יציב
+//      לפי משתמש+יום, כך ש"היעד הבא שלך" נשאר אותו יעד לאורך היום.
+//   3. לא היה אחוז-התאמה. עכשיו יש, והוא מחושב מהאותות האמיתיים - ומוצג רק כשיש
+//      מספיק אותות כדי שהמספר יהיה אמיתי (ראו MIN_SIGNALS_FOR_PCT).
+const MIN_SIGNALS_FOR_PCT = 2;
+function stableSeed(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) >>> 0;
+  return (h % 1000) / 1000;
+}
+function recommendationCandidates(){
   const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+  return LANDMARKS.filter(l=>!visitedIds.has(l.id));
+}
+// מחזירה earned/applicable בנפרד: אחוז-ההתאמה הוא "כמה מהקריטריונים הרלוונטיים למשתמש
+// הזה המקום באמת עונה עליהם", ולא ציון גולמי חלקי מקסימום תיאורטי שאף מקום לא מגיע אליו
+// (בגרסה הראשונה זה נתן 60% כמעט תמיד - כלומר מספר חסר-משמעות).
+function scoreLandmarkFor(l, profile, seedSalt){
+  let earned = 0, applicable = 0, signals = 0;
+  const reasons = [];
+  const add = (weight, matched, reason)=>{
+    applicable += weight;
+    if(matched){ earned += weight; signals++; if(reason) reasons.push(reason); }
+  };
+  if(userLoc){
+    const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
+    const near = km < 40;
+    applicable += 30;
+    earned += Math.max(0, 30-km);
+    if(near){ signals++; reasons.push(km<1 ? "ממש לידך" : "כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך"); }
+  }
+  if(profile.preferredDiff) add(18, l.difficulty===profile.preferredDiff, "ברמת הקושי שאתם הכי אוהבים");
+  else add(10, l.difficulty==="easy", "מסלול קל");
+  if(profile.waterShare>0.4) add(14, l.category==="water"||l.hasWater, "יש שם מים, בדיוק כמו שאתם אוהבים");
+  else if(!profile.hasHistory) add(8, l.category==="water"||l.hasWater, "יש מים");
+  if(profile.familyShare>0.5) add(12, l.familyFriendly, "מתאים למשפחה");
+  else if(!profile.hasHistory) add(7, l.familyFriendly, "מתאים למשפחות");
+  if(profile.hasHistory) add(10, regionDiscoveryPct(l.region)<0.3, "אזור שכמעט לא גיליתם");
+  else add(8, !!l.baseVisits && l.baseVisits>3000, "אחד האהובים על המטיילים");
+  const tieBreak = stableSeed(l.id + "|" + seedSalt) * 4;   // שובר-שוויון יציב, לא אקראי
+  return { l, score: earned + tieBreak, earned, applicable, reasons, signals };
+}
+function travelProfile(){
   const visitedLandmarks = myVisits.map(v=>lmById[v.landmark_id]).filter(Boolean);
-  if(!visitedLandmarks.length) return null;
+  if(!visitedLandmarks.length) return { hasHistory:false, preferredDiff:null, waterShare:0, familyShare:0 };
   const diffCounts = {};
   visitedLandmarks.forEach(l=>{ diffCounts[l.difficulty] = (diffCounts[l.difficulty]||0)+1; });
-  const preferredDiff = Object.keys(diffCounts).sort((a,b)=>diffCounts[b]-diffCounts[a])[0] || null;
-  const waterShare = visitedLandmarks.filter(l=>l.category==="water"||l.hasWater).length/visitedLandmarks.length;
-  const familyShare = visitedLandmarks.filter(l=>l.familyFriendly).length/visitedLandmarks.length;
-  const candidates = LANDMARKS.filter(l=>!visitedIds.has(l.id));
+  return {
+    hasHistory: true,
+    preferredDiff: Object.keys(diffCounts).sort((a,b)=>diffCounts[b]-diffCounts[a])[0] || null,
+    waterShare: visitedLandmarks.filter(l=>l.category==="water"||l.hasWater).length/visitedLandmarks.length,
+    familyShare: visitedLandmarks.filter(l=>l.familyFriendly).length/visitedLandmarks.length,
+  };
+}
+function recommendationSeed(extra){
+  const day = new Date().toISOString().slice(0,10);
+  return (session ? session.user.id.slice(0,8) : "guest") + "|" + day + (extra ? "|"+extra : "");
+}
+function recommendDestination(opts){
+  opts = opts || {};
+  const candidates = recommendationCandidates().filter(l=> !opts.excludeId || l.id!==opts.excludeId);
   if(!candidates.length) return null;
-  let best = null, bestScore = -Infinity;
+  const profile = travelProfile();
+  const salt = recommendationSeed(opts.salt);
+  let best = null;
   candidates.forEach(l=>{
-    let score = 0;
-    const reasons = [];
-    if(userLoc){
-      const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
-      score += Math.max(0, 30-km);
-      if(km<30) reasons.push(km<1 ? "ממש לידך" : "כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך");
-    }
-    if(preferredDiff && l.difficulty===preferredDiff){ score += 18; reasons.push("ברמת הקושי שאתם הכי אוהבים"); }
-    if(waterShare>0.4 && (l.category==="water"||l.hasWater)){ score += 14; reasons.push("יש שם מים, בדיוק כמו שאתם אוהבים"); }
-    if(familyShare>0.5 && l.familyFriendly){ score += 12; reasons.push("מתאים למשפחה"); }
-    const pct = regionDiscoveryPct(l.region);
-    if(pct<0.3){ score += 10; reasons.push("אזור שכמעט לא גיליתם"); }
-    score += Math.random()*4;
-    if(score>bestScore){ bestScore = score; best = { l, reasons }; }
+    const scored = scoreLandmarkFor(l, profile, salt);
+    if(!best || scored.score > best.score) best = scored;
   });
   if(!best) return null;
-  return { landmark: best.l, reason: best.reasons.slice(0,2).join(" · ") || tierForDb(best.l.difficulty).label };
+  const pct = best.applicable > 0 ? Math.round(best.earned/best.applicable*100) : 0;
+  return {
+    landmark: best.l,
+    reasons: best.reasons.slice(0,4),
+    // מוצג רק כשבאמת יש על מה לבסס אותו - אחרת null, ולא מספר שנשמע מדויק אבל אינו
+    matchPct: (best.signals >= MIN_SIGNALS_FOR_PCT && pct >= 50) ? Math.min(99, pct) : null,
+  };
+}
+function getRecommendedDestination(){
+  const rec = recommendDestination();
+  if(!rec) return null;
+  return { landmark: rec.landmark, reason: rec.reasons.slice(0,2).join(" · ") || tierForDb(rec.landmark.difficulty).label };
 }
 function wizIntroWhyText(l){
   const parts = [tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label];
@@ -3032,14 +3089,26 @@ async function confirmCheckin(l){
       const d = haversine(l.lat,l.lon,cand.lat,cand.lon);
       if(d<=15 && d<nextDist){ nextDist=d; nextPlace=cand; }
     });
-    if(nextPlace){
+    // §6 - צ׳ק-אין תמיד נגמר ביעד הבא, אף פעם לא ב-dead end. אם אין מקום קרוב (עד 15 ק"מ),
+    // נופלים להמלצה האישית במקום לסיים ב"געו כדי להמשיך".
+    let nextStep = nextPlace
+      ? { place: nextPlace, title:"כבר באזור? יש עוד מקום קרוב",
+          sub: nextPlace.name+" · כ-"+estimateDriveMinutes(nextDist)+" דק' נסיעה" }
+      : null;
+    if(!nextStep){
+      const rec = recommendDestination({ excludeId: l.id });
+      if(rec) nextStep = { place: rec.landmark, title:"היעד הבא שלכם",
+        sub: rec.landmark.name + (rec.reasons.length ? " · "+rec.reasons[0] : "") };
+    }
+    if(nextStep){
+      const np = nextStep.place;
       steps.push({
         emoji:"🌳",
-        title:"כבר באזור? יש עוד מקום קרוב",
-        sub: nextPlace.name+" · כ-"+estimateDriveMinutes(nextDist)+" דק' נסיעה",
+        title: nextStep.title,
+        sub: nextStep.sub,
         actions: [
-          { label:"קחו אותי לשם", primary:true, onClick:()=> goToDestination(nextPlace.id) },
-          { label:"שמור לפעם הבאה", onClick:()=>{ if(!myWishlist.includes(nextPlace.id)) toggleWishlist(nextPlace.id).then(()=>renderProfile()); } },
+          { label:"קחו אותי לשם", primary:true, onClick:()=> goToDestination(np.id) },
+          { label:"שמור לפעם הבאה", onClick:()=>{ if(!myWishlist.includes(np.id)) toggleWishlist(np.id).then(()=>renderProfile()); } },
         ],
       });
     }
