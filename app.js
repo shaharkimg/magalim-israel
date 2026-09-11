@@ -3441,16 +3441,22 @@ function renderProfile(){
   $("nextLevelCta").classList.toggle("hidden", progress.isMax);
   $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
   $("progressSection").classList.toggle("hidden", myVisits.length===0);
-  document.querySelector(".journey-stats-3")?.classList.toggle("hidden", myVisits.length===0);
   // Gamification Overhaul, Phase 6 - ציר-הסיכום הראשון מציג את אחוז-הגילוי ("ישראל שלי X%",
   // בדיוק כמו הדוגמה במפרט), לא ספירה גולמית של יעדים - הספירה הגולמית עדיין מוצגת ב-profSub
   // ("X יעדים נכבשו") וברשימת "כבשתי" למטה, אז שום מידע לא אבד.
   const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
-  $("statIsraelPct").textContent = discPct+"%";
   const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
   $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
+  $("statPlaces").textContent = myVisits.length;
   drawPersonalMap($("profileMapCanvas"));
+  // Hero metric: אותו נתון-גילוי, עכשיו כטבעת-התקדמות + כותרת ראשית (ולא שורת-טקסט קטנה)
   $("myIsraelPct").textContent = "גילית "+discPct+"% מישראל";
+  $("israelRingPct").textContent = discPct+"%";
+  const RING_C = 213.6;
+  $("israelRing").style.strokeDashoffset = (RING_C*(1-discPct/100)).toFixed(1);
+  $("myIsraelSub").textContent = myVisits.length
+    ? myVisits.length+" מתוך "+LANDMARKS.length+" מקומות · "+regionsVisited.size+" אזורים"
+    : "כל צ׳ק-אין פותח עוד פיסה מהמפה";
   renderRegionProgress();
   $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();

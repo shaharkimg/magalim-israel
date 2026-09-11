@@ -479,6 +479,10 @@ button{font-family:inherit;}
 .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0;}
 .stat-grid-2{grid-template-columns:repeat(2,1fr);}
 .stat-grid-4{grid-template-columns:repeat(4,1fr);}
+.stat-grid-5{grid-template-columns:repeat(5,1fr);gap:var(--space-1);}
+.stat-grid-5 .stat-box{padding:var(--space-2) 2px;}
+.stat-grid-5 .stat-box .v{font-size:15px;}
+.stat-grid-5 .stat-box .l{font-size:9.5px;}
 .stat-grid-4 .stat-box{padding:12px 3px;}
 .stat-grid-4 .stat-box .v{font-size:16px;}
 .stat-grid-4 .stat-box .l{font-size:9.5px;}
@@ -496,13 +500,19 @@ button{font-family:inherit;}
 .journey-progress .level-hint{color:rgba(255,255,255,.65);}
 .journey-bar{background:rgba(255,255,255,.16);}
 .journey-bar > i{background:var(--sand);}
-.journey-stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.14);}
-.journey-stat{text-align:center;}
-.journey-stat .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
-.journey-stat .l{font-size:11px;color:rgba(255,255,255,.68);margin-top:2px;}
 .personal-map-wrap{background:var(--map-water);border-radius:16px;overflow:hidden;border:1px solid var(--border);}
 .personal-map-wrap canvas{width:100%;height:auto;display:block;}
-.my-israel-pct{margin:0 0 12px;font-size:13.5px;font-weight:700;color:var(--accent);}
+/* Hero metric של "ישראל שלי" - טבעת-התקדמות + נתון ראשי, במקום שורת-טקסט קטנה */
+.israel-hero{display:flex;align-items:center;gap:var(--space-4);margin:0 0 var(--space-4);}
+.ring-wrap{position:relative;width:88px;height:88px;flex:none;}
+.progress-ring{width:100%;height:100%;transform:rotate(-90deg);}
+.progress-ring circle{fill:none;stroke-width:7;stroke-linecap:round;}
+.ring-track{stroke:var(--bg-elevated);}
+.ring-fill{stroke:var(--color-primary);stroke-dasharray:213.6;stroke-dashoffset:213.6;transition:stroke-dashoffset .7s cubic-bezier(.3,.8,.4,1);}
+.ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Suez One","Heebo",serif;font-size:20px;color:var(--color-primary);font-variant-numeric:tabular-nums;}
+.israel-hero-copy{min-width:0;}
+.israel-hero-title{font-family:"Suez One","Heebo",serif;font-size:var(--font-h1);line-height:var(--leading-tight);}
+.israel-hero-sub{font-size:var(--font-caption);color:var(--text-muted);margin-top:var(--space-1);line-height:1.5;}
 .region-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;}
 .region-row-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
 .region-row-head .name{font-weight:700;font-size:13.5px;}
@@ -523,8 +533,9 @@ button{font-family:inherit;}
 .stat-box .l{font-size:10.5px;color:var(--text-muted);margin-top:3px;}
 .badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 6px;}
 .badge{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
-.badge .circ{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;background:var(--bg-elevated);border:2px dashed var(--border);filter:grayscale(1);opacity:.5;transition:transform .2s ease;}
-.badge.unlocked .circ{background:radial-gradient(circle at 32% 28%,var(--accent-light),var(--surface) 72%);border:2px dashed var(--accent);box-shadow:0 0 0 4px var(--accent-light);filter:none;opacity:1;}
+.badge .circ{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:23px;background:var(--bg-elevated);border:1.5px solid var(--border);filter:grayscale(1);opacity:.42;transition:transform .2s ease,box-shadow .2s ease;}
+/* פריט-אוסף שנפתח: צבע מלא + הילה/הגבהה עדינה (לא מסגרת מקווקוות "תווית") */
+.badge.unlocked .circ{background:radial-gradient(circle at 32% 26%,var(--color-accent-light),var(--surface) 74%);border:1.5px solid color-mix(in srgb, var(--color-accent) 45%, transparent);box-shadow:0 0 0 5px color-mix(in srgb, var(--color-accent) 12%, transparent),var(--shadow-card);filter:none;opacity:1;}
 .badge.unlocked:nth-child(4n+1) .circ{transform:rotate(-6deg);}
 .badge.unlocked:nth-child(4n+2) .circ{transform:rotate(4deg);}
 .badge.unlocked:nth-child(4n+3) .circ{transform:rotate(-3deg);}
@@ -1107,11 +1118,6 @@ input[type=file]{display:none;}
           <div class="level-hint" id="levelHint"></div>
           <button class="btn btn-outline btn-block hidden" id="nextLevelCta" style="margin-top:10px;padding:9px;font-size:13px;">מצא טיול שמתאים לי</button>
         </div>
-        <div class="journey-stats-3">
-          <div class="journey-stat"><div class="v" id="statIsraelPct">0%</div><div class="l">🇮🇱 ישראל שלי</div></div>
-          <div class="journey-stat"><div class="v" id="statBadges">0/13</div><div class="l">🏅 תגים</div></div>
-          <div class="journey-stat"><div class="v" id="statRegions">0/6</div><div class="l">🗺️ אזורים</div></div>
-        </div>
       </div>
       <div class="welcome-banner hidden" id="welcomeBanner">
         <div class="big">🗺️</div>
@@ -1119,14 +1125,30 @@ input[type=file]{display:none;}
         <button class="btn btn-primary" id="welcomeFindBtn">מצא לי מקום ראשון</button>
       </div>
       <div id="progressSection">
-      <div class="stat-grid stat-grid-2">
-        <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">נקודות סה"כ</div></div>
-        <div class="stat-box"><div class="v" id="statStreak">0</div><div class="l">רצף שבועות</div></div>
+      <div class="section-head"><h2>ישראל שלי</h2></div>
+      <!-- Hero metric: אחוז-הגילוי הוא הנתון הראשי של המסך, לא עוד שורה בטבלת-סטטיסטיקות -->
+      <div class="israel-hero">
+        <div class="ring-wrap">
+          <svg class="progress-ring" viewBox="0 0 80 80" aria-hidden="true">
+            <circle class="ring-track" cx="40" cy="40" r="34"/>
+            <circle class="ring-fill" id="israelRing" cx="40" cy="40" r="34"/>
+          </svg>
+          <div class="ring-center"><span id="israelRingPct">0%</span></div>
+        </div>
+        <div class="israel-hero-copy">
+          <div class="israel-hero-title" id="myIsraelPct">גילית 0% מישראל</div>
+          <div class="israel-hero-sub" id="myIsraelSub">כל צ׳ק-אין פותח עוד פיסה מהמפה</div>
+        </div>
       </div>
-      <div class="section-head"><h2>ישראל שלי 🇮🇱</h2></div>
-      <p class="my-israel-pct" id="myIsraelPct">גילית 0% מישראל</p>
       <div class="personal-map-wrap"><canvas id="profileMapCanvas" width="340" height="400"></canvas></div>
-      <button class="btn btn-outline btn-block" id="shareMapBtn" style="margin:10px 0 4px;">📤 שתף את המפה שלי</button>
+      <div class="stat-grid stat-grid-5">
+        <div class="stat-box"><div class="v" id="statPlaces">0</div><div class="l">מקומות</div></div>
+        <div class="stat-box"><div class="v" id="statRegions">0/6</div><div class="l">אזורים</div></div>
+        <div class="stat-box"><div class="v" id="statPoints">0</div><div class="l">נקודות</div></div>
+        <div class="stat-box"><div class="v" id="statBadges">0/13</div><div class="l">תגים</div></div>
+        <div class="stat-box"><div class="v" id="statStreak">0</div><div class="l">רצף</div></div>
+      </div>
+      <button class="btn btn-outline btn-block" id="shareMapBtn" style="margin:var(--space-3) 0 var(--space-1);">שתף את המפה שלי</button>
       <div id="regionProgressList"></div>
       </div>
       <div class="tab-row">
