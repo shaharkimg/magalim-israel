@@ -131,6 +131,39 @@ const DIFF_TIERS = [
   { key:"hard", dbValue:"extreme", label:"קשה", emoji:"🔴", xp:50, color:"var(--danger)" },
 ];
 const DIFF_TIER_BY_DB = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t]));
+
+/* ============ ניקוד: מאמץ × קושי ============ */
+// עד כה הניקוד נגזר מדרגת-הקושי בלבד, כך שתצפית של רבע שעה ומסלול של חמש שעות באותה
+// דרגת-קושי היו שווים בדיוק. עכשיו הבסיס הוא סוג-המאמץ (כמה באמת הולכים), והקושי רק
+// מכפיל אותו. כך "מקום שבאים לבקר בו" שווה פחות ממסלול, ומסלול קצר שווה פחות מארוך.
+const EFFORT_TIERS = {
+  visit: { key:"visit", label:"ביקור",       hint:"מגיעים, מסתכלים, מצטלמים", xp:10 },
+  walk:  { key:"walk",  label:"טיול קצר",    hint:"עד כשעתיים הליכה",         xp:22 },
+  hike:  { key:"hike",  label:"מסלול",       hint:"כשעתיים וחצי עד ארבע וחצי", xp:38 },
+  trek:  { key:"trek",  label:"מסלול ארוך",  hint:"חמש שעות ומעלה",           xp:58 },
+};
+const DIFF_XP_MULTIPLIER = { easy:1, medium:1.1, hard:1.25, extreme:1.4 };
+// קטגוריות שבהן המקום עצמו הוא היעד ולא ההליכה אליו (תצפית, אתר מורשת, מעיין בצד הדרך)
+const VISIT_FIRST_CATEGORIES = new Set(["viewpoints","religious","urban","heritage","archaeology"]);
+function effortClassFor(l){
+  const hours = l.durationHours != null ? l.durationHours : estimateHours(l);
+  const km = l.distanceKm != null ? l.distanceKm : 0;
+  // מעט מאוד הליכה = ביקור, גם אם שוהים במקום זמן מה (חוף, תצפית, אתר עתיקות)
+  if(km <= 1.5 && (hours <= 1.5 || VISIT_FIRST_CATEGORIES.has(l.category))) return EFFORT_TIERS.visit;
+  if(hours < 2.5) return EFFORT_TIERS.walk;
+  if(hours < 4.5) return EFFORT_TIERS.hike;
+  return EFFORT_TIERS.trek;
+}
+// הניקוד שיוענק על כיבוש ראשון של היעד. מעוגל ל-5 הקרוב כדי שהמספרים יישארו "עגולים"
+// בממשק (10/20/40/60/80) ולא 41.8.
+// מכוון: עמודת landmarks.points שב-DB *לא* נקראת כאן. היא שריד מהמערכת הישנה ומכילה
+// 10/25/50/100 שנגזרים מדרגת-הקושי בלבד - בדיוק העיוות שהשינוי הזה בא לתקן (מוחרקה,
+// תצפית של שעה, מתויגת שם 25 כמו מסלול של שעתיים). האפליקציה ממילא לא קראה אותה מעולם.
+function pointsForLandmark(l){
+  const base = effortClassFor(l).xp;
+  const mult = DIFF_XP_MULTIPLIER[l.difficulty] != null ? DIFF_XP_MULTIPLIER[l.difficulty] : 1;
+  return Math.max(5, Math.round(base*mult/5)*5);
+}
 function tierForDb(rawDifficulty){ return DIFF_TIER_BY_DB[rawDifficulty] || DIFF_TIERS[0]; }
 // dict בצורת {dbValue:{label}} - לשימוש ב-buildChips/צ'יפים ידניים שממפתחים data-id=dbValue
 // (מסנן/wizard/העדפות) בלי לשבור את ה-id הגולמי שנשלח ל-filters/DB - רק התווית משתנה.
@@ -415,7 +448,7 @@ function placeCardHtml(l, opts){
     ? '<img src="'+opts.photo+'" loading="lazy" decoding="async" alt="'+l.name+'">'
     : catIconSvg(cat.icon, 26));
   const meta = opts.metaHtml != null ? opts.metaHtml : placeMetaHtml(l, opts);
-  const pts = opts.points == null ? tierForDb(l.difficulty).xp : opts.points;
+  const pts = opts.points == null ? pointsForLandmark(l) : opts.points;
   const ptsHtml = opts.hidePoints ? "" : (opts.done
     ? '<div class="place-pts done">'+uiIcon("check",13)+pts.toLocaleString()+'</div>'
     : '<div class="place-pts">+'+pts.toLocaleString()+'</div>');
@@ -1806,7 +1839,7 @@ function assignWizLabels(scored){
     let adventureIdx = -1, maxPts = -1;
     scored.forEach((s,i)=>{
       if(labels[i]) return;
-      const pts = tierForDb(s.l.difficulty).xp;
+      const pts = pointsForLandmark(s.l);
       if(pts>maxPts){ maxPts=pts; adventureIdx=i; }
     });
     if(adventureIdx>=0) labels[adventureIdx] = "🧭 יותר הרפתקני";
@@ -1927,7 +1960,7 @@ function renderDiscoveryCarousel(){
       : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,20).replace('<svg ','<svg style="color:#fff" ')+'</div>';
     const tier = tierForDb(l.difficulty);
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
-      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts">+'+tier.xp+'</span></div>'
+      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts">+'+pointsForLandmark(l)+'</span></div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
       + '<div class="discovery-card-facts">'+uiIcon("difficulty",12)+tier.label+(l.duration?'<span class="dot-sep"></span>'+uiIcon("duration",12)+l.duration:"")+'</div>'
       + '</div>';
@@ -1964,7 +1997,7 @@ function renderMapSidePanel(){
         <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
         ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
         ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
-        <div class="lm-stat"><div class="v">${panelConquest ? "✓ "+panelConquest.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${panelConquest ? "נכבש" : "נקודות"}</div></div>
+        <div class="lm-stat"><div class="v">${panelConquest ? '<span class="ltr">✓ '+panelConquest.xp_awarded.toLocaleString()+'</span>' : '<span class="ltr">+'+pointsForLandmark(l)+'</span>'}</div><div class="l">${panelConquest ? "נכבש" : effortClassFor(l).label}</div></div>
       </div>
       <p class="lm-desc">${l.desc}</p>
       <div class="lm-actions">
@@ -2015,9 +2048,13 @@ function wireStaticUI(){
   // Gamification Overhaul, Phase 4 - מקרא-קושי: תוכן סטטי מ-DIFF_TIERS (טקסט+אימוג'י-צבעוני,
   // לא צבע-בלבד), נבנה פעם אחת. נסגר אוטומטית עם closePreview (אותה קריאה שכבר קיימת על
   // לחיצה על המפה) כדי לא להישאר פתוח ולחסום תוך כדי שימוש רגיל במפה.
-  $("diffLegendPopover").innerHTML = DIFF_TIERS.map(t=>
-    `<div class="diff-legend-row">${t.emoji} ${t.label}</div>`
-  ).join("");
+  $("diffLegendPopover").innerHTML =
+    '<div class="legend-title">צבע הסיכה — רמת קושי</div>'
+    + DIFF_TIERS.map(t=>`<div class="diff-legend-row">${t.emoji} ${t.label}</div>`).join("")
+    + '<div class="legend-title legend-title-gap">ניקוד — לפי המאמץ</div>'
+    + Object.values(EFFORT_TIERS).map(t=>
+        `<div class="diff-legend-row"><span class="legend-pts">+${t.xp}</span> ${t.label} <span class="legend-hint">${t.hint}</span></div>`
+      ).join("");
   $("diffLegendBtn").onclick = (e)=>{
     e.stopPropagation();
     const open = $("diffLegendPopover").classList.toggle("hidden")===false;
@@ -2648,7 +2685,7 @@ function openDetail(id){
       <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
       ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
       ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
-      <div class="lm-stat"><div class="v">${conquestEntry ? "✓ "+conquestEntry.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${conquestEntry ? "נכבש" : "נקודות"}</div></div>
+      <div class="lm-stat"><div class="v">${conquestEntry ? '<span class="ltr">✓ '+conquestEntry.xp_awarded.toLocaleString()+'</span>' : '<span class="ltr">+'+pointsForLandmark(l)+'</span>'}</div><div class="l">${conquestEntry ? "נכבש" : effortClassFor(l).label}</div></div>
     </div>
     <div class="lm-important-head" data-stage="full">⚠️ חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
@@ -2834,17 +2871,17 @@ function runGpsCheck(l){
 // מחזיר {baseXP, bonuses:[{type,label,xp}], totalGranted, isFirstConquest} - כל השדות
 // מבוססים על מה שבאמת נכנס ל-DB (data.length אחרי upsert-ignoreDuplicates), לא ניחוש.
 async function grantConquestAndBonuses(l){
-  const tier = tierForDb(l.difficulty);
+  const conquestXp = pointsForLandmark(l);
   const result = { baseXP:0, bonuses:[], totalGranted:0, isFirstConquest:false };
   const { data: conquestRows, error: cErr } = await supabase.from("landmark_conquests")
-    .upsert({ user_id:session.user.id, landmark_id:l.id, xp_awarded:tier.xp, difficulty_at_conquest:l.difficulty },
+    .upsert({ user_id:session.user.id, landmark_id:l.id, xp_awarded:conquestXp, difficulty_at_conquest:l.difficulty },
       { onConflict:"user_id,landmark_id", ignoreDuplicates:true })
     .select();
   if(cErr){ console.warn("landmark_conquests לא זמינה עדיין (יתכן שה-migration טרם רץ):", cErr.message||cErr); return result; }
   if(!conquestRows || !conquestRows.length) return result; // ביקור חוזר - 0 XP, לא בונוסים
   result.isFirstConquest = true;
-  result.baseXP = tier.xp;
-  result.totalGranted = tier.xp;
+  result.baseXP = conquestXp;
+  result.totalGranted = conquestXp;
   const prevConquests = myConquests.slice();
   myConquests.push(conquestRows[0]);
 
@@ -2906,7 +2943,7 @@ async function submitFieldReport(landmarkId){
 
 async function confirmCheckin(l){
   const prevTotalXP = totalXP();
-  const tier = tierForDb(l.difficulty);
+  const optimisticXp = pointsForLandmark(l);
   const note = ($("checkinNote")?.value || "").trim().slice(0,120) || null;
   if(!navigator.onLine){
     // אופליין - אין גישה ל-DB כדי להריץ את מנגנון-הדה-דופ האמיתי, אז שומרים בתור עם הערכה
@@ -2915,7 +2952,7 @@ async function confirmCheckin(l){
     const pending = { landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, note, ts:new Date().toISOString() };
     const queue = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
     queue.push(pending); localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
-    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:tier.xp, note, pending:true });
+    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:optimisticXp, note, pending:true });
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     toast("נשמר במצב אופליין — יסונכרן כשהחיבור יחזור");
     renderMap(); renderProfile(); return;
