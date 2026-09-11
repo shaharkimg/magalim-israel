@@ -568,6 +568,41 @@ button{font-family:inherit;}
 .journey-bar > i{background:var(--sand);}
 .personal-map-wrap{background:var(--map-water);border-radius:var(--radius-card);overflow:hidden;border:1px solid var(--border);}
 .personal-map-wrap canvas{width:100%;height:auto;display:block;}
+/* ---------- Home (§1) ---------- */
+.home-hero{background:var(--journey-bg);color:#fff;border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-4) 0 var(--space-2);}
+.home-hero-top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);}
+.home-greet{font-family:"Suez One","Heebo",serif;font-size:var(--font-h1);line-height:var(--leading-tight);}
+.home-hero-sub{font-size:var(--font-caption);color:rgba(255,255,255,.72);margin-top:var(--space-1);line-height:1.5;}
+.home-ring{width:76px;height:76px;flex:none;}
+.home-hero .ring-track{stroke:rgba(255,255,255,.18);}
+.home-hero .ring-fill{stroke:var(--sand);}
+.home-hero .ring-center{color:#fff;font-size:18px;}
+/* כרטיס "היעד הבא" - הפעולה הראשית של המסך, ולכן הוא הכבד ביותר ויזואלית */
+.next-goal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-card);}
+.next-goal-photo{height:150px;position:relative;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+.next-goal-photo .match{position:absolute;top:var(--space-3);inset-inline-start:var(--space-3);background:var(--color-primary);color:#fff;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;}
+.next-goal-photo .pts{position:absolute;top:var(--space-3);inset-inline-end:var(--space-3);background:var(--color-accent);color:#fff;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;direction:ltr;}
+.next-goal-body{padding:var(--space-4);}
+.next-goal-name{font-family:"Suez One","Heebo",serif;font-size:var(--font-h2);}
+.next-goal-why{margin:var(--space-3) 0 0;padding:var(--space-3);background:var(--color-primary-light);border-radius:var(--radius-input);}
+.next-goal-why-title{font-size:var(--font-caption);font-weight:800;color:var(--color-primary);margin-bottom:var(--space-2);}
+.why-row{display:flex;align-items:flex-start;gap:var(--space-2);font-size:13px;color:var(--text);line-height:1.5;}
+.why-row+.why-row{margin-top:var(--space-1);}
+.why-row .ui-ic{color:var(--color-primary);opacity:1;margin-top:2px;}
+.next-goal-actions{display:flex;gap:var(--space-2);margin-top:var(--space-4);}
+.next-goal-actions .btn{font-size:14px;}
+/* גילוי יומי - קומפקטי יותר, כדי שלא יתחרה ביעד הבא */
+.daily-card{display:flex;gap:var(--space-3);align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);}
+.daily-thumb{width:76px;height:76px;border-radius:var(--radius-input);flex:none;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+.daily-body{flex:1;min-width:0;}
+.daily-kicker{font-size:11px;font-weight:800;color:var(--color-secondary);}
+.daily-name{font-weight:700;font-size:var(--font-h3);margin-top:2px;}
+/* "כמעט שם" - open loop (§10) */
+.almost-card{display:flex;align-items:center;gap:var(--space-3);background:var(--color-accent-light);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);cursor:pointer;}
+.almost-card .ui-ic{color:var(--color-accent);opacity:1;flex:none;}
+.almost-text{flex:1;min-width:0;font-size:13px;line-height:1.45;color:var(--text);}
+.almost-text b{font-weight:800;}
+
 /* Hero metric של "ישראל שלי" - טבעת-התקדמות + נתון ראשי, במקום שורת-טקסט קטנה */
 .israel-hero{display:flex;align-items:center;gap:var(--space-4);margin:0 0 var(--space-4);}
 .ring-wrap{position:relative;width:88px;height:88px;flex:none;}
@@ -1086,6 +1121,37 @@ input[type=file]{display:none;}
 
   <div class="offline-banner" id="offlineBanner">אין חיבור לרשת</div>
 
+  <!-- Home (§1): לא dashboard - מסך אישי שמוביל לפעולה אחת. מרכיב את הליבה הקיימת
+       (מנוע ההמלצות, אחוז הגילוי, אזורים, פיד חברים) לכדי לולאה: איפה אני → מה הבא → יאללה. -->
+  <div class="view" id="view-home">
+    <div class="scroll-area">
+      <div class="home-hero">
+        <div class="home-hero-top">
+          <div>
+            <div class="home-greet" id="homeGreet">המסע שלך בישראל</div>
+            <div class="home-hero-sub" id="homeHeroSub">כל צ׳ק-אין פותח עוד פיסה מהמפה</div>
+          </div>
+          <div class="ring-wrap home-ring">
+            <svg class="progress-ring" viewBox="0 0 80 80" aria-hidden="true">
+              <circle class="ring-track" cx="40" cy="40" r="34"/>
+              <circle class="ring-fill" id="homeRing" cx="40" cy="40" r="34"/>
+            </svg>
+            <div class="ring-center"><span id="homeRingPct">0%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head"><h2>היעד הבא שלך</h2></div>
+      <div id="homeNextGoal"></div>
+
+      <div class="section-head" id="homeDailyHead"><h2>הגילוי היומי</h2></div>
+      <div id="homeDaily"></div>
+
+      <div id="homeAlmost"></div>
+      <div id="homeFriends"></div>
+    </div>
+  </div>
+
   <div class="view active hidden" id="view-map">
     <div class="map-wrap" id="mapWrap">
       <div id="mapSvg"></div>
@@ -1303,7 +1369,8 @@ input[type=file]{display:none;}
   </div>
 
   <div class="bottom-nav hidden" id="bottomNav">
-    <button class="nav-btn active" data-view="map"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>מפה</span></button>
+    <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>בית</span></button>
+    <button class="nav-btn" data-view="map"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>מפה</span></button>
     <button class="nav-btn" data-view="board"><svg viewBox="0 0 24 24" fill="none"><path d="M5 21V10M12 21V3M19 21v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>המסע שלנו</span></button>
     <button class="nav-btn" data-view="profile"><span class="unread-dot" id="navUnreadDot"></span><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>פרופיל</span></button>
   </div>
