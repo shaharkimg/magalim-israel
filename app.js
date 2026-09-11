@@ -1054,7 +1054,7 @@ window.addEventListener("popstate", ()=>{
 
 function switchView(view){
   if(view==="feed"){ view = "board"; boardTab = "feed"; }
-  if(!["home","map","board","profile"].includes(view)) view = "home";
+  if(!["home","map","saved","board","profile"].includes(view)) view = "home";
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
@@ -1062,6 +1062,7 @@ function switchView(view){
   if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
   if(view==="home") renderHome();
+  if(view==="saved") renderSaved();
 }
 function switchBoardTab(tab){
   boardTab = tab;
@@ -1194,7 +1195,7 @@ async function bootUserData(){
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
     myConquests = []; myBonusGrants = [];
-    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
   try{
@@ -1205,7 +1206,7 @@ async function bootUserData(){
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
-    renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     // Gamification Overhaul, Phase 5 - אם המשתמש נכנס דרך deep-link ישיר ל-#/destination/<id>
     // (openDetail כבר רץ פעם אחת ב-bootPublic, לפני ש-myVisits/myConquests נטענו), מרעננים
     // אותו עכשיו כדי שמצב-נכבש/XP יוצג נכון - אותו דפוס-race בדיוק כמו ה-refresh הקיים
@@ -1763,6 +1764,163 @@ function getRecommendedDestination(){
   if(!rec) return null;
   return { landmark: rec.landmark, reason: rec.reasons.slice(0,2).join(" · ") || tierForDb(rec.landmark.difficulty).label };
 }
+/* ============ TIME-BOXED CHALLENGE (§9) ============ */
+// אתגר חודשי מחושב מהנתונים האמיתיים (myVisits.visited_at) - בלי טבלה חדשה ובלי נתונים
+// מומצאים. היעד קבוע (5 מקומות חדשים בחודש) והדחיפות אמיתית: ימים שנותרו בחודש.
+const MONTHLY_CHALLENGE_TARGET = 5;
+const HE_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+function monthlyChallenge(){
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  const done = myVisits.filter(v=>{ const d=new Date(v.visited_at); return d>=monthStart && d<=now; }).length;
+  const daysLeft = Math.max(0, Math.ceil((monthEnd-now)/86400000));
+  return { target:MONTHLY_CHALLENGE_TARGET, done:Math.min(done,MONTHLY_CHALLENGE_TARGET), daysLeft,
+           monthName:HE_MONTHS[now.getMonth()], pct:Math.min(100,Math.round(done/MONTHLY_CHALLENGE_TARGET*100)),
+           complete: done>=MONTHLY_CHALLENGE_TARGET };
+}
+function monthlyChallengeHtml(){
+  const c = monthlyChallenge();
+  const days = c.daysLeft===0 ? "היום האחרון" : (c.daysLeft===1 ? "נשאר יום אחד" : "נשארו "+c.daysLeft+" ימים");
+  return `<div class="challenge-strip${c.complete?" done":""}">
+    <div class="challenge-strip-head"><div class="challenge-strip-title">אתגר ${c.monthName}</div>
+      <div class="challenge-strip-days">${c.complete ? "הושלם!" : days}</div></div>
+    <div class="challenge-strip-sub">${c.complete ? "השלמתם את האתגר החודשי — כל הכבוד" : "לגלות "+c.target+" מקומות חדשים"}</div>
+    <div class="bar"><i style="width:${c.pct}%"></i></div>
+    <div class="challenge-strip-foot"><span class="ltr">${c.done}/${c.target}</span></div>
+  </div>`;
+}
+
+/* ============ WEEKEND PLANNER (§12) ============ */
+function isWeekendWindow(){ const d=new Date().getDay(); return d===4||d===5||d===6; }
+const WEEKEND_PICKS = [
+  { key:"water", label:"מקום מים", icon:"water",      match:l=> l.category==="water" || l.hasWater },
+  { key:"trail", label:"מסלול",    icon:"difficulty", match:l=> ["nature","mountains","parks","reserves"].includes(l.category) },
+  { key:"view",  label:"תצפית",    icon:"region",     match:l=> l.category==="viewpoints" },
+];
+function weekendIdeas(){
+  const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+  const profile = travelProfile();
+  const salt = recommendationSeed("weekend");
+  const used = new Set();
+  return WEEKEND_PICKS.map(pick=>{
+    const pool = LANDMARKS.filter(l=> !visitedIds.has(l.id) && !used.has(l.id) && pick.match(l));
+    if(!pool.length) return null;
+    let best = null;
+    pool.forEach(l=>{ const sc = scoreLandmarkFor(l, profile, salt); if(!best || sc.score>best.score) best = sc; });
+    if(!best) return null;
+    used.add(best.l.id);
+    return { pick, landmark: best.l };
+  }).filter(Boolean);
+}
+
+/* ============ HOME (§1,§2,§9,§10,§12) ============ */
+function landmarkPhotoStyle(l){
+  const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
+  const cat = CATEGORIES[l.category];
+  return url ? `background-image:url('${url}')`
+             : `background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`;
+}
+function whyRowsHtml(reasons){
+  if(!reasons || !reasons.length) return "";
+  return '<div class="next-goal-why"><div class="next-goal-why-title">למה בחרנו לכם את זה?</div>'
+    + reasons.map(r=>`<div class="why-row">${uiIcon("check",15)}<span>${r}</span></div>`).join("")
+    + '</div>';
+}
+function nextGoalCardHtml(rec){
+  const l = rec.landmark;
+  const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
+  return `<div class="next-goal" data-id="${l.id}">
+    <div class="next-goal-photo" style="${landmarkPhotoStyle(l)}">
+      ${hasPhoto ? "" : catIconSvg(CATEGORIES[l.category].icon,54).replace('<svg ','<svg style="color:#fff;opacity:.65" ')}
+      ${rec.matchPct ? `<span class="match">${rec.matchPct}% התאמה</span>` : ""}
+      <span class="pts">+${pointsForLandmark(l)}</span>
+    </div>
+    <div class="next-goal-body">
+      <div class="next-goal-name">${l.name}</div>
+      <div class="place-meta">
+        <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+        <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
+        ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
+        ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
+      </div>
+      ${whyRowsHtml(rec.reasons)}
+      <div class="next-goal-actions">
+        <button class="btn btn-primary" data-go="${l.id}">יאללה, יוצאים</button>
+        <button class="btn btn-outline btn-sm" id="homeMoreOptions">עוד אפשרויות</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderHome(){
+  if(!$("homeNextGoal") || !LANDMARKS.length) return;
+  const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
+  $("homeRingPct").textContent = discPct+"%";
+  $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
+  const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
+  $("homeGreet").textContent = firstName ? firstName+", המסע שלך בישראל" : "המסע שלך בישראל";
+  $("homeHeroSub").textContent = myVisits.length
+    ? myVisits.length+" מקומות נכבשו · "+(LANDMARKS.length-myVisits.length)+" מחכים לכם"
+    : "המקום הראשון שלכם מחכה ממש מעבר לפינה";
+
+  const rec = recommendDestination();
+  const goalEl = $("homeNextGoal");
+  if(rec){
+    goalEl.innerHTML = nextGoalCardHtml(rec);
+    goalEl.querySelector("[data-go]").onclick = (e)=>{ e.stopPropagation(); goToDestination(rec.landmark.id); };
+    goalEl.querySelector(".next-goal").onclick = ()=> goToDestination(rec.landmark.id);
+    $("homeMoreOptions").onclick = (e)=>{ e.stopPropagation(); openTodaySheet(); };
+    track("recommendation_generated", { source:"home", match_pct: rec.matchPct||0 });
+  } else {
+    goalEl.innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title:"כבשתם הכול!",
+      sub:"גיליתם את כל המקומות שיש לנו כרגע. עוד יעדים בדרך.", ctaId:"homeEmptyCta", ctaLabel:"למפה" });
+    const cta = $("homeEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/map");
+  }
+
+  const daily = recommendDestination({ salt:"daily", excludeId: rec ? rec.landmark.id : null });
+  const dailyEl = $("homeDaily");
+  $("homeDailyHead").classList.toggle("hidden", !daily);
+  if(daily){
+    const l = daily.landmark;
+    const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
+    dailyEl.innerHTML = `<div class="daily-card" data-id="${l.id}">
+      <div class="daily-thumb" style="${landmarkPhotoStyle(l)}">${hasPhoto?"":catIconSvg(CATEGORIES[l.category].icon,26).replace('<svg ','<svg style="color:#fff" ')}</div>
+      <div class="daily-body"><div class="daily-kicker">מצאנו לכם מקום שאולי לא הכרתם</div>
+        <div class="daily-name">${l.name}</div>
+        <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span></div></div>
+      <div class="place-pts">+${pointsForLandmark(l)}</div></div>`;
+    dailyEl.querySelector(".daily-card").onclick = ()=> goToDestination(l.id);
+  } else dailyEl.innerHTML = "";
+
+  // אתגר חודשי + מתכנן סופ״ש - שני מנועי-חזרה מבוססי-זמן (§9, §12)
+  $("homeChallenge").innerHTML = session ? monthlyChallengeHtml() : "";
+  const ideas = isWeekendWindow() ? weekendIdeas() : [];
+  $("homeWeekendHead").classList.toggle("hidden", !ideas.length);
+  $("homeWeekend").innerHTML = ideas.map(({pick,landmark})=>
+    `<button class="weekend-idea" data-id="${landmark.id}" type="button">
+       <span class="weekend-idea-ic">${uiIcon(pick.icon,17)}</span>
+       <span class="weekend-idea-body"><span class="weekend-idea-kind">${pick.label}</span>
+         <span class="weekend-idea-name">${landmark.name}</span></span>
+       <span class="place-pts">+${pointsForLandmark(landmark)}</span></button>`).join("");
+  $("homeWeekend").querySelectorAll("[data-id]").forEach(b=> b.onclick = ()=> goToDestination(b.dataset.id));
+  if(ideas.length) track("weekend_planner_shown", { ideas: ideas.length });
+
+  // "כמעט שם" - open loop אמיתי מתוך התקדמות האזורים הקיימת (§10)
+  const almostEl = $("homeAlmost");
+  const almost = Object.keys(REGIONS).map(r=>{
+    const all = LANDMARKS.filter(l=>l.region===r);
+    const done = all.filter(l=> myVisits.some(v=>v.landmark_id===l.id)).length;
+    return { r, done, total: all.length, left: all.length-done };
+  }).filter(x=> x.total>0 && x.left>0 && x.done>0).sort((a,b)=>a.left-b.left)[0];
+  if(almost && almost.left<=3){
+    almostEl.innerHTML = `<div class="almost-card" id="homeAlmostCard">${uiIcon("trophy",20)}
+      <div class="almost-text">נשאר${almost.left===1?"":"ו"} <b>${almost.left===1?"מקום אחד":almost.left+" מקומות"}</b> כדי להשלים את ${REGIONS[almost.r]}</div>
+      ${uiIcon("compass",18)}</div>`;
+    $("homeAlmostCard").onclick = ()=> navigate("#/map");
+  } else almostEl.innerHTML = "";
+}
+
 function wizIntroWhyText(l){
   const parts = [tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label];
   if(l.category==="water"||l.hasWater) parts.push("יש מים");
@@ -2694,12 +2852,12 @@ async function toggleWishlist(id){
     toast("הוסר מהשמורים", { label:"ביטול", onClick: async ()=>{
       const stillPending = !!pendingWishlistRemovals[id];
       if(stillPending){ clearTimeout(pendingWishlistRemovals[id]); delete pendingWishlistRemovals[id]; }
-      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); }
+      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); }
       if(!stillPending){
         // ה-timer כבר ירה וה-DELETE כבר בוצע בפועל - הביטול חייב להכניס את השורה מחדש,
         // לא רק לשחזר state מקומי (אחרת המסך יראה "שמור" בזמן שב-DB זה כבר נמחק).
         const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
-        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
+        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
       }
     }});
   } else if(pendingWishlistRemovals[id]){
@@ -3343,13 +3501,74 @@ function openRegionSheet(r){
 function renderCollections(){
   const el = $("collectionGrid");
   if(!el) return;
-  el.innerHTML = COLLECTIONS.map(c=>{
+  // מיון לפי "כמה קרוב להשלמה" - האוסף שנשאר בו הכי מעט עולה למעלה, כי זה ה-open loop
+  // שהכי סביר שיגרום ליציאה לטיול הבא (§10). אוספים שהושלמו יורדים לסוף.
+  const rows = COLLECTIONS.map(c=>{
     const { done, total } = collectionProgress(c);
-    const on = total>0 && done>=total;
-    const progressLine = on ? "" : `<div class="badge-progress">${done}/${total}</div>`;
-    return `<div class="badge${on?" unlocked":""}" data-id="${c.id}"><div class="circ">${c.icon}</div><div class="lbl">${c.label}</div>${progressLine}</div>`;
+    return { c, done, total, left: total-done, pct: total ? Math.round(done/total*100) : 0 };
+  }).filter(r=> r.total>0)
+    .sort((a,b)=>{
+      const aDone = a.left===0, bDone = b.left===0;
+      if(aDone!==bDone) return aDone ? 1 : -1;
+      if(a.done===0 && b.done>0) return 1;
+      if(b.done===0 && a.done>0) return -1;
+      return a.left-b.left;
+    });
+  el.innerHTML = rows.map(r=>{
+    const left = r.left===0
+      ? "הושלם!"
+      : (r.done===0 ? `${r.total} מקומות באוסף` : `נשאר${r.left===1?"" : "ו"} <b>${r.left===1?"מקום אחד":r.left+" מקומות"}</b> להשלמה`);
+    return `<div class="collection-card${r.left===0?" done":""}" data-id="${r.c.id}" role="button" tabindex="0">
+      <div class="collection-icon">${r.c.icon}</div>
+      <div class="collection-body">
+        <div class="collection-title">${r.c.label}</div>
+        <div class="collection-left">${left}</div>
+        <div class="collection-bar"><i style="width:${r.pct}%"></i></div>
+      </div>
+      <div class="collection-count">${r.done}/${r.total}</div>
+    </div>`;
   }).join("");
-  el.querySelectorAll("[data-id]").forEach(elm=> elm.onclick = ()=> navigate("#/collection/"+elm.dataset.id));
+  el.querySelectorAll("[data-id]").forEach(elm=>{
+    const go = ()=> navigate("#/collection/"+elm.dataset.id);
+    elm.onclick = go;
+    elm.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+/* ============ SAVED (§15) ============ */
+// "שמורים" קיבל טאב ניווט משלו במקום להיות טאב שלישי בתוך הפרופיל. אותה רשימה, אותה
+// לוגיקה (myWishlist + wishlistContextLines) - רק מקום אחד ברור להגיע אליו.
+function renderSaved(){
+  const listEl = $("savedList"); if(!listEl) return;
+  const subEl = $("savedSub");
+  if(!session){
+    subEl.textContent = "";
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "שמרו מקומות לפעם הבאה",
+      sub: "התחברו כדי לשמור יעדים שתרצו להגיע אליהם.", ctaId:"savedGuestCta", ctaLabel:"התחברות / הרשמה" });
+    const cta=$("savedGuestCta"); if(cta) cta.onclick = ()=> openAuthSheet("שמרו את הטיול הראשון שלכם");
+    return;
+  }
+  if(!myWishlist.length){
+    subEl.textContent = "";
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "עוד לא שמרתם מקומות",
+      sub: "סמנו בלב כל מקום שתרצו להגיע אליו, והוא יחכה לכם כאן.", ctaId:"savedEmptyCta", ctaLabel:"גלו מקומות" });
+    const cta=$("savedEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/home");
+    return;
+  }
+  loadWishlistFriendVisits();
+  subEl.textContent = myWishlist.length+" מקומות מחכים לכם";
+  const sorted = userLoc
+    ? myWishlist.slice().sort((a,b)=>{
+        const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
+        return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
+      })
+    : myWishlist;
+  listEl.innerHTML = sorted.map(id=>{
+    const l = lmById[id]; if(!l) return "";
+    const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
+    return placeCardHtml(l, { extra: ctx });
+  }).join("");
+  listEl.querySelectorAll(".mini-card").forEach(elm=> elm.onclick = ()=> goToDestination(elm.dataset.id));
+  wireMiniCardKeydown(listEl);
 }
 function openCollectionSheet(id){
   const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
@@ -3433,7 +3652,7 @@ function loadWishlistFriendVisits(){
       const counts = {};
       data.forEach(v=>{ counts[v.landmark_id] = (counts[v.landmark_id]||0)+1; });
       wishlistFriendVisits = counts;
-      if(profileListTab==="wishlist") renderProfile();
+      renderSaved();   // רשימת השמורים עברה למסך משלה - שם צריכות להופיע שורות "חברים ביקרו כאן"
     });
   });
 }
@@ -3674,25 +3893,6 @@ function renderProfile(){
           metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
           points: v.points_awarded, done: true,
         });
-      }).join("");
-    }
-  } else if(profileListTab==="wishlist"){
-    if(!myWishlist.length){
-      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "רשימת המשאלות ריקה",
-        sub: "שמרו מקומות שתרצו לכבוש בטיול הבא.", ctaId: "emptyWishlistCta", ctaLabel: "גלו מקומות" });
-      $("emptyWishlistCta").onclick = ()=> navigate("#/map");
-    } else {
-      loadWishlistFriendVisits();
-      const sortedWishlist = userLoc
-        ? myWishlist.slice().sort((a,b)=>{
-            const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
-            return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
-          })
-        : myWishlist;
-      listEl.innerHTML = sortedWishlist.map(id=>{
-        const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
-        const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
-        return placeCardHtml(l, { extra: ctx });
       }).join("");
     }
   } else {
