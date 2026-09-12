@@ -11,6 +11,7 @@
 // packaged one, and a site that answers on www but not on the apex (or the reverse).
 const fs = require('fs');
 const path = require('path');
+const dns = require('dns').promises;
 
 const root = path.join(__dirname, '..');
 const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
@@ -46,13 +47,43 @@ const get = async url => {
 (async () => {
   console.log(`\nchecking ${base}\n`);
 
-  console.log('1. the site answers');
+  // Answers the question a `dig` would, for anyone without a terminal: has the domain
+  // actually been delegated, and to whom. A domain that still points at the old
+  // registrar looks identical from the browser to one that was never configured.
+  console.log('0. DNS');
+  try {
+    const ns = (await dns.resolveNs(host)).map(n => n.toLowerCase()).sort();
+    console.log(`        nameservers: ${ns.join(', ')}`);
+    const onVercel = ns.some(n => /vercel-dns/.test(n));
+    if (onVercel) check('delegated to Vercel DNS', true);
+    else warn('not delegated to Vercel DNS', 'still ' + ns.join(', ') + ' — either the change has not propagated, or it did not save');
+  } catch (e) {
+    warn('no nameservers found for the domain', e.code || e.message);
+  }
+  try {
+    const a = await dns.resolve4(host);
+    console.log(`        A records: ${a.join(', ')}`);
+  } catch (e) {
+    warn('the domain does not resolve to an address yet', e.code || e.message);
+  }
+  try {
+    const wwwA = await dns.resolve('www.' + host, 'A').catch(() => dns.resolveCname('www.' + host));
+    console.log(`        www: ${[].concat(wwwA).join(', ')}`);
+  } catch (e) {
+    console.log(`        www: ${e.code || 'not set'}`);
+  }
+
+  console.log('\n1. the site answers');
   const home = await get(base + '/');
   if (!home.ok) { check('reachable', false, home.error); }
   else {
     check('reachable', home.status === 200, 'HTTP ' + home.status);
     check('serves the app, not a placeholder', /id="view-map"|<title>/.test(home.body));
-    if (home.url.replace(/\/$/, '') !== base) warn('redirected', `${base} → ${home.url}`);
+    const landed = home.url.replace(/\/$/, '');
+    if (landed !== base) {
+      warn('redirected away from the packaged host',
+        `${base} → ${home.url} — the TWA verifies assetlinks against ${twa.host} only, so this host must serve the app itself, not redirect`);
+    }
   }
 
   console.log('\n2. the web manifest');
