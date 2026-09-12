@@ -7,8 +7,9 @@ const fs = require('fs');
 const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
-const slice = src.slice(src.indexOf('const GEO_MESSAGES'), src.indexOf('const LOC_WATCH_KEY'));
-const watchSlice = src.slice(src.indexOf('const LOC_WATCH_KEY'), src.indexOf('let retryHandlers'));
+// one slice evaluated in one scope, exactly as these live in app.js - splitting it
+// would put lastGeoError/lastGeoFix out of reach of geoDiagnostics()
+const slice = src.slice(src.indexOf('const GEO_MESSAGES'), src.indexOf('let retryHandlers'));
 const persistSlice = src.slice(src.indexOf('const LAST_LOC_KEY'), src.indexOf('let userLoc = restoreLastLoc();'));
 const markerSlice = src.slice(src.indexOf('function renderUserLocation()'), src.indexOf('function renderFogOfWar()'));
 
@@ -41,8 +42,44 @@ const geolocation = {
 };
 // node ships a read-only `navigator` global, so a plain assignment is silently ignored
 Object.defineProperty(globalThis, 'navigator', { value: { geolocation }, writable: true, configurable: true });
+const toasts = [];
+const els = {};
+globalThis.$ = id => (els[id] = els[id] || {
+  id, classList: { _c: new Set(), add(c) { this._c.add(c); }, remove(c) { this._c.delete(c); },
+    toggle(c, on) { on ? this._c.add(c) : this._c.delete(c); }, contains(c) { return this._c.has(c); } },
+  setAttribute(k, v) { this[k] = v; }, textContent: '', title: '',
+});
+globalThis.toast = m => toasts.push(m);
+globalThis.syncFilterUI = () => {};
+globalThis.leafletMap = { setView() {}, getZoom: () => 8 };
+globalThis.currentView = 'map';
+let renders = 0;
+globalThis.renderUserLocation = () => { renders++; };
+globalThis.renderLocationPermStatus = () => {};
+globalThis.closeSheet = () => {};
+globalThis.navigate = () => {};
+globalThis.document = { addEventListener() {}, hidden: false };
+globalThis.window = { isSecureContext: true, self: 1, top: 1, matchMedia: () => ({ matches: false }) };
+globalThis.location = { protocol: 'https:' };
+globalThis.APP_VERSION = 'test';
+
 (0, eval)(persistSlice + '; globalThis.restoreLastLoc = restoreLastLoc; globalThis.saveLastLoc = saveLastLoc; globalThis.LAST_LOC_KEY = LAST_LOC_KEY; globalThis.LAST_LOC_MAX_AGE = LAST_LOC_MAX_AGE;');
-(0, eval)(slice + '; globalThis.locateUser = locateUser; globalThis.geoErrorMessage = geoErrorMessage;');
+(0, eval)(slice + `;
+  globalThis.locateUser = locateUser;
+  globalThis.geoErrorMessage = geoErrorMessage;
+  globalThis.noteGeoErrorRef = noteGeoError;
+  globalThis.startLocationWatch = startLocationWatch;
+  globalThis.stopLocationWatch = stopLocationWatch;
+  globalThis.toggleLocationTracking = toggleLocationTracking;
+  globalThis.resumeLocationTracking = resumeLocationTracking;
+  globalThis.wantsLiveLocation = wantsLiveLocation;
+  globalThis.setWantsLiveLocation = setWantsLiveLocation;
+  globalThis.isTracking = () => locTrackingOn;
+  globalThis.setManualLocation = setManualLocation;
+  globalThis.clearManualLocation = clearManualLocation;
+  globalThis.geoDiagnostics = geoDiagnostics;
+  globalThis.LOC_WATCH_KEY = LOC_WATCH_KEY;
+`);
 
 let failures = 0;
 const check = (name, cond, detail) => {
@@ -115,7 +152,7 @@ check('nothing stored means no location', restoreLastLoc() === null);
 
 console.log('\n8. the dot is drawn where it can actually be seen');
 const layers = [];
-globalThis.leafletMap = { removeLayer: l => { layers.splice(layers.indexOf(l), 1); } };
+globalThis.leafletMap = { removeLayer: l => { layers.splice(layers.indexOf(l), 1); }, setView() {}, getZoom: () => 8 };
 const mk = kind => (latlng, opts) => {
   const layer = { kind, latlng, opts, addTo(map) { layers.push(this); return this; } };
   return layer;
@@ -123,10 +160,14 @@ const mk = kind => (latlng, opts) => {
 globalThis.L = { circle: mk('circle'), circleMarker: mk('circleMarker') };
 globalThis.USER_LOC_PANE = 'userLocPane';
 globalThis.userLocMarker = null; globalThis.userLocHalo = null;
-(0, eval)(markerSlice + '; globalThis.renderUserLocation = renderUserLocation;');
+// export it under its own name: globalThis.renderUserLocation stays the counting stub
+// the live-tracking checks below rely on
+(0, eval)(markerSlice + '; globalThis.renderUserLocationReal = renderUserLocation;');
+// indirect eval declares into global scope, so the line above just replaced the stub
+globalThis.renderUserLocation = () => { renders++; };
 
 globalThis.userLoc = { lat: 32.1, lon: 34.8, accuracy: 40 };
-renderUserLocation();
+renderUserLocationReal();
 check('a dot is drawn', layers.some(l => l.kind === 'circleMarker'));
 check('an accuracy halo is drawn', layers.some(l => l.kind === 'circle'));
 const dot = layers.find(l => l.kind === 'circleMarker');
@@ -136,43 +177,19 @@ check('the dot does not swallow map clicks', dot.opts.interactive === false);
 check('the halo shows the reported accuracy', layers.find(l => l.kind === 'circle').opts.radius === 40);
 
 const before = layers.length;
-renderUserLocation();
+renderUserLocationReal();
 check('re-rendering does not stack layers', layers.length === before, before + ' -> ' + layers.length);
 
 globalThis.userLoc = { lat: 32.1, lon: 34.8 };
-renderUserLocation();
+renderUserLocationReal();
 check('no halo when the device reported no accuracy', !layers.some(l => l.kind === 'circle'));
 check('the dot is still drawn', layers.some(l => l.kind === 'circleMarker'));
 
 globalThis.userLoc = null;
-renderUserLocation();
+renderUserLocationReal();
 check('no location means nothing on the map', layers.length === 0, layers.length + ' layer(s)');
 
 console.log('\n9. live tracking keeps the dot moving with you');
-const toasts = [];
-const els = {};
-globalThis.$ = id => (els[id] = els[id] || {
-  id, classList: { _c: new Set(), add(c) { this._c.add(c); }, remove(c) { this._c.delete(c); },
-    toggle(c, on) { on ? this._c.add(c) : this._c.delete(c); }, contains(c) { return this._c.has(c); } },
-  setAttribute(k, v) { this[k] = v; }, textContent: '', title: '',
-});
-globalThis.toast = m => toasts.push(m);
-globalThis.syncFilterUI = () => {};
-globalThis.leafletMap = { setView() {}, getZoom: () => 8 };
-globalThis.currentView = 'map';
-let renders = 0;
-globalThis.renderUserLocation = () => { renders++; };
-globalThis.document = { addEventListener() {}, hidden: false };
-(0, eval)(watchSlice + `;
-  globalThis.startLocationWatch = startLocationWatch;
-  globalThis.stopLocationWatch = stopLocationWatch;
-  globalThis.toggleLocationTracking = toggleLocationTracking;
-  globalThis.resumeLocationTracking = resumeLocationTracking;
-  globalThis.wantsLiveLocation = wantsLiveLocation;
-  globalThis.setWantsLiveLocation = setWantsLiveLocation;
-  globalThis.LOC_WATCH_KEY = LOC_WATCH_KEY;
-  globalThis.isTracking = () => locTrackingOn;
-`);
 const fixAt = (lat, lon, acc) => Object.values(watches)[0].ok({ coords: { latitude: lat, longitude: lon, accuracy: acc } });
 const failWith = code => Object.values(watches)[0].fail({ code });
 // stopLocationWatch() releases the watch AND resets the module's internal id, which a
@@ -239,6 +256,45 @@ check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '))
   globalThis.navigator.permissions = { query: async () => ({ state: 'prompt' }) };
   await resumeLocationTracking();
   check('an unanswered permission is never auto-requested', Object.keys(watches).length === 0);
+
+  console.log('\n14. a manual location is usable, but never passes as GPS');
+  reset();
+  globalThis.userLoc = null;
+  layers.length = 0;
+  setManualLocation(31.5, 35.0);
+  check('userLoc is set', globalThis.userLoc.lat === 31.5);
+  check('and flagged as manual', globalThis.userLoc.manual === true);
+  check('persisted with the flag', JSON.parse(store[LAST_LOC_KEY]).manual === true);
+  check('the flag survives a reload', restoreLastLoc().manual === true);
+
+  renderUserLocationReal();
+  check('drawn as a dot', layers.some(l => l.kind === 'circleMarker'));
+  check('with NO accuracy halo — there was no measurement', !layers.some(l => l.kind === 'circle'));
+  const manualDot = layers.find(l => l.kind === 'circleMarker');
+  check('in a different colour from a real fix', !/1A73E8/i.test(manualDot.opts.fillColor), manualDot.opts.fillColor);
+
+  // check-in asks the device directly and never reads userLoc, so a manual pin cannot
+  // stand in for being there
+  attempts = []; plan = [{ code: 1 }];
+  let checkinResult = null;
+  locateUser(() => { checkinResult = 'ok'; }, e => { checkinResult = e; }, { preciseOnly: true });
+  check('check-in still demands a fresh device fix', checkinResult && checkinResult.code === 1);
+  check('and asks the device, ignoring the manual pin', attempts.length === 1);
+
+  clearManualLocation();
+  check('clearing removes it', globalThis.userLoc === null);
+  check('and forgets it', store[LAST_LOC_KEY] === undefined);
+
+  console.log('\n15. the diagnostics report says what actually happened');
+  globalThis.navigator.onLine = true;
+  globalThis.navigator.userAgent = 'test-agent';
+  noteGeoErrorRef({ code: 1, message: 'User denied Geolocation' });
+  const report = await geoDiagnostics();
+  check('names the permission state', /permission: /.test(report));
+  check('reports the last error code', /last error: code 1/.test(report), (report.match(/last error:.*/) || [])[0]);
+  check('reports whether the context is secure', /secureContext: yes/.test(report));
+  check('reports whether a watch is running', /live watch: /.test(report));
+  check('reports the iframe case', /in iframe: no/.test(report));
 
   console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nall checks passed\n');
   process.exit(failures ? 1 : 0);

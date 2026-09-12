@@ -32,6 +32,8 @@ const CRITICAL = [
   'renderUserLocation', 'restoreLastLoc', 'saveLastLoc',
   'startLocationWatch', 'stopLocationWatch', 'toggleLocationTracking', 'resumeLocationTracking',
   'setLocateBtnState', 'maybeShowLocateHint', 'dismissLocateHint',
+  'geoDiagnostics', 'runLocationTest', 'deniedHelpHtml', 'renderLocationPermStatus',
+  'startManualLocationPick', 'cancelManualLocationPick', 'setManualLocation', 'clearManualLocation',
 ];
 
 const defined = new Set();
@@ -42,10 +44,14 @@ const missing = CRITICAL.filter(fn => !defined.has(fn));
 
 // Also catch the reverse of the same mistake: a renderer defined but no longer
 // reachable from anywhere (dead after a refactor).
+// Count every mention of the name, not just `name(` — plenty of these are wired as
+// bare handler references (`btn.onclick = runLocationTest;`), which a call-shaped
+// search reports as dead. A false alarm here is worse than no check: it trains you
+// to ignore the output.
 const unreferenced = CRITICAL.filter(fn => {
   if (missing.includes(fn)) return false;
-  const calls = app.split(fn + '(').length - 1;
-  return calls <= 1; // only its own definition
+  const mentions = (app.match(new RegExp('\\b' + fn + '\\b', 'g')) || []).length;
+  return mentions <= 1; // only its own definition
 });
 
 if (missing.length) {

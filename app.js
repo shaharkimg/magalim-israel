@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912a5";
+const APP_VERSION = "20260912a6";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -299,6 +299,15 @@ function renderUserLocation(){
   [userLocMarker, userLocHalo].forEach(layer=>{ if(layer) leafletMap.removeLayer(layer); });
   userLocMarker = userLocHalo = null;
   if(!userLoc) return;
+  if(userLoc.manual){
+    // מיקום ידני נראה אחרת מכוונה: ענבר ולא כחול, בלי הילת-דיוק (אין כאן מדידה),
+    // כדי שלא ייראה כאילו המכשיר אותר בפועל
+    userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], {
+      radius:8, color:"#fff", weight:3, fillColor:"#9E6F2E", fillOpacity:1,
+      interactive:false, pane:USER_LOC_PANE,
+    }).addTo(leafletMap);
+    return;
+  }
   if(userLoc.accuracy > 0){
     userLocHalo = L.circle([userLoc.lat,userLoc.lon], {
       radius: Math.min(userLoc.accuracy, 2000), stroke:false, fillColor:"#1A73E8",
@@ -531,7 +540,7 @@ function restoreLastLoc(){
     const saved = JSON.parse(localStorage.getItem(LAST_LOC_KEY) || "null");
     if(!saved || typeof saved.lat!=="number" || typeof saved.lon!=="number") return null;
     if(Date.now() - (saved.at||0) > LAST_LOC_MAX_AGE) return null;
-    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy };
+    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy, manual:!!saved.manual };
   }catch(e){ return null; }
 }
 function saveLastLoc(){
@@ -633,6 +642,10 @@ async function submitFeedback(type, textareaEl){
 }
 async function renderLocationPermStatus(){
   const el = $("locationPermStatus"); if(!el) return;
+  // תמיד, לא רק במסלול שבו navigator.permissions קיים - אחרת הכפתור נשאר מוסתר
+  // בדיוק בדפדפנים שבהם המיקום הידני הכי נחוץ
+  const clearBtn = $("locationClearManualBtn");
+  if(clearBtn) clearBtn.classList.toggle("hidden", !(userLoc && userLoc.manual));
   if(!navigator.permissions || !navigator.permissions.query){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
     el.style.color = "var(--text-muted)";
@@ -647,6 +660,11 @@ async function renderLocationPermStatus(){
     };
     el.textContent = labels[status.state] || status.state;
     el.style.color = status.state==="denied" ? "var(--danger)" : status.state==="granted" ? "var(--success)" : "var(--text-muted)";
+    const help = $("locationDeniedHelp");
+    if(help){
+      help.classList.toggle("hidden", status.state!=="denied");
+      if(status.state==="denied") help.innerHTML = deniedHelpHtml();
+    }
   }catch(e){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
     el.style.color = "var(--text-muted)";
@@ -666,6 +684,11 @@ const GEO_MESSAGES = {
 function geoErrorMessage(err){
   return (err && GEO_MESSAGES[err.code]) || "לא הצלחנו לאתר מיקום כרגע";
 }
+// נשמר כדי שמסך-האבחון יוכל להראות מה באמת קרה בפעם האחרונה. בלי זה כל מה שיש הוא
+// "לא עובד", ואין דרך לדעת אם הדפדפן סירב, ה-GPS לא נעל, או שבכלל לא נשאלה שאלה.
+let lastGeoError = null, lastGeoFix = null;
+function noteGeoError(err){ lastGeoError = { code: err && err.code, message: err && err.message, at: Date.now() }; }
+function noteGeoFix(pos){ lastGeoFix = { accuracy: pos.coords.accuracy, at: Date.now() }; }
 // onOk מקבל את ה-position המקורי; userLoc מתעדכן כאן, כדי ששלושת המסלולים לא יעשו
 // את זה כל אחד בדרכו. opts.preciseOnly מוותר על ניסיון-הגיבוי הגס ועל מיקום מהקאש -
 // לאימות-קרבה של צ'ק-אין (300 מ') מיקום גס או ישן הוא לא ראיה טובה מספיק.
@@ -673,13 +696,15 @@ function locateUser(onOk, onFail, opts){
   opts = opts || {};
   if(!navigator.geolocation){ onFail({ code:2 }); return; }
   const accept = pos=>{
+    noteGeoFix(pos);
     userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy };
     saveLastLoc();
     onOk(pos);
   };
+  const reject = err=>{ noteGeoError(err); onFail(err); };
   navigator.geolocation.getCurrentPosition(accept, err=>{
-    if(opts.preciseOnly || err.code!==3){ onFail(err); return; }
-    navigator.geolocation.getCurrentPosition(accept, onFail,
+    if(opts.preciseOnly || err.code!==3){ reject(err); return; }
+    navigator.geolocation.getCurrentPosition(accept, reject,
       { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
   }, { enableHighAccuracy:true, timeout:opts.preciseOnly?15000:12000, maximumAge:opts.preciseOnly?0:60000 });
 }
@@ -740,6 +765,7 @@ function startLocationWatch(opts){
   let firstFix = true;
   setLocateBtnState(userLoc ? "live" : "locating");
   locWatchId = navigator.geolocation.watchPosition(pos=>{
+    noteGeoFix(pos);
     userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy };
     saveLastLoc();
     renderUserLocation();
@@ -752,6 +778,7 @@ function startLocationWatch(opts){
       syncFilterUI();
     }
   }, err=>{
+    noteGeoError(err);
     // timeout/unavailable הם רעש רגיל תוך כדי מעקב - ה-watch ממשיך לנסות. רק סירוב
     // הרשאה הוא סופי, ורק אז מכבים ומודיעים.
     if(err.code===1){
@@ -797,6 +824,119 @@ document.addEventListener("visibilitychange", ()=>{
   if(document.hidden) stopLocationWatch();
   else if(locTrackingOn && currentView==="map") startLocationWatch();
 });
+
+// ---- אבחון מיקום + מיקום ידני ----
+//
+// אין דרך לאפליקציית-web לעקוף את הרשאת-המיקום של הדפדפן ולאשר מיקום "מבפנים" -
+// ההרשאה נאכפת על-ידי הדפדפן ומערכת-ההפעלה, וכל כפתור באפליקציה יכול לכל היותר
+// לפתוח את אותה בקשה עצמה. מה שכן אפשר, וזה מה שיש כאן:
+//   1. להראות בדיוק מה מצב ההרשאה ומה הייתה השגיאה האחרונה, במקום לנחש
+//   2. לתת הוראות-שחזור מדויקות כשההרשאה חסומה (אז הדפדפן כבר לא ישאל שוב לבד)
+//   3. לאפשר לסמן מיקום ידנית על המפה, כדי שמי שה-GPS שלו לא עובד עדיין יוכל
+//      להשתמש בסינון לפי מרחק וב"מה עושים היום". מיקום ידני מסומן ככזה ולעולם אינו
+//      מתקבל כאימות-קרבה לצ'ק-אין - שם נדרשת מדידה טרייה מהמכשיר.
+function inIframe(){ try{ return window.self !== window.top; }catch(e){ return true; } }
+async function geoPermissionState(){
+  if(!navigator.permissions || !navigator.permissions.query) return "unknown";
+  try{ return (await navigator.permissions.query({ name:"geolocation" })).state; }
+  catch(e){ return "unknown"; }
+}
+function ago(ts){
+  if(!ts) return "—";
+  const sec = Math.round((Date.now()-ts)/1000);
+  return sec < 60 ? `לפני ${sec} שנ׳` : `לפני ${Math.round(sec/60)} דק׳`;
+}
+async function geoDiagnostics(){
+  const lines = [
+    "APP_VERSION: " + APP_VERSION,
+    "secureContext: " + (window.isSecureContext ? "yes" : "NO (geolocation is blocked)"),
+    "protocol: " + location.protocol,
+    "geolocation API: " + (navigator.geolocation ? "present" : "MISSING"),
+    "permission: " + await geoPermissionState(),
+    "in iframe: " + (inIframe() ? "YES (needs allow=\"geolocation\")" : "no"),
+    "display-mode: " + (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches ? "standalone (installed)" : "browser"),
+    "online: " + (navigator.onLine ? "yes" : "no"),
+    "live watch: " + (locWatchId!=null ? "running" : locTrackingOn ? "wanted, not running" : "off"),
+    "userLoc: " + (userLoc ? `${userLoc.lat.toFixed(4)}, ${userLoc.lon.toFixed(4)}${userLoc.manual ? " (manual)" : ` ±${Math.round(userLoc.accuracy||0)}m`}` : "none"),
+    "last fix: " + (lastGeoFix ? `${ago(lastGeoFix.at)} ±${Math.round(lastGeoFix.accuracy||0)}m` : "never"),
+    "last error: " + (lastGeoError ? `code ${lastGeoError.code} (${lastGeoError.message||""}) ${ago(lastGeoError.at)}` : "none"),
+    "userAgent: " + navigator.userAgent,
+  ];
+  return lines.join("\n");
+}
+async function showLocationDiagnostics(){
+  const box = $("locationDiag");
+  box.textContent = await geoDiagnostics();
+  box.classList.remove("hidden");
+  $("locationCopyBtn").classList.remove("hidden");
+}
+function runLocationTest(){
+  const box = $("locationDiag");
+  box.classList.remove("hidden");
+  $("locationCopyBtn").classList.remove("hidden");
+  box.textContent = "בודק... (עד 15 שניות)";
+  const started = Date.now();
+  locateUser(pos=>{
+    box.textContent = `OK after ${Date.now()-started}ms\n`
+      + `lat ${pos.coords.latitude.toFixed(5)}, lon ${pos.coords.longitude.toFixed(5)}\n`
+      + `accuracy ±${Math.round(pos.coords.accuracy)}m`;
+    renderUserLocation();
+    renderLocationPermStatus();
+    toast("המיקום אותר — הנקודה מוצגת על המפה");
+  }, async err=>{
+    box.textContent = `FAILED after ${Date.now()-started}ms\ncode ${err && err.code} — ${geoErrorMessage(err)}\n\n`
+      + await geoDiagnostics();
+    renderLocationPermStatus();
+  });
+}
+function deniedHelpHtml(){
+  const android = /Android/i.test(navigator.userAgent);
+  const steps = android
+    ? ["בשורת הכתובת של הדפדפן, לחצו על האייקון שמשמאל לכתובת (מנעול או סמל הגדרות)",
+       'בחרו "הרשאות" או "Permissions", ואז "מיקום"',
+       'שנו ל"אפשר" / "Allow"',
+       "ודאו ששירותי המיקום של המכשיר דולקים (הגדרות ← מיקום)",
+       "חזרו לכאן ולחצו על \u0022בדיקת מיקום\u0022"]
+    : ["לחצו על אייקון המנעול/ההגדרות בשורת הכתובת",
+       'שנו את הרשאת "מיקום" ל"אפשר"',
+       "רעננו את הדף ולחצו על \u0022בדיקת מיקום\u0022"];
+  return '<strong>הרשאת המיקום חסומה, ולכן הדפדפן כבר לא ישאל שוב מעצמו.</strong>'
+    + ' אפליקציית-web לא יכולה לעקוף את זה מבפנים - ההרשאה נאכפת על-ידי הדפדפן. כך מחזירים אותה:'
+    + "<ol>" + steps.map(x=>`<li>${x}</li>`).join("") + "</ol>"
+    + 'אם אתם מעדיפים לא לאשר, אפשר לסמן מיקום ידנית על המפה בכפתור שלמעלה.';
+}
+// --- מיקום ידני ---
+let pickingLocation = false;
+function startManualLocationPick(){
+  pickingLocation = true;
+  $("mapWrap").classList.add("picking-location");
+  $("manualLocBar").classList.remove("hidden");
+  closeSheet("settingsSheet","settingsScrim");
+  navigate("#/map");
+}
+function cancelManualLocationPick(){
+  pickingLocation = false;
+  const wrap = $("mapWrap"); if(wrap) wrap.classList.remove("picking-location");
+  const bar = $("manualLocBar"); if(bar) bar.classList.add("hidden");
+}
+function setManualLocation(lat, lon){
+  cancelManualLocationPick();
+  userLoc = { lat, lon, manual:true };
+  saveLastLoc();
+  renderUserLocation();
+  syncFilterUI();
+  $("distHint").textContent = "מיקום ידני נקבע — ניתן לסנן לפי מרחק נסיעה";
+  renderLocationPermStatus();
+  toast("המיקום הידני נקבע. לצ׳ק-אין עדיין נדרש GPS אמיתי.");
+}
+function clearManualLocation(){
+  if(!userLoc || !userLoc.manual) return;
+  userLoc = null;
+  try{ localStorage.removeItem(LAST_LOC_KEY); }catch(e){}
+  renderUserLocation();
+  renderLocationPermStatus();
+  toast("המיקום הידני נמחק");
+}
 
 let retryHandlers = {}, retryHandlerSeq = 0;
 function errorStateHtml(message, retryFn){
@@ -2527,7 +2667,10 @@ function initLeafletMap(){
   leafletMap.createPane(USER_LOC_PANE).style.zIndex = 655;
   clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false });
   leafletMap.addLayer(clusterGroup);
-  leafletMap.on("click", closePreview);
+  leafletMap.on("click", (e)=>{
+    if(pickingLocation){ setManualLocation(e.latlng.lat, e.latlng.lng); return; }
+    closePreview();
+  });
   let moveDebounce = null;
   leafletMap.on("moveend", ()=>{ clearTimeout(moveDebounce); moveDebounce = setTimeout(renderDiscoveryCarousel, 150); });
   if(LANDMARKS.length){
@@ -2755,6 +2898,14 @@ function wireStaticUI(){
   };
   $("locateHintBtn").onclick = ()=>{ dismissLocateHint(); $("locateBtn").click(); };
   $("locateHintClose").onclick = (e)=>{ e.stopPropagation(); dismissLocateHint(); };
+  $("locationTestBtn").onclick = runLocationTest;
+  $("locationManualBtn").onclick = startManualLocationPick;
+  $("locationClearManualBtn").onclick = clearManualLocation;
+  $("manualLocCancel").onclick = cancelManualLocationPick;
+  $("locationCopyBtn").onclick = async ()=>{
+    try{ await navigator.clipboard.writeText($("locationDiag").textContent); toast("הדוח הועתק"); }
+    catch(e){ toast("לא הצלחנו להעתיק — אפשר לסמן ולהעתיק ידנית"); }
+  };
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
   $("openFilters").onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); syncFilterUI(); openSheet("filterSheet","filterScrim"); } };
   $("closeFilters").onclick=()=>closeSheet("filterSheet","filterScrim");
