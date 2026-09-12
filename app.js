@@ -3,7 +3,11 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912b1";
+const APP_VERSION = "20260912b2";
+// הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
+// הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
+// ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
+const SITE_HOST = "megalim-israel.co.il";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -4386,7 +4390,7 @@ async function generateShareCard(){
   ctx.fillText(totalXP().toLocaleString()+" נקודות · רצף "+computeStreak()+" שבועות", W-110, 1515);
   ctx.textAlign = "center";
   ctx.fillStyle = muted; ctx.font = "400 28px Heebo, sans-serif";
-  ctx.fillText("magalim-israel.vercel.app", W/2, H-40);
+  ctx.fillText(SITE_HOST, W/2, H-40);
   return new Promise(resolve=> canvas.toBlob(blob=>resolve(blob), "image/png"));
 }
 async function shareMyMap(){
