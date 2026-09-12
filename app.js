@@ -2410,7 +2410,26 @@ function renderMap(){
   renderDiscoveryCarousel();
 }
 
+// הפס התחתון של המפה (קרוסלת-הגילוי או כרטיס-התצוגה) פרוס לרוחב מלא ומעל כפתורי-
+// המפה ב-z-index, כך שכפתור "המיקום שלי", איפוס-הזום והמקרא נקברו מתחתיו ולחיצה
+// עליהם נחתה בפועל על כרטיס-יעד. מרימים אותם בדיוק מעל מה שמוצג כרגע - לפי הגובה
+// האמיתי שלו, כי הקרוסלה משנה גובה בין כרטיסים למצב "אין יעדים באזור", ובדסקטופ
+// שני הפסים בכלל מוסתרים (offsetHeight אפס) והכפתורים חוזרים למקומם.
+const MAP_OVERLAY_INSET = 12;  // ה-bottom של הפס התחתון
+const MAP_CTL_GAP = 8;         // רווח בין הפס לכפתורים
+function syncMapControlsOffset(){
+  const wrap = $("mapWrap"); if(!wrap) return;
+  const preview = $("destPreview"), section = $("discoverySection");
+  let h = 0;
+  if(preview.classList.contains("open")) h = preview.offsetHeight;
+  else if(!section.classList.contains("hidden")) h = section.offsetHeight;
+  wrap.style.setProperty("--map-ctl-bottom", h ? (h + MAP_OVERLAY_INSET + MAP_CTL_GAP) + "px" : "");
+}
 function renderDiscoveryCarousel(){
+  fillDiscoveryCarousel();
+  syncMapControlsOffset();
+}
+function fillDiscoveryCarousel(){
   if(!leafletMap) return;
   renderMapSidePanel();
   const section = $("discoverySection");
