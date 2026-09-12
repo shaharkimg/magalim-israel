@@ -1167,9 +1167,44 @@ window.addEventListener("popstate", ()=>{
   applyRoute();
 });
 
-function switchView(view){
-  if(view==="feed"){ view = "board"; boardTab = "feed"; }
+let currentView = null;
+// מעבר בין מסכים מחזיר את מסך-היעד למצב ההתחלתי שלו: גלילה לראש, טאב-משנה ברירת-מחדל,
+// ובלי שאריות מהמסך הקודם (כרטיס-תצוגה שנשאר פתוח על המפה). בלי זה חזרה לטאב מציגה
+// את אמצע המסך מהפעם הקודמת, או טאב-משנה שהמשתמש כבר לא זוכר שבחר.
+function setProfileListTab(tab){
+  profileListTab = tab;
+  document.querySelectorAll(".tab-row [data-list]").forEach(b=>
+    b.classList.toggle("active", b.dataset.list===tab));
+}
+function setBoardPeriod(period){
+  lbPeriod = period;
+  $("periodSeg").querySelectorAll("button").forEach(b=>
+    b.classList.toggle("active", b.dataset.period===period));
+}
+function resetViewScroll(view){
+  const root = $("view-"+view);
+  if(!root) return;
+  root.scrollTop = 0;
+  root.querySelectorAll(".scroll-area").forEach(a=>{ a.scrollTop = 0; });
+}
+function switchView(view, opts){
+  opts = opts || {};
+  // "feed" הוא בקשה מפורשת לטאב מסוים - היא גוברת על האיפוס
+  let explicitBoardTab = null;
+  if(view==="feed"){ view = "board"; explicitBoardTab = "feed"; }
   if(!["home","map","saved","board","profile"].includes(view)) view = "home";
+  const changed = view !== currentView;
+  if(changed && !opts.keepState){
+    if(currentView==="map") closePreview();
+    if(view==="board" && !explicitBoardTab) boardTab = "leaders";
+    if(view==="board") setBoardPeriod("week");
+    if(view==="profile") setProfileListTab("visited");
+    // סינוני-המפה לא מתאפסים כאן בכוונה: הם בחירה מכוונת של המשתמש, ומסלולי-כניסה
+    // כמו אתגר או אוסף מגדירים filters.customIds ואז קוראים ל-navigate("#/map") -
+    // איפוס כאן היה מוחק להם את התוכן לפני שהמפה בכלל מצטיירת.
+  }
+  if(explicitBoardTab) boardTab = explicitBoardTab;
+  currentView = view;
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
@@ -1178,6 +1213,7 @@ function switchView(view){
   if(view==="profile") renderProfile();
   if(view==="home") renderHome();
   if(view==="saved") renderSaved();
+  if(changed) resetViewScroll(view);
 }
 function switchBoardTab(tab){
   boardTab = tab;
@@ -2679,8 +2715,7 @@ function wireStaticUI(){
   });
   document.querySelectorAll(".tab-row [data-list]").forEach(btn=>{
     btn.onclick=()=>{
-      document.querySelectorAll(".tab-row [data-list]").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active"); profileListTab = btn.dataset.list; renderProfile();
+      setProfileListTab(btn.dataset.list); renderProfile();
     };
   });
   $("editNameBtn").onclick = ()=> navigate("#/settings/profile");
@@ -2797,8 +2832,7 @@ function wireStaticUI(){
   $("markAllReadBtn").onclick = async ()=>{ await markAllNotificationsRead(); renderNotifications(); };
   document.querySelectorAll("#boardTabs button").forEach(b=> b.onclick = ()=> switchBoardTab(b.dataset.tab));
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active"); lbPeriod=b.dataset.period; renderBoard();
+    setBoardPeriod(b.dataset.period); renderBoard();
   });
   $("inviteBtn").onclick = async ()=>{
     let url;
