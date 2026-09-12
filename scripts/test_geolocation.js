@@ -8,6 +8,16 @@ const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 const slice = src.slice(src.indexOf('const GEO_MESSAGES'), src.indexOf('let retryHandlers'));
+const persistSlice = src.slice(src.indexOf('const LAST_LOC_KEY'), src.indexOf('let userLoc = restoreLastLoc();'));
+const markerSlice = src.slice(src.indexOf('function renderUserLocation()'), src.indexOf('function renderFogOfWar()'));
+
+// --- localStorage stub ---
+const store = {};
+globalThis.localStorage = {
+  getItem: k => (k in store ? store[k] : null),
+  setItem: (k, v) => { store[k] = String(v); },
+  removeItem: k => { delete store[k]; },
+};
 
 let attempts = [];
 let plan = [];
@@ -16,12 +26,13 @@ const geolocation = {
   getCurrentPosition(ok, fail, opts) {
     attempts.push(opts);
     const next = plan.shift();
-    if (next && next.ok) ok({ coords: { latitude: 32.1, longitude: 34.8 } });
+    if (next && next.ok) ok({ coords: { latitude: 32.1, longitude: 34.8, accuracy: 12 } });
     else fail({ code: next ? next.code : 2 });
   },
 };
 // node ships a read-only `navigator` global, so a plain assignment is silently ignored
 Object.defineProperty(globalThis, 'navigator', { value: { geolocation }, writable: true, configurable: true });
+(0, eval)(persistSlice + '; globalThis.restoreLastLoc = restoreLastLoc; globalThis.saveLastLoc = saveLastLoc; globalThis.LAST_LOC_KEY = LAST_LOC_KEY; globalThis.LAST_LOC_MAX_AGE = LAST_LOC_MAX_AGE;');
 (0, eval)(slice + '; globalThis.locateUser = locateUser; globalThis.geoErrorMessage = geoErrorMessage;');
 
 let failures = 0;
@@ -77,6 +88,56 @@ let out = null;
 locateUser(() => { out = 'ok'; }, err => { out = err; });
 check('reports unavailable rather than throwing', out && out.code === 2);
 globalThis.navigator.geolocation = saved;
+
+console.log('\n7. a fix survives a reload');
+run([{ ok: true }]);
+check('the fix is written to storage', !!store[LAST_LOC_KEY], store[LAST_LOC_KEY]);
+check('accuracy is kept, not thrown away', globalThis.userLoc.accuracy === 12, String(globalThis.userLoc.accuracy));
+globalThis.userLoc = null;
+let restored = restoreLastLoc();
+check('restored on the next boot', restored && restored.lat === 32.1, JSON.stringify(restored));
+check('accuracy restored too', restored.accuracy === 12);
+store[LAST_LOC_KEY] = JSON.stringify({ lat: 32.1, lon: 34.8, at: Date.now() - LAST_LOC_MAX_AGE - 1 });
+check('a stale fix is dropped rather than shown', restoreLastLoc() === null);
+store[LAST_LOC_KEY] = '{not json';
+check('corrupt storage does not throw', restoreLastLoc() === null);
+delete store[LAST_LOC_KEY];
+check('nothing stored means no location', restoreLastLoc() === null);
+
+console.log('\n8. the dot is drawn where it can actually be seen');
+const layers = [];
+globalThis.leafletMap = { removeLayer: l => { layers.splice(layers.indexOf(l), 1); } };
+const mk = kind => (latlng, opts) => {
+  const layer = { kind, latlng, opts, addTo(map) { layers.push(this); return this; } };
+  return layer;
+};
+globalThis.L = { circle: mk('circle'), circleMarker: mk('circleMarker') };
+globalThis.USER_LOC_PANE = 'userLocPane';
+globalThis.userLocMarker = null; globalThis.userLocHalo = null;
+(0, eval)(markerSlice + '; globalThis.renderUserLocation = renderUserLocation;');
+
+globalThis.userLoc = { lat: 32.1, lon: 34.8, accuracy: 40 };
+renderUserLocation();
+check('a dot is drawn', layers.some(l => l.kind === 'circleMarker'));
+check('an accuracy halo is drawn', layers.some(l => l.kind === 'circle'));
+const dot = layers.find(l => l.kind === 'circleMarker');
+check('the dot is blue, not the map\'s own green', /1A73E8/i.test(dot.opts.fillColor), dot.opts.fillColor);
+check('the dot sits in its own pane, above the pins', dot.opts.pane === 'userLocPane');
+check('the dot does not swallow map clicks', dot.opts.interactive === false);
+check('the halo shows the reported accuracy', layers.find(l => l.kind === 'circle').opts.radius === 40);
+
+const before = layers.length;
+renderUserLocation();
+check('re-rendering does not stack layers', layers.length === before, before + ' -> ' + layers.length);
+
+globalThis.userLoc = { lat: 32.1, lon: 34.8 };
+renderUserLocation();
+check('no halo when the device reported no accuracy', !layers.some(l => l.kind === 'circle'));
+check('the dot is still drawn', layers.some(l => l.kind === 'circleMarker'));
+
+globalThis.userLoc = null;
+renderUserLocation();
+check('no location means nothing on the map', layers.length === 0, layers.length + ' layer(s)');
 
 console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nall checks passed\n');
 process.exit(failures ? 1 : 0);

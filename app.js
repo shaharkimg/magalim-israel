@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912a1";
+const APP_VERSION = "20260912a2";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -288,6 +288,28 @@ function computeRegionHulls(){
   return hulls;
 }
 let fogLayers = {};
+// הנקודה הקודמת הייתה עיגול ירוק-כהה קטן (‎#146F67, אותה משפחת-צבעים של המפה ושל
+// סיכות-היעדים) בלי שום סימן-היכר - קל מאוד לפספס אותה, ובוודאי מעל צמחייה. עכשיו:
+// כחול, הקונבנציה שמוכרת מכל אפליקציית-מפות ולא מתנגשת עם צבעי-הקושי של הסיכות,
+// טבעת לבנה, והילה בגודל שגיאת-המדידה שהמכשיר עצמו דיווח עליה - כלומר היא מציגה
+// כמה המיקום מדויק במקום להעמיד פנים שהוא נקודתי. ב-pane ייעודי מעל הסיכות והערפל,
+// אחרת היא נקברת מתחתיהם בדיוק כמו שקרה לכפתורי-המפה.
+function renderUserLocation(){
+  if(!leafletMap) return;
+  [userLocMarker, userLocHalo].forEach(layer=>{ if(layer) leafletMap.removeLayer(layer); });
+  userLocMarker = userLocHalo = null;
+  if(!userLoc) return;
+  if(userLoc.accuracy > 0){
+    userLocHalo = L.circle([userLoc.lat,userLoc.lon], {
+      radius: Math.min(userLoc.accuracy, 2000), stroke:false, fillColor:"#1A73E8",
+      fillOpacity:0.15, interactive:false, pane:USER_LOC_PANE,
+    }).addTo(leafletMap);
+  }
+  userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], {
+    radius:8, color:"#fff", weight:3, fillColor:"#1A73E8", fillOpacity:1,
+    interactive:false, className:"user-loc-dot", pane:USER_LOC_PANE,
+  }).addTo(leafletMap);
+}
 function renderFogOfWar(){
   if(!leafletMap) return;
   const hulls = computeRegionHulls();
@@ -498,7 +520,25 @@ let followingSet = new Set();
 let myTravelStatus = null;
 let myGroups = [], activeGroupId = null, pendingGroupSwitch = false;
 let boardTab = "leaders";
-let userLoc = null;
+// userLoc היה בזיכרון בלבד: כל רענון מחק אותו, והנקודה נעלמה מהמפה עד שהמשתמש לחץ
+// שוב על כפתור המיקום. שומרים את האחרון עם חותמת-זמן ומשחזרים אותו אם הוא עדיין טרי,
+// כדי שהנקודה תהיה שם מיד עם פתיחת המפה. אימות-הקרבה של צ'ק-אין לא נוגע בזה - הוא
+// לוקח מדידה טרייה משלו (preciseOnly) ולא מסתמך על הערך השמור.
+const LAST_LOC_KEY = "magalim-last-loc";
+const LAST_LOC_MAX_AGE = 24*3600*1000;
+function restoreLastLoc(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(LAST_LOC_KEY) || "null");
+    if(!saved || typeof saved.lat!=="number" || typeof saved.lon!=="number") return null;
+    if(Date.now() - (saved.at||0) > LAST_LOC_MAX_AGE) return null;
+    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy };
+  }catch(e){ return null; }
+}
+function saveLastLoc(){
+  if(!userLoc) return;
+  try{ localStorage.setItem(LAST_LOC_KEY, JSON.stringify({ ...userLoc, at:Date.now() })); }catch(e){}
+}
+let userLoc = restoreLastLoc();
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
 let prevBadgeSet = new Set();
@@ -633,7 +673,8 @@ function locateUser(onOk, onFail, opts){
   opts = opts || {};
   if(!navigator.geolocation){ onFail({ code:2 }); return; }
   const accept = pos=>{
-    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude };
+    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy };
+    saveLastLoc();
     onOk(pos);
   };
   navigator.geolocation.getCurrentPosition(accept, err=>{
@@ -1773,7 +1814,8 @@ function subscribeRealtime(){
 
 /* ============ MAP (Leaflet + OpenStreetMap) ============ */
 const ISRAEL_CENTER = [31.55, 34.95], DEFAULT_ZOOM = 8;
-let leafletMap = null, clusterGroup = null, userLocMarker = null;
+let leafletMap = null, clusterGroup = null, userLocMarker = null, userLocHalo = null;
+const USER_LOC_PANE = "userLocPane";
 
 const DURATION_BUCKETS = {
   short:h=>h<=1, medium:h=>h>1&&h<=3, half:h=>h>3&&h<=6, full:h=>h>6,
@@ -2361,6 +2403,9 @@ function initLeafletMap(){
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(leafletMap);
+  // מעל markerPane (600) ו-overlayPane (400), מתחת ל-popupPane (700). נוצר מיד עם
+  // המפה, לפני כל שכבה, כדי ש-renderUserLocation לעולם לא יבקש pane שעוד לא קיים.
+  leafletMap.createPane(USER_LOC_PANE).style.zIndex = 655;
   clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false });
   leafletMap.addLayer(clusterGroup);
   leafletMap.on("click", closePreview);
@@ -2433,10 +2478,7 @@ function renderMap(){
     marker.on("click", (e)=>{ L.DomEvent.stopPropagation(e); openPreview(l.id); });
     clusterGroup.addLayer(marker);
   });
-  if(userLoc){
-    if(userLocMarker) leafletMap.removeLayer(userLocMarker);
-    userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], { radius:8, color:"#fff", weight:2.5, fillColor:"#146F67", fillOpacity:1 }).addTo(leafletMap);
-  }
+  renderUserLocation();
   renderFogOfWar();
   renderDiscoveryCarousel();
 }

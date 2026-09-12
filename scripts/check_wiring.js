@@ -29,6 +29,7 @@ const CRITICAL = [
   'monthlyChallenge', 'weekendIdeas', 'nextGoalCardHtml', 'landmarkPhotoStyle',
   'goToDestination', 'openDetail', 'openTodaySheet', 'openSheet', 'closeSheet',
   'locateUser', 'geoErrorMessage', 'syncMapControlsOffset', 'fitIsrael',
+  'renderUserLocation', 'restoreLastLoc', 'saveLastLoc',
 ];
 
 const defined = new Set();
