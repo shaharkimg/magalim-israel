@@ -1199,16 +1199,25 @@ function switchView(view, opts){
     if(view==="board" && !explicitBoardTab) boardTab = "leaders";
     if(view==="board") setBoardPeriod("week");
     if(view==="profile") setProfileListTab("visited");
-    // סינוני-המפה לא מתאפסים כאן בכוונה: הם בחירה מכוונת של המשתמש, ומסלולי-כניסה
-    // כמו אתגר או אוסף מגדירים filters.customIds ואז קוראים ל-navigate("#/map") -
-    // איפוס כאן היה מוחק להם את התוכן לפני שהמפה בכלל מצטיירת.
+    // סינוני-המפה לא מתאפסים כאן בכוונה: הם בחירה מכוונת של המשתמש, וכפתור
+    // "הצג את היעדים שנותרו" באתגרים מגדיר filters.customIds ואז קורא ל-
+    // navigate("#/map") - איפוס כאן היה מוחק לו את התוכן לפני שהמפה בכלל מצטיירת.
   }
   if(explicitBoardTab) boardTab = explicitBoardTab;
   currentView = view;
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
-  if(view==="map") setTimeout(()=>{ if(leafletMap) leafletMap.invalidateSize(); renderMap(); },0);
+  if(view==="map") setTimeout(()=>{
+    // אחרי invalidateSize, אחרת המפה עוד לא יודעת את הגודל האמיתי שלה ו-fitBounds
+    // יחשב זום שגוי
+    if(leafletMap) leafletMap.invalidateSize();
+    if(changed && !opts.keepState){
+      if(keepMapFraming) keepMapFraming = false;
+      else fitIsrael();
+    }
+    renderMap();
+  },0);
   if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
   if(view==="home") renderHome();
@@ -2304,6 +2313,16 @@ function assignWizLabels(scored){
 }
 
 let israelBounds = null;
+// המסגור ההתחלתי של המפה: כל הארץ. משמש גם בטעינה הראשונה, גם בכפתור "אפס זום"
+// וגם בכל כניסה מחדש למסך המפה, כדי שלשלושתם תהיה בדיוק אותה תוצאה.
+function fitIsrael(){
+  if(!leafletMap) return;
+  if(israelBounds) leafletMap.fitBounds(israelBounds, { padding:[28,28] });
+  else leafletMap.setView(ISRAEL_CENTER, DEFAULT_ZOOM);
+}
+// מסלול-כניסה שמביא מסגור משלו (אתגר/אוסף שעושה fitBounds ליעדים שנותרו) מסמן את
+// הדגל לפני navigate, כדי שהאיפוס לא ימחק את המסגור שלו. נצרך פעם אחת.
+let keepMapFraming = false;
 function initLeafletMap(){
   leafletMap = L.map("mapSvg", { zoomControl:false, attributionControl:true, minZoom:6, maxZoom:17 })
     .setView(ISRAEL_CENTER, DEFAULT_ZOOM);
@@ -2318,7 +2337,7 @@ function initLeafletMap(){
   leafletMap.on("moveend", ()=>{ clearTimeout(moveDebounce); moveDebounce = setTimeout(renderDiscoveryCarousel, 150); });
   if(LANDMARKS.length){
     israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
-    leafletMap.fitBounds(israelBounds, { padding:[28,28] });
+    fitIsrael();
   }
   renderFogOfWar();
 }
@@ -2502,7 +2521,7 @@ function wireStaticUI(){
   };
   $("zoomIn").onclick=()=> leafletMap.zoomIn();
   $("zoomOut").onclick=()=> leafletMap.zoomOut();
-  $("zoomReset").onclick=()=> israelBounds ? leafletMap.fitBounds(israelBounds,{padding:[28,28]}) : leafletMap.setView(ISRAEL_CENTER, DEFAULT_ZOOM);
+  $("zoomReset").onclick = fitIsrael;
   // Gamification Overhaul, Phase 4 - מקרא-קושי: תוכן סטטי מ-DIFF_TIERS (טקסט+אימוג'י-צבעוני,
   // לא צבע-בלבד), נבנה פעם אחת. נסגר אוטומטית עם closePreview (אותה קריאה שכבר קיימת על
   // לחיצה על המפה) כדי לא להישאר פתוח ולחסום תוך כדי שימוש רגיל במפה.
@@ -4820,6 +4839,7 @@ function renderPersonalChallenges(){
       filters = defaultFilters();
       filters.customIds = new Set(remaining.map(l=>l.id));
       filters.customLabel = ch.title;
+      keepMapFraming = true;
       navigate("#/map");
       setTimeout(()=>{
         syncFilterUI(); renderMap();

@@ -14,7 +14,11 @@ const scrolled = [];
 globalThis.boardTab = 'leaders';
 globalThis.profileListTab = 'visited';
 globalThis.lbPeriod = 'week';
-globalThis.leafletMap = null;
+globalThis.keepMapFraming = false;
+globalThis.leafletMap = { invalidateSize() {} };
+globalThis.fitIsrael = () => calls.push('fitIsrael');
+// the map framing is deferred so it runs after invalidateSize; run timers inline here
+globalThis.setTimeout = fn => fn();
 globalThis.closePreview = () => calls.push('closePreview');
 globalThis.switchBoardTab = t => calls.push('board:' + t);
 globalThis.renderProfile = () => calls.push('renderProfile');
@@ -64,7 +68,18 @@ check('scrolled the target view to top', scrolled.includes('view-saved'), scroll
 scrolled.length = 0; switchView('saved');
 check('no scroll reset when re-entering the same view', scrolled.length === 0);
 
-console.log('\n5. keepState opts out');
+console.log('\n5. the map reopens framed on the whole country');
+switchView('home'); calls.length = 0; switchView('map');
+check('entering the map resets the zoom', calls.includes('fitIsrael'), calls.join(','));
+calls.length = 0; switchView('map');
+check('no refit when already on the map', !calls.includes('fitIsrael'));
+switchView('home'); globalThis.keepMapFraming = true; calls.length = 0; switchView('map');
+check('a caller bringing its own framing (a challenge) wins', !calls.includes('fitIsrael'));
+check('the flag is consumed after one use', globalThis.keepMapFraming === false);
+switchView('home'); calls.length = 0; switchView('map');
+check('the next entry resets as usual', calls.includes('fitIsrael'));
+
+console.log('\n6. keepState opts out');
 switchView('board'); globalThis.boardTab = 'achievements'; calls.length = 0;
 switchView('home'); switchView('board', { keepState: true });
 check('keepState preserves the sub-tab', calls.includes('board:achievements'), calls.filter(c => c.startsWith('board')).join(','));
