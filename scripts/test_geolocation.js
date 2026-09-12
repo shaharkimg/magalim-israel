@@ -57,6 +57,7 @@ let renders = 0;
 globalThis.renderUserLocation = () => { renders++; };
 globalThis.renderLocationPermStatus = () => {};
 globalThis.closeSheet = () => {};
+globalThis.openSheet = () => {};
 globalThis.navigate = () => {};
 globalThis.document = { addEventListener() {}, hidden: false };
 globalThis.window = { isSecureContext: true, self: 1, top: 1, matchMedia: () => ({ matches: false }) };
@@ -78,6 +79,9 @@ globalThis.APP_VERSION = 'test';
   globalThis.setManualLocation = setManualLocation;
   globalThis.clearManualLocation = clearManualLocation;
   globalThis.geoDiagnostics = geoDiagnostics;
+  globalThis.explainGeoFailure = explainGeoFailure;
+  globalThis.osBlockHelpHtml = osBlockHelpHtml;
+  globalThis.deniedHelpHtml = deniedHelpHtml;
   globalThis.LOC_WATCH_KEY = LOC_WATCH_KEY;
 `);
 
@@ -189,6 +193,7 @@ globalThis.userLoc = null;
 renderUserLocationReal();
 check('no location means nothing on the map', layers.length === 0, layers.length + ' layer(s)');
 
+(async () => {
 console.log('\n9. live tracking keeps the dot moving with you');
 const fixAt = (lat, lon, acc) => Object.values(watches)[0].ok({ coords: { latitude: lat, longitude: lon, accuracy: acc } });
 const failWith = code => Object.values(watches)[0].fail({ code });
@@ -221,7 +226,8 @@ check('and does not nag', toasts.length === 0, toasts.join(' | '));
 failWith(1); // permission revoked
 check('a refusal stops the watch', Object.keys(watches).length === 0);
 check('and turns the preference off', wantsLiveLocation() === false);
-check('and says why', /חסומה/.test(toasts.join(' ')), toasts.join(' | '));
+await new Promise(r => setImmediate(r));  // the wording is looked up asynchronously
+check('and says why', /חסומה|המכשיר/.test(toasts.join(' ')), toasts.join(' | '));
 
 console.log('\n11. leaving the map stops the GPS');
 reset();
@@ -240,7 +246,6 @@ check('the watch is released', Object.keys(watches).length === 0);
 check('the preference is cleared', wantsLiveLocation() === false);
 check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '));
 
-(async () => {
   console.log('\n13. it resumes by itself');
   reset();
   setWantsLiveLocation(true);
@@ -295,6 +300,33 @@ check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '))
   check('reports whether the context is secure', /secureContext: yes/.test(report));
   check('reports whether a watch is running', /live watch: /.test(report));
   check('reports the iframe case', /in iframe: no/.test(report));
+
+  console.log('\n16. a block below the browser is not a block at the site');
+  // the signature seen in the field: an instant code 1 while the Permissions API still
+  // reports "prompt" — nobody was ever asked, so pointing at site settings is wrong
+  globalThis.navigator.permissions = { query: async () => ({ state: 'prompt' }) };
+  let m = await explainGeoFailure({ code: 1 });
+  check('names the device, not the browser', /המכשיר/.test(m), m);
+  check('does not send you to site settings', !/הגדרות הדפדפן/.test(m), m);
+
+  globalThis.navigator.permissions = { query: async () => ({ state: 'denied' }) };
+  m = await explainGeoFailure({ code: 1 });
+  check('a real site-level block still points at the browser', /הדפדפן/.test(m), m);
+
+  globalThis.navigator.permissions = { query: async () => ({ state: 'prompt' }) };
+  m = await explainGeoFailure({ code: 3 });
+  check('a timeout is untouched by any of this', /יותר מדי זמן/.test(m), m);
+
+  globalThis.window.matchMedia = () => ({ matches: true });   // installed PWA
+  let help = osBlockHelpHtml();
+  check('the installed app is named, not Chrome', /מגלים את ישראל/.test(help));
+  check('explains that the installed app has its own permission', /נפרדות/.test(help));
+  check('offers the open-in-Chrome discriminator', /Chrome רגיל/.test(help));
+  globalThis.window.matchMedia = () => ({ matches: false }); // plain browser tab
+  help = osBlockHelpHtml();
+  check('in a browser tab it names the browser', /Chrome/.test(help) && !/מגלים את ישראל/.test(help));
+  check('and drops the open-in-Chrome step', !/Chrome רגיל/.test(help));
+  check('both variants offer the manual fallback', /ידנית/.test(help) && /ידנית/.test(osBlockHelpHtml()));
 
   console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nall checks passed\n');
   process.exit(failures ? 1 : 0);

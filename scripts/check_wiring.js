@@ -32,7 +32,8 @@ const CRITICAL = [
   'renderUserLocation', 'restoreLastLoc', 'saveLastLoc',
   'startLocationWatch', 'stopLocationWatch', 'toggleLocationTracking', 'resumeLocationTracking',
   'setLocateBtnState', 'maybeShowLocateHint', 'dismissLocateHint',
-  'geoDiagnostics', 'runLocationTest', 'deniedHelpHtml', 'renderLocationPermStatus',
+  'geoDiagnostics', 'runLocationTest', 'deniedHelpHtml', 'osBlockHelpHtml', 'renderLocationPermStatus',
+  'explainGeoFailure', 'geoBlockScope', 'openSettingsAtLocation',
   'startManualLocationPick', 'cancelManualLocationPick', 'setManualLocation', 'clearManualLocation',
 ];
 
