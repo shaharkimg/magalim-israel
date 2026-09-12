@@ -1,0 +1,40 @@
+{
+  "packageId": "il.magalim.app",
+  "host": "magalim-israel.vercel.app",
+  "name": "מגלים את ישראל",
+  "launcherName": "מגלים",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#F7F5EF",
+  "themeColorDark": "#171E1A",
+  "navigationColor": "#F7F5EF",
+  "navigationColorDark": "#171E1A",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#F7F5EF",
+  "startUrl": "/",
+  "webManifestUrl": "https://magalim-israel.vercel.app/manifest.json",
+  "iconUrl": "https://magalim-israel.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://magalim-israel.vercel.app/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "minSdkVersion": 21,
+  "splashScreenFadeOutDuration": 300,
+  "enableNotifications": false,
+  "enableSiteSettingsShortcut": true,
+  "fallbackType": "customtabs",
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScreenMode": false,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "shortcuts": []
+}
