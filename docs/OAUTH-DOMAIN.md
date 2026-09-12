@@ -133,3 +133,13 @@ https://jkyeaewedkzkacjndumd.supabase.co/auth/v1/callback
 6. פתיחת קישור הזמנה ישן על `vercel.app` — צריך עדיין לעבוד
 
 אם צעד 3 או 4 נכשל, זה כמעט תמיד Supabase Redirect URLs ולא Google/Facebook.
+
+## בדיקה אוטומטית של הצד הפרוס
+
+```bash
+node scripts/check_live.js
+```
+
+מריצים **ממחשב עם אינטרנט**. בודק שהאתר עונה, שה-manifest זהה לזה שבריפו ולזה שנארז
+ל-TWA, ושה-assetlinks מוגש כ-`application/json` עם שם החבילה הנכון. אלה בדיוק הדברים
+שנכשלים בשקט אחרי מעבר דומיין. את ההתחברות עצמה הוא לא בודק — זה דורש דפדפן.
