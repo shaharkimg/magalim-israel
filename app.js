@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912a9";
+const APP_VERSION = "20260912b1";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -315,15 +315,19 @@ function renderUserLocation(){
     }).addTo(leafletMap);
     return;
   }
-  if(userLoc.accuracy > 0){
+  if(userLoc.accuracy > 0 && isFreshFix(userLoc)){
+    // רק למדידה טרייה. הילת-דיוק סביב מיקום ישן מציגה ודאות שאין לה כיסוי
     userLocHalo = L.circle([userLoc.lat,userLoc.lon], {
       radius: Math.min(userLoc.accuracy, 2000), stroke:false, fillColor:"#1A73E8",
       fillOpacity:0.15, interactive:false, pane:USER_LOC_PANE,
     }).addTo(leafletMap);
   }
+  const fresh = isFreshFix(userLoc);
   userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], {
-    radius:8, color:"#fff", weight:3, fillColor:"#1A73E8", fillOpacity:1,
-    interactive:false, className:"user-loc-dot", pane:USER_LOC_PANE,
+    radius:8, color:"#fff", weight:3,
+    fillColor: fresh ? "#1A73E8" : "#8A9187", fillOpacity: fresh ? 1 : .75,
+    dashArray: fresh ? null : "3 3",
+    interactive:false, className: fresh ? "user-loc-dot" : "user-loc-dot stale", pane:USER_LOC_PANE,
   }).addTo(leafletMap);
 }
 function renderFogOfWar(){
@@ -547,13 +551,20 @@ function restoreLastLoc(){
     const saved = JSON.parse(localStorage.getItem(LAST_LOC_KEY) || "null");
     if(!saved || typeof saved.lat!=="number" || typeof saved.lon!=="number") return null;
     if(Date.now() - (saved.at||0) > LAST_LOC_MAX_AGE) return null;
-    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy, manual:!!saved.manual, approx:!!saved.approx };
+    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy, at:saved.at,
+             manual:!!saved.manual, approx:!!saved.approx };
   }catch(e){ return null; }
 }
 function saveLastLoc(){
   if(!userLoc) return;
-  try{ localStorage.setItem(LAST_LOC_KEY, JSON.stringify({ ...userLoc, at:Date.now() })); }catch(e){}
+  if(!userLoc.at) userLoc.at = Date.now();
+  try{ localStorage.setItem(LAST_LOC_KEY, JSON.stringify(userLoc)); }catch(e){}
 }
+// מיקום שנשמר מהפעם הקודמת הוא נקודת-פתיחה סבירה, אבל הוא לא "המיקום שלך עכשיו".
+// אחרי חמש דקות הוא כבר עלול להיות במרחק נסיעה שלם, ולכן הוא מצויר אחרת - אפור
+// ומקווקו במקום כחול מלא - עד שמגיעה מדידה טרייה שמחליפה אותו.
+const LOCATION_FRESH_MS = 5*60*1000;
+function isFreshFix(loc){ return !!(loc && loc.at && Date.now()-loc.at < LOCATION_FRESH_MS); }
 let userLoc = restoreLastLoc();
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
@@ -653,6 +664,8 @@ async function renderLocationPermStatus(){
   // בדיוק בדפדפנים שבהם המיקום הידני הכי נחוץ
   const clearBtn = $("locationClearManualBtn");
   if(clearBtn) clearBtn.classList.toggle("hidden", !(userLoc && (userLoc.manual || userLoc.approx)));
+  const liveToggle = $("liveTrackingToggle");
+  if(liveToggle) liveToggle.checked = wantsLiveLocation();
   if(!navigator.permissions || !navigator.permissions.query){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
     el.style.color = "var(--text-muted)";
@@ -711,7 +724,7 @@ function locateUser(onOk, onFail, opts){
   if(!navigator.geolocation){ onFail({ code:2 }); return; }
   const accept = pos=>{
     noteGeoFix(pos);
-    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy };
+    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy, at:Date.now() };
     saveLastLoc();
     onOk(pos);
   };
@@ -765,7 +778,7 @@ function setLocateBtnState(state){
   const btn = $("locateBtn"); if(!btn) return;
   btn.classList.toggle("busy", state==="locating");
   btn.classList.toggle("live", state==="live");
-  const label = state==="live" ? "המיקום שלי — מעקב פעיל, לחצו לכיבוי"
+  const label = state==="live" ? "המיקום שלי — מעקב פעיל, לחצו למרכוז ורענון"
     : state==="locating" ? "מאתר מיקום..." : "הצג את המיקום שלי";
   btn.setAttribute("aria-label", label);
   btn.setAttribute("aria-pressed", String(state==="live"));
@@ -780,7 +793,7 @@ function startLocationWatch(opts){
   setLocateBtnState(userLoc ? "live" : "locating");
   locWatchId = navigator.geolocation.watchPosition(pos=>{
     noteGeoFix(pos);
-    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy };
+    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy, at:Date.now() };
     saveLastLoc();
     renderUserLocation();
     setLocateBtnState("live");
@@ -822,17 +835,41 @@ async function resumeLocationTracking(){
     if(status.state === "granted"){ setWantsLiveLocation(true); startLocationWatch(); }
   }catch(e){}
 }
-function toggleLocationTracking(){
-  if(locTrackingOn){
-    stopLocationWatch();
-    locTrackingOn = false;
-    setWantsLiveLocation(false);
-    setLocateBtnState("off");
-    toast("מעקב המיקום כובה");
+// באג שדווח: הכפתור היה מתג, והמעקב מתחיל מעצמו בכניסה למפה - כך שהלחיצה הראשונה
+// על "המיקום שלי" דווקא כיבתה אותו ("מעקב המיקום כובה"). גרוע מזה, הכיבוי גם ביטל
+// את ההעדפה, כך שהמעקב לא חזר יותר, והנקודה נתקעה על המדידה הישנה שהוצגה בפתיחה.
+// שני הסימפטומים היו תקלה אחת. עכשיו הכפתור עושה מה שכפתור-מיקום עושה בכל אפליקציית
+// מפות: מאתר ומרכז. כיבוי המעקב עבר למתג ייעודי בהגדרות, שם הוא פעולה מכוונת.
+function recenterOnUser(){
+  if(!userLoc || !leafletMap) return;
+  leafletMap.setView([userLoc.lat, userLoc.lon], Math.max(leafletMap.getZoom(), 12));
+}
+function handleLocateTap(){
+  setWantsLiveLocation(true);
+  if(!locTrackingOn || locWatchId==null){
+    startLocationWatch({ recenter:true, announce:true });
     return;
   }
-  setWantsLiveLocation(true);
-  startLocationWatch({ recenter:true, announce:true });
+  // המעקב כבר רץ: מרכזים מיד על מה שיש, ובמקביל מבקשים מדידה טרייה - כי מה שמוצג
+  // עשוי להיות המדידה ששוחזרה מהפעם הקודמת ולא המיקום הנוכחי
+  recenterOnUser();
+  setLocateBtnState("locating");
+  locateUser(()=>{
+    renderUserLocation();
+    recenterOnUser();
+    setLocateBtnState("live");
+  }, err=>{
+    setLocateBtnState(userLoc ? "live" : "off");
+    explainGeoFailure(err).then(msg=> toast(msg, { label:"מה לעשות?", onClick:()=> openSettingsAtLocation() }));
+  });
+}
+function setLiveTracking(on){
+  setWantsLiveLocation(on);
+  if(on){ startLocationWatch({ announce:true }); return; }
+  stopLocationWatch();
+  locTrackingOn = false;
+  setLocateBtnState(userLoc ? "off" : "off");
+  toast("מעקב המיקום כובה — הנקודה לא תתעדכן עד שתדליקו שוב");
 }
 document.addEventListener("visibilitychange", ()=>{
   if(document.hidden) stopLocationWatch();
@@ -1013,7 +1050,7 @@ async function useApproxLocation(){
     toast("לא הצלחנו לאתר גם לפי הרשת — אפשר לסמן ידנית על המפה");
     return;
   }
-  userLoc = { lat:found.lat, lon:found.lon, approx:true, accuracy:APPROX_RADIUS_M };
+  userLoc = { lat:found.lat, lon:found.lon, approx:true, accuracy:APPROX_RADIUS_M, at:Date.now() };
   saveLastLoc();
   renderUserLocation();
   syncFilterUI();
@@ -1038,7 +1075,7 @@ function cancelManualLocationPick(){
 }
 function setManualLocation(lat, lon){
   cancelManualLocationPick();
-  userLoc = { lat, lon, manual:true };
+  userLoc = { lat, lon, manual:true, at:Date.now() };
   saveLastLoc();
   renderUserLocation();
   syncFilterUI();
@@ -3011,13 +3048,14 @@ function wireStaticUI(){
   $("locateBtn").onclick=()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
     dismissLocateHint();
-    toggleLocationTracking();
+    handleLocateTap();
   };
   $("locateHintBtn").onclick = ()=>{ dismissLocateHint(); $("locateBtn").click(); };
   $("locateHintClose").onclick = (e)=>{ e.stopPropagation(); dismissLocateHint(); };
   $("locationTestBtn").onclick = runLocationTest;
   $("locationManualBtn").onclick = startManualLocationPick;
   $("locationApproxBtn").onclick = useApproxLocation;
+  $("liveTrackingToggle").onchange = (e)=> setLiveTracking(e.target.checked);
   $("locationClearManualBtn").onclick = clearManualLocation;
   $("manualLocCancel").onclick = cancelManualLocationPick;
   $("locationCopyBtn").onclick = async ()=>{

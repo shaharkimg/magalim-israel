@@ -66,14 +66,16 @@ globalThis.window = { isSecureContext: true, self: 1, top: 1, matchMedia: () => 
 globalThis.location = { protocol: 'https:' };
 globalThis.APP_VERSION = 'test';
 
-(0, eval)(persistSlice + '; globalThis.restoreLastLoc = restoreLastLoc; globalThis.saveLastLoc = saveLastLoc; globalThis.LAST_LOC_KEY = LAST_LOC_KEY; globalThis.LAST_LOC_MAX_AGE = LAST_LOC_MAX_AGE;');
+(0, eval)(persistSlice + '; globalThis.restoreLastLoc = restoreLastLoc; globalThis.saveLastLoc = saveLastLoc; globalThis.LAST_LOC_KEY = LAST_LOC_KEY; globalThis.LAST_LOC_MAX_AGE = LAST_LOC_MAX_AGE; globalThis.isFreshFix = isFreshFix; globalThis.LOCATION_FRESH_MS = LOCATION_FRESH_MS;');
 (0, eval)(slice + `;
   globalThis.locateUser = locateUser;
   globalThis.geoErrorMessage = geoErrorMessage;
   globalThis.noteGeoErrorRef = noteGeoError;
   globalThis.startLocationWatch = startLocationWatch;
   globalThis.stopLocationWatch = stopLocationWatch;
-  globalThis.toggleLocationTracking = toggleLocationTracking;
+  globalThis.handleLocateTap = handleLocateTap;
+  globalThis.setLiveTracking = setLiveTracking;
+  globalThis.recenterOnUser = recenterOnUser;
   globalThis.resumeLocationTracking = resumeLocationTracking;
   globalThis.wantsLiveLocation = wantsLiveLocation;
   globalThis.setWantsLiveLocation = setWantsLiveLocation;
@@ -176,7 +178,7 @@ globalThis.userLocMarker = null; globalThis.userLocHalo = null;
 // indirect eval declares into global scope, so the line above just replaced the stub
 globalThis.renderUserLocation = () => { renders++; };
 
-globalThis.userLoc = { lat: 32.1, lon: 34.8, accuracy: 40 };
+globalThis.userLoc = { lat: 32.1, lon: 34.8, accuracy: 40, at: Date.now() };
 renderUserLocationReal();
 check('a dot is drawn', layers.some(l => l.kind === 'circleMarker'));
 check('an accuracy halo is drawn', layers.some(l => l.kind === 'circle'));
@@ -190,10 +192,23 @@ const before = layers.length;
 renderUserLocationReal();
 check('re-rendering does not stack layers', layers.length === before, before + ' -> ' + layers.length);
 
-globalThis.userLoc = { lat: 32.1, lon: 34.8 };
+globalThis.userLoc = { lat: 32.1, lon: 34.8, at: Date.now() };
 renderUserLocationReal();
 check('no halo when the device reported no accuracy', !layers.some(l => l.kind === 'circle'));
 check('the dot is still drawn', layers.some(l => l.kind === 'circleMarker'));
+
+// a fix restored from a previous session is a starting point, not "where you are now"
+globalThis.userLoc = { lat: 32.1, lon: 34.8, accuracy: 40, at: Date.now() - LOCATION_FRESH_MS - 1 };
+renderUserLocationReal();
+const staleDot = layers.find(l => l.kind === 'circleMarker');
+check('an old fix is not drawn as a live one', !/1A73E8/i.test(staleDot.opts.fillColor), staleDot.opts.fillColor);
+check('and is marked stale so it does not pulse', /stale/.test(staleDot.opts.className), staleDot.opts.className);
+check('no accuracy halo around an old fix', !layers.some(l => l.kind === 'circle'));
+check('a fix with no timestamp is treated as old, not fresh', (() => {
+  globalThis.userLoc = { lat: 32.1, lon: 34.8, accuracy: 40 };
+  renderUserLocationReal();
+  return !/1A73E8/i.test(layers.find(l => l.kind === 'circleMarker').opts.fillColor);
+})());
 
 globalThis.userLoc = null;
 renderUserLocationReal();
@@ -206,13 +221,13 @@ const failWith = code => Object.values(watches)[0].fail({ code });
 // stopLocationWatch() releases the watch AND resets the module's internal id, which a
 // bare `watches = {}` would not - so always go through it between scenarios
 const reset = () => {
-  if (isTracking()) toggleLocationTracking();  // the real off path, so locTrackingOn clears too
+  if (isTracking()) setLiveTracking(false);  // the real off path, so locTrackingOn clears too
   stopLocationWatch(); setWantsLiveLocation(false); watches = {}; toasts.length = 0; renders = 0;
 };
 
 reset();
 globalThis.userLoc = null;
-toggleLocationTracking();
+handleLocateTap();
 check('turning it on starts a watch, not a one-shot', Object.keys(watches).length === 1);
 check('the watch asks for high accuracy', Object.values(watches)[0].opts.enableHighAccuracy === true);
 fixAt(32.1, 34.8, 30);
@@ -237,20 +252,19 @@ check('and says why', /חסומה|המכשיר/.test(toasts.join(' ')), toasts.j
 
 console.log('\n11. leaving the map stops the GPS');
 reset();
-toggleLocationTracking();
+handleLocateTap();
 check('tracking on', Object.keys(watches).length === 1);
 stopLocationWatch();
 check('watch released when the map closes', Object.keys(watches).length === 0);
 check('but the user preference is untouched', wantsLiveLocation() === true, String(wantsLiveLocation()));
 
-console.log('\n12. turning it off means off');
+console.log('\n12. the preference survives a stop, so tracking can resume');
 reset();
-toggleLocationTracking();
-toasts.length = 0;
-toggleLocationTracking();
+handleLocateTap();
+check('tracking on', Object.keys(watches).length === 1);
+stopLocationWatch();
 check('the watch is released', Object.keys(watches).length === 0);
-check('the preference is cleared', wantsLiveLocation() === false);
-check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '));
+check('but the preference stays, so the next map entry resumes', wantsLiveLocation() === true);
 
   console.log('\n13. it resumes by itself');
   reset();
@@ -334,6 +348,31 @@ check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '))
   check('in a browser tab it names the browser', /Chrome/.test(help) && !/מגלים את ישראל/.test(help));
   check('and drops the open-in-Chrome step', !/Chrome רגיל/.test(help));
   check('both variants offer a fallback that needs no permission', /ידנית/.test(help) && /הרשת/.test(help));
+
+  console.log('\n18. the locate button locates — it does not switch tracking off');
+  // the reported bug: tracking auto-resumes on entering the map, so the first tap on
+  // "my location" turned it OFF ("מעקב המיקום כובה") and cleared the preference — after
+  // which the dot was frozen on the fix restored at startup
+  reset();
+  globalThis.userLoc = null;
+  handleLocateTap();
+  check('a first tap starts tracking', Object.keys(watches).length === 1);
+  fixAt(32.1, 34.8, 20);
+  toasts.length = 0; attempts = []; plan = [{ ok: true }];
+  handleLocateTap();
+  check('a second tap does NOT stop the watch', Object.keys(watches).length === 1);
+  check('and does not say tracking was turned off', !/כובה/.test(toasts.join(' ')), toasts.join(' | '));
+  check('it asks for a fresh fix instead', attempts.length === 1);
+  check('the preference stays on', wantsLiveLocation() === true);
+
+  console.log('\n19. turning tracking off is a deliberate act, in settings');
+  toasts.length = 0;
+  setLiveTracking(false);
+  check('the watch is released', Object.keys(watches).length === 0);
+  check('the preference is cleared', wantsLiveLocation() === false);
+  check('and the consequence is spelled out', /לא תתעדכן/.test(toasts.join(' ')), toasts.join(' | '));
+  setLiveTracking(true);
+  check('and it can be turned back on', Object.keys(watches).length === 1);
 
   console.log('\n17. the network fallback, for when the device blocks GPS entirely');
   const fetched = [];
