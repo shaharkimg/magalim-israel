@@ -58,6 +58,8 @@ globalThis.renderUserLocation = () => { renders++; };
 globalThis.renderLocationPermStatus = () => {};
 globalThis.closeSheet = () => {};
 globalThis.openSheet = () => {};
+globalThis.setBtnLoading = () => {};
+globalThis.AbortController = globalThis.AbortController || class { constructor(){ this.signal = {}; } abort(){} };
 globalThis.navigate = () => {};
 globalThis.document = { addEventListener() {}, hidden: false };
 globalThis.window = { isSecureContext: true, self: 1, top: 1, matchMedia: () => ({ matches: false }) };
@@ -80,6 +82,10 @@ globalThis.APP_VERSION = 'test';
   globalThis.clearManualLocation = clearManualLocation;
   globalThis.geoDiagnostics = geoDiagnostics;
   globalThis.explainGeoFailure = explainGeoFailure;
+  globalThis.fetchApproxLocation = fetchApproxLocation;
+  globalThis.useApproxLocation = useApproxLocation;
+  globalThis.IP_LOCATION_PROVIDERS = IP_LOCATION_PROVIDERS;
+  globalThis.APPROX_RADIUS_M = APPROX_RADIUS_M;
   globalThis.osBlockHelpHtml = osBlockHelpHtml;
   globalThis.deniedHelpHtml = deniedHelpHtml;
   globalThis.LOC_WATCH_KEY = LOC_WATCH_KEY;
@@ -327,6 +333,60 @@ check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '))
   check('in a browser tab it names the browser', /Chrome/.test(help) && !/מגלים את ישראל/.test(help));
   check('and drops the open-in-Chrome step', !/Chrome רגיל/.test(help));
   check('both variants offer the manual fallback', /ידנית/.test(help) && /ידנית/.test(osBlockHelpHtml()));
+
+  console.log('\n17. the network fallback, for when the device blocks GPS entirely');
+  const fetched = [];
+  const respond = map => { globalThis.fetch = async url => {
+    fetched.push(url);
+    const r = map[url];
+    if (r === 'throw') throw new Error('network');
+    if (!r) return { ok: false, json: async () => ({}) };
+    return { ok: true, json: async () => r };
+  }; };
+
+  respond({ 'https://ipwho.is/': { success: true, latitude: 32.08, longitude: 34.78, city: 'תל אביב' } });
+  fetched.length = 0;
+  let approx = await fetchApproxLocation();
+  check('a good first provider answers', approx && approx.lat === 32.08, JSON.stringify(approx));
+  check('and the second is never called', fetched.length === 1, fetched.join(', '));
+
+  respond({ 'https://ipwho.is/': 'throw', 'https://ipapi.co/json/': { latitude: 31.77, longitude: 35.21, city: 'ירושלים' } });
+  fetched.length = 0;
+  approx = await fetchApproxLocation();
+  check('a dead provider falls through to the next', approx && approx.lat === 31.77, JSON.stringify(approx));
+  check('both were tried', fetched.length === 2, fetched.join(', '));
+
+  respond({ 'https://ipwho.is/': { success: false }, 'https://ipapi.co/json/': { error: true, reason: 'quota' } });
+  approx = await fetchApproxLocation();
+  check('an error payload is not mistaken for a location', approx === null, JSON.stringify(approx));
+
+  respond({ 'https://ipwho.is/': 'throw', 'https://ipapi.co/json/': 'throw' });
+  approx = await fetchApproxLocation();
+  check('everything down means no location, not a crash', approx === null);
+
+  respond({ 'https://ipwho.is/': { success: true, latitude: 32.08, longitude: 34.78, city: 'תל אביב' } });
+  globalThis.userLoc = null; layers.length = 0; toasts.length = 0;
+  await useApproxLocation();
+  check('userLoc is set from the network', globalThis.userLoc.lat === 32.08);
+  check('flagged approximate, not a GPS fix', globalThis.userLoc.approx === true && !globalThis.userLoc.manual);
+  check('persisted with the flag', JSON.parse(store[LAST_LOC_KEY]).approx === true);
+  check('the flag survives a reload', restoreLastLoc().approx === true);
+  check('the user is told it is approximate', /מקורב/.test(toasts.join(' ')), toasts.join(' | '));
+  check('and that check-in still needs real GPS', /צ׳ק-אין/.test(toasts.join(' ')), toasts.join(' | '));
+
+  renderUserLocationReal();
+  const approxDot = layers.find(l => l.kind === 'circleMarker');
+  const approxHalo = layers.find(l => l.kind === 'circle');
+  check('drawn in the not-a-measurement colour', !/1A73E8/i.test(approxDot.opts.fillColor), approxDot.opts.fillColor);
+  check('with a wide uncertainty halo, not a sharp point', approxHalo && approxHalo.opts.radius === APPROX_RADIUS_M, String(approxHalo && approxHalo.opts.radius));
+
+  attempts = []; plan = [{ code: 1 }];
+  let ci = null;
+  locateUser(() => { ci = 'ok'; }, e => { ci = e; }, { preciseOnly: true });
+  check('check-in still refuses to use it', ci && ci.code === 1);
+
+  clearManualLocation();
+  check('clearing removes an approximate location too', globalThis.userLoc === null);
 
   console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nall checks passed\n');
   process.exit(failures ? 1 : 0);

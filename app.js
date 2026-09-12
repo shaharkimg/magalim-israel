@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912a7";
+const APP_VERSION = "20260912a8";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -299,9 +299,16 @@ function renderUserLocation(){
   [userLocMarker, userLocHalo].forEach(layer=>{ if(layer) leafletMap.removeLayer(layer); });
   userLocMarker = userLocHalo = null;
   if(!userLoc) return;
-  if(userLoc.manual){
-    // מיקום ידני נראה אחרת מכוונה: ענבר ולא כחול, בלי הילת-דיוק (אין כאן מדידה),
-    // כדי שלא ייראה כאילו המכשיר אותר בפועל
+  if(userLoc.manual || userLoc.approx){
+    // מיקום שלא נמדד על-ידי המכשיר נראה אחרת מכוונה: ענבר ולא כחול, כדי שלא ייראה
+    // כאילו אותר בפועל. למקורב-לפי-רשת יש גם הילה רחבה, כי הוא באמת עשוי להיות
+    // רחוק כמה עשרות קילומטרים - הצגתו כנקודה חדה הייתה שקר ויזואלי.
+    if(userLoc.approx){
+      userLocHalo = L.circle([userLoc.lat,userLoc.lon], {
+        radius: userLoc.accuracy || APPROX_RADIUS_M, stroke:false, fillColor:"#9E6F2E",
+        fillOpacity:0.12, interactive:false, pane:USER_LOC_PANE,
+      }).addTo(leafletMap);
+    }
     userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], {
       radius:8, color:"#fff", weight:3, fillColor:"#9E6F2E", fillOpacity:1,
       interactive:false, pane:USER_LOC_PANE,
@@ -540,7 +547,7 @@ function restoreLastLoc(){
     const saved = JSON.parse(localStorage.getItem(LAST_LOC_KEY) || "null");
     if(!saved || typeof saved.lat!=="number" || typeof saved.lon!=="number") return null;
     if(Date.now() - (saved.at||0) > LAST_LOC_MAX_AGE) return null;
-    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy, manual:!!saved.manual };
+    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy, manual:!!saved.manual, approx:!!saved.approx };
   }catch(e){ return null; }
 }
 function saveLastLoc(){
@@ -645,7 +652,7 @@ async function renderLocationPermStatus(){
   // תמיד, לא רק במסלול שבו navigator.permissions קיים - אחרת הכפתור נשאר מוסתר
   // בדיוק בדפדפנים שבהם המיקום הידני הכי נחוץ
   const clearBtn = $("locationClearManualBtn");
-  if(clearBtn) clearBtn.classList.toggle("hidden", !(userLoc && userLoc.manual));
+  if(clearBtn) clearBtn.classList.toggle("hidden", !(userLoc && (userLoc.manual || userLoc.approx)));
   if(!navigator.permissions || !navigator.permissions.query){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
     el.style.color = "var(--text-muted)";
@@ -860,7 +867,7 @@ async function geoDiagnostics(){
     "display-mode: " + (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches ? "standalone (installed)" : "browser"),
     "online: " + (navigator.onLine ? "yes" : "no"),
     "live watch: " + (locWatchId!=null ? "running" : locTrackingOn ? "wanted, not running" : "off"),
-    "userLoc: " + (userLoc ? `${userLoc.lat.toFixed(4)}, ${userLoc.lon.toFixed(4)}${userLoc.manual ? " (manual)" : ` ±${Math.round(userLoc.accuracy||0)}m`}` : "none"),
+    "userLoc: " + (userLoc ? `${userLoc.lat.toFixed(4)}, ${userLoc.lon.toFixed(4)} ${userLoc.manual ? "(manual)" : userLoc.approx ? "(network, approx)" : `±${Math.round(userLoc.accuracy||0)}m (gps)`}` : "none"),
     "last fix: " + (lastGeoFix ? `${ago(lastGeoFix.at)} ±${Math.round(lastGeoFix.accuracy||0)}m` : "never"),
     "last error: " + (lastGeoError ? `code ${lastGeoError.code} (${lastGeoError.message||""}) ${ago(lastGeoError.at)}` : "none"),
     "userAgent: " + navigator.userAgent,
@@ -952,6 +959,57 @@ function openSettingsAtLocation(){
   renderLocationPermStatus();
   setTimeout(()=>{ const el = $("locationPermStatus"); if(el && el.scrollIntoView) el.scrollIntoView({ block:"start", behavior:"smooth" }); }, 80);
 }
+// --- מיקום מקורב לפי הרשת ---
+//
+// למה זה קיים בכלל: הדפדפן חושף בדיוק ממשק-מיקום אחד, navigator.geolocation, והוא
+// זה שחסום. שילוש לפי Wi-Fi/אנטנות סלולריות אינו נגיש בנפרד - הוא מסופק דרך אותו
+// ממשק עצמו. כלומר כשההרשאה חסומה, לא נשאר בדפדפן שום מקור-מיקום. מה שכן אפשר הוא
+// לשאול שירות חיצוני "מאיפה הבקשה הזו הגיעה" לפי כתובת ה-IP.
+//
+// זה מקורב: ברמת עיר, ועל רשת סלולרית הוא עלול להצביע על שער-היציאה של המפעיל ולא
+// על המשתמש - לפעמים עשרות קילומטרים משם. מספיק לסינון "יעדים עד 50 ק\"מ" ולהערכת
+// זמן-נסיעה, לא מספיק ליותר מזה.
+//
+// יזום על-ידי המשתמש בלבד, לעולם לא אוטומטי: הבקשה חושפת את כתובת ה-IP לשירות
+// החיצוני, וזו לא החלטה שנכון לקבל בשבילו בשקט. לשני הספקים יש CORS ואין צורך
+// במפתח; אם הראשון נופל מנסים את השני, ואם שניהם נופלים נשארים עם הסימון הידני.
+const IP_LOCATION_PROVIDERS = [
+  { url:"https://ipwho.is/", parse: d => (d && d.success!==false && d.latitude!=null) ? { lat:d.latitude, lon:d.longitude, city:d.city } : null },
+  { url:"https://ipapi.co/json/", parse: d => (d && !d.error && d.latitude!=null) ? { lat:d.latitude, lon:d.longitude, city:d.city } : null },
+];
+const APPROX_RADIUS_M = 15000;  // רדיוס-אי-ודאות מוצג. לא מדידה - הערכה שמרנית לרמת-עיר
+async function fetchApproxLocation(){
+  for(const provider of IP_LOCATION_PROVIDERS){
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(()=> ctrl.abort(), 6000);
+      const res = await fetch(provider.url, { signal: ctrl.signal, cache:"no-store" });
+      clearTimeout(t);
+      if(!res.ok) continue;
+      const parsed = provider.parse(await res.json());
+      if(parsed) return parsed;
+    }catch(e){ /* ספק נפל - ננסה את הבא */ }
+  }
+  return null;
+}
+async function useApproxLocation(){
+  const btn = $("locationApproxBtn");
+  setBtnLoading(btn, true, "מאתר...");
+  const found = await fetchApproxLocation();
+  setBtnLoading(btn, false);
+  if(!found){
+    toast("לא הצלחנו לאתר גם לפי הרשת — אפשר לסמן ידנית על המפה");
+    return;
+  }
+  userLoc = { lat:found.lat, lon:found.lon, approx:true, accuracy:APPROX_RADIUS_M };
+  saveLastLoc();
+  renderUserLocation();
+  syncFilterUI();
+  $("distHint").textContent = "מיקום מקורב לפי הרשת — ניתן לסנן לפי מרחק נסיעה";
+  renderLocationPermStatus();
+  toast(found.city ? `מיקום מקורב נקבע (${found.city}). לצ׳ק-אין עדיין נדרש GPS אמיתי.`
+                   : "מיקום מקורב נקבע. לצ׳ק-אין עדיין נדרש GPS אמיתי.");
+}
 // --- מיקום ידני ---
 let pickingLocation = false;
 function startManualLocationPick(){
@@ -977,7 +1035,7 @@ function setManualLocation(lat, lon){
   toast("המיקום הידני נקבע. לצ׳ק-אין עדיין נדרש GPS אמיתי.");
 }
 function clearManualLocation(){
-  if(!userLoc || !userLoc.manual) return;
+  if(!userLoc || !(userLoc.manual || userLoc.approx)) return;
   userLoc = null;
   try{ localStorage.removeItem(LAST_LOC_KEY); }catch(e){}
   renderUserLocation();
@@ -2947,6 +3005,7 @@ function wireStaticUI(){
   $("locateHintClose").onclick = (e)=>{ e.stopPropagation(); dismissLocateHint(); };
   $("locationTestBtn").onclick = runLocationTest;
   $("locationManualBtn").onclick = startManualLocationPick;
+  $("locationApproxBtn").onclick = useApproxLocation;
   $("locationClearManualBtn").onclick = clearManualLocation;
   $("manualLocCancel").onclick = cancelManualLocationPick;
   $("locationCopyBtn").onclick = async ()=>{
