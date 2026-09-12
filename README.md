@@ -37,14 +37,18 @@ npx serve .
 (מוטבע על תמונת-השיתוף) וב-`twa/twa-manifest.json`; `node scripts/check_twa.js` מוודא
 שהשניים מסכימים ושלא נשארה כתובת ישנה.
 
-שלושה מקומות **מחוץ לריפו** שחייבים לעדכן, אחרת ההתחברות נשברת:
+**מקום אחד מחוץ לריפו שובר התחברות אם לא מעדכנים אותו:**
+Supabase ← Authentication ← URL Configuration — Site URL ו-Redirect URLs.
 
-1. **Supabase** ← Authentication ← URL Configuration — Site URL ו-Redirect URLs
-2. **Google Cloud Console** — Authorized JavaScript origins ו-redirect URIs
-3. **Facebook App** — Valid OAuth Redirect URIs
+‏Google ו-Facebook **לא** צריכים עדכון של redirect URI: ה-OAuth מפנה חזרה ל-Supabase
+(`<project>.supabase.co/auth/v1/callback`), לא לאתר, ורק Supabase מפנה משם לדומיין
+שלנו. מה שכן כדאי לעדכן שם הוא קישורי מדיניות הפרטיות והתנאים — לא שובר כלום, אבל
+מוצג למשתמש במסך ההסכמה.
 
-**להשאיר גם את הכתובת הישנה** בשלוש הרשימות. קישורי הזמנה (`#/invite/<code>`) שכבר
-נשלחו למשתמשים מפנים אליה, והסרתה תשבור אותם.
+**להשאיר גם את הכתובת הישנה** ב-Redirect URLs של Supabase. קישורי הזמנה
+(`#/invite/<code>`) שכבר נשלחו למשתמשים מפנים אליה, והסרתה תשבור אותם.
+
+הפירוט המלא: [`docs/OAUTH-DOMAIN.md`](docs/OAUTH-DOMAIN.md).
 
 ## אבטחה
 
