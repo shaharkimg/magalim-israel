@@ -38,7 +38,7 @@
 
 ### 1. להחליט על שם החבילה — **החלטה בלתי הפיכה**
 
-`il.magalim.app`, כרגע ב-`twa/twa-manifest.json` וב-`.well-known/assetlinks.json`.
+`il.co.megalimisrael.app`, כרגע ב-`twa/twa-manifest.json` וב-`.well-known/assetlinks.json`.
 
 אחרי הפרסום הראשון **אי אפשר לשנות אותו לעולם**. שינוי מחייב אפליקציה חדשה, עם
 דירוגים והתקנות מאפס. זה לא חייב להתאים לדומיין (בניגוד ל-`host`, שכן חייב).
@@ -49,7 +49,7 @@
 ```bash
 npm i -g @bubblewrap/cli
 cd twa
-bubblewrap init --manifest=https://magalim-israel.vercel.app/manifest.json
+bubblewrap init --manifest=https://megalim-israel.co.il/manifest.json
 bubblewrap build
 ```
 
@@ -89,7 +89,7 @@ git commit && git push      # Vercel פורס; הקובץ חייב להיות ח
 
 - **אין שורת כתובת** → האימות עבר. זהו.
 - **יש שורת כתובת** → assetlinks לא אומת. לבדוק לפי הסדר:
-  `https://magalim-israel.vercel.app/.well-known/assetlinks.json` מחזיר 200 עם
+  `https://megalim-israel.co.il/.well-known/assetlinks.json` מחזיר 200 עם
   `application/json`; טביעת האצבע היא של **מפתח החתימה של Play** ולא של מפתח
   ההעלאה (שתי מחרוזות שונות באותו מסך — זו הטעות הנפוצה); שם החבילה זהה בשני הצדדים.
 

@@ -28,8 +28,23 @@ npx serve .
 בפלטפורמת האחסון היא "Static Site" עם Output Directory = תיקיית השורש.
 
 **חשוב לאחר הפריסה הראשונה:** בדשבורד של Supabase → Authentication → URL Configuration, יש לעדכן את
-ה-Site URL לכתובת האמיתית של האתר (למשל `https://magalim-israel.vercel.app`), אחרת קישורי אימות מייל
+ה-Site URL לכתובת האמיתית של האתר (`https://megalim-israel.co.il`), אחרת קישורי אימות מייל
 יפנו לכתובת שגויה.
+
+### מעבר דומיין
+
+הדומיין הרשמי הוא `megalim-israel.co.il`. בריפו הוא מופיע ב-`SITE_HOST` שב-`app.js`
+(מוטבע על תמונת-השיתוף) וב-`twa/twa-manifest.json`; `node scripts/check_twa.js` מוודא
+שהשניים מסכימים ושלא נשארה כתובת ישנה.
+
+שלושה מקומות **מחוץ לריפו** שחייבים לעדכן, אחרת ההתחברות נשברת:
+
+1. **Supabase** ← Authentication ← URL Configuration — Site URL ו-Redirect URLs
+2. **Google Cloud Console** — Authorized JavaScript origins ו-redirect URIs
+3. **Facebook App** — Valid OAuth Redirect URIs
+
+**להשאיר גם את הכתובת הישנה** בשלוש הרשימות. קישורי הזמנה (`#/invite/<code>`) שכבר
+נשלחו למשתמשים מפנים אליה, והסרתה תשבור אותם.
 
 ## אבטחה
 

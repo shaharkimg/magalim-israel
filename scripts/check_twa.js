@@ -53,6 +53,22 @@ check('webManifestUrl is on the declared host', hostOf(twa.webManifestUrl) === t
   `${hostOf(twa.webManifestUrl)} vs ${twa.host}`);
 check('iconUrl is on the declared host', hostOf(twa.iconUrl) === twa.host);
 
+// A half-finished domain move is the quiet version of this whole failure mode: the app
+// keeps working, but assetlinks is fetched from one origin while the branding points at
+// another, and the only symptom is a URL bar that should not be there.
+const appSrc = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+const siteHost = (appSrc.match(/const SITE_HOST = "([^"]+)"/) || [])[1];
+check('app.js SITE_HOST matches the packaged host', siteHost === twa.host, `${siteHost} vs ${twa.host}`);
+
+const stale = [];
+for (const f of ['app.js', 'index.html', 'manifest.json', 'README.md', 'docs/ANDROID-TWA.md', 'twa/twa-manifest.json']) {
+  const body = fs.readFileSync(path.join(root, f), 'utf8');
+  for (const m of body.matchAll(/https?:\/\/([a-z0-9.-]+\.(?:vercel\.app|netlify\.app|github\.io))/gi)) {
+    stale.push(`${f}: ${m[1]}`);
+  }
+}
+check('no leftover pre-domain host anywhere', stale.length === 0, stale.join('; '));
+
 console.log('\n4. digital asset links');
 check('assetlinks.json is a non-empty array', Array.isArray(links) && links.length > 0);
 const entry = links[0] || {};
