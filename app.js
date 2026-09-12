@@ -798,9 +798,9 @@ function friendlyAuthError(msg){
 
 /* ============ AUTH ============ */
 let authMode = "login";
-$("tabLogin").onclick = ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("nameField").classList.add("hidden"); $("authSubmit").textContent="התחברות"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.remove("hidden"); showAuthTabs(); };
+$("tabLogin").onclick = ()=>{ setAuthMode("login"); showAuthTabs(); };
 $("tabSignup").onclick = async ()=>{
-  authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("nameField").classList.remove("hidden"); $("authSubmit").textContent="הרשמה"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.add("hidden");
+  setAuthMode("signup");
   showAuthTabs();
   if(sessionStorage.getItem("pendingInviteCode")) return; // יש קישור הזמנה בהמתנה — מדלגים על הבדיקה, ה-trigger באמת יאמת את זה
   const gate = await checkRegistrationGate();
@@ -824,25 +824,137 @@ const WAITLIST_COPY = {
   invite_only: { title:"ההרשמה כרגע פתוחה רק בהזמנה", sub:"בשלב הזה אפשר להצטרף רק עם קישור הזמנה מחבר.\nרוצים שנעדכן אתכם כשההרשמה תיפתח לכולם?" },
 };
 function showWaitlistView(reason){
-  document.querySelector(".auth-tabs").classList.add("hidden");
-  $("oauthRow").classList.add("hidden");
-  $("oauthDivider").classList.add("hidden");
-  $("authForm").classList.add("hidden");
-  $("resetPasswordForm").classList.add("hidden");
   const copy = WAITLIST_COPY[reason] || WAITLIST_COPY.full;
   $("waitlistTitle").textContent = copy.title;
   $("waitlistSub").textContent = copy.sub;
   $("waitlistError").classList.remove("show");
   $("waitlistNote").classList.remove("show");
-  $("waitlistView").classList.remove("hidden");
+  showAuthView("waitlist");
 }
 function showAuthTabs(){
-  document.querySelector(".auth-tabs").classList.remove("hidden");
   $("oauthRow").classList.remove("hidden");
   $("oauthDivider").classList.remove("hidden");
-  $("waitlistView").classList.add("hidden");
-  $("resetPasswordForm").classList.add("hidden");
   $("authForm").classList.remove("hidden");
+  showAuthView("form");
+}
+/* ============ AUTH VIEWS (§1-§5) ============ */
+// שכבת-תצוגה בלבד מעל מנגנון ה-auth הקיים: אותו authMode, אותו authForm, אותם handlers
+// של Google/Facebook/שחזור-סיסמה/רשימת-המתנה. רק הניווט בין המסכים הוא חדש.
+const AUTH_VIEWS = { welcome:"authViewWelcome", form:"authViewForm", reset:"resetPasswordForm", waitlist:"waitlistView" };
+let authView = "form";
+function showAuthView(name){
+  authView = name;
+  Object.entries(AUTH_VIEWS).forEach(([k,id])=> $(id).classList.toggle("hidden", k!==name));
+  // "חזרה" רלוונטי רק כשהגענו לטופס ממסך ה-Welcome
+  $("authBackBtn").classList.toggle("hidden", name!=="form" || !authCameFromWelcome);
+}
+let authCameFromWelcome = false;
+function setAuthMode(mode){
+  authMode = mode;
+  const signup = mode==="signup";
+  $("authTitle").textContent = signup ? "יוצאים לדרך" : "טוב לראות אתכם שוב";
+  $("authIntroText").textContent = authGateMessage || (signup ? "צרו חשבון והתחילו לגלות את ישראל" : "התחברו כדי להמשיך במסע");
+  $("authSubmit").textContent = signup ? "יצירת חשבון" : "התחברות";
+  $("nameField").classList.toggle("hidden", !signup);
+  $("forgotPasswordLink").classList.toggle("hidden", signup);
+  $("oauthDividerText").textContent = signup ? "או המשיכו עם" : "או התחברו עם";
+  $("authSwitchText").textContent = signup ? "כבר יש לכם חשבון?" : "עדיין אין לכם חשבון?";
+  $("authSwitchBtn").textContent = signup ? "התחברו" : "הירשמו";
+  $("authPassword").setAttribute("autocomplete", signup ? "new-password" : "current-password");
+  $("tabLogin").classList.toggle("active", !signup);
+  $("tabSignup").classList.toggle("active", signup);
+  clearAuthErrors();
+}
+function clearAuthErrors(){
+  $("authError").classList.remove("show");
+  $("authNote").classList.remove("show");
+  ["authName","authEmail","authPassword"].forEach(id=>{
+    $(id).classList.remove("invalid");
+    const err = $(id+"Err"); if(err) err.classList.remove("show");
+  });
+}
+function setFieldError(id, message){
+  const field = $(id), err = $(id+"Err");
+  field.classList.add("invalid");
+  field.setAttribute("aria-invalid","true");
+  if(err){ err.innerHTML = uiIcon("flame",13)+"<span>"+message+"</span>"; err.classList.add("show"); }
+}
+// ולידציה בצד הלקוח רק למה שאפשר לבדוק בוודאות. דרישת הסיסמה נלקחת מה-minlength שכבר
+// מוגדר בשדה (6) - לא ממציאים כללים שהשרת לא אוכף.
+function validateAuthForm(){
+  clearAuthErrors();
+  let ok = true;
+  const name = $("authName").value.trim();
+  const email = $("authEmail").value.trim();
+  const password = $("authPassword").value;
+  if(authMode==="signup" && !name){ setFieldError("authName","צריך שם כדי שנדע איך לפנות אליכם"); ok = false; }
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ setFieldError("authEmail","כתובת האימייל לא נראית תקינה"); ok = false; }
+  const minLen = Number($("authPassword").getAttribute("minlength")) || 6;
+  if(!password || password.length < minLen){ setFieldError("authPassword","הסיסמה צריכה להכיל לפחות "+minLen+" תווים"); ok = false; }
+  if(!ok){ const first = document.querySelector(".text-input.invalid"); if(first) first.focus(); }
+  return ok;
+}
+function setBtnLoading(btn, loading, label){
+  if(!btn) return;
+  if(loading){ btn.dataset.label = btn.textContent; btn.textContent = label || btn.textContent; btn.classList.add("is-loading"); btn.disabled = true; }
+  else { if(btn.dataset.label) btn.textContent = btn.dataset.label; btn.classList.remove("is-loading"); btn.disabled = false; }
+}
+const EYE_OPEN = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>';
+const EYE_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l16 16"/><path d="M9.9 5.9A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.4 4.1M6.4 7.9A16.6 16.6 0 0 0 2.5 12S6 18.5 12 18.5c1 0 1.9-.2 2.7-.5"/></svg>';
+function wireAuthViews(){
+  $("authPasswordEye").innerHTML = EYE_OPEN;
+  $("authPasswordEye").onclick = ()=>{
+    const input = $("authPassword");
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    $("authPasswordEye").innerHTML = show ? EYE_OFF : EYE_OPEN;
+    $("authPasswordEye").setAttribute("aria-pressed", show ? "true" : "false");
+    $("authPasswordEye").setAttribute("aria-label", show ? "הסתרת הסיסמה" : "הצגת הסיסמה");
+  };
+  $("welcomeStartBtn").onclick = ()=>{ authCameFromWelcome = true; $("tabSignup").click(); };
+  $("welcomeLoginBtn").onclick = ()=>{ authCameFromWelcome = true; setAuthMode("login"); showAuthTabs(); };
+  // מצב אורח נשמר בכוונה: כל האפליקציה בנויה סביב requireAuth, והמפה/הבית ניתנים לגלישה
+  // בלי חשבון. הבחירה נזכרת כדי שלא נחסום את אותו משתמש שוב בכל פתיחה.
+  $("welcomeGuestBtn").onclick = ()=>{
+    try{ localStorage.setItem(GUEST_CHOICE_KEY, "1"); }catch(e){}
+    closeAuthSheet();
+  };
+  $("authBackBtn").onclick = ()=>{ authCameFromWelcome = false; showAuthView("welcome"); };
+  $("authSwitchBtn").onclick = ()=>{
+    if(authMode==="signup"){ setAuthMode("login"); showAuthTabs(); }
+    else $("tabSignup").click();
+  };
+  ["authName","authEmail","authPassword"].forEach(id=>{
+    $(id).addEventListener("input", ()=>{
+      $(id).classList.remove("invalid");
+      $(id).removeAttribute("aria-invalid");
+      const err = $(id+"Err"); if(err) err.classList.remove("show");
+    });
+  });
+}
+const GUEST_CHOICE_KEY = "magalim-guest-choice-v1";
+const DEFAULT_PROFILE_NAME = "מטייל/ת חדש/ה";
+// §7 - אם אחרי הרשמה (בעיקר דרך Google/Facebook) לא קיבלנו שם אמיתי, מבקשים אותו פעם אחת
+// דרך מסך עריכת-הפרופיל הקיים, במקום להשאיר "מטייל/ת חדש/ה" כשם התצוגה לנצח.
+let namePromptShown = false;
+function maybePromptForName(){
+  if(namePromptShown || !session || !myProfile) return;
+  if(myProfile.name && myProfile.name !== DEFAULT_PROFILE_NAME) return;
+  namePromptShown = true;
+  openEditProfile();
+  toast("איך לקרוא לכם? הוסיפו שם כדי שחברים יזהו אתכם");
+}
+// מסך הפתיחה מוצג רק אחרי שידוע שאין session (§8), ורק למי שלא בחר כבר להמשיך כאורח.
+function maybeShowWelcome(){
+  if(session) return;
+  try{ if(localStorage.getItem(GUEST_CHOICE_KEY)) return; }catch(e){}
+  if(sessionStorage.getItem("pendingInviteCode")) return;  // הזמנה מטפלת בעצמה (§9)
+  authGateMessage = null;
+  authCameFromWelcome = false;
+  setAuthMode("signup");
+  $("authCloseBtn").classList.add("hidden");
+  $("authScreen").classList.remove("hidden");
+  showAuthView("welcome");
 }
 async function signInWithOAuth(provider){
   $("authError").classList.remove("show");
@@ -884,13 +996,12 @@ $("authForm").addEventListener("submit", async (e)=>{
   const email = $("authEmail").value.trim();
   const password = $("authPassword").value;
   const name = $("authName").value.trim();
-  $("authError").classList.remove("show");
-  $("authNote").classList.remove("show");
-  $("authSubmit").disabled = true;
+  if(!validateAuthForm()) return;
+  setBtnLoading($("authSubmit"), true, authMode==="signup" ? "יוצרים חשבון..." : "מתחברים...");
   try{
     if(authMode==="signup"){
       const pendingCode = sessionStorage.getItem("pendingInviteCode");
-      const meta = { name: name || "מטייל/ת חדש/ה" };
+      const meta = { name: name || DEFAULT_PROFILE_NAME };
       if(pendingCode) meta.invite_code = pendingCode;
       const { data, error } = await supabase.auth.signUp({ email, password, options:{ data: meta } });
       if(error) throw error;
@@ -913,11 +1024,16 @@ $("authForm").addEventListener("submit", async (e)=>{
       $("authError").classList.add("show");
     }
   }finally{
-    $("authSubmit").disabled = false;
+    setBtnLoading($("authSubmit"), false);
   }
 });
 
-$("signOutBtn").onclick = async ()=>{ await supabase.auth.signOut(); };
+$("signOutBtn").onclick = async ()=>{
+  try{ localStorage.removeItem(GUEST_CHOICE_KEY); }catch(e){}
+  namePromptShown = false;
+  await supabase.auth.signOut();
+  maybeShowWelcome();
+};
 $("authCloseBtn").onclick = ()=> closeAuthSheet();
 
 $("forgotPasswordLink").onclick = async ()=>{
@@ -968,9 +1084,10 @@ let authSheetHistoryPushed = false;
 function openAuthSheet(message, onSuccess){
   authGateMessage = message || null;
   pendingAuthAction = onSuccess || null;
-  $("authIntroText").textContent = message || "הצטרפו וצאו לכבוש את הארץ";
   $("authCloseBtn").classList.remove("hidden");
   $("authScreen").classList.remove("hidden");
+  authCameFromWelcome = false;
+  setAuthMode(authMode==="signup" ? "signup" : "login");
   showAuthTabs();
   if(!authSheetHistoryPushed){
     authSheetHistoryPushed = true;
@@ -998,11 +1115,7 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
   if(event==="PASSWORD_RECOVERY"){
     $("authScreen").classList.remove("hidden");
     $("authCloseBtn").classList.add("hidden");
-    document.querySelector(".auth-tabs").classList.add("hidden");
-    $("oauthRow").classList.add("hidden");
-    $("oauthDivider").classList.add("hidden");
-    $("authForm").classList.add("hidden");
-    $("resetPasswordForm").classList.remove("hidden");
+    showAuthView("reset");
     return;
   }
   if(session) closeAuthSheet();
@@ -1021,6 +1134,8 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
     }
     const pendingCode = sessionStorage.getItem("pendingInviteCode");
     if(session && pendingCode) handleInviteCode(pendingCode);
+    if(session) maybePromptForName();
+    else if(booted) maybeShowWelcome();
   });
 });
 
@@ -1182,6 +1297,7 @@ async function bootPublic(){
     refreshHeader();
     applyRoute();
     initOnboarding();
+    if(!session) maybeShowWelcome();
     setTimeout(checkForNewVersion, 60000);
     bumpVisitCount();
     setTimeout(maybeShowInstallBanner, 8000);
@@ -1250,7 +1366,9 @@ async function loadMyProfile(){
   let { data, error } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
   if(error) throw error;
   if(!data){
-    const name = session.user.user_metadata?.name || "מטייל/ת חדש/ה";
+    const meta = session.user.user_metadata || {};
+    const name = meta.name || meta.full_name || meta.preferred_username
+      || (meta.email ? String(meta.email).split("@")[0] : "") || DEFAULT_PROFILE_NAME;
     const { data: created, error: upErr } = await supabase.from("profiles").insert({ id: uid, name }).select().single();
     if(upErr) throw upErr;
     data = created;
@@ -2340,6 +2458,7 @@ function renderMapSidePanel(){
 
 function wireStaticUI(){
   wireTripMode();
+  wireAuthViews();
   initLeafletMap();
   $("onboardingSkip").onclick = closeOnboarding;
   $("onboardingNext").onclick = ()=>{
