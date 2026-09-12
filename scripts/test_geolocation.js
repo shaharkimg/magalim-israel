@@ -339,13 +339,13 @@ check('but the preference stays, so the next map entry resumes', wantsLiveLocati
 
   globalThis.window.matchMedia = () => ({ matches: true });   // installed PWA
   let help = osBlockHelpHtml();
-  check('the installed app is named, not Chrome', /מגלים את ישראל/.test(help));
+  check('the installed app is named, not Chrome', /מגלים/.test(help));
   check('explains that the installed app has its own permission', /נפרדות/.test(help));
   check('offers the open-in-Chrome discriminator', /Chrome רגיל/.test(help));
   check('and makes it one tap, not an instruction', /id="openInBrowserBtn"/.test(help));
   globalThis.window.matchMedia = () => ({ matches: false }); // plain browser tab
   help = osBlockHelpHtml();
-  check('in a browser tab it names the browser', /Chrome/.test(help) && !/מגלים את ישראל/.test(help));
+  check('in a browser tab it names the browser', /Chrome/.test(help) && !/מגלים/.test(help));
   check('and drops the open-in-Chrome step', !/Chrome רגיל/.test(help));
   check('both variants offer a fallback that needs no permission', /ידנית/.test(help) && /הרשת/.test(help));
 

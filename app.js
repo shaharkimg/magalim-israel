@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912b2";
+const APP_VERSION = "20260912b3";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -46,8 +46,8 @@ function maybeShowInstallBanner(){
   if(!deferredInstallPrompt && !isIOSSafariNotStandalone()) return;
   el.dataset.shown = "1";
   $("installBannerText").textContent = deferredInstallPrompt
-    ? "אוהבים לטייל עם Magalim? הוסיפו אותה למסך הבית לגישה מהירה."
-    : 'אוהבים לטייל עם Magalim? הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית".';
+    ? "אוהבים לטייל עם מגלים? הוסיפו אותה למסך הבית לגישה מהירה."
+    : 'אוהבים לטייל עם מגלים? הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית".';
   $("installBannerActionBtn").classList.toggle("hidden", !deferredInstallPrompt);
   el.classList.remove("hidden");
 }
@@ -967,7 +967,7 @@ async function explainGeoFailure(err){
 }
 function osBlockHelpHtml(){
   const installed = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
-  const appName = installed ? "מגלים את ישראל" : "הדפדפן (Chrome)";
+  const appName = installed ? "מגלים" : "הדפדפן (Chrome)";
   return '<strong>הבקשה נחסמה מתחת לדפדפן, לא באתר.</strong> הדפדפן דיווח שההרשאה לאתר '
     + 'עדיין לא נשאלה, ובכל זאת הבקשה נדחתה מיד — כלומר שירותי-המיקום של המכשיר כבויים, '
     + 'או שהרשאת המיקום של האפליקציה עצמה לא ניתנה. כך מתקנים:'
@@ -3379,7 +3379,7 @@ function wireStaticUI(){
       if(err.code==="quota_exceeded"){ toast(err.message); return; }
       url = `${location.origin}${location.pathname}?ref=${session.user.id}`;
     }
-    shareLink(url, "מגלים את ישראל", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
+    shareLink(url, "מגלים", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
   };
   $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; renderGroupPanel(); };
   $("groupNewBtn").onclick = createGroup;
@@ -3395,7 +3395,7 @@ function wireStaticUI(){
       if(err.code==="quota_exceeded"){ toast(err.message); return; }
       url = `${location.origin}${location.pathname}?group=${activeGroupId}`;
     }
-    shareLink(url, "מגלים את ישראל", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים את ישראל!`);
+    shareLink(url, "מגלים", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים!`);
   };
   window.addEventListener("online", ()=>{ updateOnlineStatus(); flushPendingQueue(); });
   window.addEventListener("offline", updateOnlineStatus);
@@ -3702,7 +3702,7 @@ function openDetail(id){
   if(startTripBtn) startTripBtn.onclick = ()=> startTrip(l.id);
   $("detailShareBtn").onclick = ()=>{
     const url = `${location.origin}${location.pathname}#/destination/${encodeURIComponent(id)}`;
-    shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים את ישראל!`);
+    shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים!`);
   };
   $("reportPlaceInfoBtn").onclick = ()=>{
     openReportSheet("דיווח על "+l.name, PLACE_REPORT_REASONS, async (reason, message)=>{
@@ -4372,7 +4372,7 @@ async function generateShareCard(){
   ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
   ctx.textAlign = "center";
   ctx.fillStyle = text; ctx.font = "700 54px Heebo, sans-serif";
-  ctx.fillText("מגלים את ישראל", W/2, 130);
+  ctx.fillText("מגלים", W/2, 130);
   ctx.fillStyle = muted; ctx.font = "400 32px Heebo, sans-serif";
   ctx.fillText("המסע של "+(myProfile?myProfile.name:"מטייל/ת"), W/2, 185);
   const pct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
@@ -4400,7 +4400,7 @@ async function shareMyMap(){
     const blob = await generateShareCard();
     const file = new File([blob], "המסע-שלי-בישראל.png", { type:"image/png" });
     if(navigator.canShare && navigator.canShare({ files:[file] })){
-      await navigator.share({ files:[file], title:"מגלים את ישראל", text:"המסע שלי בישראל 🇮🇱" });
+      await navigator.share({ files:[file], title:"מגלים", text:"המסע שלי בישראל 🇮🇱" });
     } else {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
