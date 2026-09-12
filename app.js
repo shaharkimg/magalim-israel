@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912a8";
+const APP_VERSION = "20260912a9";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -673,7 +673,11 @@ async function renderLocationPermStatus(){
       const osBlocked = status.state==="prompt" && lastGeoError && lastGeoError.code===1;
       help.classList.toggle("hidden", !(status.state==="denied" || osBlocked));
       if(status.state==="denied") help.innerHTML = deniedHelpHtml();
-      else if(osBlocked) help.innerHTML = osBlockHelpHtml();
+      else if(osBlocked){
+        help.innerHTML = osBlockHelpHtml();
+        const openBtn = $("openInBrowserBtn");
+        if(openBtn) openBtn.onclick = openInPlainBrowser;
+      }
     }
   }catch(e){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
@@ -934,8 +938,9 @@ function osBlockHelpHtml(){
     + "<li>לחזור לכאן וללחוץ שוב על \u0022בדיקת מיקום\u0022</li>"
     + "</ol>"
     + (installed ? '<b>בדיקה מהירה:</b> פתחו את האתר ב-Chrome רגיל (לא מהאייקון המותקן). '
-                 + 'אם שם המיקום עובד — הבעיה היא בהרשאת-האנדרואיד של האפליקציה המותקנת.<br>' : "")
-    + 'ובינתיים, אפשר לסמן מיקום ידנית על המפה בכפתור שלמעלה.';
+                 + 'אם שם המיקום עובד — הבעיה היא בהרשאת-האנדרואיד של האפליקציה המותקנת.'
+                 + '<div class="loc-actions"><button type="button" class="btn btn-outline btn-sm" id="openInBrowserBtn">פתיחה בדפדפן</button></div>' : "")
+    + 'ובינתיים, אפשר לאתר לפי הרשת או לסמן ידנית על המפה, בכפתורים שלמעלה.';
 }
 function deniedHelpHtml(){
   const android = /Android/i.test(navigator.userAgent);
@@ -952,6 +957,13 @@ function deniedHelpHtml(){
     + ' אפליקציית-web לא יכולה לעקוף את זה מבפנים - ההרשאה נאכפת על-ידי הדפדפן. כך מחזירים אותה:'
     + "<ol>" + steps.map(x=>`<li>${x}</li>`).join("") + "</ol>"
     + 'אם אתם מעדיפים לא לאשר, אפשר לסמן מיקום ידנית על המפה בכפתור שלמעלה.';
+}
+// מהאפליקציה המותקנת, window.open עם _blank מוציא את הכתובת לדפדפן החיצוני. זו גם
+// הבדיקה המפלה וגם מעקף מיידי: אם החסימה היא בהרשאת-האנדרואיד של האפליקציה המותקנת
+// (חבילה נפרדת עם הרשאות-ריצה משלה), ב-Chrome עצמו המיקום עשוי לעבוד בלי שום שינוי
+// בהגדרות. את ההרשאה עצמה שום קוד בדף לא יכול להעניק - היא נאכפת מחוץ לדפדפן.
+function openInPlainBrowser(){
+  window.open(location.origin + location.pathname + "#/map", "_blank", "noopener");
 }
 // קיצור מההודעה אל ההסבר המלא - בלעדיו המשתמש מקבל שורה אחת בלי מה לעשות איתה
 function openSettingsAtLocation(){
