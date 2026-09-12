@@ -617,7 +617,7 @@ button{font-family:inherit;}
 .trip-action:active{transform:scale(.97);}
 .trip-action-primary{background:var(--color-primary);grid-column:1 / -1;}
 .trip-action .ui-ic{opacity:1;}
-.trip-resume{position:fixed;left:var(--space-4);right:var(--space-4);bottom:calc(88px + env(safe-area-inset-bottom));z-index:900;background:var(--journey-bg);color:#fff;border:none;border-radius:999px;padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-elevated);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
+.trip-resume{position:fixed;left:var(--space-4);right:var(--space-4);bottom:calc(88px + env(safe-area-inset-bottom));z-index:1060;background:var(--journey-bg);color:#fff;border:none;border-radius:999px;padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-elevated);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
 
 /* אתגר מבוסס-זמן (§9) - דחיפות אמיתית, בלי להפוך את המסך למשחק */
 .challenge-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);box-shadow:var(--shadow-card);}
@@ -824,8 +824,14 @@ button{font-family:inherit;}
 .feed-wish-btn{margin-inline-start:auto;border:1px solid var(--border);background:var(--bg-elevated);border-radius:999px;padding:var(--space-2) var(--space-3);font-size:12px;font-weight:700;color:var(--text);cursor:pointer;}
 .feed-wish-btn.active{background:color-mix(in srgb, var(--danger) 12%, transparent);border-color:var(--danger);color:var(--danger);}
 
-.toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:60;background:var(--text);color:var(--bg);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:var(--space-3);transform:translateY(20px);opacity:0;pointer-events:none;transition:.22s;box-shadow:0 8px 24px var(--shadow);}
-.install-banner{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:900;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-4) var(--space-4);box-shadow:var(--shadow-elevated);}
+/* שכבות-העל של המפה יושבות ב-1000..1050 (כפתורים, קרוסלת-גילוי, כרטיס-תצוגה), בעוד
+   שלושת הצפים ברמת-האפליקציה - toast, פס-ההתקנה, וכפתור "חזרה למסע" - היו ב-60/900,
+   וכולם מעוגנים לאותו bottom:88px. כלומר על מסך המפה כל הודעת-toast הייתה מצוירת
+   מתחת לקרוסלה ובלתי-נראית לחלוטין: גם ההצלחות וגם השגיאות. הסקאלה כאן: מפה 1000-1050,
+   צפים 1060, scrim/sheet 1100-1101, auth 1200, trip 1240, celebrate 1250, update 1300,
+   toast 1350 (אחרון - הוא חולף ותמיד צריך להיראות). */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:1350;background:var(--text);color:var(--bg);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:var(--space-3);transform:translateY(20px);opacity:0;pointer-events:none;transition:.22s;box-shadow:0 8px 24px var(--shadow);}
+.install-banner{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:1060;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-4) var(--space-4);box-shadow:var(--shadow-elevated);}
 .install-banner p{margin:0 0 var(--space-3);font-size:13px;color:var(--text);line-height:1.5;}
 .install-banner-actions{display:flex;gap:var(--space-2);}
 .install-banner-actions .btn{flex:1;padding:var(--space-2) var(--space-3);font-size:13px;}
@@ -1796,6 +1802,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260912a2"></script>
+<script type="module" src="./app.js?v=20260912a3"></script>
 </body>
 </html>
