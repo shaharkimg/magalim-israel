@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260906a2";
+const APP_VERSION = "20260912a1";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -612,6 +612,37 @@ async function renderLocationPermStatus(){
     el.style.color = "var(--text-muted)";
   }
 }
+// ‏getCurrentPosition עם enableHighAccuracy נופל בקלות ל-timeout על אנדרואיד בתוך מבנים:
+// ה-GPS מנסה לנעול לוויינים ונכשל, גם כשהרשת/Wi-Fi היו נותנות מיקום טוב בהרבה ממספיק
+// כדי לסמן נקודה על מפה. 8 שניות היו קצרות מדי, וכל שלושת מסלולי-האיתור הציגו את אותה
+// הודעה ("יש לאשר גישה למיקום") לכל סוגי הכישלון - כלומר שלחו את המשתמש להגדרות
+// הדפדפן גם כשההרשאה הייתה תקינה לגמרי והבעיה הייתה קליטה. עכשיו: ניסיון מדויק, ואם
+// נגמר הזמן ניסיון שני גס ומהיר לפני שמוותרים, והודעה לפי סוג הכישלון בפועל.
+const GEO_MESSAGES = {
+  1: 'הגישה למיקום חסומה — יש לאפשר "מיקום" עבור האתר בהגדרות הדפדפן ולנסות שוב',
+  2: "לא הצלחנו לקבל מיקום מהמכשיר — בדקו ששירותי המיקום (GPS) פעילים",
+  3: "לוקח יותר מדי זמן לאתר מיקום — נסו שוב בחוץ או ליד חלון",
+};
+function geoErrorMessage(err){
+  return (err && GEO_MESSAGES[err.code]) || "לא הצלחנו לאתר מיקום כרגע";
+}
+// onOk מקבל את ה-position המקורי; userLoc מתעדכן כאן, כדי ששלושת המסלולים לא יעשו
+// את זה כל אחד בדרכו. opts.preciseOnly מוותר על ניסיון-הגיבוי הגס ועל מיקום מהקאש -
+// לאימות-קרבה של צ'ק-אין (300 מ') מיקום גס או ישן הוא לא ראיה טובה מספיק.
+function locateUser(onOk, onFail, opts){
+  opts = opts || {};
+  if(!navigator.geolocation){ onFail({ code:2 }); return; }
+  const accept = pos=>{
+    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude };
+    onOk(pos);
+  };
+  navigator.geolocation.getCurrentPosition(accept, err=>{
+    if(opts.preciseOnly || err.code!==3){ onFail(err); return; }
+    navigator.geolocation.getCurrentPosition(accept, onFail,
+      { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
+  }, { enableHighAccuracy:true, timeout:opts.preciseOnly?15000:12000, maximumAge:opts.preciseOnly?0:60000 });
+}
+
 let retryHandlers = {}, retryHandlerSeq = 0;
 function errorStateHtml(message, retryFn){
   const id = "r"+(retryHandlerSeq++);
@@ -2558,14 +2589,19 @@ function wireStaticUI(){
   };
   $("locateBtn").onclick=()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
-    navigator.geolocation.getCurrentPosition(pos=>{
-      userLoc = {lat:pos.coords.latitude, lon:pos.coords.longitude};
+    // האיתור יכול לקחת עשרות שניות; בלי סימון-עבודה הכפתור נראה כאילו לא הגיב כלל
+    const btn = $("locateBtn");
+    if(btn.classList.contains("busy")) return;
+    btn.classList.add("busy");
+    const done = ()=> btn.classList.remove("busy");
+    locateUser(()=>{
+      done();
       $("distHint").textContent = "המיקום שלך אותר — ניתן לסנן לפי מרחק נסיעה";
       syncFilterUI(); renderMap();
       const count = filteredLandmarks().length;
       toast(filters.maxDist<400 ? `נמצאו ${count} יעדים במרחק נסיעה של עד ${estimateDriveMinutes(filters.maxDist)} דק'` : "המיקום אותר בהצלחה");
       leafletMap.setView([userLoc.lat, userLoc.lon], 12);
-    }, ()=> toast("לא הצלחנו לאתר מיקום — יש לאשר גישה למיקום בדפדפן"), {enableHighAccuracy:true, timeout:8000});
+    }, err=>{ done(); toast(geoErrorMessage(err)); });
   };
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
   $("openFilters").onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); syncFilterUI(); openSheet("filterSheet","filterScrim"); } };
@@ -2636,15 +2672,14 @@ function wireStaticUI(){
   $("wizLocateBtn").onclick = ()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
     $("wizLocStatus").innerHTML = '<span class="ic">📡</span> מאתר מיקום...';
-    navigator.geolocation.getCurrentPosition(pos=>{
-      wizState.loc = { lat:pos.coords.latitude, lon:pos.coords.longitude };
-      userLoc = wizState.loc;
+    locateUser(()=>{
+      wizState.loc = userLoc;
       $("wizLocStatus").className = "checkin-status ok";
       $("wizLocStatus").innerHTML = '<span class="ic">✓</span> המיקום אותר בהצלחה';
-    }, ()=>{
+    }, err=>{
       $("wizLocStatus").className = "checkin-status bad";
-      $("wizLocStatus").innerHTML = '<span class="ic">✕</span> לא הצלחנו לאתר מיקום — עדיין אפשר לחפש בלי זה';
-    }, {enableHighAccuracy:true, timeout:8000});
+      $("wizLocStatus").innerHTML = '<span class="ic">✕</span> ' + escapeHtml(geoErrorMessage(err)) + ' — עדיין אפשר לחפש בלי זה';
+    });
   };
   $("wizFindBtn").onclick = ()=> renderWizardResults();
   $("wizBackBtn").onclick = ()=>{
@@ -3347,9 +3382,8 @@ function runGpsCheck(l){
     photoStep.classList.remove("hidden"); return;
   }
   if(!navigator.geolocation){ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> המכשיר לא תומך באיתור מיקום'; return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
+  locateUser(pos=>{
     const d = haversine(pos.coords.latitude,pos.coords.longitude,l.lat,l.lon)*1000;
-    userLoc = {lat:pos.coords.latitude, lon:pos.coords.longitude};
     if(d<=300){
       statusEl.className="checkin-status ok";
       statusEl.innerHTML = '<span class="ic">✓</span> אומת! את/ה במרחק '+Math.round(d)+' מטר מהיעד';
@@ -3359,7 +3393,10 @@ function runGpsCheck(l){
       statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 300 מ׳ כדי לבצע צ׳ק-אין';
       photoStep.classList.add("hidden");
     }
-  }, ()=>{ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> לא ניתן לאתר מיקום — יש לאשר הרשאת GPS בדפדפן'; }, {enableHighAccuracy:true, timeout:8000});
+  }, err=>{
+    statusEl.className="checkin-status bad";
+    statusEl.innerHTML = '<span class="ic">✕</span> ' + escapeHtml(geoErrorMessage(err));
+  }, { preciseOnly:true });
 }
 
 // Gamification Overhaul, Phase 2 - מענק XP אטומי ואידמפוטנטי: בסיס-כיבוש-ראשון דרך
