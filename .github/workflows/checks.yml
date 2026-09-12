@@ -52,6 +52,7 @@ jobs:
           node scripts/test_view_reset.js
           node scripts/test_recommendation.js
           node scripts/test_auth_views.js
+          node scripts/test_oauth_error.js
 
       # פקדי המפה נבדקים ב-hit-testing בדפדפן אמיתי - קריאת CSS לא תופסת את הבאג הזה
       - name: התקנת Playwright

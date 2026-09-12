@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912b3";
+const APP_VERSION = "20260912b4";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1829,7 +1829,10 @@ async function bootPublic(){
     syncFilterUI();
     updateOnlineStatus();
     refreshHeader();
+    // לפני applyRoute: הכתובת עוד מכילה את השגיאה, ו-applyRoute ינקה אותה לנתיב
+    const redirectError = readAuthRedirectError();
     applyRoute();
+    if(redirectError) showAuthRedirectError(redirectError);
     initOnboarding();
     if(!session) maybeShowWelcome();
     setTimeout(checkForNewVersion, 60000);
@@ -1992,6 +1995,34 @@ async function createGroup(){
   populateGroupSelect(); updateGroupBarVisibility();
   toast('הקבוצה "'+escapeHtml(data.name)+'" נוצרה!');
   renderGroupPanel();
+}
+// כשסבב OAuth נכשל, הספק ו-Supabase מחזירים את הסיבה בכתובת עצמה - לפעמים ב-query
+// ולפעמים ב-hash - והאפליקציה פשוט התעלמה ממנה ועלתה כרגיל. מבחוץ זה נראה כמו
+// "ההתחברות לא עובדת", בלי שום רמז, בזמן שהסיבה המדויקת הייתה כתובה בשורת הכתובת.
+// גרוע מזה: hash של שגיאה (#error=...) נכנס לראוטר כאילו היה נתיב.
+const OAUTH_ERROR_HINTS = {
+  access_denied: "הביטול הגיע מהספק — אם לא ביטלתם בעצמכם, בדקו שהאפליקציה במצב Live אצלו",
+  redirect_uri_mismatch: "כתובת ההחזרה אצל הספק לא תואמת. היא צריכה להצביע ל-Supabase, לא לאתר",
+  invalid_request: "בקשה שגויה לספק — לרוב הגדרה חסרה במסך ההסכמה",
+  unauthorized_client: "הספק לא מאשר את האפליקציה — בדקו שהיא Published/Live ולא במצב בדיקה",
+  server_error: "הספק אישר, אבל השלב מול Supabase נכשל — לרוב Redirect URLs שלא כוללת את הכתובת הזו",
+};
+function readAuthRedirectError(){
+  const fromQuery = new URLSearchParams(location.search);
+  const fromHash = new URLSearchParams((location.hash || "").replace(/^#\/?/, ""));
+  const code = fromQuery.get("error") || fromHash.get("error");
+  if(!code) return null;
+  const raw = fromQuery.get("error_description") || fromHash.get("error_description") || "";
+  const desc = decodeURIComponent(raw.replace(/\+/g, " "));
+  // מנקים את הכתובת, אחרת רענון מציג את השגיאה שוב וה-hash ממשיך להתפרש כנתיב
+  history.replaceState({magalim:true}, "", location.pathname + "#/home");
+  return { code, desc, hint: OAUTH_ERROR_HINTS[code] || null };
+}
+function showAuthRedirectError(err){
+  if(!err) return;
+  const parts = [err.hint || "ההתחברות לא הושלמה", err.desc, "(" + err.code + ")"].filter(Boolean);
+  openAuthSheet(parts.join(" — "));
+  console.error("OAuth redirect error:", err);
 }
 async function handleInviteLinks(){
   const params = new URLSearchParams(location.search);

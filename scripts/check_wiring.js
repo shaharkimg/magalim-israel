@@ -35,6 +35,7 @@ const CRITICAL = [
   'setLocateBtnState', 'maybeShowLocateHint', 'dismissLocateHint',
   'geoDiagnostics', 'runLocationTest', 'deniedHelpHtml', 'osBlockHelpHtml', 'renderLocationPermStatus',
   'explainGeoFailure', 'geoBlockScope', 'openSettingsAtLocation',
+  'readAuthRedirectError', 'showAuthRedirectError',
   'startManualLocationPick', 'cancelManualLocationPick', 'setManualLocation', 'clearManualLocation',
   'fetchApproxLocation', 'useApproxLocation', 'openInPlainBrowser',
 ];
