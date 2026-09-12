@@ -50,6 +50,23 @@ Supabase ← Authentication ← URL Configuration — Site URL ו-Redirect URLs.
 
 הפירוט המלא: [`docs/OAUTH-DOMAIN.md`](docs/OAUTH-DOMAIN.md).
 
+## בדיקות
+
+כל הבדיקות רצות אוטומטית ב-GitHub Actions על כל push, וניתנות להרצה ידנית
+דרך **Actions ← בדיקות ← Run workflow** (שם גם נבדק האתר החי).
+
+מקומית, בלי שום התקנה מלבד Node:
+
+```bash
+node scripts/check_version.js   # שהגרסה זהה ב-app.js, index.html ו-sw.js
+node scripts/check_wiring.js    # שפונקציות קריטיות לא נותקו מקוראיהן
+node scripts/check_twa.js       # שאריזת האנדרואיד עקבית עם האפליקציה
+node scripts/check_live.js      # שהאתר הפרוס תקין (דורש רשת)
+node scripts/test_geolocation.js scripts/test_view_reset.js \
+     scripts/test_recommendation.js scripts/test_auth_views.js
+node scripts/test_map_controls.js   # דורש Playwright; בלעדיו מדלג בהודעה ברורה
+```
+
 ## אבטחה
 
 `config.js` מכיל את ה-`anon key` הציבורי בלבד — הוא בטוח לחשיפה כי כל הגישה למידע מוגנת ע"י כללי
