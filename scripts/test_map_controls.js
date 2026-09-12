@@ -1,10 +1,17 @@
 #!/usr/bin/env node
-// Guards a real, shipped bug: the map's bottom strip (the discovery carousel, or the
-// destination preview card) is full-width and sits above the map buttons in z-index,
-// so tapping "המיקום שלי" landed on a destination card instead of the button — the
-// location control looked dead. The fix raises the buttons above whatever strip is
-// showing, measured from its real height, so this has to be checked by hit-testing a
-// real layout rather than by reading the CSS.
+// Guards a real, shipped bug and its siblings: the map's bottom strip (the discovery
+// carousel, or the destination preview card) is full-width and sits high in z-index
+// (1040/1050), while several things that must stay reachable sat below it.
+//
+//   - the map buttons (z-index 1000, bottom 24px) — tapping "המיקום שלי" landed on a
+//     destination card instead of the button, so the location control looked dead
+//   - the toast (was z-index 60, bottom 88px) — EVERY message the app showed on the map
+//     screen was painted underneath the carousel: errors and confirmations alike, which
+//     is why a failing locate looked like nothing happening at all
+//   - the install banner and the "back to your trip" pill (were z-index 900, same 88px)
+//
+// None of this is visible by reading the CSS — each rule is fine on its own, the bug is
+// in how they stack at runtime — so it has to be hit-tested against a real layout.
 //
 // Needs Playwright + Chromium. Without them it skips loudly rather than failing, so it
 // stays runnable in a bare checkout (this repo has no package.json by design).
@@ -23,6 +30,8 @@ const src = fs.readFileSync(path.join(APP, 'app.js'), 'utf8');
 const helper = src.slice(src.indexOf('const MAP_OVERLAY_INSET'), src.indexOf('function renderDiscoveryCarousel('));
 
 const CONTROLS = ['locateBtn', 'zoomIn', 'zoomOut', 'zoomReset', 'diffLegendBtn'];
+// app-level floaters, all anchored at the same bottom:88px the carousel covers
+const FLOATERS = ['toast', 'tripResume', 'installBanner'];
 
 (async () => {
   const exe = '/opt/pw-browsers/chromium';
@@ -45,6 +54,27 @@ const CONTROLS = ['locateBtn', 'zoomIn', 'zoomOut', 'zoomReset', 'diffLegendBtn'
         <div class="discovery-card-name">יעד ${i}</div>
         <div class="discovery-card-facts">קל · שעתיים</div>
       </div>`).join('');
+    // one at a time: all three are anchored to the same bottom:88px, so showing them
+    // together would just occlude each other and say nothing about the carousel
+    window.showFloater = id => {
+      const t = document.getElementById('toast');
+      t.classList.remove('show');
+      t.style.pointerEvents = '';  // undo the probe override from a previous scenario
+      document.getElementById('tripResume').classList.add('hidden');
+      document.getElementById('installBanner').classList.add('hidden');
+      if (id === 'toast') {
+        t.innerHTML = '<span style="flex:1">לוקח יותר מדי זמן לאתר מיקום</span>';
+        t.classList.add('show');
+        // the toast is pointer-events:none by design, so elementFromPoint would always
+        // look straight through it; the question here is purely what is PAINTED on top
+        t.style.pointerEvents = 'auto';
+      } else if (id === 'tripResume') {
+        const el = document.getElementById('tripResume');
+        el.textContent = 'חזרה למסע'; el.classList.remove('hidden');
+      } else {
+        document.getElementById('installBanner').classList.remove('hidden');
+      }
+    };
     window.bottomStrip = (mode, html) => {
       const section = document.getElementById('discoverySection');
       const preview = document.getElementById('destPreview');
@@ -63,9 +93,9 @@ const CONTROLS = ['locateBtn', 'zoomIn', 'zoomOut', 'zoomReset', 'diffLegendBtn'
   ];
 
   let failures = 0;
-  for (const [name, setup] of scenarios) {
+  const check = async (label, setup, ids) => {
     await page.evaluate(`(${setup.toString()})()`);
-    await page.waitForTimeout(260); // the bottom transition
+    await page.waitForTimeout(320); // the bottom + toast transitions
     const r = await page.evaluate(ids => {
       const out = { blocked: [] };
       for (const id of ids) {
@@ -78,13 +108,25 @@ const CONTROLS = ['locateBtn', 'zoomIn', 'zoomOut', 'zoomReset', 'diffLegendBtn'
       }
       out.offset = getComputedStyle(document.getElementById('mapWrap')).getPropertyValue('--map-ctl-bottom').trim() || '(default)';
       return out;
-    }, CONTROLS);
+    }, ids);
     const ok = r.blocked.length === 0;
     if (!ok) failures++;
-    console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name} — offset ${r.offset}${ok ? '' : '\n         covered: ' + r.blocked.join('; ')}`);
+    console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label} — offset ${r.offset}${ok ? '' : '\n         covered: ' + r.blocked.join('; ')}`);
+  };
+
+  console.log('\nmap controls stay tappable under every bottom strip');
+  for (const [name, setup] of scenarios) await check(name, setup, CONTROLS);
+
+  console.log('\napp-level floaters stay visible over the bottom strip');
+  const LABEL = { toast: 'toast (every message on the map screen)', tripResume: '"back to your trip" pill', installBanner: 'install banner' };
+  for (const id of FLOATERS) {
+    await check(`${LABEL[id]} — over a full carousel`,
+      new Function(`window.bottomStrip('carousel', window.cards(6)); window.showFloater('${id}');`), [id]);
+    await check(`${LABEL[id]} — over an open destination preview`,
+      new Function(`window.bottomStrip('preview'); window.showFloater('${id}');`), [id]);
   }
 
   await browser.close();
-  console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nevery map control is reachable\n');
+  console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nnothing is buried under the map\'s bottom strip\n');
   process.exit(failures ? 1 : 0);
 })();
