@@ -49,6 +49,7 @@ Supabase ← Authentication ← URL Configuration — Site URL ו-Redirect URLs.
 (`#/invite/<code>`) שכבר נשלחו למשתמשים מפנים אליה, והסרתה תשבור אותם.
 
 הפירוט המלא: [`docs/OAUTH-DOMAIN.md`](docs/OAUTH-DOMAIN.md).
+חיבור הדומיין עצמו ב-Vercel וב-DNS: [`docs/VERCEL-DOMAIN.md`](docs/VERCEL-DOMAIN.md).
 
 ## בדיקות
 
