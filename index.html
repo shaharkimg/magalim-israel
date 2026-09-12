@@ -137,44 +137,70 @@ button{font-family:inherit;}
    גובהו 100dvh, וצירוף הזה עם position:absolute;inset:0 ידוע כגורם למכשירים ניידים אמיתיים
    מסוימים לא לחשב containing-block עד לקצוות ה-viewport האמיתיים. חוזר ל-absolute ב-520px+
    כדי להישאר מוכל בכרטיס-הטלפון בדסקטופ split-view (ראו @media למטה). */
-.auth-screen{position:fixed;inset:0;z-index:1200;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:28px var(--space-5);gap:var(--space-4);}
-.onboarding-screen{position:fixed;inset:0;z-index:1250;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:var(--space-6) var(--space-5);}
-.admin-screen{position:fixed;inset:0;z-index:1260;background:var(--bg);overflow-y:auto;padding:60px var(--space-4) var(--space-6);}
-.full-overlay{position:fixed;inset:0;z-index:1260;background:var(--bg);overflow-y:auto;padding:60px var(--space-4) var(--space-6);}
-.avatar-edit-row{display:flex;align-items:center;gap:var(--space-4);margin-bottom:18px;}
-.avatar-edit-row .avatar{width:72px;height:72px;font-size:26px;flex:none;}
-.onboarding-screen .btn{flex:none;}
-.onboarding-slide{display:none;flex-direction:column;align-items:center;text-align:center;gap:var(--space-3);}
-.onboarding-slide.active{display:flex;}
-/* §19: כל שלב מקבל "כרטיס-תמונה" עגול עם רקע מותגי, במקום emoji חשוף באוויר */
-.onboarding-icon{font-size:56px;line-height:1;width:132px;height:132px;margin:0 auto var(--space-2);border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 34% 28%,var(--color-primary-light),var(--bg-elevated) 78%);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 14%, transparent);}
-.onboarding-art{width:min(230px,72vw);margin:0 auto var(--space-2);}
-.onboarding-art svg{width:100%;height:auto;display:block;}
-.onboarding-slide h2{margin:0;font-size:var(--font-h1);}
-.onboarding-slide p{margin:0;color:var(--text-muted);font-size:14.5px;line-height:1.6;max-width:280px;}
-.onboarding-dots{display:flex;justify-content:center;gap:var(--space-2);margin:28px 0 var(--space-5);}
-.onboarding-dots .dot{width:7px;height:7px;border-radius:4px;background:var(--border);transition:width .2s,background .2s;}
-.onboarding-dots .dot.active{background:var(--accent);width:20px;}
-.auth-logo{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);margin-bottom:6px;}
-.auth-logo .brand-mark{width:56px;height:56px;border-radius:16px;}
-.auth-logo h1{font-size:var(--font-display);margin:0;}
-.auth-logo p{margin:0;color:var(--text-muted);font-size:13px;}
-.auth-tabs{display:flex;gap:var(--space-2);background:var(--bg-elevated);border-radius:12px;padding:var(--space-1);}
+.auth-screen{position:fixed;inset:0;z-index:1200;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto;
+  padding:calc(env(safe-area-inset-top) + var(--space-5)) var(--space-5) calc(env(safe-area-inset-bottom) + var(--space-5));}
+.auth-view{display:flex;flex-direction:column;flex:1;min-height:0;gap:var(--space-3);}
+.auth-view.hidden{display:none;}
+#authCloseBtn{position:absolute;top:calc(env(safe-area-inset-top) + var(--space-4));inset-inline-start:var(--space-4);z-index:2;}
+.auth-back{position:absolute;top:calc(env(safe-area-inset-top) + var(--space-4));inset-inline-start:var(--space-4);z-index:2;
+  width:44px;height:44px;border:none;background:var(--bg-elevated);color:var(--text);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.auth-head{margin:var(--space-5) 0 var(--space-2);}
+.auth-head h1{font-size:var(--font-display);margin:0 0 var(--space-2);}
+.auth-head p{margin:0;color:var(--text-muted);font-size:14px;line-height:1.55;}
+
+/* Welcome (§1) */
+.welcome-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-2);}
+.welcome-art{width:min(320px,86%);margin-bottom:var(--space-2);}
+.welcome-art svg{width:100%;height:auto;display:block;}
+.welcome-mark{width:60px;height:60px;margin-top:calc(var(--space-5) * -1 - 6px);}
+.welcome-title{font-size:var(--font-display);margin:var(--space-2) 0 0;}
+.welcome-tagline{margin:0;font-size:15px;font-weight:700;color:var(--color-primary);}
+.welcome-sub{margin:var(--space-1) 0 0;color:var(--text-muted);font-size:13.5px;line-height:1.6;max-width:300px;}
+/* ה-CTA יושב בתחתית - אזור האגודל (§11) */
+.auth-bottom{flex:none;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);}
+.auth-switch{margin:0;text-align:center;font-size:13.5px;color:var(--text-muted);}
+.auth-switch-bottom{margin-top:auto;padding-top:var(--space-4);}
+.auth-link{border:none;background:none;padding:0;font:inherit;font-weight:800;color:var(--color-primary);cursor:pointer;text-decoration:underline;}
+.auth-guest{border:none;background:none;color:var(--text-muted);font-size:13px;padding:var(--space-3);cursor:pointer;font-family:inherit;}
+
+.auth-tabs{display:flex;gap:var(--space-2);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-1);}
 .auth-tabs button{flex:1;border:none;background:transparent;padding:var(--space-3);border-radius:var(--radius-sm);font-weight:700;font-size:13.5px;color:var(--text-muted);cursor:pointer;}
 .auth-tabs button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow);}
 .auth-form{display:flex;flex-direction:column;gap:var(--space-3);}
-.auth-error{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:13px;display:none;}
+/* שדות גדולים ונוחים למגע (§5): 52px */
+.auth-form .text-input{height:52px;font-size:15px;padding:0 var(--space-4);}
+.auth-form .text-input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-light);}
+.text-input.invalid{border-color:var(--danger);}
+.input-wrap{position:relative;display:flex;}
+.input-wrap .text-input{flex:1;padding-inline-end:48px;}
+.input-eye{position:absolute;inset-inline-end:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;background:none;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;}
+/* שגיאת-שדה: טקסט + אייקון, לא צבע בלבד (§13) */
+.field-err{display:none;align-items:center;gap:5px;color:var(--danger);font-size:12.5px;margin-top:var(--space-1);}
+.field-err.show{display:flex;}
+.auth-error{background:color-mix(in srgb, var(--danger) 12%, transparent);color:var(--danger);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13px;display:none;line-height:1.5;}
 .auth-error.show{display:block;}
-.auth-note{background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:12.5px;color:var(--text-muted);display:none;}
+.auth-note{background:var(--color-primary-light);color:var(--color-primary);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13px;display:none;line-height:1.5;}
 .auth-note.show{display:block;}
 .auth-skip{text-align:center;font-size:12.5px;color:var(--text-muted);margin-top:2px;}
-.auth-forgot{border:none;background:none;color:var(--text-muted);font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0;margin:-var(--space-1) auto 0;}
-.auth-oauth-row{display:flex;flex-direction:column;gap:var(--space-3);margin-bottom:2px;}
-.auth-oauth-btn{display:flex;align-items:center;justify-content:center;gap:var(--space-3);width:100%;padding:var(--space-3) var(--space-4);border-radius:var(--radius-btn);border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;font-size:14.5px;cursor:pointer;transition:background .15s;}
+.auth-forgot{border:none;background:none;color:var(--text-muted);font-size:13px;text-decoration:underline;cursor:pointer;padding:var(--space-2);margin:0 auto;font-family:inherit;}
+.auth-oauth-row{display:flex;flex-direction:column;gap:var(--space-2);}
+.auth-oauth-btn{display:flex;align-items:center;justify-content:center;gap:var(--space-3);width:100%;min-height:52px;border-radius:var(--radius-btn);border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;font-size:14.5px;cursor:pointer;transition:background .15s;font-family:inherit;}
 .auth-oauth-btn:active{background:var(--bg-elevated);}
 .auth-oauth-btn svg{flex:none;width:19px;height:19px;}
-.auth-divider{display:flex;align-items:center;gap:var(--space-3);color:var(--text-muted);font-size:12.5px;margin:2px 0;}
+.auth-divider{display:flex;align-items:center;gap:var(--space-3);color:var(--text-muted);font-size:12.5px;margin:var(--space-1) 0;}
 .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--border);}
+/* loading state - מונע לחיצה כפולה (§5) */
+.btn.is-loading{pointer-events:none;opacity:.75;}
+.btn.is-loading::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:spin .7s linear infinite;}
+
+/* Desktop: שני חלקים - Hero מצד אחד, טופס מצד שני (§12) */
+@media (min-width:900px){
+  .auth-screen{flex-direction:row;align-items:stretch;gap:var(--space-6);padding:var(--space-6);}
+  .auth-screen::before{content:"";flex:1;border-radius:var(--radius-card);background:
+    radial-gradient(circle at 30% 30%, var(--color-primary-light), var(--bg-elevated) 75%);}
+  .auth-view{flex:0 0 420px;max-width:420px;justify-content:center;}
+  #authViewWelcome .welcome-art{display:none;}
+}
 
 /* ---------- Header ---------- */
 /* גריד 3-עמודות כדי שהלוגו יתמרכז באמת ביחס לכל הכותרת, לא רק ביחס לתוכן שלצידו - הצד השני
@@ -1084,64 +1110,119 @@ input[type=file]{display:none;}
   </div>
 
   <div class="auth-screen hidden" id="authScreen">
-    <button class="sheet-close hidden" id="authCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
-    <div class="auth-logo">
-      <div class="brand-mark" style="width:56px;height:56px;"><img src="./logo.png" alt="מגלים את ישראל"></div>
-      <h1>מגלים את ישראל</h1>
-      <p id="authIntroText">הצטרפו וצאו לכבוש את הארץ</p>
+    <button class="sheet-close hidden" id="authCloseBtn" aria-label="סגור">✕</button>
+
+    <!-- Welcome (§1): לא טופס - מסך ערך. מוצג רק אחרי שידוע שאין session (§8). -->
+    <div class="auth-view" id="authViewWelcome">
+      <div class="welcome-hero">
+        <div class="welcome-art" aria-hidden="true">
+          <svg viewBox="0 0 320 200">
+            <defs><clipPath id="wclip"><rect x="0" y="0" width="320" height="200" rx="20"/></clipPath></defs>
+            <g clip-path="url(#wclip)">
+              <rect width="320" height="200" fill="var(--color-primary-light)"/>
+              <circle cx="248" cy="48" r="26" fill="var(--color-accent)" opacity=".55"/>
+              <path d="M-10 150c40-14 62 8 104-8s54-30 96-20 60 26 140 14v74H-10Z" fill="var(--color-primary)" opacity=".22"/>
+              <path d="M-10 168c48-12 70 6 112-8s58-22 100-14 58 20 128 12v52H-10Z" fill="var(--color-primary)" opacity=".4"/>
+              <path d="M40 196c22-26 10-48 32-66s54-10 70-34" stroke="var(--color-primary-dark)" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 11" fill="none"/>
+              <path d="M186 74c0-13 10-23 23-23s23 10 23 23c0 17-23 37-23 37s-23-20-23-37Z" fill="var(--color-primary-dark)"/>
+              <circle cx="209" cy="73" r="8.5" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+        <div class="brand-mark welcome-mark"><img src="./logo.png" alt=""></div>
+        <h1 class="welcome-title">מגלים את ישראל</h1>
+        <p class="welcome-tagline">מטיילים. מגלים. אוספים חוויות.</p>
+        <p class="welcome-sub">גלו מקומות חדשים, צברו נקודות ובנו את מפת ישראל שלכם.</p>
+      </div>
+      <div class="auth-bottom">
+        <button type="button" class="btn btn-primary btn-block" id="welcomeStartBtn">התחילו לגלות</button>
+        <p class="auth-switch">כבר יש לכם חשבון? <button type="button" class="auth-link" id="welcomeLoginBtn">התחברו</button></p>
+        <button type="button" class="auth-guest" id="welcomeGuestBtn">המשיכו בלי חשבון</button>
+      </div>
     </div>
-    <div class="auth-oauth-row" id="oauthRow">
-      <button type="button" class="auth-oauth-btn" id="googleAuthBtn">
-        <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.47a5.53 5.53 0 0 1-2.4 3.63v2.98h3.87c2.27-2.09 3.58-5.17 3.58-8.79Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.87-2.98c-1.08.72-2.45 1.14-4.07 1.14-3.13 0-5.78-2.11-6.73-4.96H1.27v3.07A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.27 14.3A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.3V6.63H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.37l4-3.07Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.63l4 3.07C6.22 6.86 8.87 4.75 12 4.75Z"/></svg>
-        המשך עם Google
+
+    <!-- Register / Login: טופס אחד, אותם שדות ואותו handler קיים, מצב נשלט ע"י authMode -->
+    <div class="auth-view hidden" id="authViewForm">
+      <button type="button" class="auth-back" id="authBackBtn" aria-label="חזרה">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button type="button" class="auth-oauth-btn" id="facebookAuthBtn">
-        <svg viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.25h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07Z"/></svg>
-        המשך עם Facebook
-      </button>
+      <div class="auth-head">
+        <h1 id="authTitle">יוצאים לדרך</h1>
+        <p id="authIntroText">צרו חשבון והתחילו לגלות את ישראל</p>
+      </div>
+
+      <div class="auth-tabs hidden">
+        <button class="active" id="tabLogin">התחברות</button>
+        <button id="tabSignup">הרשמה</button>
+      </div>
+
+      <form class="auth-form" id="authForm" novalidate>
+        <div id="nameField" class="hidden">
+          <label class="field-label" for="authName">שם</label>
+          <input class="text-input" id="authName" type="text" autocomplete="name" placeholder="איך קוראים לכם?" aria-describedby="authNameErr">
+          <div class="field-err" id="authNameErr"></div>
+        </div>
+        <div>
+          <label class="field-label" for="authEmail">אימייל</label>
+          <input class="text-input" id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com" aria-describedby="authEmailErr">
+          <div class="field-err" id="authEmailErr"></div>
+        </div>
+        <div>
+          <label class="field-label" for="authPassword">סיסמה</label>
+          <div class="input-wrap">
+            <input class="text-input" id="authPassword" type="password" autocomplete="current-password" required placeholder="לפחות 6 תווים" minlength="6" aria-describedby="authPasswordErr">
+            <button type="button" class="input-eye" id="authPasswordEye" aria-label="הצגת הסיסמה" aria-pressed="false"></button>
+          </div>
+          <div class="field-err" id="authPasswordErr"></div>
+        </div>
+        <div class="auth-error" id="authError" role="alert"></div>
+        <div class="auth-note" id="authNote" role="status"></div>
+        <button type="submit" class="btn btn-primary btn-block" id="authSubmit">יצירת חשבון</button>
+        <button type="button" class="auth-forgot hidden" id="forgotPasswordLink">שכחתם סיסמה?</button>
+      </form>
+
+      <div class="auth-divider" id="oauthDivider"><span id="oauthDividerText">או המשיכו עם</span></div>
+      <div class="auth-oauth-row" id="oauthRow">
+        <button type="button" class="auth-oauth-btn" id="googleAuthBtn">
+          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.47a5.53 5.53 0 0 1-2.4 3.63v2.98h3.87c2.27-2.09 3.58-5.17 3.58-8.79Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.87-2.98c-1.08.72-2.45 1.14-4.07 1.14-3.13 0-5.78-2.11-6.73-4.96H1.27v3.07A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.27 14.3A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.3V6.63H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.37l4-3.07Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.63l4 3.07C6.22 6.86 8.87 4.75 12 4.75Z"/></svg>
+          המשך עם Google
+        </button>
+        <button type="button" class="auth-oauth-btn" id="facebookAuthBtn">
+          <svg viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.25h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07Z"/></svg>
+          המשך עם Facebook
+        </button>
+      </div>
+
+      <p class="auth-switch auth-switch-bottom">
+        <span id="authSwitchText">עדיין אין לכם חשבון?</span>
+        <button type="button" class="auth-link" id="authSwitchBtn">הירשמו</button>
+      </p>
     </div>
-    <div class="auth-divider" id="oauthDivider"><span>או</span></div>
-    <div class="auth-tabs">
-      <button class="active" id="tabLogin">התחברות</button>
-      <button id="tabSignup">הרשמה</button>
-    </div>
-    <form class="auth-form" id="authForm">
-      <div id="nameField" class="hidden">
-        <label class="field-label">שם</label>
-        <input class="text-input" id="authName" type="text" autocomplete="name" placeholder="איך לקרוא לך?">
-      </div>
+
+    <!-- איפוס סיסמה (מנגנון קיים) -->
+    <form class="auth-form auth-view hidden" id="resetPasswordForm">
+      <div class="auth-head"><h1>סיסמה חדשה</h1><p>בחרו סיסמה חדשה לחשבון שלכם</p></div>
       <div>
-        <label class="field-label">אימייל</label>
-        <input class="text-input" id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
-      </div>
-      <div>
-        <label class="field-label">סיסמה</label>
-        <input class="text-input" id="authPassword" type="password" autocomplete="current-password" required placeholder="לפחות 6 תווים" minlength="6">
-      </div>
-      <div class="auth-error" id="authError"></div>
-      <div class="auth-note" id="authNote"></div>
-      <button type="submit" class="btn btn-primary btn-block" id="authSubmit">התחברות</button>
-      <button type="button" class="auth-forgot" id="forgotPasswordLink">שכחתי סיסמה</button>
-    </form>
-    <form class="auth-form hidden" id="resetPasswordForm">
-      <p class="t-caption" style="margin:0 0 var(--space-1);">בחרו סיסמה חדשה לחשבון שלכם</p>
-      <div>
-        <label class="field-label">סיסמה חדשה</label>
+        <label class="field-label" for="resetPassword">סיסמה חדשה</label>
         <input class="text-input" id="resetPassword" type="password" autocomplete="new-password" required placeholder="לפחות 6 תווים" minlength="6">
       </div>
-      <div class="auth-error" id="resetError"></div>
+      <div class="auth-error" id="resetError" role="alert"></div>
       <button type="submit" class="btn btn-primary btn-block" id="resetSubmit">עדכון סיסמה</button>
     </form>
-    <form class="auth-form hidden" id="waitlistView" style="text-align:center;">
-      <div class="waitlist-emoji">🎒</div>
-      <h2 id="waitlistTitle" style="margin:var(--space-2) 0 var(--space-1);"></h2>
-      <p id="waitlistSub" class="t-body" style="margin:0 0 var(--space-2);white-space:pre-line;"></p>
-      <div>
-        <label class="field-label">אימייל</label>
-        <input class="text-input" id="waitlistEmail" type="email" autocomplete="email" placeholder="you@example.com">
+
+    <!-- רשימת המתנה (מנגנון קיים - registration gating) -->
+    <form class="auth-form auth-view hidden" id="waitlistView">
+      <div class="auth-head" style="text-align:center;">
+        <div class="waitlist-emoji">🎒</div>
+        <h1 id="waitlistTitle"></h1>
+        <p id="waitlistSub" style="white-space:pre-line;"></p>
       </div>
-      <div class="auth-error" id="waitlistError"></div>
-      <div class="auth-note" id="waitlistNote"></div>
+      <div>
+        <label class="field-label" for="waitlistEmail">אימייל</label>
+        <input class="text-input" id="waitlistEmail" type="email" autocomplete="email" placeholder="name@example.com">
+      </div>
+      <div class="auth-error" id="waitlistError" role="alert"></div>
+      <div class="auth-note" id="waitlistNote" role="status"></div>
       <button type="submit" class="btn btn-primary btn-block" id="waitlistSubmitBtn">הצטרפות לרשימת ההמתנה</button>
       <button type="button" class="auth-forgot" id="waitlistBackBtn">חזרה להתחברות</button>
     </form>
