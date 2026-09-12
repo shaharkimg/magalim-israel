@@ -7,7 +7,8 @@ const fs = require('fs');
 const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
-const slice = src.slice(src.indexOf('const GEO_MESSAGES'), src.indexOf('let retryHandlers'));
+const slice = src.slice(src.indexOf('const GEO_MESSAGES'), src.indexOf('const LOC_WATCH_KEY'));
+const watchSlice = src.slice(src.indexOf('const LOC_WATCH_KEY'), src.indexOf('let retryHandlers'));
 const persistSlice = src.slice(src.indexOf('const LAST_LOC_KEY'), src.indexOf('let userLoc = restoreLastLoc();'));
 const markerSlice = src.slice(src.indexOf('function renderUserLocation()'), src.indexOf('function renderFogOfWar()'));
 
@@ -22,6 +23,8 @@ globalThis.localStorage = {
 let attempts = [];
 let plan = [];
 globalThis.userLoc = null;
+let watches = {};
+let watchSeq = 0;
 const geolocation = {
   getCurrentPosition(ok, fail, opts) {
     attempts.push(opts);
@@ -29,6 +32,12 @@ const geolocation = {
     if (next && next.ok) ok({ coords: { latitude: 32.1, longitude: 34.8, accuracy: 12 } });
     else fail({ code: next ? next.code : 2 });
   },
+  watchPosition(ok, fail, opts) {
+    const id = ++watchSeq;
+    watches[id] = { ok, fail, opts };
+    return id;
+  },
+  clearWatch(id) { delete watches[id]; },
 };
 // node ships a read-only `navigator` global, so a plain assignment is silently ignored
 Object.defineProperty(globalThis, 'navigator', { value: { geolocation }, writable: true, configurable: true });
@@ -139,5 +148,98 @@ globalThis.userLoc = null;
 renderUserLocation();
 check('no location means nothing on the map', layers.length === 0, layers.length + ' layer(s)');
 
-console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nall checks passed\n');
-process.exit(failures ? 1 : 0);
+console.log('\n9. live tracking keeps the dot moving with you');
+const toasts = [];
+const els = {};
+globalThis.$ = id => (els[id] = els[id] || {
+  id, classList: { _c: new Set(), add(c) { this._c.add(c); }, remove(c) { this._c.delete(c); },
+    toggle(c, on) { on ? this._c.add(c) : this._c.delete(c); }, contains(c) { return this._c.has(c); } },
+  setAttribute(k, v) { this[k] = v; }, textContent: '', title: '',
+});
+globalThis.toast = m => toasts.push(m);
+globalThis.syncFilterUI = () => {};
+globalThis.leafletMap = { setView() {}, getZoom: () => 8 };
+globalThis.currentView = 'map';
+let renders = 0;
+globalThis.renderUserLocation = () => { renders++; };
+globalThis.document = { addEventListener() {}, hidden: false };
+(0, eval)(watchSlice + `;
+  globalThis.startLocationWatch = startLocationWatch;
+  globalThis.stopLocationWatch = stopLocationWatch;
+  globalThis.toggleLocationTracking = toggleLocationTracking;
+  globalThis.resumeLocationTracking = resumeLocationTracking;
+  globalThis.wantsLiveLocation = wantsLiveLocation;
+  globalThis.setWantsLiveLocation = setWantsLiveLocation;
+  globalThis.LOC_WATCH_KEY = LOC_WATCH_KEY;
+  globalThis.isTracking = () => locTrackingOn;
+`);
+const fixAt = (lat, lon, acc) => Object.values(watches)[0].ok({ coords: { latitude: lat, longitude: lon, accuracy: acc } });
+const failWith = code => Object.values(watches)[0].fail({ code });
+// stopLocationWatch() releases the watch AND resets the module's internal id, which a
+// bare `watches = {}` would not - so always go through it between scenarios
+const reset = () => {
+  if (isTracking()) toggleLocationTracking();  // the real off path, so locTrackingOn clears too
+  stopLocationWatch(); setWantsLiveLocation(false); watches = {}; toasts.length = 0; renders = 0;
+};
+
+reset();
+globalThis.userLoc = null;
+toggleLocationTracking();
+check('turning it on starts a watch, not a one-shot', Object.keys(watches).length === 1);
+check('the watch asks for high accuracy', Object.values(watches)[0].opts.enableHighAccuracy === true);
+fixAt(32.1, 34.8, 30);
+check('the first fix lands', globalThis.userLoc.lat === 32.1);
+check('and is drawn', renders === 1, String(renders));
+fixAt(32.2, 34.9, 25);
+check('a later fix moves the dot without another tap', globalThis.userLoc.lat === 32.2);
+check('redrawn on every fix', renders === 2, String(renders));
+check('the latest fix is persisted', JSON.parse(store[LAST_LOC_KEY]).lat === 32.2);
+check('the preference is remembered', wantsLiveLocation() === true);
+
+console.log('\n10. tracking survives noise but not a refusal');
+toasts.length = 0;
+failWith(3); // a GPS timeout mid-track
+check('a timeout does not kill the watch', Object.keys(watches).length === 1);
+check('and does not nag', toasts.length === 0, toasts.join(' | '));
+failWith(1); // permission revoked
+check('a refusal stops the watch', Object.keys(watches).length === 0);
+check('and turns the preference off', wantsLiveLocation() === false);
+check('and says why', /חסומה/.test(toasts.join(' ')), toasts.join(' | '));
+
+console.log('\n11. leaving the map stops the GPS');
+reset();
+toggleLocationTracking();
+check('tracking on', Object.keys(watches).length === 1);
+stopLocationWatch();
+check('watch released when the map closes', Object.keys(watches).length === 0);
+check('but the user preference is untouched', wantsLiveLocation() === true, String(wantsLiveLocation()));
+
+console.log('\n12. turning it off means off');
+reset();
+toggleLocationTracking();
+toasts.length = 0;
+toggleLocationTracking();
+check('the watch is released', Object.keys(watches).length === 0);
+check('the preference is cleared', wantsLiveLocation() === false);
+check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '));
+
+(async () => {
+  console.log('\n13. it resumes by itself');
+  reset();
+  setWantsLiveLocation(true);
+  await resumeLocationTracking();
+  check('a remembered preference restarts tracking', Object.keys(watches).length === 1);
+
+  reset();
+  globalThis.navigator.permissions = { query: async () => ({ state: 'granted' }) };
+  await resumeLocationTracking();
+  check('already-granted permission starts tracking without a tap', Object.keys(watches).length === 1);
+
+  reset();
+  globalThis.navigator.permissions = { query: async () => ({ state: 'prompt' }) };
+  await resumeLocationTracking();
+  check('an unanswered permission is never auto-requested', Object.keys(watches).length === 0);
+
+  console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nall checks passed\n');
+  process.exit(failures ? 1 : 0);
+})();

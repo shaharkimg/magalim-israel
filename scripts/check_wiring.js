@@ -30,6 +30,8 @@ const CRITICAL = [
   'goToDestination', 'openDetail', 'openTodaySheet', 'openSheet', 'closeSheet',
   'locateUser', 'geoErrorMessage', 'syncMapControlsOffset', 'fitIsrael',
   'renderUserLocation', 'restoreLastLoc', 'saveLastLoc',
+  'startLocationWatch', 'stopLocationWatch', 'toggleLocationTracking', 'resumeLocationTracking',
+  'setLocateBtnState', 'maybeShowLocateHint', 'dismissLocateHint',
 ];
 
 const defined = new Set();

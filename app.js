@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912a4";
+const APP_VERSION = "20260912a5";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -684,6 +684,120 @@ function locateUser(onOk, onFail, opts){
   }, { enableHighAccuracy:true, timeout:opts.preciseOnly?15000:12000, maximumAge:opts.preciseOnly?0:60000 });
 }
 
+// מעקב-מיקום חי. עד עכשיו היה כאן רק getCurrentPosition חד-פעמי: המשתמש היה צריך
+// לדעת שקיים כפתור-כוונת בפינת המפה, ללחוץ עליו, ולחזור וללחוץ אחרי כל תזוזה - אחרת
+// הנקודה נשארה קפואה במקום שבו הוא היה כשלחץ. עכשיו watchPosition מעדכן אותה ברציפות
+// כל עוד המפה פתוחה.
+//
+// המעקב נעצר ביציאה מהמפה וכשהלשונית מוסתרת (watchPosition עם enableHighAccuracy מדליק
+// את ה-GPS ומרוקן סוללה), וחוזר מעצמו בכניסה הבאה. ההעדפה נשמרת, וכשההרשאה כבר ניתנה
+// המעקב מתחיל לבד - בלי לבקש הרשאה מחדש ובלי לחכות ללחיצה.
+const LOC_WATCH_KEY = "magalim-loc-live";
+let locWatchId = null;
+let locTrackingOn = false;
+function wantsLiveLocation(){
+  try{ return localStorage.getItem(LOC_WATCH_KEY) === "1"; }catch(e){ return false; }
+}
+function setWantsLiveLocation(on){
+  try{ localStorage.setItem(LOC_WATCH_KEY, on ? "1" : "0"); }catch(e){}
+}
+// כפתור-הכוונת הוא אייקון בלי תווית בפינה; title/aria-label לא נראים במגע, ומשתמש
+// שחיפש "איפה מציגים את המיקום שלי" פשוט לא מצא אותו. בועה חד-פעמית מצביעה עליו
+// כשההרשאה עוד לא ניתנה. לא מבקשים הרשאה מעצמנו בטעינה - זה חייב לבוא מלחיצה.
+const LOC_HINT_KEY = "magalim-loc-hint";
+function dismissLocateHint(){
+  const el = $("locateHint"); if(el) el.classList.add("hidden");
+  try{ localStorage.setItem(LOC_HINT_KEY, "1"); }catch(e){}
+}
+async function maybeShowLocateHint(){
+  const el = $("locateHint"); if(!el || !navigator.geolocation) return;
+  let seen = false;
+  try{ seen = localStorage.getItem(LOC_HINT_KEY) === "1"; }catch(e){}
+  if(seen || locTrackingOn || userLoc) return;
+  if(navigator.permissions && navigator.permissions.query){
+    try{
+      const status = await navigator.permissions.query({ name:"geolocation" });
+      if(status.state !== "prompt") return;
+    }catch(e){}
+  }
+  el.classList.remove("hidden");
+}
+function setLocateBtnState(state){
+  const btn = $("locateBtn"); if(!btn) return;
+  btn.classList.toggle("busy", state==="locating");
+  btn.classList.toggle("live", state==="live");
+  const label = state==="live" ? "המיקום שלי — מעקב פעיל, לחצו לכיבוי"
+    : state==="locating" ? "מאתר מיקום..." : "הצג את המיקום שלי";
+  btn.setAttribute("aria-label", label);
+  btn.setAttribute("aria-pressed", String(state==="live"));
+  btn.title = label;
+}
+function startLocationWatch(opts){
+  opts = opts || {};
+  if(!navigator.geolocation) return;
+  locTrackingOn = true;
+  if(locWatchId!=null) return;
+  let firstFix = true;
+  setLocateBtnState(userLoc ? "live" : "locating");
+  locWatchId = navigator.geolocation.watchPosition(pos=>{
+    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy };
+    saveLastLoc();
+    renderUserLocation();
+    setLocateBtnState("live");
+    if(firstFix){
+      firstFix = false;
+      if(opts.recenter && leafletMap) leafletMap.setView([userLoc.lat, userLoc.lon], Math.max(leafletMap.getZoom(), 12));
+      if(opts.announce) toast("המיקום שלך מוצג על המפה");
+      $("distHint").textContent = "המיקום שלך אותר — ניתן לסנן לפי מרחק נסיעה";
+      syncFilterUI();
+    }
+  }, err=>{
+    // timeout/unavailable הם רעש רגיל תוך כדי מעקב - ה-watch ממשיך לנסות. רק סירוב
+    // הרשאה הוא סופי, ורק אז מכבים ומודיעים.
+    if(err.code===1){
+      stopLocationWatch();
+      setWantsLiveLocation(false);
+      locTrackingOn = false;
+      setLocateBtnState("off");
+      toast(geoErrorMessage(err));
+    } else if(opts.announce && firstFix){
+      firstFix = false;
+      setLocateBtnState(userLoc ? "live" : "off");
+      toast(geoErrorMessage(err));
+    }
+  }, { enableHighAccuracy:true, timeout:20000, maximumAge:5000 });
+}
+function stopLocationWatch(){
+  if(locWatchId!=null){ navigator.geolocation.clearWatch(locWatchId); locWatchId = null; }
+}
+// נקרא בכל כניסה למפה: ממשיך מעקב שהמשתמש כבר ביקש, או מתחיל לבד אם ההרשאה כבר
+// ניתנה בעבר (אין טעם להמתין ללחיצה על משהו שכבר אושר).
+async function resumeLocationTracking(){
+  if(!navigator.geolocation || locWatchId!=null) return;
+  if(wantsLiveLocation()){ startLocationWatch(); return; }
+  if(!navigator.permissions || !navigator.permissions.query) return;
+  try{
+    const status = await navigator.permissions.query({ name:"geolocation" });
+    if(status.state === "granted"){ setWantsLiveLocation(true); startLocationWatch(); }
+  }catch(e){}
+}
+function toggleLocationTracking(){
+  if(locTrackingOn){
+    stopLocationWatch();
+    locTrackingOn = false;
+    setWantsLiveLocation(false);
+    setLocateBtnState("off");
+    toast("מעקב המיקום כובה");
+    return;
+  }
+  setWantsLiveLocation(true);
+  startLocationWatch({ recenter:true, announce:true });
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden) stopLocationWatch();
+  else if(locTrackingOn && currentView==="map") startLocationWatch();
+});
+
 let retryHandlers = {}, retryHandlerSeq = 0;
 function errorStateHtml(message, retryFn){
   const id = "r"+(retryHandlerSeq++);
@@ -1266,6 +1380,9 @@ function switchView(view, opts){
   if(view==="feed"){ view = "board"; explicitBoardTab = "feed"; }
   if(!["home","map","saved","board","profile"].includes(view)) view = "home";
   const changed = view !== currentView;
+  // ה-GPS נכבה ביציאה מהמפה בכל מקרה, גם ב-keepState: אין לו צרכן מחוץ למפה, והוא
+  // מרוקן סוללה ברקע. ההעדפה נשמרת, כך שהוא חוזר מעצמו בכניסה הבאה.
+  if(changed && currentView==="map") stopLocationWatch();
   if(changed && !opts.keepState){
     if(currentView==="map") closePreview();
     if(view==="board" && !explicitBoardTab) boardTab = "leaders";
@@ -1289,6 +1406,8 @@ function switchView(view, opts){
       else fitIsrael();
     }
     renderMap();
+    resumeLocationTracking();
+    maybeShowLocateHint();
   },0);
   if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
@@ -2631,20 +2750,11 @@ function wireStaticUI(){
   };
   $("locateBtn").onclick=()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
-    // האיתור יכול לקחת עשרות שניות; בלי סימון-עבודה הכפתור נראה כאילו לא הגיב כלל
-    const btn = $("locateBtn");
-    if(btn.classList.contains("busy")) return;
-    btn.classList.add("busy");
-    const done = ()=> btn.classList.remove("busy");
-    locateUser(()=>{
-      done();
-      $("distHint").textContent = "המיקום שלך אותר — ניתן לסנן לפי מרחק נסיעה";
-      syncFilterUI(); renderMap();
-      const count = filteredLandmarks().length;
-      toast(filters.maxDist<400 ? `נמצאו ${count} יעדים במרחק נסיעה של עד ${estimateDriveMinutes(filters.maxDist)} דק'` : "המיקום אותר בהצלחה");
-      leafletMap.setView([userLoc.lat, userLoc.lon], 12);
-    }, err=>{ done(); toast(geoErrorMessage(err)); });
+    dismissLocateHint();
+    toggleLocationTracking();
   };
+  $("locateHintBtn").onclick = ()=>{ dismissLocateHint(); $("locateBtn").click(); };
+  $("locateHintClose").onclick = (e)=>{ e.stopPropagation(); dismissLocateHint(); };
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
   $("openFilters").onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); syncFilterUI(); openSheet("filterSheet","filterScrim"); } };
   $("closeFilters").onclick=()=>closeSheet("filterSheet","filterScrim");
