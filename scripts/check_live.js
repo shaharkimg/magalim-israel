@@ -93,9 +93,9 @@ const get = async url => {
           'expected until the first Play Console upload — the TWA will show a URL bar until it is real');
       } else {
         check('fingerprint looks like a SHA-256 digest', /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/i.test(print), print);
-        check('deployed fingerprint matches the repo',
-          print === ((localLinks[0] || {}).target || {}).sha256_cert_fingerprints[0],
-          'the repo and the live file have drifted');
+        const repoPrint = ((((localLinks[0] || {}).target || {}).sha256_cert_fingerprints) || [])[0];
+        check('deployed fingerprint matches the repo', print === repoPrint,
+          repoPrint ? 'the repo and the live file have drifted' : 'the repo file has no fingerprint');
       }
     }
   }

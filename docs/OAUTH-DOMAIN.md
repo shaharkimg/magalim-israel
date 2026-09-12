@@ -136,10 +136,24 @@ https://jkyeaewedkzkacjndumd.supabase.co/auth/v1/callback
 
 ## בדיקה אוטומטית של הצד הפרוס
 
+**איפה להריץ — שלוש דרכים, מהקלה לכבדה:**
+
+**1. בלי להתקין כלום — GitHub.** בריפו ← לשונית **Actions** ← **בדיקות** ←
+**Run workflow**. רץ אצל GitHub ומראה ✓ או ✗. זו הדרך היחידה שלא דורשת שום כלי אצלך,
+והיא גם רצה אוטומטית על כל push.
+
+**2. בלי כלום בכלל — דפדפן.** לפתוח את
+`https://megalim-israel.co.il/.well-known/assetlinks.json`. אם מופיע JSON, הקובץ חי.
+אם מופיע 404 או דף שגיאה, זו הבעיה. הסקריפט בודק עוד דברים, אבל זה הבסיס.
+
+**3. מקומית:**
+
 ```bash
-node scripts/check_live.js
+git clone https://github.com/shaharkimg/magalim-israel
+cd magalim-israel
+node scripts/check_live.js     # דורש Node 18 ומעלה
 ```
 
-מריצים **ממחשב עם אינטרנט**. בודק שהאתר עונה, שה-manifest זהה לזה שבריפו ולזה שנארז
+בכל הדרכים זה בודק שהאתר עונה, שה-manifest זהה לזה שבריפו ולזה שנארז
 ל-TWA, ושה-assetlinks מוגש כ-`application/json` עם שם החבילה הנכון. אלה בדיוק הדברים
 שנכשלים בשקט אחרי מעבר דומיין. את ההתחברות עצמה הוא לא בודק — זה דורש דפדפן.
