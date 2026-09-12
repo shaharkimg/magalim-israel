@@ -256,6 +256,8 @@ button{font-family:inherit;}
 .map-controls button{width:44px;height:44px;border:none;background:transparent;color:var(--text);font-size:19px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
 .map-controls button:active{background:var(--bg-elevated);}
 .map-controls button+button{border-top:1px solid var(--border);}
+.locate-btn.busy{color:var(--text-muted);pointer-events:none;}
+.locate-btn.busy svg{animation:spin .9s linear infinite;}
 .locate-btn{position:absolute;right:var(--space-3);bottom:var(--map-ctl-bottom, var(--space-5));transition:bottom .2s cubic-bezier(.2,.8,.3,1);width:44px;height:44px;border-radius:var(--radius-input);border:none;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
 /* Gamification Overhaul, Phase 4 - מקרא-קושי קומפקטי: כפתור נוסף בתוך .map-controls הקיים
    (אותו סגנון-כפתור-מוערם, לא רכיב-צף חדש), פותח popover קטן שנפתח מעליו. טקסט+צבע (לא
@@ -1790,6 +1792,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260906a2"></script>
+<script type="module" src="./app.js?v=20260912a1"></script>
 </body>
 </html>
