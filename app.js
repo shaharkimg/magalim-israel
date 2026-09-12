@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912a6";
+const APP_VERSION = "20260912a7";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -662,8 +662,11 @@ async function renderLocationPermStatus(){
     el.style.color = status.state==="denied" ? "var(--danger)" : status.state==="granted" ? "var(--success)" : "var(--text-muted)";
     const help = $("locationDeniedHelp");
     if(help){
-      help.classList.toggle("hidden", status.state!=="denied");
+      // code 1 בזמן ש"ההרשאה עוד לא נשאלה" = החסימה היא מתחת לדפדפן, לא באתר
+      const osBlocked = status.state==="prompt" && lastGeoError && lastGeoError.code===1;
+      help.classList.toggle("hidden", !(status.state==="denied" || osBlocked));
       if(status.state==="denied") help.innerHTML = deniedHelpHtml();
+      else if(osBlocked) help.innerHTML = osBlockHelpHtml();
     }
   }catch(e){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
@@ -786,7 +789,7 @@ function startLocationWatch(opts){
       setWantsLiveLocation(false);
       locTrackingOn = false;
       setLocateBtnState("off");
-      toast(geoErrorMessage(err));
+      explainGeoFailure(err).then(msg=> toast(msg, { label:"מה לעשות?", onClick:()=> openSettingsAtLocation() }));
     } else if(opts.announce && firstFix){
       firstFix = false;
       setLocateBtnState(userLoc ? "live" : "off");
@@ -884,10 +887,48 @@ function runLocationTest(){
     renderLocationPermStatus();
     toast("המיקום אותר — הנקודה מוצגת על המפה");
   }, async err=>{
-    box.textContent = `FAILED after ${Date.now()-started}ms\ncode ${err && err.code} — ${geoErrorMessage(err)}\n\n`
+    box.textContent = `FAILED after ${Date.now()-started}ms\ncode ${err && err.code} — ${await explainGeoFailure(err)}\n\n`
       + await geoDiagnostics();
     renderLocationPermStatus();
   });
+}
+// חתימה שראינו בפועל: getCurrentPosition נכשל תוך 5 מילישניות עם code 1
+// ("User denied Geolocation") בזמן שה-Permissions API מדווח שההרשאה לאתר עדיין
+// "prompt". כלומר אף אחד לא שאל את המשתמש - הדפדפן לא הספיק להציג בקשה, כי הבקשה
+// נחסמה מתחתיו: הרשאת-המיקום של מערכת-ההפעלה לאפליקציה (או שירותי-המיקום של המכשיר
+// עצמו) כבויה. זה נפוץ במיוחד באפליקציה מותקנת (WebAPK), שמקבלת חבילת-אנדרואיד
+// משלה ועם זה הרשאות-ריצה משלה - נפרדות מאלה של הדפדפן.
+//
+// זה משנה את התשובה לגמרי: ההודעה "אפשרו מיקום לאתר בהגדרות הדפדפן" שולחת את
+// המשתמש למקום שבו אין מה לתקן.
+async function geoBlockScope(){
+  const state = await geoPermissionState();
+  if(state === "denied") return "site";
+  if(state === "prompt") return "os";
+  return "unknown";
+}
+async function explainGeoFailure(err){
+  if(!err || err.code !== 1) return geoErrorMessage(err);
+  return (await geoBlockScope()) === "os"
+    ? "המכשיר חוסם מיקום עבור האפליקציה — צריך לאשר בהגדרות המכשיר, לא בדפדפן"
+    : geoErrorMessage(err);
+}
+function osBlockHelpHtml(){
+  const installed = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
+  const appName = installed ? "מגלים את ישראל" : "הדפדפן (Chrome)";
+  return '<strong>הבקשה נחסמה מתחת לדפדפן, לא באתר.</strong> הדפדפן דיווח שההרשאה לאתר '
+    + 'עדיין לא נשאלה, ובכל זאת הבקשה נדחתה מיד — כלומר שירותי-המיקום של המכשיר כבויים, '
+    + 'או שהרשאת המיקום של האפליקציה עצמה לא ניתנה. כך מתקנים:'
+    + "<ol>"
+    + "<li>הגדרות המכשיר ← מיקום — לוודא שהוא דולק</li>"
+    + `<li>הגדרות המכשיר ← אפליקציות ← <b>${appName}</b> ← הרשאות ← מיקום ← "אפשר"</li>`
+    + (installed ? "<li>האפליקציה המותקנת מקבלת הרשאות-אנדרואיד משלה, נפרדות מאלה של Chrome — לכן צריך לאשר אותה בנפרד</li>"
+                 : "")
+    + "<li>לחזור לכאן וללחוץ שוב על \u0022בדיקת מיקום\u0022</li>"
+    + "</ol>"
+    + (installed ? '<b>בדיקה מהירה:</b> פתחו את האתר ב-Chrome רגיל (לא מהאייקון המותקן). '
+                 + 'אם שם המיקום עובד — הבעיה היא בהרשאת-האנדרואיד של האפליקציה המותקנת.<br>' : "")
+    + 'ובינתיים, אפשר לסמן מיקום ידנית על המפה בכפתור שלמעלה.';
 }
 function deniedHelpHtml(){
   const android = /Android/i.test(navigator.userAgent);
@@ -904,6 +945,12 @@ function deniedHelpHtml(){
     + ' אפליקציית-web לא יכולה לעקוף את זה מבפנים - ההרשאה נאכפת על-ידי הדפדפן. כך מחזירים אותה:'
     + "<ol>" + steps.map(x=>`<li>${x}</li>`).join("") + "</ol>"
     + 'אם אתם מעדיפים לא לאשר, אפשר לסמן מיקום ידנית על המפה בכפתור שלמעלה.';
+}
+// קיצור מההודעה אל ההסבר המלא - בלעדיו המשתמש מקבל שורה אחת בלי מה לעשות איתה
+function openSettingsAtLocation(){
+  openSheet("settingsSheet","settingsScrim");
+  renderLocationPermStatus();
+  setTimeout(()=>{ const el = $("locationPermStatus"); if(el && el.scrollIntoView) el.scrollIntoView({ block:"start", behavior:"smooth" }); }, 80);
 }
 // --- מיקום ידני ---
 let pickingLocation = false;
