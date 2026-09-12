@@ -17,6 +17,9 @@ globalThis.lbPeriod = 'week';
 globalThis.keepMapFraming = false;
 globalThis.leafletMap = { invalidateSize() {} };
 globalThis.fitIsrael = () => calls.push('fitIsrael');
+globalThis.stopLocationWatch = () => calls.push('stopLocationWatch');
+globalThis.resumeLocationTracking = () => calls.push('resumeLocationTracking');
+globalThis.maybeShowLocateHint = () => {};
 // the map framing is deferred so it runs after invalidateSize; run timers inline here
 globalThis.setTimeout = fn => fn();
 globalThis.closePreview = () => calls.push('closePreview');
@@ -79,7 +82,15 @@ check('the flag is consumed after one use', globalThis.keepMapFraming === false)
 switchView('home'); calls.length = 0; switchView('map');
 check('the next entry resets as usual', calls.includes('fitIsrael'));
 
-console.log('\n6. keepState opts out');
+console.log('\n6. the GPS follows the map screen');
+switchView('home'); calls.length = 0; switchView('map');
+check('entering the map resumes tracking', calls.includes('resumeLocationTracking'));
+calls.length = 0; switchView('home');
+check('leaving the map releases the GPS', calls.includes('stopLocationWatch'));
+switchView('map'); calls.length = 0; switchView('home', { keepState: true });
+check('keepState does not keep the GPS running', calls.includes('stopLocationWatch'));
+
+console.log('\n7. keepState opts out');
 switchView('board'); globalThis.boardTab = 'achievements'; calls.length = 0;
 switchView('home'); switchView('board', { keepState: true });
 check('keepState preserves the sub-tab', calls.includes('board:achievements'), calls.filter(c => c.startsWith('board')).join(','));
