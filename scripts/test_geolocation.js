@@ -328,11 +328,12 @@ check('the user is told', /כובה/.test(toasts.join(' ')), toasts.join(' | '))
   check('the installed app is named, not Chrome', /מגלים את ישראל/.test(help));
   check('explains that the installed app has its own permission', /נפרדות/.test(help));
   check('offers the open-in-Chrome discriminator', /Chrome רגיל/.test(help));
+  check('and makes it one tap, not an instruction', /id="openInBrowserBtn"/.test(help));
   globalThis.window.matchMedia = () => ({ matches: false }); // plain browser tab
   help = osBlockHelpHtml();
   check('in a browser tab it names the browser', /Chrome/.test(help) && !/מגלים את ישראל/.test(help));
   check('and drops the open-in-Chrome step', !/Chrome רגיל/.test(help));
-  check('both variants offer the manual fallback', /ידנית/.test(help) && /ידנית/.test(osBlockHelpHtml()));
+  check('both variants offer a fallback that needs no permission', /ידנית/.test(help) && /הרשת/.test(help));
 
   console.log('\n17. the network fallback, for when the device blocks GPS entirely');
   const fetched = [];

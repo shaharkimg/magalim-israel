@@ -35,7 +35,7 @@ const CRITICAL = [
   'geoDiagnostics', 'runLocationTest', 'deniedHelpHtml', 'osBlockHelpHtml', 'renderLocationPermStatus',
   'explainGeoFailure', 'geoBlockScope', 'openSettingsAtLocation',
   'startManualLocationPick', 'cancelManualLocationPick', 'setManualLocation', 'clearManualLocation',
-  'fetchApproxLocation', 'useApproxLocation',
+  'fetchApproxLocation', 'useApproxLocation', 'openInPlainBrowser',
 ];
 
 const defined = new Set();
