@@ -63,7 +63,7 @@ node scripts/check_wiring.js    # שפונקציות קריטיות לא נות�
 node scripts/check_twa.js       # שאריזת האנדרואיד עקבית עם האפליקציה
 node scripts/check_live.js      # שהאתר הפרוס תקין (דורש רשת)
 node scripts/test_geolocation.js scripts/test_view_reset.js \
-     scripts/test_recommendation.js scripts/test_auth_views.js
+     scripts/test_recommendation.js scripts/test_auth_views.js scripts/test_oauth_error.js
 node scripts/test_map_controls.js   # דורש Playwright; בלעדיו מדלג בהודעה ברורה
 ```
 
