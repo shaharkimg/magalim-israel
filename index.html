@@ -248,15 +248,19 @@ button{font-family:inherit;}
 .quick-chip-row::-webkit-scrollbar{display:none;}
 .quick-chip{flex:none;padding:var(--space-2) var(--space-3);font-size:12.5px;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);}
 .quick-chip.active{box-shadow:none;}
-.map-controls{position:absolute;left:var(--space-3);bottom:var(--space-5);display:flex;flex-direction:column;gap:1px;z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);overflow:hidden;box-shadow:var(--shadow-elevated);}
+/* כפתורי-המפה יושבים בפינות התחתונות, ובדיוק שם מופיע גם הפס התחתון של המפה -
+   קרוסלת-הגילוי או כרטיס-התצוגה, שניהם ברוחב מלא ומעליהם ב-z-index. --map-ctl-bottom
+   מורם מ-syncMapControlsOffset() לגובה האמיתי של מה שמוצג כרגע, כדי שהכפתורים לא
+   ייקברו מתחתיו. בלי זה לחיצה על "המיקום שלי" נחתה על כרטיס-יעד ולא על הכפתור. */
+.map-controls{position:absolute;left:var(--space-3);bottom:var(--map-ctl-bottom, var(--space-5));transition:bottom .2s cubic-bezier(.2,.8,.3,1);display:flex;flex-direction:column;gap:1px;z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);overflow:hidden;box-shadow:var(--shadow-elevated);}
 .map-controls button{width:44px;height:44px;border:none;background:transparent;color:var(--text);font-size:19px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
 .map-controls button:active{background:var(--bg-elevated);}
 .map-controls button+button{border-top:1px solid var(--border);}
-.locate-btn{position:absolute;right:var(--space-3);bottom:var(--space-5);width:44px;height:44px;border-radius:var(--radius-input);border:none;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
+.locate-btn{position:absolute;right:var(--space-3);bottom:var(--map-ctl-bottom, var(--space-5));transition:bottom .2s cubic-bezier(.2,.8,.3,1);width:44px;height:44px;border-radius:var(--radius-input);border:none;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);display:flex;align-items:center;justify-content:center;color:var(--teal);cursor:pointer;z-index:1000;}
 /* Gamification Overhaul, Phase 4 - מקרא-קושי קומפקטי: כפתור נוסף בתוך .map-controls הקיים
    (אותו סגנון-כפתור-מוערם, לא רכיב-צף חדש), פותח popover קטן שנפתח מעליו. טקסט+צבע (לא
    צבע-בלבד) לכל שורה - a11y. */
-.diff-legend{position:absolute;left:var(--space-3);bottom:154px;z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:var(--space-3) var(--space-4);font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:var(--space-2);white-space:nowrap;}
+.diff-legend{position:absolute;left:var(--space-3);bottom:calc(var(--map-ctl-bottom, var(--space-5)) + 130px);z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:var(--space-3) var(--space-4);font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:var(--space-2);white-space:nowrap;}
 .diff-legend-row{display:flex;align-items:center;gap:var(--space-2);}
 .legend-title{font-size:11px;font-weight:800;color:var(--text-muted);letter-spacing:.03em;}
 .legend-title-gap{margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--border);}
