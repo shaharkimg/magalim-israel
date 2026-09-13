@@ -1,16 +1,12 @@
 name: איתור מיקומים ליעדים חדשים
 
-# מורץ ידנית בלבד. הרשת של הסביבה המקומית חוסמת את שירות המיקומים, אבל של
-# GitHub פתוחה - ולכן זה המקום שבו הסקריפט באמת יכול לרוץ, בלי להתקין כלום.
+# מורץ ידנית בלבד. הרשת של הסביבה המקומית חוסמת את מסד המפות, אבל של GitHub
+# פתוחה - ולכן זה המקום שבו זה באמת יכול לרוץ, בלי להתקין כלום.
 on:
   workflow_dispatch:
     inputs:
-      limit:
-        description: 'כמה מקומות לבדוק (5 = ריצת ניסיון, ריק = כל ה-305)'
-        type: string
-        default: '5'
       commit:
-        description: 'לשמור את התוצאה לענף? (השאירו כבוי בריצת ניסיון)'
+        description: 'לשמור את התוצאה לענף? (בפעם הראשונה השאירו כבוי)'
         type: boolean
         default: false
 
@@ -26,14 +22,9 @@ jobs:
           node-version: '22'
 
       - name: איתור המיקומים
-        run: |
-          if [ -n "${{ inputs.limit }}" ]; then
-            node scripts/geocode_pending.js --limit "${{ inputs.limit }}"
-          else
-            node scripts/geocode_pending.js
-          fi
+        run: node scripts/match_osm.js
 
-      # גם בריצת ניסיון - כך אפשר להוריד את קובץ הבדיקה ולראות מה לא נמצא
+      # גם כשלא שומרים - כך אפשר להוריד ולבדוק את התוצאה לפני שמחליטים
       - name: שמירת התוצאות להורדה
         if: always()
         uses: actions/upload-artifact@v4
@@ -42,6 +33,7 @@ jobs:
           path: |
             supabase/migrations_new_landmarks_from_list.sql
             data/geocode_accepted.csv
+            data/geocode_duplicates.csv
             data/geocode_review.csv
           if-no-files-found: ignore
 
@@ -50,7 +42,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A supabase/migrations_new_landmarks_from_list.sql data/geocode_accepted.csv data/geocode_review.csv
+          git add -A supabase/migrations_new_landmarks_from_list.sql \
+            data/geocode_accepted.csv data/geocode_duplicates.csv data/geocode_review.csv
           git diff --staged --quiet && echo "אין שינוי לשמור" && exit 0
-          git commit -m "יעדים חדשים: מיקומים שאותרו אוטומטית מהרשימה"
+          git commit -m "יעדים חדשים: מיקומים שאותרו מתוך OpenStreetMap"
           git push
