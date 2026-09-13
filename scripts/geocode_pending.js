@@ -142,7 +142,7 @@ async function lookup(query) {
   const kind = hit.addresstype || hit.type || '';
   return {
     lat: +hit.lat, lon: +hit.lon, label: hit.display_name || hit.name || '',
-    matchedName: hit.name || '',
+    matchedName: hit.name || hit.display_name || '',
     coarse: (OSM_COARSE_TYPES.has(kind) || Number(hit.place_rank) <= 13) ? (kind || 'rank ' + hit.place_rank) : null,
   };
 }
@@ -155,7 +155,9 @@ async function lookup(query) {
 const NOISE = new Set(['גן', 'לאומי', 'שמורת', 'שמורה', 'טבע', 'נחל', 'הר', 'עין',
   'דרך', 'נוף', 'אתר', 'פארק', 'יער', 'מסלול', 'ישראל', 'של', 'ב', 'ה']);
 function nameMismatch(query, matched) {
-  if (!matched) return null;                 // nothing to compare against
+  // Never "no name, so let it through": a result with no name of its own is
+  // exactly the shape a wrong hit takes, so fall back to the full address.
+  if (!matched) return null;
   const words = s => new Set(String(s)
     .replace(/[(),.\-–—"'״׳]/g, ' ').split(/\s+/)
     .filter(w => w.length >= 3 && !NOISE.has(w)));
@@ -213,9 +215,11 @@ function nameMismatch(query, matched) {
     if (LIMIT <= 20) {
       const last = accepted[accepted.length - 1];
       const ok = last && last.name === p.name;
+      // what it found matters more than where: a wrong hit looks perfectly fine
+      // as a coordinate, and only the name gives it away
       console.log('  ' + (ok ? 'OK  ' : 'SKIP') + '  ' + p.name +
-        (ok ? '  -> ' + last.lat.toFixed(5) + ', ' + last.lon.toFixed(5) +
-          '   https://www.google.com/maps?q=' + last.lat + ',' + last.lon
+        (ok ? '\n          found: ' + (last.label || '(no name)') +
+          '\n          ' + 'https://www.google.com/maps?q=' + last.lat + ',' + last.lon
           : '  (' + review[review.length - 1].why + ')'));
     } else {
       process.stdout.write('\r  ' + done + '/' + total + '  accepted ' + accepted.length + '  to review ' + review.length + '   ');
