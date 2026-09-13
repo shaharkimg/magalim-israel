@@ -28,69 +28,109 @@ const BBOX = '29.4,34.2,33.4,35.95';                 // south,west,north,east
 const CACHE = path.join(root, 'data/osm_places.json');
 const USE_CACHE = process.argv.includes('--cache');
 
-// Grouped so one slow theme cannot time out the rest, and so a failure says
-// which kind of place is missing from the result.
-const THEMES = {
-  water: ['node["natural"="spring"]["name"]', 'way["natural"="spring"]["name"]',
-    'node["natural"="waterfall"]["name"]', 'way["waterway"="waterfall"]["name"]',
-    'way["natural"="water"]["name"]', 'way["waterway"="stream"]["name"]',
-    'relation["waterway"="stream"]["name"]'],
-  viewpoints: ['node["tourism"="viewpoint"]["name"]', 'way["tourism"="viewpoint"]["name"]'],
-  archaeology: ['node["historic"="archaeological_site"]["name"]',
-    'way["historic"="archaeological_site"]["name"]',
-    'node["historic"="ruins"]["name"]', 'way["historic"="ruins"]["name"]'],
-  heritage: ['node["historic"="memorial"]["name"]', 'way["historic"="memorial"]["name"]',
-    'node["historic"="monument"]["name"]', 'way["historic"="castle"]["name"]',
-    'node["tourism"="museum"]["name"]'],
-  nature: ['way["leisure"="nature_reserve"]["name"]', 'relation["leisure"="nature_reserve"]["name"]',
-    'way["boundary"="national_park"]["name"]', 'relation["boundary"="national_park"]["name"]',
-    'way["landuse"="forest"]["name"]', 'relation["landuse"="forest"]["name"]',
-    'node["natural"="peak"]["name"]', 'way["leisure"="park"]["name"]'],
-};
+// One selector per request. The first attempt bundled every water tag into a
+// single query and the server returned 504 four times: "every named stream in
+// Israel" is enormous, since each stream is many way segments. Asked one tag at
+// a time each query is small, and a tag that still fails costs only itself.
+//
+// waterway=stream and natural=water are deliberately absent. They are the heavy
+// ones, and a stream is a line rather than a place to stand, so a centre point
+// on it would be arbitrary anyway. Springs and waterfalls carry the list's
+// water entries.
+const SELECTORS = [
+  ['water', 'node["natural"="spring"]["name"]'],
+  ['water', 'way["natural"="spring"]["name"]'],
+  ['water', 'node["natural"="waterfall"]["name"]'],
+  ['water', 'node["waterway"="waterfall"]["name"]'],
+  ['viewpoints', 'node["tourism"="viewpoint"]["name"]'],
+  ['archaeology', 'node["historic"="archaeological_site"]["name"]'],
+  ['archaeology', 'way["historic"="archaeological_site"]["name"]'],
+  ['archaeology', 'node["historic"="ruins"]["name"]'],
+  ['heritage', 'node["historic"="memorial"]["name"]'],
+  ['heritage', 'node["historic"="monument"]["name"]'],
+  ['heritage', 'way["historic"="castle"]["name"]'],
+  ['heritage', 'node["tourism"="museum"]["name"]'],
+  ['nature', 'node["natural"="peak"]["name"]'],
+  ['nature', 'way["leisure"="nature_reserve"]["name"]'],
+  ['nature', 'relation["leisure"="nature_reserve"]["name"]'],
+  ['nature', 'way["boundary"="national_park"]["name"]'],
+  ['nature', 'relation["boundary"="national_park"]["name"]'],
+  ['nature', 'way["landuse"="forest"]["name"]'],
+];
+// overpass-api.de is the busiest instance; kumi is a maintained mirror. Rotating
+// means one overloaded server does not end the run.
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function overpass(theme, parts) {
-  const q = '[out:json][timeout:180];(' +
-    parts.map(p => p + '(' + BBOX + ');').join('') + ');out center tags;';
-  // Overpass rate-limits by slot rather than by a fixed interval, so a 429 or a
-  // 504 means wait and ask again rather than give up.
-  for (let attempt = 1; attempt <= 4; attempt++) {
-    const res = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'magalim-israel/1.0 (one-off landmark seeding)' },
-      body: 'data=' + encodeURIComponent(q),
-    });
-    if (res.status === 429 || res.status === 504) {
-      const wait = attempt * 30;
-      console.log('  ' + theme + ': busy (HTTP ' + res.status + '), waiting ' + wait + 's');
-      await sleep(wait * 1000);
+async function overpass(selector) {
+  const q = '[out:json][timeout:90];(' + selector + '(' + BBOX + '););out center tags;';
+  let lastError = 'unknown';
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const endpoint = ENDPOINTS[attempt % ENDPOINTS.length];
+    let res;
+    try {
+      res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'magalim-israel/1.0 (one-off landmark seeding)' },
+        body: 'data=' + encodeURIComponent(q),
+      });
+    } catch (e) { lastError = e.message; await sleep(10000); continue; }
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.elements) return json.elements;
+      lastError = 'no elements in response';
+    } else if (res.status === 429) {
+      lastError = 'rate limited';
+      await sleep(20000);
       continue;
+    } else if (res.status === 504) {
+      lastError = 'server timed out on the query';
+      await sleep(10000);
+      continue;
+    } else {
+      lastError = 'HTTP ' + res.status;
     }
-    if (!res.ok) throw new Error(theme + ': HTTP ' + res.status + ' — ' + (await res.text()).slice(0, 200));
-    const json = await res.json();
-    if (!json.elements) throw new Error(theme + ': no elements in response');
-    return json.elements;
+    await sleep(5000);
   }
-  throw new Error(theme + ': still rate-limited after 4 attempts');
+  throw new Error(lastError);
 }
 
 async function fetchAll() {
   const out = [];
-  for (const [theme, parts] of Object.entries(THEMES)) {
-    process.stdout.write('  ' + theme + ' ... ');
-    const els = await overpass(theme, parts);
-    for (const e of els) {
-      const lat = e.lat ?? (e.center && e.center.lat);
-      const lon = e.lon ?? (e.center && e.center.lon);
-      const name = e.tags && (e.tags['name:he'] || e.tags.name);
-      if (lat == null || lon == null || !name) continue;
-      out.push({ name, lat, lon, theme, alt: (e.tags['alt_name'] || '') });
+  const failed = [];
+  for (const [theme, selector] of SELECTORS) {
+    const label = selector.replace(/\["name"\]/, '').replace(/[["\]]/g, ' ').trim();
+    process.stdout.write('  ' + label.padEnd(42) + ' ');
+    try {
+      const els = await overpass(selector);
+      let kept = 0;
+      for (const e of els) {
+        const lat = e.lat ?? (e.center && e.center.lat);
+        const lon = e.lon ?? (e.center && e.center.lon);
+        const name = e.tags && (e.tags['name:he'] || e.tags.name);
+        if (lat == null || lon == null || !name) continue;
+        out.push({ name, lat, lon, theme, alt: e.tags.alt_name || '' });
+        kept++;
+      }
+      console.log(kept + ' named');
+    } catch (e) {
+      // One tag failing is not worth losing the other seventeen over.
+      console.log('FAILED — ' + e.message);
+      failed.push(label + ' (' + e.message + ')');
     }
-    console.log(els.length + ' features');
     await sleep(2000);                                // be a good neighbour
   }
+  if (failed.length) {
+    console.log('\n  ' + failed.length + ' of ' + SELECTORS.length + ' queries failed:');
+    for (const f of failed) console.log('    ' + f);
+  }
+  if (!out.length) throw new Error('every Overpass query failed — nothing to match against');
   return out;
 }
 
