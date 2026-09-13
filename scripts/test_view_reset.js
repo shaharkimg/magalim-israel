@@ -28,6 +28,9 @@ globalThis.renderProfile = () => calls.push('renderProfile');
 globalThis.renderHome = () => calls.push('renderHome');
 globalThis.renderSaved = () => calls.push('renderSaved');
 globalThis.renderMap = () => {};
+// a blind user is told the screen changed by focus moving and by the live region
+globalThis.focusView = v => calls.push('focus:' + v);
+globalThis.announce = m => calls.push('announce:' + m);
 globalThis.document = { querySelectorAll: () => [] };
 globalThis.$ = id => ({
   id,
@@ -36,7 +39,10 @@ globalThis.$ = id => ({
   set scrollTop(v) { scrolled.push(id); },
 });
 
-(0, eval)(slice + '; globalThis.switchView = switchView;');
+// pulled from the source rather than restated here, so the screen names cannot drift
+const titles = src.match(/const VIEW_TITLES = \{[^}]*\};/)[0];
+
+(0, eval)(titles + ';globalThis.VIEW_TITLES = VIEW_TITLES;' + slice + '; globalThis.switchView = switchView;');
 
 let failures = 0;
 const check = (name, cond, detail) => {
@@ -94,6 +100,14 @@ console.log('\n7. keepState opts out');
 switchView('board'); globalThis.boardTab = 'achievements'; calls.length = 0;
 switchView('home'); switchView('board', { keepState: true });
 check('keepState preserves the sub-tab', calls.includes('board:achievements'), calls.filter(c => c.startsWith('board')).join(','));
+
+console.log('\n8. a screen reader is told the screen changed');
+switchView('home'); calls.length = 0; switchView('saved');
+check('focus moves to the new screen', calls.includes('focus:saved'));
+check('and the screen names itself', calls.includes('announce:מקומות שמורים'));
+calls.length = 0; switchView('saved');
+check('switching to the screen already shown stays quiet',
+  !calls.some(c => c.startsWith('announce:')));
 
 console.log(failures ? `\n${failures} FAILURE(S)\n` : '\nall checks passed\n');
 process.exit(failures ? 1 : 0);

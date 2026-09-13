@@ -930,6 +930,14 @@ button{font-family:inherit;}
 
 svg{overflow:visible;}
 .hidden{display:none!important;}
+/* נשמע לקורא מסך אך אינו נראה. clip-path ולא display:none, שאחרת הקורא מדלג עליו */
+.sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;}
+/* מוסתר עד שמקישים Tab - אז הוא קופץ ומאפשר לדלג על הכותרת בכל מסך */
+.skip-link{position:absolute;inset-inline-start:8px;top:-100px;z-index:2000;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:var(--radius-input);font-weight:700;font-size:14px;text-decoration:none;transition:top .15s;}
+.skip-link:focus{top:8px;}
+/* מסך פעיל מקבל פוקוס בניווט; בלי זה קורא-המסך נשאר על המסך הקודם */
+.view:focus{outline:none;}
+.view:focus-visible{outline:2px solid var(--accent-strong);outline-offset:-2px;}
 /* מספרים עם "+" או "✓" מובילים - כדי ש-bidi של RTL לא יזיז את הסימן לסוף */
 .ltr{direction:ltr;display:inline-block;}
 input[type=file]{display:none;}
@@ -941,6 +949,10 @@ input[type=file]{display:none;}
 </style>
 </head>
 <body>
+<a href="#" class="skip-link" id="skipToContent">דילוג לתוכן הראשי</a>
+<!-- שתי אזעקות חיות: polite לעדכונים רגילים, assertive לשגיאות שחייבות לקטוע -->
+<div class="sr-only" id="srAnnouncer" role="status" aria-live="polite" aria-atomic="true"></div>
+<div class="sr-only" id="srAlert" role="alert" aria-live="assertive" aria-atomic="true"></div>
 <div class="app-shell" id="appShell">
 
   <div class="loading-screen" id="loadingScreen"><div class="spinner"></div><div class="t-caption">טוען...</div></div>
@@ -1012,16 +1024,16 @@ input[type=file]{display:none;}
     <div class="section-head"><h2>הגדרות הרשמה</h2></div>
     <div class="privacy-toggle-row" style="margin-bottom:10px;">
       <span>הרשמה פתוחה</span>
-      <label class="switch"><input type="checkbox" id="admRegEnabled"><span class="track"></span></label>
+      <label class="switch"><input type="checkbox" id="admRegEnabled" aria-label="הרשמה פתוחה"><span class="track"></span></label>
     </div>
     <div class="privacy-toggle-row" style="margin-bottom:14px;">
       <span>הרשמה בהזמנה בלבד</span>
-      <label class="switch"><input type="checkbox" id="admInviteOnly"><span class="track"></span></label>
+      <label class="switch"><input type="checkbox" id="admInviteOnly" aria-label="הרשמה בהזמנה בלבד"><span class="track"></span></label>
     </div>
     <label class="field-label">מגבלת משתמשים (ריק = ללא הגבלה)</label>
-    <input class="text-input" type="number" min="0" id="admMaxUsers" placeholder="ללא הגבלה" style="margin-bottom:12px;">
+    <input class="text-input" type="number" min="0" id="admMaxUsers" aria-label="מגבלת משתמשים" placeholder="ללא הגבלה" style="margin-bottom:12px;">
     <label class="field-label">הזמנות ברירת מחדל למשתמש</label>
-    <input class="text-input" type="number" min="0" id="admDefaultInvites" style="margin-bottom:16px;">
+    <input class="text-input" type="number" min="0" id="admDefaultInvites" aria-label="הזמנות ברירת מחדל למשתמש" style="margin-bottom:16px;">
     <button class="btn btn-primary btn-block" id="admSaveBtn">שמירת הגדרות</button>
     <div class="auth-note" id="admSaveNote" style="margin-top:10px;"></div>
     <div class="section-head"><h2>משתמשים אחרונים</h2></div>
@@ -1035,12 +1047,12 @@ input[type=file]{display:none;}
       <div class="avatar" id="editAvatarPreview"><span id="editAvatarLetter">א</span></div>
       <div>
         <button class="btn btn-outline" id="changeAvatarBtn" type="button">החלף תמונה</button>
-        <input type="file" accept="image/*" id="avatarInput" class="hidden">
+        <input type="file" accept="image/*" id="avatarInput" aria-label="בחירת תמונת פרופיל" class="hidden">
       </div>
     </div>
     <div class="filter-group">
       <h3>שם</h3>
-      <input type="text" class="text-input" id="editNameInput" maxlength="40" placeholder="איך לקרוא לך?">
+      <input type="text" class="text-input" id="editNameInput" aria-label="השם שלך" maxlength="40" placeholder="איך לקרוא לך?">
     </div>
     <div class="section-head" style="margin-top:20px;"><h2>סגנון הטיולים שלי</h2></div>
     <div class="filter-group"><h3>בדרך כלל אני מטייל/ת עם</h3><div class="chip-row" id="prefCompany">
@@ -1133,12 +1145,12 @@ input[type=file]{display:none;}
     <div class="section-head"><h2>עוד עזרה</h2></div>
     <button class="btn btn-outline btn-block" id="reportProblemToggle" type="button" style="margin-bottom:8px;">דווח על בעיה</button>
     <div class="hidden" id="reportProblemForm">
-      <textarea class="text-input" id="reportProblemText" rows="4" maxlength="600" placeholder="ספרו לנו מה קרה..." style="resize:vertical;margin-bottom:8px;"></textarea>
+      <textarea class="text-input" id="reportProblemText" aria-label="תיאור התקלה" rows="4" maxlength="600" placeholder="ספרו לנו מה קרה..." style="resize:vertical;margin-bottom:8px;"></textarea>
       <button class="btn btn-primary btn-block" id="reportProblemSubmit" style="margin-bottom:16px;">שליחה</button>
     </div>
     <button class="btn btn-outline btn-block" id="sendIdeaToggle" type="button" style="margin-bottom:8px;">שלח רעיון / הצעה</button>
     <div class="hidden" id="sendIdeaForm">
-      <textarea class="text-input" id="sendIdeaText" rows="4" maxlength="600" placeholder="נשמח לשמוע..." style="resize:vertical;margin-bottom:8px;"></textarea>
+      <textarea class="text-input" id="sendIdeaText" aria-label="הרעיון שלך" rows="4" maxlength="600" placeholder="נשמח לשמוע..." style="resize:vertical;margin-bottom:8px;"></textarea>
       <button class="btn btn-primary btn-block" id="sendIdeaSubmit">שליחה</button>
     </div>
   </div>
@@ -1150,7 +1162,7 @@ input[type=file]{display:none;}
     <div class="auth-view" id="authViewWelcome">
       <div class="welcome-hero">
         <div class="welcome-art" aria-hidden="true">
-          <svg viewBox="0 0 320 200">
+          <svg viewBox="0 0 320 200" aria-hidden="true" focusable="false">
             <defs><clipPath id="wclip"><rect x="0" y="0" width="320" height="200" rx="20"/></clipPath></defs>
             <g clip-path="url(#wclip)">
               <rect width="320" height="200" fill="var(--color-primary-light)"/>
@@ -1178,7 +1190,7 @@ input[type=file]{display:none;}
     <!-- Register / Login: טופס אחד, אותם שדות ואותו handler קיים, מצב נשלט ע"י authMode -->
     <div class="auth-view hidden" id="authViewForm">
       <button type="button" class="auth-back" id="authBackBtn" aria-label="חזרה">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="auth-head">
         <h1 id="authTitle">יוצאים לדרך</h1>
@@ -1218,11 +1230,11 @@ input[type=file]{display:none;}
       <div class="auth-divider" id="oauthDivider"><span id="oauthDividerText">או המשיכו עם</span></div>
       <div class="auth-oauth-row" id="oauthRow">
         <button type="button" class="auth-oauth-btn" id="googleAuthBtn">
-          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.47a5.53 5.53 0 0 1-2.4 3.63v2.98h3.87c2.27-2.09 3.58-5.17 3.58-8.79Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.87-2.98c-1.08.72-2.45 1.14-4.07 1.14-3.13 0-5.78-2.11-6.73-4.96H1.27v3.07A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.27 14.3A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.3V6.63H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.37l4-3.07Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.63l4 3.07C6.22 6.86 8.87 4.75 12 4.75Z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.47a5.53 5.53 0 0 1-2.4 3.63v2.98h3.87c2.27-2.09 3.58-5.17 3.58-8.79Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.87-2.98c-1.08.72-2.45 1.14-4.07 1.14-3.13 0-5.78-2.11-6.73-4.96H1.27v3.07A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.27 14.3A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.3V6.63H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.37l4-3.07Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.63l4 3.07C6.22 6.86 8.87 4.75 12 4.75Z"/></svg>
           המשך עם Google
         </button>
         <button type="button" class="auth-oauth-btn" id="facebookAuthBtn">
-          <svg viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.25h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07Z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.25h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07Z"/></svg>
           המשך עם Facebook
         </button>
       </div>
@@ -1270,7 +1282,7 @@ input[type=file]{display:none;}
     <div class="topbar-side topbar-side-end">
       <button class="icon-btn hidden" id="notifBellBtn" aria-label="התראות" title="התראות" style="position:relative;flex:none;">
         <span class="unread-dot" id="bellUnreadDot"></span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3a5.5 5.5 0 0 0-5.5 5.5v2.6c0 .7-.25 1.38-.7 1.92L4.6 14.6c-.86 1.03-.14 2.6 1.2 2.6h12.4c1.34 0 2.06-1.57 1.2-2.6l-1.2-1.58a2.9 2.9 0 0 1-.7-1.92V8.5A5.5 5.5 0 0 0 12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 3a5.5 5.5 0 0 0-5.5 5.5v2.6c0 .7-.25 1.38-.7 1.92L4.6 14.6c-.86 1.03-.14 2.6 1.2 2.6h12.4c1.34 0 2.06-1.57 1.2-2.6l-1.2-1.58a2.9 2.9 0 0 1-.7-1.92V8.5A5.5 5.5 0 0 0 12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       </button>
       <div class="stat-pill hidden" id="headerPoints">
         <span><b id="pointsVal">0</b> נקודות</span>
@@ -1284,7 +1296,7 @@ input[type=file]{display:none;}
 
   <!-- Home (§1): לא dashboard - מסך אישי שמוביל לפעולה אחת. מרכיב את הליבה הקיימת
        (מנוע ההמלצות, אחוז הגילוי, אזורים, פיד חברים) לכדי לולאה: איפה אני → מה הבא → יאללה. -->
-  <div class="view active hidden" id="view-home">
+  <div class="view active hidden" id="view-home" role="region" aria-label="בית" tabindex="-1">
     <div class="scroll-area">
       <div class="home-hero">
         <div class="home-hero-top">
@@ -1318,20 +1330,20 @@ input[type=file]{display:none;}
     </div>
   </div>
 
-  <div class="view hidden" id="view-map">
+  <div class="view hidden" id="view-map" role="region" aria-label="מפה" tabindex="-1">
     <div class="map-wrap" id="mapWrap">
       <div id="mapSvg"></div>
       <div class="map-top-bar">
         <div class="map-search-row">
           <button class="map-fab" id="openSearchBtn" aria-label="חיפוש" title="חיפוש">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           </button>
           <button class="map-search-pill" id="openTodayWizard">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.4 4.3L18 9l-4.6 1.7L12 15l-1.4-4.3L6 9l4.6-1.7L12 3Z" fill="currentColor"/><path d="M19 14l.6 1.9L21.5 17l-1.9.6L19 19.5l-.6-1.9L16.5 17l1.9-.6L19 14Z" fill="currentColor"/></svg>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 3l1.4 4.3L18 9l-4.6 1.7L12 15l-1.4-4.3L6 9l4.6-1.7L12 3Z" fill="currentColor"/><path d="M19 14l.6 1.9L21.5 17l-1.9.6L19 19.5l-.6-1.9L16.5 17l1.9-.6L19 14Z" fill="currentColor"/></svg>
             <span>מה בא לכם לגלות היום?</span>
           </button>
           <div class="map-fab" id="openFilters" role="button" tabindex="0" aria-label="פתיחת סינון יעדים" title="סינון">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             <span class="fab-count hidden" id="filterCountBadge"></span>
           </div>
         </div>
@@ -1344,7 +1356,7 @@ input[type=file]{display:none;}
         <div class="friends-travel-banner hidden" id="friendsTravelBanner"></div>
       </div>
       <button class="locate-btn" id="locateBtn" title="הצג את המיקום שלי" aria-label="הצג את המיקום שלי" aria-pressed="false">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <div class="manual-loc-bar hidden" id="manualLocBar">
         <span>לחצו על המפה כדי לסמן את המיקום שלכם</span>
@@ -1358,7 +1370,7 @@ input[type=file]{display:none;}
         <button id="zoomIn" aria-label="הגדל מפה">+</button>
         <button id="zoomOut" aria-label="הקטן מפה">−</button>
         <button id="zoomReset" style="font-size:var(--font-caption)" aria-label="איפוס תצוגת מפה">⟲</button>
-        <button id="diffLegendBtn" aria-label="מקרא רמות קושי" aria-expanded="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 12h9M5 17h5"/></svg></button>
+        <button id="diffLegendBtn" aria-label="מקרא רמות קושי" aria-expanded="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5 7h14M5 12h9M5 17h5"/></svg></button>
       </div>
       <div class="diff-legend hidden" id="diffLegendPopover" role="dialog" aria-label="מקרא רמות קושי"></div>
       <div class="dest-preview topo-texture" id="destPreview" role="button" tabindex="0" aria-label="פתח את עמוד היעד">
@@ -1384,7 +1396,7 @@ input[type=file]{display:none;}
     <div class="map-side-panel" id="mapSidePanel"></div>
   </div>
 
-  <div class="view" id="view-saved">
+  <div class="view" id="view-saved" role="region" aria-label="מקומות שמורים" tabindex="-1">
     <div class="scroll-area">
       <h1>שמורים</h1>
       <p class="t-caption" id="savedSub" style="margin:0 0 var(--space-3);">המקומות שסימנתם לפעם הבאה</p>
@@ -1392,10 +1404,10 @@ input[type=file]{display:none;}
     </div>
   </div>
 
-  <div class="view" id="view-board">
+  <div class="view" id="view-board" role="region" aria-label="המסע שלנו" tabindex="-1">
     <div class="scroll-area">
       <div class="guest-gate hidden" id="boardGuestGate">
-        <div class="empty-icon"><svg class="ui-ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/></svg></div>
+        <div class="empty-icon"><svg class="ui-ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/></svg></div>
         <p>התחברו כדי לראות את המסע החברתי שלכם — דירוג, קבוצה ופעילות</p>
         <button class="btn btn-primary" id="boardGuestBtn">התחברות / הרשמה</button>
       </div>
@@ -1426,12 +1438,12 @@ input[type=file]{display:none;}
 
       <div id="boardPanelGroup" class="hidden">
         <div class="group-bar hidden" id="groupBar">
-          <select class="text-input" id="groupSelect" style="flex:1;"></select>
-          <button class="icon-btn" id="groupInviteBtn" title="הזמן לקבוצה" aria-label="הזמן לקבוצה"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 1 0-5.7-5.7l-1.2 1.2"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 1 0 5.7 5.7l1.2-1.2"/></svg></button>
-          <button class="icon-btn" id="groupNewBtn" title="קבוצה חדשה" aria-label="צור קבוצה חדשה"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <select class="text-input" id="groupSelect" aria-label="בחירת קבוצה" style="flex:1;"></select>
+          <button class="icon-btn" id="groupInviteBtn" title="הזמן לקבוצה" aria-label="הזמן לקבוצה"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M10 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 1 0-5.7-5.7l-1.2 1.2"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 1 0 5.7 5.7l1.2-1.2"/></svg></button>
+          <button class="icon-btn" id="groupNewBtn" title="קבוצה חדשה" aria-label="צור קבוצה חדשה"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></button>
         </div>
         <div class="empty-state hidden" id="groupEmpty">
-          <div class="empty-icon"><svg class="ui-ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9.5" r="2"/><path d="M4 19c.6-3 2.4-4.6 4.5-4.6S12.4 16 13 19M14 19c.4-2.2 1.6-3.4 3-3.4S19.6 16.8 20 19"/></svg></div><div class="empty-title">עדיין אין לך קבוצה</div><div class="empty-sub">קבוצה היא מסע משותף — דירוג, אתגר ופיד פעילות.</div>
+          <div class="empty-icon"><svg class="ui-ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9.5" r="2"/><path d="M4 19c.6-3 2.4-4.6 4.5-4.6S12.4 16 13 19M14 19c.4-2.2 1.6-3.4 3-3.4S19.6 16.8 20 19"/></svg></div><div class="empty-title">עדיין אין לך קבוצה</div><div class="empty-sub">קבוצה היא מסע משותף — דירוג, אתגר ופיד פעילות.</div>
           <button class="btn btn-primary" id="groupCreateBtn" style="margin-top:12px;display:inline-flex;">צור קבוצה ראשונה</button>
         </div>
         <div id="groupContent" class="hidden">
@@ -1475,10 +1487,10 @@ input[type=file]{display:none;}
     </div>
   </div>
 
-  <div class="view" id="view-profile">
+  <div class="view" id="view-profile" role="region" aria-label="פרופיל" tabindex="-1">
     <div class="scroll-area">
       <div class="guest-gate hidden" id="profileGuestGate">
-        <div class="empty-icon"><svg class="ui-ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20"/></svg></div>
+        <div class="empty-icon"><svg class="ui-ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20"/></svg></div>
         <p>התחברו כדי לראות את המסע שלכם — יעדים שכבשתם, תגים ונקודות</p>
         <button class="btn btn-primary" id="profileGuestBtn">התחברות / הרשמה</button>
       </div>
@@ -1486,7 +1498,7 @@ input[type=file]{display:none;}
       <div class="profile-title-row">
         <h1>המסע שלי בישראל</h1>
         <button class="icon-btn" id="openSettingsBtn" aria-label="הגדרות" title="הגדרות">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56v.17a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03h-.17a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56v-.17a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03h.17a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
       <div class="journey-hero">
@@ -1569,13 +1581,13 @@ input[type=file]{display:none;}
   <!-- רצועת-חזרה: כשיש טיול פעיל והמשתמש יצא מהמסך, אפשר לחזור אליו בהקשה -->
   <button class="trip-resume hidden" id="tripResume" type="button"></button>
 
-  <div class="bottom-nav hidden" id="bottomNav">
-    <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>בית</span></button>
-    <button class="nav-btn" data-view="map"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>מפה</span></button>
-    <button class="nav-btn" data-view="saved"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19.5S4.5 14.8 4.5 9.9A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7.5 1.9c0 4.9-7.5 9.6-7.5 9.6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>שמורים</span></button>
-    <button class="nav-btn" data-view="board"><svg viewBox="0 0 24 24" fill="none"><path d="M5 21V10M12 21V3M19 21v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>המסע שלנו</span></button>
-    <button class="nav-btn" data-view="profile"><span class="unread-dot" id="navUnreadDot"></span><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>פרופיל</span></button>
-  </div>
+  <nav class="bottom-nav hidden" id="bottomNav" aria-label="ניווט ראשי">
+    <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>בית</span></button>
+    <button class="nav-btn" data-view="map"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>מפה</span></button>
+    <button class="nav-btn" data-view="saved"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 19.5S4.5 14.8 4.5 9.9A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7.5 1.9c0 4.9-7.5 9.6-7.5 9.6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>שמורים</span></button>
+    <button class="nav-btn" data-view="board"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 21V10M12 21V3M19 21v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>המסע שלנו</span></button>
+    <button class="nav-btn" data-view="profile"><span class="unread-dot" id="navUnreadDot"></span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>פרופיל</span></button>
+  </nav>
 
   <div class="scrim" id="filterScrim"></div>
   <div class="sheet" id="filterSheet">
@@ -1594,7 +1606,7 @@ input[type=file]{display:none;}
           <button class="chip teal" data-min="120">עד שעתיים</button>
           <button class="chip teal" data-min="0">ללא הגבלה</button>
         </div>
-        <div class="range-row"><input type="range" id="distRange" min="5" max="400" value="400" step="5"><div class="range-val" id="distVal">ללא הגבלה</div></div>
+        <div class="range-row"><input type="range" id="distRange" aria-label="מרחק מרבי בקילומטרים" min="5" max="400" value="400" step="5"><div class="range-val" id="distVal">ללא הגבלה</div></div>
         <div id="distHint" class="t-caption" style="margin-top:var(--space-2);">לחצו על כפתור המיקום במפה כדי לאפשר סינון לפי מרחק</div>
       </div>
       <div class="filter-group"><h3>משך הטיול</h3><div class="chip-row" id="durationChips">
@@ -1657,7 +1669,7 @@ input[type=file]{display:none;}
         </div></div>
         <div class="filter-group">
           <h3>מרחק נסיעה מקסימלי</h3>
-          <div class="range-row"><input type="range" id="wizDistRange" min="5" max="400" value="400" step="5"><div class="range-val" id="wizDistVal">ללא הגבלה</div></div>
+          <div class="range-row"><input type="range" id="wizDistRange" aria-label="מרחק מרבי בקילומטרים" min="5" max="400" value="400" step="5"><div class="range-val" id="wizDistVal">ללא הגבלה</div></div>
         </div>
         <div class="filter-group"><h3>האם אני רוצה מים</h3><div class="chip-row">
           <button class="chip teal" id="wizWaterChip">כן, בא לי מים</button>
@@ -1680,7 +1692,7 @@ input[type=file]{display:none;}
     <div class="sheet-handle"></div>
     <div class="sheet-head"><h2>חיפוש</h2><button class="sheet-close" id="closeSearchSheet" aria-label="סגור">✕</button></div>
     <div class="sheet-body">
-      <input type="text" class="text-input" id="searchInput" placeholder="שם מקום, אזור, עיר או קטגוריה...">
+      <input type="text" class="text-input" id="searchInput" aria-label="חיפוש מקום, אזור, עיר או קטגוריה" placeholder="שם מקום, אזור, עיר או קטגוריה...">
       <div id="searchResults" style="margin-top:14px;"></div>
     </div>
   </div>
@@ -1708,20 +1720,20 @@ input[type=file]{display:none;}
       </div>
       <div class="privacy-toggle-row">
         <span>הפחתת אנימציות</span>
-        <label class="switch"><input type="checkbox" id="reduceMotionToggle"><span class="track"></span></label>
+        <label class="switch"><input type="checkbox" id="reduceMotionToggle" aria-label="הפחתת אנימציות"><span class="track"></span></label>
       </div>
       <div class="section-head"><h2>מיקום</h2></div>
       <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
         <span class="t-caption">מגלים משתמשת במיקום שלכם רק כשאתם מבקשים למצוא טיולים קרובים — למשל בסינון "לידי" או ב"מה עושים היום". לעולם לא באופן רציף ברקע.</span>
         <span class="t-caption">כדי לראות את המיקום שלכם כנקודה על המפה, לחצו על כפתור המיקום
-          <span class="inline-locate-hint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="inline-locate-hint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           בפינה התחתונה של המפה.</span>
         <div id="locationPermStatus" style="font-size:var(--font-caption);font-weight:600;"></div>
         <span class="t-caption">אם ה-GPS חסום, "איתור מקורב לפי הרשת" מזהה את האזור לפי כתובת ה-IP — מדויק ברמת עיר בלבד, ועל רשת סלולרית עשוי להצביע על שער המפעיל ולא עליכם. הכתובת נשלחת לשירות חיצוני, ולכן זה קורה רק בלחיצה שלכם. לצ׳ק-אין תמיד נדרש GPS אמיתי.</span>
         <div id="locationDeniedHelp" class="loc-denied hidden"></div>
         <div class="privacy-toggle-row" style="width:100%;">
           <span>מעקב מיקום חי במפה</span>
-          <label class="switch"><input type="checkbox" id="liveTrackingToggle"><span class="track"></span></label>
+          <label class="switch"><input type="checkbox" id="liveTrackingToggle" aria-label="מעקב מיקום חי במפה"><span class="track"></span></label>
         </div>
         <div class="loc-actions">
           <button type="button" class="btn btn-outline btn-sm" id="locationTestBtn">בדיקת מיקום</button>
@@ -1735,11 +1747,11 @@ input[type=file]{display:none;}
       <div class="section-head"><h2>התראות</h2></div>
       <div class="privacy-toggle-row">
         <span>אפשר התראות</span>
-        <label class="switch"><input type="checkbox" id="notifEnabledToggle"><span class="track"></span></label>
+        <label class="switch"><input type="checkbox" id="notifEnabledToggle" aria-label="אפשר התראות"><span class="track"></span></label>
       </div>
       <div id="notifCategoryToggles">
-        <div class="privacy-toggle-row"><span>חברים</span><label class="switch"><input type="checkbox" id="notifFriendsToggle"><span class="track"></span></label></div>
-        <div class="privacy-toggle-row"><span>קבוצות</span><label class="switch"><input type="checkbox" id="notifGroupsToggle"><span class="track"></span></label></div>
+        <div class="privacy-toggle-row"><span>חברים</span><label class="switch"><input type="checkbox" id="notifFriendsToggle" aria-label="התראות מחברים"><span class="track"></span></label></div>
+        <div class="privacy-toggle-row"><span>קבוצות</span><label class="switch"><input type="checkbox" id="notifGroupsToggle" aria-label="התראות מקבוצות"><span class="track"></span></label></div>
       </div>
       <div class="section-head"><h2>פרטיות</h2></div>
       <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:8px;">
@@ -1752,12 +1764,12 @@ input[type=file]{display:none;}
       </div>
       <div class="privacy-card" style="margin-top:14px;">
         <div class="privacy-head">
-          <div class="privacy-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <div class="privacy-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
           <p class="privacy-desc">שתפו עם החברים שאתם עוקבים אחריהם שאתם מטיילים היום, ובאיזה אזור כללי בארץ — בלי לחשוף את המיקום המדויק שלכם. זה לא קשור להצגת המיקום שלכם על המפה, ולא נעשה בו שימוש ב-GPS. כבוי כברירת מחדל, אפשר לכבות בכל רגע.</p>
         </div>
         <div class="privacy-toggle-row">
           <span>שיתוף אזור-הטיול עם חברים</span>
-          <label class="switch"><input type="checkbox" id="sharingToggle"><span class="track"></span></label>
+          <label class="switch"><input type="checkbox" id="sharingToggle" aria-label="שיתוף אזור-הטיול עם חברים"><span class="track"></span></label>
         </div>
         <div id="travelStatusBox" class="hidden">
           <label class="field-label">איפה אתם מטיילים היום?</label>
@@ -1800,7 +1812,7 @@ input[type=file]{display:none;}
     <div class="sheet-head"><h2 id="reportSheetTitle">דיווח</h2><button class="sheet-close" id="closeReportSheet" aria-label="סגור">✕</button></div>
     <div class="sheet-body">
       <div class="chip-row" id="reportReasonChips"></div>
-      <textarea class="text-input" id="reportMessageText" rows="3" maxlength="400" placeholder="פרטים נוספים (לא חובה)" style="margin-top:12px;resize:vertical;"></textarea>
+      <textarea class="text-input" id="reportMessageText" aria-label="פרטים נוספים על הדיווח" rows="3" maxlength="400" placeholder="פרטים נוספים (לא חובה)" style="margin-top:12px;resize:vertical;"></textarea>
       <button class="btn btn-primary btn-block" id="reportSubmitBtn" style="margin-top:14px;">שליחת דיווח</button>
     </div>
   </div>
@@ -1845,6 +1857,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260913b1"></script>
+<script type="module" src="./app.js?v=20260913b2"></script>
 </body>
 </html>

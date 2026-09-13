@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260913b1";
+const APP_VERSION = "20260913b2";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -631,6 +631,27 @@ function track(eventName, payload){
 
 /* ============ HELPERS ============ */
 function $(id){ return document.getElementById(id); }
+
+/* ============ נגישות לקורא מסך ============ */
+// זו אפליקציית עמוד-אחד: החלפת מסך או הודעת שגיאה מחליפות DOM בלי טעינת עמוד,
+// וקורא מסך לא מבחין בזה בכלל. הזרקת טקסט לאזור aria-live היא הדרך היחידה
+// לספר למשתמש עיוור שמשהו קרה.
+const VIEW_TITLES = { home:"בית", map:"מפה", saved:"מקומות שמורים", board:"המסע שלנו", profile:"פרופיל" };
+let announceTimer = null;
+function announce(message, urgent){
+  const el = $(urgent ? "srAlert" : "srAnnouncer");
+  if(!el || !message) return;
+  // ריקון לפני הכתיבה: אותה הודעה פעמיים ברצף לא תוכרז שוב אם הטקסט לא השתנה
+  el.textContent = "";
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(()=>{ el.textContent = message; }, 60);
+}
+// בלי העברת פוקוס הקורא נשאר על הכפתור שנלחץ וממשיך להקריא את המסך הקודם,
+// שכבר אינו מוצג. preventScroll כי resetViewScroll כבר מטפל בגלילה.
+function focusView(view){
+  const el = $("view-" + view);
+  if(el) el.focus({ preventScroll:true });
+}
 function toast(msg, action){
   const el = $("toast");
   el.innerHTML = `<span style="flex:1;">${msg}</span>`;
@@ -645,6 +666,10 @@ function toast(msg, action){
   el.classList.add("show");
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.classList.remove("show"), action ? 4500 : 3400);
+  // ה-toast הוא ערוץ המשוב המרכזי, והוא ויזואלי בלבד. מוכרז דרך announce ולא
+  // דרך aria-live על האלמנט עצמו, שאחרת שתי הכתיבות (הטקסט ואז כפתור הפעולה)
+  // מוכרזות פעמיים. el.textContent מפשיט את ה-HTML שיכול להגיע ב-msg.
+  announce(el.textContent + (action ? ". " + action.label : ""));
 }
 async function submitFeedback(type, textareaEl){
   const message = textareaEl.value.trim();
@@ -1695,7 +1720,12 @@ function switchView(view, opts){
   }
   if(explicitBoardTab) boardTab = explicitBoardTab;
   currentView = view;
-  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
+  document.querySelectorAll(".nav-btn").forEach(b=>{
+    const on = b.dataset.view===view;
+    b.classList.toggle("active", on);
+    // הצבע לבדו לא מספיק - aria-current הוא מה שמכריז "נבחר" לקורא מסך
+    if(on) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
+  });
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
   if(view==="map") setTimeout(()=>{
@@ -1715,6 +1745,10 @@ function switchView(view, opts){
   if(view==="home") renderHome();
   if(view==="saved") renderSaved();
   if(changed) resetViewScroll(view);
+  if(changed){
+    focusView(view);
+    announce(VIEW_TITLES[view] || view);
+  }
 }
 function switchBoardTab(tab){
   boardTab = tab;
@@ -3283,6 +3317,8 @@ function wireStaticUI(){
   document.querySelectorAll(".nav-btn").forEach(btn=>{
     btn.onclick=()=> navigate("#/"+btn.dataset.view);
   });
+  // מקפיץ את הפוקוס אל המסך הפעיל, כדי לא לעבור בטאב על הכותרת בכל מסך מחדש
+  $("skipToContent").onclick=(e)=>{ e.preventDefault(); focusView(currentView); };
   document.querySelectorAll(".tab-row [data-list]").forEach(btn=>{
     btn.onclick=()=>{
       setProfileListTab(btn.dataset.list); renderProfile();
