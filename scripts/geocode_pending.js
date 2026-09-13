@@ -102,9 +102,18 @@ const sqlStr = s => "'" + String(s).replace(/'/g, "''") + "'";
 // do not care which one ran.
 const GOOGLE_COARSE = new Set(['country', 'administrative_area_level_1',
   'administrative_area_level_2', 'political', 'locality']);
+const GOOGLE_URBAN = new Set(['route', 'street_address', 'premise', 'subpremise',
+  'neighborhood', 'postal_code', 'intersection']);
 // Nominatim's place_rank: the lower the number the coarser the thing. A country
 // is 4, a city 16. Anything at or under 13 is an area, not a place you visit.
 const OSM_COARSE_TYPES = new Set(['country', 'state', 'region', 'county', 'province']);
+// The failure mode the trial run exposed, and the reason a name check could
+// never have caught it: Israeli streets are named after historical sites, so
+// "בית צידה" resolves to a road in Zichron Ya'akov and "דרך הטמפלרים" to one in
+// Kiryat Tivon. The names match exactly - they are simply the wrong kind of
+// thing. A place you hike to is never a street address.
+const OSM_URBAN_TYPES = new Set(['road', 'house', 'house_number', 'building',
+  'residential', 'city_block', 'postcode', 'suburb', 'neighbourhood', 'quarter']);
 
 async function lookup(query) {
   if (PROVIDER === 'google') {
@@ -121,8 +130,10 @@ async function lookup(query) {
     return {
       lat: hit.geometry.location.lat, lon: hit.geometry.location.lng,
       label: hit.formatted_address,
+      matchedName: hit.formatted_address,
       coarse: hit.geometry.location_type === 'APPROXIMATE' &&
         hit.types.some(t => GOOGLE_COARSE.has(t)) ? hit.types.join('/') : null,
+      urban: hit.types.find(t => GOOGLE_URBAN.has(t)) || null,
     };
   }
   const url = 'https://nominatim.openstreetmap.org/search' +
@@ -144,6 +155,7 @@ async function lookup(query) {
     lat: +hit.lat, lon: +hit.lon, label: hit.display_name || hit.name || '',
     matchedName: hit.name || hit.display_name || '',
     coarse: (OSM_COARSE_TYPES.has(kind) || Number(hit.place_rank) <= 13) ? (kind || 'rank ' + hit.place_rank) : null,
+    urban: OSM_URBAN_TYPES.has(kind) ? kind : null,
   };
 }
 
@@ -200,6 +212,8 @@ function nameMismatch(query, matched) {
       review.push({ ...p, why: 'landed outside Israel', lat: hit.lat, lon: hit.lon });
     } else if (hit.coarse) {
       review.push({ ...p, why: 'only resolved to an area (' + hit.coarse + ')', lat: hit.lat, lon: hit.lon });
+    } else if (hit.urban) {
+      review.push({ ...p, why: 'matched a street or address (' + hit.urban + '), not a place — ' + hit.label, lat: hit.lat, lon: hit.lon });
     } else if (nameMismatch(p.name, hit.matchedName)) {
       review.push({ ...p, why: 'found something called "' + hit.matchedName + '" instead', lat: hit.lat, lon: hit.lon });
     } else {
