@@ -125,19 +125,17 @@ async function lookup(query) {
     if (r.status === 'OVER_QUERY_LIMIT' || r.status === 'REQUEST_DENIED') {
       throw Object.assign(new Error(r.status + ' — ' + (r.error_message || '')), { fatal: true });
     }
-    const hit = (r.results || [])[0];
-    if (!hit) return null;
-    return {
+    return (r.results || []).map(hit => ({
       lat: hit.geometry.location.lat, lon: hit.geometry.location.lng,
       label: hit.formatted_address,
       matchedName: hit.formatted_address,
       coarse: hit.geometry.location_type === 'APPROXIMATE' &&
         hit.types.some(t => GOOGLE_COARSE.has(t)) ? hit.types.join('/') : null,
       urban: hit.types.find(t => GOOGLE_URBAN.has(t)) || null,
-    };
+    }));
   }
   const url = 'https://nominatim.openstreetmap.org/search' +
-    '?q=' + encodeURIComponent(query) + '&countrycodes=il&format=jsonv2&limit=1';
+    '?q=' + encodeURIComponent(query) + '&countrycodes=il&format=jsonv2&limit=8';
   // Nominatim's usage policy requires an identifying User-Agent and at most one
   // request per second. Both are honoured here; do not remove them.
   const res = await fetch(url, { headers: { 'User-Agent': 'magalim-israel/1.0 (landmark seeding, one-off)' } });
@@ -145,18 +143,19 @@ async function lookup(query) {
     throw Object.assign(new Error('Nominatim refused (HTTP ' + res.status + ') — slow down or try again later'), { fatal: true });
   }
   const arr = await res.json();
-  const hit = Array.isArray(arr) ? arr[0] : null;
-  if (!hit) return null;
-  if (hit.lat === undefined || hit.lon === undefined) {
-    throw Object.assign(new Error('unexpected response shape: ' + JSON.stringify(hit).slice(0, 200)), { fatal: true });
+  if (!Array.isArray(arr) || !arr.length) return [];
+  if (arr[0].lat === undefined || arr[0].lon === undefined) {
+    throw Object.assign(new Error('unexpected response shape: ' + JSON.stringify(arr[0]).slice(0, 200)), { fatal: true });
   }
-  const kind = hit.addresstype || hit.type || '';
-  return {
-    lat: +hit.lat, lon: +hit.lon, label: hit.display_name || hit.name || '',
-    matchedName: hit.name || hit.display_name || '',
-    coarse: (OSM_COARSE_TYPES.has(kind) || Number(hit.place_rank) <= 13) ? (kind || 'rank ' + hit.place_rank) : null,
-    urban: OSM_URBAN_TYPES.has(kind) ? kind : null,
-  };
+  return arr.map(hit => {
+    const kind = hit.addresstype || hit.type || '';
+    return {
+      lat: +hit.lat, lon: +hit.lon, label: hit.display_name || hit.name || '',
+      matchedName: hit.name || hit.display_name || '',
+      coarse: (OSM_COARSE_TYPES.has(kind) || Number(hit.place_rank) <= 13) ? (kind || 'rank ' + hit.place_rank) : null,
+      urban: OSM_URBAN_TYPES.has(kind) ? kind : null,
+    };
+  });
 }
 
 // The bounding box is far too loose to catch a wrong hit: the trial run put
@@ -207,23 +206,33 @@ function nameMismatch(query, matched) {
       if (e.fatal) { console.error('\nstopped: ' + e.message); break; }
       review.push({ ...p, why: 'request failed: ' + e.message }); continue;
     }
-    if (!hit) { review.push({ ...p, why: 'no result' }); }
-    else if (hit.lat < BBOX.minLat || hit.lat > BBOX.maxLat || hit.lon < BBOX.minLon || hit.lon > BBOX.maxLon) {
-      review.push({ ...p, why: 'landed outside Israel', lat: hit.lat, lon: hit.lon });
-    } else if (hit.coarse) {
-      review.push({ ...p, why: 'only resolved to an area (' + hit.coarse + ')', lat: hit.lat, lon: hit.lon });
-    } else if (hit.urban) {
-      review.push({ ...p, why: 'matched a street or address (' + hit.urban + '), not a place — ' + hit.label, lat: hit.lat, lon: hit.lon });
-    } else if (nameMismatch(p.name, hit.matchedName)) {
-      review.push({ ...p, why: 'found something called "' + hit.matchedName + '" instead', lat: hit.lat, lon: hit.lon });
+    // Asking for one result and taking it was the mistake: searching "בית צידה"
+    // returns the street in Zichron Ya'akov first, while תל בית צידה - the real
+    // site by the Sea of Galilee - is further down the same list. So walk the
+    // candidates and take the first that survives every check.
+    const why = c =>
+      (c.lat < BBOX.minLat || c.lat > BBOX.maxLat || c.lon < BBOX.minLon || c.lon > BBOX.maxLon)
+        ? 'landed outside Israel'
+      : c.coarse ? 'only resolved to an area (' + c.coarse + ')'
+      : c.urban ? 'matched a street or address (' + c.urban + '), not a place — ' + c.label
+      : nameMismatch(p.name, c.matchedName) ? 'found something called "' + c.matchedName + '" instead'
+      : null;
+
+    const good = hit.find(c => !why(c));
+    if (!hit.length) { review.push({ ...p, why: 'no result' }); }
+    else if (!good) {
+      // report the best candidate's reason, not the last one's
+      const first = hit[0];
+      review.push({ ...p, why: why(first) + (hit.length > 1 ? ' (' + hit.length + ' candidates, none usable)' : ''),
+        lat: first.lat, lon: first.lon });
     } else {
-      const near = known.find(k => metresBetween(k, hit) < 150);
+      const near = known.find(k => metresBetween(k, good) < 150);
       if (near) {
-        review.push({ ...p, why: 'within 150m of "' + near.name + '" — likely the same place', lat: hit.lat, lon: hit.lon });
+        review.push({ ...p, why: 'within 150m of "' + near.name + '" — likely the same place', lat: good.lat, lon: good.lon });
       } else {
         const id = slug(p.name, taken);
-        accepted.push({ ...p, id, lat: hit.lat, lon: hit.lon, label: hit.label });
-        known.push({ id, name: p.name, lat: hit.lat, lon: hit.lon });  // later rows dedup against it too
+        accepted.push({ ...p, id, lat: good.lat, lon: good.lon, label: good.label });
+        known.push({ id, name: p.name, lat: good.lat, lon: good.lon });  // later rows dedup against it too
       }
     }
     if (LIMIT <= 20) {
