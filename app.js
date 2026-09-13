@@ -722,7 +722,7 @@ function noteGeoError(err){ lastGeoError = { code: err && err.code, message: err
 function noteGeoFix(pos){ lastGeoFix = { accuracy: pos.coords.accuracy, at: Date.now() }; }
 // onOk מקבל את ה-position המקורי; userLoc מתעדכן כאן, כדי ששלושת המסלולים לא יעשו
 // את זה כל אחד בדרכו. opts.preciseOnly מוותר על ניסיון-הגיבוי הגס ועל מיקום מהקאש -
-// לאימות-קרבה של צ'ק-אין (300 מ') מיקום גס או ישן הוא לא ראיה טובה מספיק.
+// לאימות-קרבה של צ'ק-אין (1500 מ') מיקום גס או ישן הוא לא ראיה טובה מספיק.
 function locateUser(onOk, onFail, opts){
   opts = opts || {};
   if(!navigator.geolocation){ onFail({ code:2 }); return; }
@@ -3878,13 +3878,13 @@ function runGpsCheck(l){
   if(!navigator.geolocation){ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> המכשיר לא תומך באיתור מיקום'; return; }
   locateUser(pos=>{
     const d = haversine(pos.coords.latitude,pos.coords.longitude,l.lat,l.lon)*1000;
-    if(d<=300){
+    if(d<=1500){
       statusEl.className="checkin-status ok";
       statusEl.innerHTML = '<span class="ic">✓</span> אומת! את/ה במרחק '+Math.round(d)+' מטר מהיעד';
       photoStep.classList.remove("hidden");
     } else {
       statusEl.className="checkin-status bad";
-      statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 300 מ׳ כדי לבצע צ׳ק-אין';
+      statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 1.5 ק"מ כדי לבצע צ׳ק-אין';
       photoStep.classList.add("hidden");
     }
   }, err=>{
