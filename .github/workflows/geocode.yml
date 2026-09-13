@@ -41,6 +41,7 @@ jobs:
           name: geocode-results
           path: |
             supabase/migrations_new_landmarks_from_list.sql
+            data/geocode_accepted.csv
             data/geocode_review.csv
           if-no-files-found: ignore
 
@@ -49,7 +50,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A supabase/migrations_new_landmarks_from_list.sql data/geocode_review.csv
+          git add -A supabase/migrations_new_landmarks_from_list.sql data/geocode_accepted.csv data/geocode_review.csv
           git diff --staged --quiet && echo "אין שינוי לשמור" && exit 0
           git commit -m "יעדים חדשים: מיקומים שאותרו אוטומטית מהרשימה"
           git push
