@@ -142,8 +142,34 @@ async function lookup(query) {
   const kind = hit.addresstype || hit.type || '';
   return {
     lat: +hit.lat, lon: +hit.lon, label: hit.display_name || hit.name || '',
+    matchedName: hit.name || '',
     coarse: (OSM_COARSE_TYPES.has(kind) || Number(hit.place_rank) <= 13) ? (kind || 'rank ' + hit.place_rank) : null,
   };
+}
+
+// The bounding box is far too loose to catch a wrong hit: the trial run put
+// "בית צידה", a Sea of Galilee site, next to רמת הנדיב on the Carmel - 65km off,
+// still inside Israel, and inside its declared region too, since both are
+// "north". The one signal left is whether the thing the geocoder actually found
+// is called anything like what we asked for.
+const NOISE = new Set(['גן', 'לאומי', 'שמורת', 'שמורה', 'טבע', 'נחל', 'הר', 'עין',
+  'דרך', 'נוף', 'אתר', 'פארק', 'יער', 'מסלול', 'ישראל', 'של', 'ב', 'ה']);
+function nameMismatch(query, matched) {
+  if (!matched) return null;                 // nothing to compare against
+  const words = s => new Set(String(s)
+    .replace(/[(),.\-–—"'״׳]/g, ' ').split(/\s+/)
+    .filter(w => w.length >= 3 && !NOISE.has(w)));
+  const want = words(query), got = words(matched);
+  if (!want.size) return null;               // the name was all common words
+  for (const w of want) {
+    for (const g of got) {
+      // a shared prefix, because Hebrew inflects the ending: the same site is
+      // "דרך הטמפלרים" in one source and "המושבה הטמפלרית" in another
+      if (w === g) return null;
+      if (w.length >= 5 && g.length >= 5 && w.slice(0, 4) === g.slice(0, 4)) return null;
+    }
+  }
+  return matched;
 }
 
 (async () => {
@@ -172,6 +198,8 @@ async function lookup(query) {
       review.push({ ...p, why: 'landed outside Israel', lat: hit.lat, lon: hit.lon });
     } else if (hit.coarse) {
       review.push({ ...p, why: 'only resolved to an area (' + hit.coarse + ')', lat: hit.lat, lon: hit.lon });
+    } else if (nameMismatch(p.name, hit.matchedName)) {
+      review.push({ ...p, why: 'found something called "' + hit.matchedName + '" instead', lat: hit.lat, lon: hit.lon });
     } else {
       const near = known.find(k => metresBetween(k, hit) < 150);
       if (near) {
@@ -221,6 +249,15 @@ async function lookup(query) {
     ].join('\n');
     fs.writeFileSync(path.join(root, 'supabase/migrations_new_landmarks_from_list.sql'), sql);
     console.log('wrote supabase/migrations_new_landmarks_from_list.sql — ' + accepted.length + ' places');
+
+    // The checks narrow the field, they do not make the result trustworthy - a
+    // wrong hit can pass all of them. So every accepted place gets a map link,
+    // and this file is meant to be scanned before the migration is run.
+    fs.writeFileSync(path.join(root, 'data/geocode_accepted.csv'),
+      'name,what_was_found,map_link\n' +
+      accepted.map(a => [a.name, a.label, 'https://www.google.com/maps?q=' + a.lat + ',' + a.lon]
+        .map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n') + '\n');
+    console.log('wrote data/geocode_accepted.csv — check these before running the migration');
   }
   fs.writeFileSync(path.join(root, 'data/geocode_review.csv'),
     'name,region_raw,type_raw,why,lat,lon\n' +
