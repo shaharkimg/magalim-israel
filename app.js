@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912b4";
+const APP_VERSION = "20260913b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -722,7 +722,7 @@ function noteGeoError(err){ lastGeoError = { code: err && err.code, message: err
 function noteGeoFix(pos){ lastGeoFix = { accuracy: pos.coords.accuracy, at: Date.now() }; }
 // onOk מקבל את ה-position המקורי; userLoc מתעדכן כאן, כדי ששלושת המסלולים לא יעשו
 // את זה כל אחד בדרכו. opts.preciseOnly מוותר על ניסיון-הגיבוי הגס ועל מיקום מהקאש -
-// לאימות-קרבה של צ'ק-אין (300 מ') מיקום גס או ישן הוא לא ראיה טובה מספיק.
+// לאימות-קרבה של צ'ק-אין (1500 מ') מיקום גס או ישן הוא לא ראיה טובה מספיק.
 function locateUser(onOk, onFail, opts){
   opts = opts || {};
   if(!navigator.geolocation){ onFail({ code:2 }); return; }
@@ -1442,9 +1442,12 @@ function maybeShowWelcome(){
 }
 async function signInWithOAuth(provider){
   $("authError").classList.remove("show");
-  const { error } = await supabase.auth.signInWithOAuth({ provider, options:{ redirectTo: location.origin + location.pathname } });
-  if(error){
-    $("authError").textContent = friendlyAuthError(error.message);
+  // בלי try/catch דחייה של signInWithOAuth נבלעת והכפתור נראה כאילו הוא לא מגיב
+  try{
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options:{ redirectTo: location.origin + location.pathname } });
+    if(error) throw error;
+  }catch(err){
+    $("authError").textContent = friendlyAuthError(err && err.message);
     $("authError").classList.add("show");
   }
 }
@@ -3878,13 +3881,13 @@ function runGpsCheck(l){
   if(!navigator.geolocation){ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> המכשיר לא תומך באיתור מיקום'; return; }
   locateUser(pos=>{
     const d = haversine(pos.coords.latitude,pos.coords.longitude,l.lat,l.lon)*1000;
-    if(d<=300){
+    if(d<=1500){
       statusEl.className="checkin-status ok";
       statusEl.innerHTML = '<span class="ic">✓</span> אומת! את/ה במרחק '+Math.round(d)+' מטר מהיעד';
       photoStep.classList.remove("hidden");
     } else {
       statusEl.className="checkin-status bad";
-      statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 300 מ׳ כדי לבצע צ׳ק-אין';
+      statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 1.5 ק"מ כדי לבצע צ׳ק-אין';
       photoStep.classList.add("hidden");
     }
   }, err=>{
