@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260912b4";
+const APP_VERSION = "20260913b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1442,9 +1442,12 @@ function maybeShowWelcome(){
 }
 async function signInWithOAuth(provider){
   $("authError").classList.remove("show");
-  const { error } = await supabase.auth.signInWithOAuth({ provider, options:{ redirectTo: location.origin + location.pathname } });
-  if(error){
-    $("authError").textContent = friendlyAuthError(error.message);
+  // בלי try/catch דחייה של signInWithOAuth נבלעת והכפתור נראה כאילו הוא לא מגיב
+  try{
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options:{ redirectTo: location.origin + location.pathname } });
+    if(error) throw error;
+  }catch(err){
+    $("authError").textContent = friendlyAuthError(err && err.message);
     $("authError").classList.add("show");
   }
 }
