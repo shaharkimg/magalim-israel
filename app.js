@@ -1,9 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260914a7";
+const APP_VERSION = "20260914a8";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1903,6 +1903,7 @@ async function bootUserData(){
     await Promise.all([ loadMyVisits(), loadMyWishlist(), loadFollowing(), loadMyGroups(), loadMyTravelStatus(), loadMyConquestsAndBonuses() ]);
     prevBadgeSet = new Set(unlockedBadges().map(b=>b.id));
     flushPendingQueue();
+    syncPushSubscription();
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
@@ -3246,6 +3247,7 @@ function wireStaticUI(){
     $("notifFriendsToggle").checked = np.friends!==false;
     $("notifGroupsToggle").checked = np.groups!==false;
     $("notifCategoryToggles").classList.toggle("hidden", np.enabled===false);
+    refreshPushRow();
   };
   async function saveNotificationPrefs(){
     const prefs = {
@@ -3267,6 +3269,11 @@ function wireStaticUI(){
   $("notifEnabledToggle").onchange = saveNotificationPrefs;
   $("notifFriendsToggle").onchange = saveNotificationPrefs;
   $("notifGroupsToggle").onchange = saveNotificationPrefs;
+  $("pushToggle").onchange = async (e)=>{
+    e.target.disabled = true;
+    if(e.target.checked) await enablePush(); else await disablePush();
+    await refreshPushRow();
+  };
   $("closeSettingsSheet").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("closeCheckinSheet").onclick = ()=> closeSheet("checkinSheet","checkinScrim");
@@ -4952,6 +4959,127 @@ function notificationIcon(type){
   if(type==="circle_joined") return uiIcon("family",18);
   if(type==="friend_checkin") return uiIcon("trophy",18);
   return uiIcon("flame",18);
+}
+/* ============ WEB PUSH — התראות מחוץ לאפליקציה ============ */
+// ההתראה עצמה תמיד נוצרת כשורה בטבלת notifications (דרך triggers ב-DB בלבד, ראו
+// migrations_notifications.sql). ה-Push הוא רק *ערוץ המסירה* של אותה שורה אל מחוץ
+// לאפליקציה - ולכן העדפות ההתראות הקיימות (notification_prefs) שולטות כבר גם בו:
+// אם ה-trigger לא יצר שורה, אין מה לשלוח, בלי צורך בבדיקה כפולה כאן.
+function pushSupported(){
+  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+// iOS תומך ב-Web Push רק כשהאפליקציה מותקנת למסך הבית (standalone). בטאב Safari רגיל
+// PushManager פשוט לא קיים, ואז עדיף להסביר מה לעשות מאשר להציג toggle שלא יכול לעבוד.
+function isIosDevice(){
+  return /iP(hone|ad|od)/.test(navigator.userAgent);
+}
+function urlBase64ToUint8Array(base64String){
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for(let i=0; i<raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+async function getExistingPushSubscription(){
+  if(!pushSupported()) return null;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    return await reg.pushManager.getSubscription();
+  }catch(err){
+    console.warn("push: getSubscription failed", err);
+    return null;
+  }
+}
+async function savePushSubscription(sub){
+  const j = sub.toJSON();
+  const { error } = await supabase.rpc("save_push_subscription", {
+    _endpoint: j.endpoint,
+    _p256dh: j.keys.p256dh,
+    _auth_key: j.keys.auth,
+    _user_agent: navigator.userAgent,
+  });
+  if(error) throw error;
+}
+async function enablePush(){
+  if(!session){ toast("צריך להתחבר כדי לקבל התראות"); return false; }
+  if(!pushSupported()){
+    toast(isIosDevice() ? "ב-iPhone צריך קודם להתקין את האפליקציה למסך הבית" : "הדפדפן הזה לא תומך בהתראות");
+    return false;
+  }
+  let perm = Notification.permission;
+  if(perm === "default") perm = await Notification.requestPermission();
+  if(perm !== "granted"){
+    toast("ההרשאה להתראות נחסמה — אפשר לשנות אותה בהגדרות הדפדפן");
+    return false;
+  }
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    await savePushSubscription(sub);
+    toast("✓ התראות הופעלו למכשיר הזה");
+    return true;
+  }catch(err){
+    console.error("push: subscribe failed", err);
+    toast("לא הצלחנו להפעיל התראות במכשיר הזה");
+    return false;
+  }
+}
+async function disablePush(){
+  try{
+    const sub = await getExistingPushSubscription();
+    if(sub){
+      // מוחקים קודם מה-DB ורק אז מבטלים בדפדפן: בסדר ההפוך ה-endpoint כבר לא יהיה
+      // בידינו כדי למחוק את השורה, והשרת ימשיך לשלוח לנקודת-קצה מתה עד שתיגזם.
+      await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+      await sub.unsubscribe();
+    }
+    toast("ההתראות למכשיר הזה כובו");
+    return true;
+  }catch(err){
+    console.error("push: unsubscribe failed", err);
+    toast("לא הצלחנו לכבות את ההתראות");
+    return false;
+  }
+}
+// ה-endpoint של מנוי יכול להתחלף מעצמו (רוטציה בשירות ה-Push, התקנה מחדש), ואז השורה
+// ב-DB מצביעה לנקודת-קצה מתה בלי ששום דבר בממשק ישתנה. שמירה חוזרת בכל התחברות מיישרת.
+async function syncPushSubscription(){
+  if(!session || !pushSupported() || Notification.permission !== "granted") return;
+  const sub = await getExistingPushSubscription();
+  if(!sub) return;
+  try{ await savePushSubscription(sub); }
+  catch(err){ console.warn("push: sync failed", err); }
+}
+async function refreshPushRow(){
+  const statusEl = $("pushStatusText"), toggle = $("pushToggle");
+  if(!statusEl || !toggle) return;
+  if(!pushSupported()){
+    toggle.checked = false;
+    toggle.disabled = true;
+    statusEl.textContent = isIosDevice()
+      ? "ב-iPhone: הקישו שיתוף ⬆️ ואז \"הוסף למסך הבית\", ומשם אפשר להפעיל התראות."
+      : "הדפדפן הזה לא תומך בהתראות מחוץ לאפליקציה.";
+    return;
+  }
+  if(Notification.permission === "denied"){
+    toggle.checked = false;
+    toggle.disabled = true;
+    statusEl.textContent = "ההרשאה חסומה בהגדרות הדפדפן עבור האתר הזה.";
+    return;
+  }
+  const sub = await getExistingPushSubscription();
+  toggle.disabled = false;
+  toggle.checked = Boolean(sub) && Notification.permission === "granted";
+  statusEl.textContent = toggle.checked
+    ? "מקבלים התראות על המכשיר הזה גם כשהאפליקציה סגורה."
+    : "הפעילו כדי לקבל עדכונים גם כשהאפליקציה סגורה.";
 }
 function notificationText(n){
   const p = n.payload || {};
