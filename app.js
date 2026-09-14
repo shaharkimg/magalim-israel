@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260914a1";
+const APP_VERSION = "20260914a2";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4085,7 +4085,7 @@ async function confirmCheckin(l){
       photoUrl: photoUrl || landmarkPhotos[l.id] || null,
       title: "🏆 עוד מקום נכבש!",
       subtitle: l.name,
-      tag: tier.emoji+" "+tier.label,
+      tag: tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label,
       xp: grant.baseXP,
       sub: bonusLines.length ? bonusLines.join(" · ") : null,
       totalLine: grant.bonuses.length ? "סה\"כ +"+grant.totalGranted.toLocaleString()+" נקודות" : null,
