@@ -86,10 +86,20 @@ function buildMessage(type: string, p: Record<string, any>) {
       return { title: "בקשת החברות אושרה", body: `${p.from_name || "מטייל/ת"} אישר/ה את בקשת החברות שלך`, url: "/#/profile" };
     case "circle_joined":
       return { title: "הצטרפות לקבוצה", body: `${p.joiner_name || "מטייל/ת"} הצטרפ/ה ל"${p.circle_name || "הקבוצה"}"`, url: "/#/board" };
+    // שני סוגי הכיבוש חולקים tag אחד: כשכמה חברים כובשים ברצף, ה-Service Worker
+    // מאחד אותם להתראה אחת עם מונה במקום להציף את המסך. ההתראה הראשונה עדיין
+    // מציגה את היעד המדויק ומובילה אליו; רק מהשנייה ואילך עוברים לסיכום שמוביל
+    // לפיד הפעילות, כי אין יעד יחיד להצביע עליו.
     case "friend_checkin":
-      return { title: "חבר/ה כבש/ה יעד", body: `${visitor} כבש/ה ${landmark || "יעד חדש"}${pts}`, url: destUrl };
+      return {
+        title: "חבר/ה כבש/ה יעד", body: `${visitor} כבש/ה ${landmark || "יעד חדש"}${pts}`, url: destUrl,
+        tag: "checkin", summaryTitle: "כיבושים חדשים", summaryBody: "{n} חברים כבשו יעדים", summaryUrl: "/#/board",
+      };
     case "group_checkin":
-      return { title: "כיבוש חדש בקבוצה", body: `${visitor} כבש/ה ${landmark || "יעד חדש"}${pts}`, url: destUrl };
+      return {
+        title: "כיבוש חדש בקבוצה", body: `${visitor} כבש/ה ${landmark || "יעד חדש"}${pts}`, url: destUrl,
+        tag: "checkin", summaryTitle: "כיבושים חדשים בקבוצה", summaryBody: "{n} חברים כבשו יעדים", summaryUrl: "/#/board",
+      };
     default:
       return { title: "מגלים", body: "יש לכם עדכון חדש", url: "/" };
   }

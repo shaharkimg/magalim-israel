@@ -7,7 +7,7 @@
 // את זה. CACHE_VERSION כאן חייב להתעדכן יחד עם APP_VERSION (app.js) וה-?v= ב-index.html
 // בכל דיפלוי, כדי שגרסה ישנה תימחק אוטומטית ב-activate.
 
-const CACHE_VERSION = "20260914b1";
+const CACHE_VERSION = "20260914b2";
 const CACHE_NAME = "magalim-shell-" + CACHE_VERSION;
 const SHELL_PATHS = ["/", "/index.html", "/config.js", "/logo.png", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
@@ -62,6 +62,8 @@ self.addEventListener("fetch", (event) => {
 // כל הודעת push שמגיעה - אחרת הוא מציג התראה גנרית משלו ("אתר זה עודכן ברקע") ובסופו
 // של דבר שולל את ההרשאה. לכן כל נתיב כאן מסתיים ב-showNotification, גם כשה-payload
 // פגום או ריק.
+const NOTIF_BASE = { icon: "/icon-192.png", badge: "/icon-192.png", dir: "rtl", lang: "he" };
+
 self.addEventListener("push", (event) => {
   let data = {};
   if (event.data) {
@@ -71,19 +73,37 @@ self.addEventListener("push", (event) => {
       data = { body: event.data.text() };
     }
   }
-  const title = data.title || "מגלים";
-  const options = {
-    body: data.body || "",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    dir: "rtl",
-    lang: "he",
-    // tag מאחד התראות מאותו סוג לאותו מקור במקום לערום עשרות שורות נפרדות
-    tag: data.tag || undefined,
-    renotify: Boolean(data.tag),
-    data: { url: data.url || "/" },
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
+  const url = data.url || "/";
+  const tag = data.tag;
+
+  event.waitUntil((async () => {
+    // בלי tag - התראה בודדת, כל אחת עומדת בפני עצמה.
+    if (!tag) {
+      return self.registration.showNotification(data.title || "מגלים", {
+        ...NOTIF_BASE, body: data.body || "", data: { url },
+      });
+    }
+
+    // עם tag: אם כבר מוצגת התראה מאותה משפחה, מחליפים אותה בסיכום עם מונה במקום
+    // לערום עוד שורה. כך פרץ של חמישה כיבושים בקבוצה נראה כהתראה אחת שמתעדכנת,
+    // ולא כחמש הודעות נפרדות. המונה מתאפס מאליו ברגע שהמשתמש סוגר את ההתראה,
+    // כי getNotifications מחזיר רק התראות שעדיין מוצגות בפועל.
+    const existing = await self.registration.getNotifications({ tag });
+    const prev = existing.length ? (existing[0].data && existing[0].data.count) || 1 : 0;
+
+    if (prev === 0) {
+      return self.registration.showNotification(data.title || "מגלים", {
+        ...NOTIF_BASE, body: data.body || "", tag, data: { url, count: 1 },
+      });
+    }
+
+    const count = prev + 1;
+    const body = (data.summaryBody || "{n} עדכונים חדשים").replace("{n}", String(count));
+    return self.registration.showNotification(data.summaryTitle || "מגלים", {
+      ...NOTIF_BASE, body, tag, renotify: true,
+      data: { url: data.summaryUrl || url, count },
+    });
+  })());
 });
 
 self.addEventListener("notificationclick", (event) => {
