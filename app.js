@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260914a9";
+const APP_VERSION = "20260914b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -2009,9 +2009,9 @@ async function loadLandmarkPhotos(){
   LANDMARKS.forEach(l=>{ if(!landmarkPhotos[l.id] && l.stockPhotoUrl) landmarkPhotos[l.id] = l.stockPhotoUrl; });
 }
 async function loadMyGroups(){
-  const { data, error } = await supabase.from("group_members").select("group_id, groups(id,name)").eq("user_id", session.user.id);
+  const { data, error } = await supabase.from("group_members").select("group_id, groups(id,name,created_by)").eq("user_id", session.user.id);
   if(error){ console.warn("groups feature unavailable:", error.message); myGroups = []; return; }
-  myGroups = data.filter(r=>r.groups).map(r=>({ id:r.groups.id, name:r.groups.name }));
+  myGroups = data.filter(r=>r.groups).map(r=>({ id:r.groups.id, name:r.groups.name, createdBy:r.groups.created_by }));
   if(!activeGroupId || !myGroups.some(g=>g.id===activeGroupId)) activeGroupId = myGroups[0] ? myGroups[0].id : null;
   populateGroupSelect();
 }
@@ -2025,6 +2025,32 @@ function updateGroupBarVisibility(){
   $("groupBar").classList.toggle("hidden", !hasGroups);
   $("groupEmpty").classList.toggle("hidden", hasGroups);
   $("groupContent").classList.toggle("hidden", !hasGroups || !activeGroupId);
+  // מחיקת קבוצה מוצגת רק ליוצר שלה - זו פעולה שמוחקת את הקבוצה לכל החברים, ולכן
+  // היא לא נפתחת לכל חבר. ה-RLS אוכף את אותו כלל בצד השרת (migrations_group_delete).
+  const active = myGroups.find(g=>g.id===activeGroupId);
+  const isOwner = Boolean(active && session && active.createdBy === session.user.id);
+  $("groupDeleteBtn").classList.toggle("hidden", !isOwner);
+}
+async function deleteActiveGroup(){
+  const g = myGroups.find(x=>x.id===activeGroupId);
+  if(!g) return;
+  const ok = await confirmAction({
+    title: "למחוק את הקבוצה?",
+    message: `"${g.name}" תימחק לכל החברים בה, יחד עם הפעילות הקבוצתית וההצבעות. לא ניתן לשחזר.`,
+    confirmLabel: "מחק את הקבוצה",
+    destructive: true,
+  });
+  if(!ok) return;
+  const { error } = await supabase.from("groups").delete().eq("id", g.id);
+  if(error){
+    console.error(error);
+    toast("לא הצלחנו למחוק את הקבוצה");
+    return;
+  }
+  myGroups = myGroups.filter(x=>x.id!==g.id);
+  activeGroupId = myGroups[0] ? myGroups[0].id : null;
+  populateGroupSelect(); updateGroupBarVisibility(); renderGroupPanel();
+  toast("הקבוצה נמחקה");
 }
 async function createGroup(){
   const name = prompt("איך לקרוא לקבוצה?");
@@ -2036,7 +2062,7 @@ async function createGroup(){
     ({ error: joinErr } = await supabase.from("group_members").insert({ group_id:data.id, user_id:session.user.id }));
   }
   if(joinErr){ toast("שגיאה בהצטרפות לקבוצה"); return; }
-  myGroups.push({ id:data.id, name:data.name });
+  myGroups.push({ id:data.id, name:data.name, createdBy:session.user.id });
   activeGroupId = data.id;
   populateGroupSelect(); updateGroupBarVisibility();
   toast('הקבוצה "'+escapeHtml(data.name)+'" נוצרה!');
@@ -3468,8 +3494,9 @@ function wireStaticUI(){
     }
     shareLink(url, "מגלים", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
   };
-  $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; renderGroupPanel(); };
+  $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; updateGroupBarVisibility(); renderGroupPanel(); };
   $("groupNewBtn").onclick = createGroup;
+  $("groupDeleteBtn").onclick = deleteActiveGroup;
   $("groupCreateBtn").onclick = createGroup;
   $("groupInviteBtn").onclick = async ()=>{
     if(!activeGroupId){ toast("צור קבוצה קודם"); return; }
