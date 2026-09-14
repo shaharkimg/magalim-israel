@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260914a3";
+const APP_VERSION = "20260914a4";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3269,6 +3269,8 @@ function wireStaticUI(){
   $("notifGroupsToggle").onchange = saveNotificationPrefs;
   $("closeSettingsSheet").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
+  $("closeCheckinSheet").onclick = ()=> closeSheet("checkinSheet","checkinScrim");
+  $("checkinScrim").onclick = ()=> closeSheet("checkinSheet","checkinScrim");
   $("closeReportSheet").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportScrim").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportSubmitBtn").onclick = async ()=>{
@@ -3772,7 +3774,6 @@ function openDetail(id){
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
     ${visitedEntry ? "" : `<button class="btn btn-secondary btn-block" id="startTripBtn" style="margin-top:var(--space-2);">יוצאים לדרך</button>`}
-    <div id="checkinFlow"></div>
     <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
@@ -3870,8 +3871,11 @@ function wireFieldReportChips(){
   });
 }
 function startCheckin(l){
-  // הצ׳ק-אין דורש את כל המסך - פותחים את ה-sheet למדרגה המלאה כדי שהזרימה לא תיחתך
-  setSheetSnap($("detailSheet"), "full");
+  // הצ׳ק-אין נפתח כ-sheet נפרד משלו (לא כהרחבה בתוך עמוד-היעד הארוך) - כדי שכפתור-האישור
+  // יהיה מיד גלוי במסך משלו, בלי שהמשתמש יצטרך לגלול קודם דרך כל תוכן עמוד-היעד. openSheet
+  // הקיים כבר סוגר את detailSheet אוטומטית (מנגנון "sheet חדש סוגר sheets אחרים").
+  $("checkinSheetTitle").textContent = l.name;
+  openSheet("checkinSheet","checkinScrim");
   activeCheckinPhoto = null;
   reportState = { water:null, crowding:null, parking:null };
   $("checkinFlow").innerHTML = `
@@ -4031,7 +4035,7 @@ async function confirmCheckin(l){
     const queue = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
     queue.push(pending); localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
     myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:optimisticXp, note, pending:true });
-    refreshHeader(); closeSheet("detailSheet","detailScrim");
+    refreshHeader(); closeSheet("checkinSheet","checkinScrim");
     toast("נשמר במצב אופליין — יסונכרן כשהחיבור יחזור");
     renderMap(); renderProfile(); return;
   }
@@ -4054,7 +4058,7 @@ async function confirmCheckin(l){
     if(activeTrip && activeTrip.landmarkId===l.id) endTrip(true);
     track("checkin_completed", { landmark_id: l.id });
     submitFieldReport(l.id);
-    refreshHeader(); closeSheet("detailSheet","detailScrim");
+    refreshHeader(); closeSheet("checkinSheet","checkinScrim");
     if(!grant.isFirstConquest){
       // ביקור חוזר (למשל דאבל-קליק/race/סנכרון-כפול) - נרשם בהיסטוריה, בלי XP נוסף ובלי חגיגה
       toast("היעד הזה כבר נכבש בעבר — לא הוענקו נקודות נוספות");
