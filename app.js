@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260914a8";
+const APP_VERSION = "20260914a9";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4958,6 +4958,7 @@ function notificationIcon(type){
   if(type==="friend_accepted") return uiIcon("check",18);
   if(type==="circle_joined") return uiIcon("family",18);
   if(type==="friend_checkin") return uiIcon("trophy",18);
+  if(type==="group_checkin") return uiIcon("trophy",18);
   return uiIcon("flame",18);
 }
 /* ============ WEB PUSH — התראות מחוץ לאפליקציה ============ */
@@ -5091,7 +5092,11 @@ function notificationText(n){
   if(n.type==="friend_request") return `${fromName} שלח/ה לך בקשת חברות`;
   if(n.type==="friend_accepted") return `${fromName} אישר/ה את בקשת החברות שלך`;
   if(n.type==="circle_joined") return `${joinerName} הצטרפ/ה למעגל "${circleName}"`;
-  if(n.type==="friend_checkin") return `${visitorName} כבש/ה יעד חדש${landmarkName?" — "+landmarkName:""}`;
+  // הנקודות מגיעות ב-payload רק מהתראות שנוצרו אחרי migrations_group_checkin_notifications -
+  // התראות ישנות יותר פשוט לא יציגו אותן, בלי "undefined" ובלי לשבור את השורה.
+  const pointsSuffix = Number.isFinite(p.points) && p.points > 0 ? ` · +${p.points} נקודות` : "";
+  if(n.type==="friend_checkin") return `${visitorName} כבש/ה יעד חדש${landmarkName?" — "+landmarkName:""}${pointsSuffix}`;
+  if(n.type==="group_checkin") return `${visitorName} מהקבוצה כבש/ה ${landmarkName||"יעד חדש"}${pointsSuffix}`;
   return "התראה חדשה";
 }
 function goToNotificationContext(n){
@@ -5102,7 +5107,7 @@ function goToNotificationContext(n){
   } else if(n.type==="circle_joined" && p.circle_id){
     navigate("#/board");
     switchBoardTab("group");
-  } else if(n.type==="friend_checkin" && p.landmark_id){
+  } else if((n.type==="friend_checkin" || n.type==="group_checkin") && p.landmark_id){
     goToDestination(p.landmark_id);
   }
 }
