@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260914a2";
+const APP_VERSION = "20260914a3";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3879,13 +3879,14 @@ function startCheckin(l){
     <div class="demo-toggle"><span>מצב הדגמה (עוקף בדיקת מרחק לצורך בדיקה)</span>
       <label class="switch"><input type="checkbox" id="demoSwitch" ${demoMode?"checked":""}><span class="track"></span></label></div>
     <div id="photoStep" class="hidden">
+      <button class="btn btn-primary btn-block" id="confirmCheckin">🏆 אשר צ'ק-אין וקבל נקודות</button>
+      <div class="checkin-extras-divider">תוספות אופציונליות (לא נדרש כדי לקבל נקודות)</div>
       <div class="photo-drop" id="photoDrop">📷 הוסיפו תמונה מהמקום (אופציונלי)</div>
       <input type="file" accept="image/*" capture="environment" id="photoInput">
       <img class="photo-preview hidden" id="photoPreview">
       <label class="field-label" style="margin-top:6px;">הערה קצרה לחברים (אופציונלי)</label>
       <input class="text-input" id="checkinNote" maxlength="120" placeholder="לדוגמה: יש מים עכשיו, המסלול מעולה!">
       ${fieldReportChips(l)}
-      <button class="btn btn-primary btn-block" id="confirmCheckin" style="margin-top:12px;">אשר צ'ק-אין</button>
     </div>`;
   $("demoSwitch").onchange = e=>{ demoMode=e.target.checked; runGpsCheck(l); };
   $("photoDrop").onclick=()=>$("photoInput").click();
