@@ -11634,27 +11634,6 @@
     "official_url": null
   },
   {
-    "id": "lm-ef8a1c9a",
-    "name": "רוחמה הישנה",
-    "description": "רוחמה הישנה — טיול / נקודת עניין באזור דרום / נגב וערבה",
-    "category": "nature",
-    "difficulty": "easy",
-    "region": "south",
-    "lat": 29.57194,
-    "lon": 34.96056,
-    "duration": "",
-    "distance_km": 0,
-    "base_visits": 0,
-    "family_friendly": true,
-    "dog_friendly": false,
-    "accessible": false,
-    "has_water": false,
-    "price_type": "free",
-    "season": null,
-    "duration_hours": null,
-    "official_url": "https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/"
-  },
-  {
     "id": "tiuli-139",
     "name": "רחוב הנביאים בירושלים",
     "description": "טיול בטבע פתוח בהרי ירושלים, באורך של כ-3 ק\"מ ברמת קושי קלה.",

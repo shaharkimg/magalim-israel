@@ -102,8 +102,17 @@ function slug(name, taken) {
   return id;
 }
 
+// Confirmed wrong by inspection, not by any check here: רוחמה is in the
+// northern Negev (~31.5) but this row's coordinate is 29.57 - the Eilat hills,
+// ~200km off. Nothing in the name flags it (unlike פארק הולנד באילת, which
+// names the place it contradicts), so it slipped past nameContradictsCoordinate
+// and had to be pulled after the fact. Excluded by name so re-running this
+// script does not resurrect it.
+const REJECTED = new Set(['רוחמה הישנה']);
+
 const points = parseCsv(fs.readFileSync(path.join(root, 'data/geo_points.csv'), 'utf8'))
-  .map(p => ({ ...p, lat: +p.lat, lon: +p.lon }));
+  .map(p => ({ ...p, lat: +p.lat, lon: +p.lon }))
+  .filter(p => !REJECTED.has(p.name));
 const known = existingLandmarks();
 const taken = new Set(known.map(k => k.id));
 console.log('points with coordinates : ' + points.length);
