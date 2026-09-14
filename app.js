@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260906a2";
+const APP_VERSION = "20260914a1";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -1003,9 +1003,15 @@ function applyRoute(){
 let booted = false, publicBootPromise = null;
 async function bootPublic(){
   try{
-    const { data: lms, error: lmErr } = await supabase.from("landmarks").select("*").order("name");
-    if(lmErr) throw lmErr;
-    LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, points:l.points, baseVisits:l.base_visits,
+    const lms = [];
+    const PAGE = 1000;
+    for(let from=0; ; from+=PAGE){
+      const { data: page, error: lmErr } = await supabase.from("landmarks").select("*").order("name").range(from, from+PAGE-1);
+      if(lmErr) throw lmErr;
+      lms.push(...page);
+      if(page.length < PAGE) break;
+    }
+    LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, baseVisits:l.base_visits,
       familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null,
       officialUrl:l.official_url||null, stockPhotoUrl:l.stock_photo_url||null, stockPhotoCredit:l.stock_photo_credit||null }));
     lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));
