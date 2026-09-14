@@ -151,8 +151,11 @@ fs.writeFileSync(path.join(root, 'supabase/migrations_new_landmarks_from_list.sq
   added.map(a => '  (' + [
     sqlStr(a.id), sqlStr(a.name),
     sqlStr(a.name + ' — ' + (a.type_raw || 'אתר טיול') + ' באזור ' + (a.region_raw || '')),
+    // duration and distance_km are NOT NULL in the schema, and the source lists
+    // both as "לא נבדק". An empty duration and a zero distance are what the app
+    // already treats as unknown and hides, so nothing is invented to fill them.
     sqlStr(a.category), sqlStr('easy'), sqlStr(a.region), a.lat, a.lon,
-    'null', 'null', 0, 'true', 'false', 'false',
+    sqlStr(''), 0, 0, 'true', 'false', 'false',
     a.category === 'water' ? 'true' : 'false',
     sqlStr('free'), 'null', 'null', a.source ? sqlStr(a.source) : 'null',
   ].join(', ') + ')').join(',\n'),
