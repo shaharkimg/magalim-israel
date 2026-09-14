@@ -29,11 +29,34 @@ const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:shaharcohen.adv@g
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+// האתחול נדחה לתוך הבקשה ולא ברמת המודול בכוונה: setVapidDetails זורק כשהמפתחות
+// חסרים או פגומים, וברמת המודול זה מפיל את כל הפונקציה ל-WORKER_ERROR אטום - בלי
+// שום רמז שהבעיה היא סוד שלא הוגדר. כאן הכישלון חוזר כהודעה קריאה.
+let vapidReady = false;
+let initError = "";
+let admin: ReturnType<typeof createClient> | null = null;
 
-const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+function ensureReady() {
+  if (vapidReady || initError) return;
+  const missing: string[] = [];
+  if (!VAPID_PUBLIC_KEY) missing.push("VAPID_PUBLIC_KEY");
+  if (!VAPID_PRIVATE_KEY) missing.push("VAPID_PRIVATE_KEY");
+  if (!SUPABASE_URL) missing.push("SUPABASE_URL");
+  if (!SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (missing.length) {
+    initError = "missing secrets: " + missing.join(", ");
+    return;
+  }
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    vapidReady = true;
+  } catch (e: any) {
+    initError = "init failed: " + (e?.message ?? String(e));
+  }
+}
 
 type NotificationRecord = {
   id?: string;
@@ -74,6 +97,16 @@ Deno.serve(async (req) => {
   if (!SERVICE_ROLE_KEY || token !== SERVICE_ROLE_KEY) {
     return new Response(JSON.stringify({ error: "forbidden" }), {
       status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // אחרי בדיקת ההרשאה: אם משהו בהקמה חסר, מחזירים את הסיבה המדויקת במקום לקרוס.
+  ensureReady();
+  if (!vapidReady || !admin) {
+    console.error(initError);
+    return new Response(JSON.stringify({ error: initError }), {
+      status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
