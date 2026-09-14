@@ -28,6 +28,11 @@ const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:shaharcohen.adv@gmail.com";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+// סוד ייעודי ל-Webhook. נוסף אחרי שהתברר שאי אפשר להסתמך על השוואה מול
+// SUPABASE_SERVICE_ROLE_KEY: סופאבייס עברה לפורמט מפתחות חדש (sb_secret_...), בעוד
+// שהמשתנה המוזרק נשאר ה-JWT הישן - כך ששני צדדים תקינים לגמרי פשוט לא משתווים.
+// סוד נפרד מנתק את האימות שלנו מפורמט המפתחות של הפלטפורמה.
+const PUSH_HOOK_SECRET = Deno.env.get("PUSH_HOOK_SECRET") ?? "";
 
 // האתחול נדחה לתוך הבקשה ולא ברמת המודול בכוונה: setVapidDetails זורק כשהמפתחות
 // חסרים או פגומים, וברמת המודול זה מפיל את כל הפונקציה ל-WORKER_ERROR אטום - בלי
@@ -91,10 +96,20 @@ function buildMessage(type: string, p: Record<string, any>) {
 }
 
 Deno.serve(async (req) => {
-  // אימות: רק מי שמחזיק ב-service role key (כלומר ה-Webhook עצמו) רשאי להפעיל.
-  const auth = req.headers.get("Authorization") ?? "";
-  const token = auth.replace(/^Bearer\s+/i, "").trim();
-  if (!SERVICE_ROLE_KEY || token !== SERVICE_ROLE_KEY) {
+  // אימות. שני מסלולים קבילים, כי השער של Supabase לבדו לא מספיק - הוא מקבל גם את
+  // ה-anon key, שהוא ציבורי לחלוטין (יושב ב-config.js), ולכן בלי בדיקה משלנו כל אחד
+  // היה יכול להפעיל את הפונקציה ולהציף משתמשים בהתראות.
+  const headerSecret = (req.headers.get("x-push-secret") ?? "").trim();
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const allowed =
+    (PUSH_HOOK_SECRET !== "" && headerSecret === PUSH_HOOK_SECRET) ||
+    (SERVICE_ROLE_KEY !== "" && bearer === SERVICE_ROLE_KEY);
+  if (!allowed) {
+    console.error(
+      "rejected: x-push-secret " + (headerSecret ? "present but wrong" : "absent") +
+      ", bearer " + (bearer ? "present but not service_role" : "absent") +
+      ", PUSH_HOOK_SECRET " + (PUSH_HOOK_SECRET ? "configured" : "NOT SET"),
+    );
     return new Response(JSON.stringify({ error: "forbidden" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
