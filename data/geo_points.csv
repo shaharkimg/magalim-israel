@@ -1,0 +1,245 @@
+name,lat,lon,region,region_raw,category,type_raw,point_kind,confidence,source
+אתר ההנצחה לשיירת יחיעם,32.99405,35.1356417,north,צפון,heritage,טיול / נקודת עניין,נקודת אתר,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+בית צידה,32.90995,35.63053611,north,צפון,archaeology,טיול / נקודת עניין,אתר ארכאולוגי,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+דרך נוף הרי נפתלי,33.239029,35.572164,north,צפון,nature,דרך נוף / טיול רכב,נקודה על המסלול,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+האלה של רבי טרפון בקדיתא,33.00341,35.47194,north,צפון,nature,טיול / נקודת עניין,נקודת אתר,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+הר הקפיצה: טיול בשביל הבשורה,32.682795,35.307366,north,צפון,mountains,מסלול הליכה,נקודת אתר,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+חורבת דנעילה בגליל המערבי,33.066136,35.246218,north,צפון,archaeology,טיול / נקודת עניין,אתר ארכאולוגי,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+אגמון החולה,33.103195,35.6076923,north,צפון,water,טיול / נקודת עניין,נקודת אתר,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+הגן הבוטני באגמון החולה קק״ל,33.109796,35.590411,north,צפון,water,טיול / נקודת עניין,נקודת אתר,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+הר ברניקי,32.7756,35.5394,north,צפון,mountains,טיול / נקודת עניין,פסגת הר,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+חוף אכזיב,33.042963,35.099173,north,צפון,water,טיול / נקודת עניין,נקודת אתר / חוף,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+יער גבעת המורה,32.60751,35.37624,north,צפון,mountains,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+יער לביא,32.77671,35.42174,north,צפון,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_north/
+דרך בורמה,31.8137001,34.9722548,center,מרכז / ירושלים והשפלה,nature,דרך נוף / טיול רכב,נקודה מייצגת למסלול,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+דרך הפסלים ביער צרעה (יער הנשיא),31.772725,34.974461,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,נקודת אתר / דרך נוף,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+ההר העגול ביער אלונה,32.5645,35.03159,center,מרכז / ירושלים והשפלה,viewpoints,יער / מסלול,נקודת אתר / פסגה,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+חורבת בורגין בפארק עדולם-צרפת,31.63607,34.96877,center,מרכז / ירושלים והשפלה,archaeology,טיול / נקודת עניין,אתר ארכאולוגי,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+חורבת חנות,31.7115222,35.0463444,center,מרכז / ירושלים והשפלה,archaeology,טיול / נקודת עניין,אתר ארכאולוגי,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+חורבת עתרי,31.649472,34.972007,center,מרכז / ירושלים והשפלה,archaeology,טיול / נקודת עניין,אתר ארכאולוגי,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער המגינים,31.8397222,34.9280556,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער חדרה,32.42778,34.895,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+פארק יער שהם,31.99722,34.95944,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער אשתאול,31.805562,34.9957289,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער בן שמן,31.9488889,34.9561111,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער עמינדב,31.740939,35.138146,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+דרך נוף פארק בריטניה,31.700713756956883,34.93171691894531,center,מרכז / ירושלים והשפלה,nature,דרך נוף / טיול רכב,מרכז הפארק / נקודה מייצגת לדרך הנוף,בינונית,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער אילנות,32.29291,34.900517,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער חורשים,32.1427778,34.9841667,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער קדימה,32.28798,34.927283,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+תל חדיד שביער בן שמן,31.9669444444,34.9527777778,center,מרכז / ירושלים והשפלה,archaeology,יער / מסלול,אתר ארכאולוגי,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יד אנה פרנק ביער הקדושים,31.778002,35.029938,center,מרכז / ירושלים והשפלה,heritage,יער / מסלול,אנדרטה,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער הרצל חולדה,31.8229833,34.893464,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער חרובית,31.85496306,34.85240656,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,נקודה בתוך היער,בינונית,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+יער ראש העין,32.0995587,34.978718,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+פארק בגין,31.722911,35.110502,center,מרכז / ירושלים והשפלה,nature,טיול / נקודת עניין,נקודת אתר / פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+מרכז המבקרים באילנות,32.293046,34.901048,center,מרכז / ירושלים והשפלה,nature,טיול / נקודת עניין,אזור מרכז המבקרים,בינונית,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+מרכז צפרות יער ראש ציפור,32.09451,34.80491,center,מרכז / ירושלים והשפלה,nature,יער / מסלול,נקודת אתר / פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+נווה אילן הישנה ויער המכללות,31.808850199764127,35.08226074809324,center,מרכז / ירושלים והשפלה,heritage,יער / מסלול,אתר מורשת,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+נחל אלכסנדר,32.39613330537673,34.865702390670776,center,מרכז / ירושלים והשפלה,water,מסלול הליכה,שפך הנחל / נקודה מייצגת,בינונית,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+עזקה: עיר מבצר בגבול יהודה,31.7009791,34.9356716,center,מרכז / ירושלים והשפלה,archaeology,טיול / נקודת עניין,אתר ארכאולוגי / תל,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+עין נקופה ויער הסתדרות המורים,31.808983259334,35.143032073975,center,מרכז / ירושלים והשפלה,water,יער / מסלול,מעיין,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+פארק שלולית החורף בנתניה,32.2906436,34.8433572,center,מרכז / ירושלים והשפלה,nature,טיול / נקודת עניין,נקודת אתר / פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+תל עדולם,31.65033,35.0028,center,מרכז / ירושלים והשפלה,viewpoints,טיול / נקודת עניין,תצפית / תל ארכאולוגי,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_center/
+אגם מים בפארק יצחק נבון ירוחם,30.988861,34.902722,south,דרום / נגב וערבה,nature,טיול / נקודת עניין,אגם / פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+אנדרטת חץ שחור,31.5069178,34.5526135,south,דרום / נגב וערבה,heritage,טיול / נקודת עניין,אנדרטה,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+באר צקלג שביער להב,31.38967,34.85325,south,דרום / נגב וערבה,nature,יער / מסלול,באר / נקודת אתר,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+חניון הרועה,30.8755,34.78593,south,דרום / נגב וערבה,nature,טיול / נקודת עניין,חניון,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+פארק אשכול (גן לאומי הבשור),31.308622,34.49177,south,דרום / נגב וערבה,parks,טיול / נקודת עניין,גן לאומי / פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+פארק הולנד באילת,31.016456,34.760785,south,דרום / נגב וערבה,nature,טיול / נקודת עניין,פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+רוחמה הישנה,29.57194,34.96056,south,דרום / נגב וערבה,nature,טיול / נקודת עניין,פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+פארק תמנע,29.77333,34.97639,south,דרום / נגב וערבה,nature,טיול / נקודת עניין,מרכז אזור / נקודה מייצגת לפארק,בינונית,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+בארות יצחק הישנה,31.46086,34.50034,south,דרום / נגב וערבה,heritage,טיול / נקודת עניין,אתר מורשת / אנדרטה,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+פארק אופקים,31.30761,34.6348,south,דרום / נגב וערבה,nature,טיול / נקודת עניין,פארק,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+יער המלאכים-שחריה,31.5938025,34.8266995,south,דרום / נגב וערבה,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+יער יתיר,31.3333,35.05,south,דרום / נגב וערבה,nature,יער / מסלול,נקודה בתוך היער / אתר מחקר,בינונית,https://www.kkl.org.il/travel/trips/itineraries_for_families/itineraries_for_families_south/
+שמורת טבע נחל עמוד,32.9731393,35.4625321,north,צפון,reserves,שמורת טבע / מסלול,נקודת אתר,גבוהה,https://www.parks.org.il/reserve-park/%D7%A9%D7%9E%D7%95%D7%A8%D7%AA-%D7%98%D7%91%D7%A2-%D7%A0%D7%97%D7%9C-%D7%A2%D7%9E%D7%95%D7%93/
+שמורת טבע תל דן,33.2421211,35.6454181,north,צפון,reserves,שמורת טבע / מסלול,נקודת אתר,גבוהה,https://www.parks.org.il/reserve-park/%D7%A9%D7%9E%D7%95%D7%A8%D7%AA-%D7%98%D7%91%D7%A2-%D7%AA%D7%9C-%D7%93%D7%9F/
+יער בית קשת,32.7363889,35.3838889,north,צפון,nature,יער / דרך נוף,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/beit_keshet_forest/
+עין מבוע,31.76,35.32,jerusalem,ירושלים ומדבר יהודה,water,מעיין,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/reserve-park/%D7%A9%D7%9E%D7%95%D7%A8%D7%AA-%D7%94%D7%98%D7%91%D7%A2-%D7%A0%D7%97%D7%9C-%D7%A4%D7%A8%D7%AA-%D7%95%D7%90%D7%93%D7%99-%D7%A7%D7%9C%D7%98/
+עין קלט,31.84,35.41,jerusalem,ירושלים ומדבר יהודה,water,מעיין / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/reserve-park/%D7%A9%D7%9E%D7%95%D7%A8%D7%AA-%D7%94%D7%98%D7%91%D7%A2-%D7%A0%D7%97%D7%9C-%D7%A4%D7%A8%D7%AA-%D7%95%D7%90%D7%93%D7%99-%D7%A7%D7%9C%D7%98/
+יער להב,31.3758333,34.8527778,south,נגב,nature,יער / מסלול,מרכז אתר / יער,גבוהה,https://www.kkl.org.il/travel/trips/lahav_forest/
+מצפור הר אבנון,30.9715,34.9825,south,נגב,viewpoints,תצפית / מסלול קצר,נקודת תצפית / פסגה,גבוהה,https://www.parks.org.il/trip/page/2/
+גן לאומי ממשית,31.0240184,35.0648415,south,נגב,parks,גן לאומי / מסלול,נקודת אתר,גבוהה,https://www.parks.org.il/trip/page/2/
+עין תינה,33.235,35.65,north,צפון / גולן,water,מסלול מים,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/trip/page/2/
+שמורת טבע עין אפק,32.8456606,35.1124623,north,צפון / עמק עכו,reserves,שמורת טבע / מסלול,נקודת אתר,גבוהה,https://www.parks.org.il/trip/page/2/
+שמורת טבע חוף האלמוגים,29.5072117,34.9202831,south,ערבה / אילת,reserves,שמורת טבע / חוף,נקודת אתר,גבוהה,https://www.parks.org.il/trip/page/2/
+גן לאומי גן השלושה,32.4833,35.4167,north,צפון / עמק המעיינות,parks,גן לאומי / מים,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/trip/page/2/
+גן לאומי קיסריה,32.498858,34.898751,north,צפון / חוף הכרמל,parks,גן לאומי / מסלול,נקודת אתר,גבוהה,https://www.parks.org.il/trip/page/2/
+מצפה כנרת מנדל,32.7,35.6462,north,צפון / גולן,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/trips/accessible_hiking_trails/accessible_hiking_trails_north/mitzpe_kinneret_mandel/
+מצפה בניה בהרי נפתלי,33.2479,35.5515,north,צפון / גליל עליון,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/trips/2934/
+עין נון,32.868,35.553,north,צפון / כנרת,water,מעיין,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין מודע,32.49,35.405,north,צפון / עמק המעיינות,water,מעיין,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין שוקק,32.478,35.414,north,צפון / עמק המעיינות,water,מעיין,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין סטף,31.765,35.118,jerusalem,ירושלים / הרי יהודה,water,מעיין / נקבה,נקודת אתר / מקור מים,גבוהה,https://www.kkl.org.il/travel/water_trips_2025/
+עין לבן,31.748,35.179,jerusalem,ירושלים,water,מעיין,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין חניה,31.73,35.16,jerusalem,ירושלים,water,מעיין / אתר ארכיאולוגי,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין ספיר,31.742,35.172,jerusalem,ירושלים / הרי יהודה,water,מעיין / נקבה,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין קובי,31.762,35.168,jerusalem,ירושלים / הרי יהודה,water,מעיין / נקבה,נקודת אתר / מקור מים,גבוהה,https://www.kkl.org.il/travel/water_trips_2025/
+עין פרת,31.82,35.3,deadsea,מדבר יהודה,water,מעיין / מסלול מים,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עינות צוקים,31.71,35.45,deadsea,ים המלח,water,מעיינות / שמורת טבע,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין בוקק,31.2,35.36,deadsea,ים המלח,water,מעיין / מסלול מים,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין עקב,30.87,34.85,south,נגב / שדה בוקר,water,מעיין / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין זיק,30.95,34.82,south,נגב / שדה בוקר,water,מעיין / נווה מדבר,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין שביב,30.8,34.8,south,נגב / שדה בוקר,water,מעיין / נווה מדבר,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין ירקעם,30.92,34.98,south,נגב,water,גב / אתר מים,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+עין נטפים,29.634,34.953,eilat,אילת,water,מעיין / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+מצפור טופז,33.0769,35.196,north,צפון / גליל מערבי,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+קרן נפתלי,33.0898,35.5649,north,צפון / גליל עליון,viewpoints,תצפית / מסלול,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפה אופיר,32.8148,35.6627,north,צפון / גולן,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפה גדות,33.0135,35.6414,north,צפון / גולן,viewpoints,תצפית / מורשת,נקודת תצפית / פסגה,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+מצפור ויניה,32.5231,35.3876,north,צפון / גלבוע,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפור הר אדיר,33.0336,35.3698,north,צפון / גליל עליון,viewpoints,תצפית / מורשת,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפור מונפור,33.0466554,35.2223152,north,צפון / גליל מערבי,viewpoints,תצפית,נקודת תצפית / אתר,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפור הצוק פארק הכרמל,32.7437,35.0256,north,צפון / כרמל,viewpoints,תצפית,נקודת תצפית / אתר,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפור המוחרקה,32.65,35.071389,north,צפון / כרמל,viewpoints,תצפית,נקודת תצפית / אתר,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+תל חדיד,31.9642,34.9508,center,מרכז / בן שמן,viewpoints,תצפית / תל,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפה משואה,31.6673,34.9226,center,שפלה,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפה הראל,31.8077,34.9642,center,שפלה,viewpoints,תצפית / מורשת,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפור שער הגיא,31.815,35.0188,jerusalem,ירושלים / הרי יהודה,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפור מואב,31.2606,35.2422,south,נגב / ערד,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+מצפה אבנון,30.9715,34.9825,south,נגב,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+מצפה מעלה עלי,30.9459,35.1593,south,נגב,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+מצפור ערוד,30.4969,34.6469,south,נגב / הר הנגב,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+הר גמל,30.6029,34.7966,south,נגב / מצפה רמון,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.parks.org.il/%D7%9E%D7%A1%D7%9C%D7%95%D7%9C%D7%99-%D7%98%D7%99%D7%95%D7%9C/
+מצפור שי נחל הבשור,31.3463,34.4711,south,נגב מערבי,viewpoints,תצפית,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/scenic_lookouts/
+הר רם,33.245772,35.787547,north,צפון / גולן וחרמון,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר כרמים,33.218933,35.777842,north,צפון / גולן וחרמון,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר אודם,33.1987,35.7542,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר בראון,33.158868,35.778213,north,צפון / גולן וחרמון,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר אביטל,33.10816126,35.79455909,north,צפון / גולן וחרמון,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר פרס,32.960276,35.864804,north,צפון / גולן וחרמון,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר שיפון,33.0693,35.7691,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר סנאים,33.271697,35.721566,north,צפון / גולן וחרמון,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל חרמון,33.213157,35.629298,north,צפון / גולן וחרמון,water,נחל / מסלול,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל אל על,32.805,35.753,north,צפון / גולן וחרמון,water,נחל / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל יהודיה,32.86,35.69,north,צפון / גולן וחרמון,water,נחל / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל זוויתן,32.82,35.735,north,צפון / גולן וחרמון,water,נחל / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מפל בניאס,33.237,35.677,north,צפון / גולן וחרמון,water,מפל / אתר טבע,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+בריכת המשושים,32.833,35.705,north,צפון / גולן וחרמון,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מצפה השלום,32.7582,35.6583,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפה קוניטרה,33.1085,35.8008,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפה נמרוד,32.9718,35.5336,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפור בית ציידא,32.8887,35.6926,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפור גולני,33.2249,35.6901,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפור הר בנטל,33.1288,35.7858,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפור עמק הבכא,33.1772,35.798,north,צפון / גולן וחרמון,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+הר מירון,32.99774886,35.41249775,north,צפון / גליל עליון ואצבע הגליל,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין כובס,32.96,35.51,north,צפון / גליל עליון ואצבע הגליל,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין זיתים,32.965,35.485,north,צפון / גליל עליון ואצבע הגליל,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מצפור קרן נפתלי,33.0898,35.5649,north,צפון / גליל עליון ואצבע הגליל,viewpoints,תצפית / פסגה,נקודת תצפית / אתר,גבוהה,https://www.kkl.org.il/travel/
+מצפור יפתח,33.1305,35.5559,north,צפון / גליל עליון ואצבע הגליל,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+הר הכרמל,32.72852,35.05411,north,צפון / כרמל ורמות מנשה,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+גבעת המורה,32.6177,35.3489,north,צפון / גליל תחתון עמקים וגלבוע,viewpoints,נקודת עניין / טיול,נקודת תצפית / אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין חרוד,32.5553,35.3897,north,צפון / גליל תחתון עמקים וגלבוע,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין דור,32.642525,35.391611,north,צפון / גליל תחתון עמקים וגלבוע,water,מעיין / מקור מים,נקודת ייחוס,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מצפור הר ברקן,32.5102,35.4083,north,צפון / גליל תחתון עמקים וגלבוע,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפור הר תבור,32.7066,35.3686,north,צפון / גליל תחתון עמקים וגלבוע,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+תל יזרעאל,32.5578,35.3281,north,צפון / גליל תחתון עמקים וגלבוע,archaeology,אתר מורשת / ארכיאולוגיה,תל ארכאולוגי,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל מגידו,32.58527401,35.18436781,north,צפון / גליל תחתון עמקים וגלבוע,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל חנתון,32.7859178,35.2562847,north,צפון / גליל תחתון עמקים וגלבוע,archaeology,אתר מורשת / ארכיאולוגיה,תל ארכאולוגי,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל בית ירח,32.71703,35.571261,north,צפון / גליל תחתון עמקים וגלבוע,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל עמל,32.50413196,35.45655814,north,צפון / גליל תחתון עמקים וגלבוע,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מצפור חוף השרון,32.2187,34.8161,center,מרכז / השרון ומישור החוף,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפור תל מיכל,32.160787,34.797131,center,מרכז / השרון ומישור החוף,viewpoints,תצפית / פסגה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.kkl.org.il/travel/
+תל קסילה,32.101404,34.795422,center,מרכז / השרון ומישור החוף,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל גזר,31.859872,34.919644,center,מרכז / השרון ומישור החוף,archaeology,אתר מורשת / ארכיאולוגיה,תל ארכאולוגי,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+חורבת בורגתה,32.318458,34.949516,center,מרכז / השרון ומישור החוף,archaeology,אתר מורשת / ארכיאולוגיה,אתר ארכאולוגי,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+פארק רעננה,32.1882,34.8505,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק כפר סבא,32.1846,34.9277,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק הרצליה,32.1745,34.8244,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק הוד השרון,32.147,34.9087,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק הירקון,32.1003,34.8114,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק אריאל שרון,32.028,34.8215,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק אקולוגי הוד השרון,32.1364,34.9205,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק אגם נתניה,32.2864,34.853,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק אגם ראשון לציון,31.9797,34.7714,center,מרכז / השרון ומישור החוף,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+נחל שורק,31.941373,34.707306,jerusalem,ירושלים / הרי יהודה והשפלה,water,נחל / מסלול,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל רפאים,31.758729,35.08799,jerusalem,ירושלים / הרי יהודה והשפלה,water,נחל / מסלול,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל כסלון,31.75977,34.990038,jerusalem,ירושלים / הרי יהודה והשפלה,water,נחל / מסלול,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל סנסן,31.681607,34.994096,jerusalem,ירושלים / הרי יהודה והשפלה,water,נחל / מסלול,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל זנוח,31.738547,35.004081,jerusalem,ירושלים / הרי יהודה והשפלה,water,נחל / מסלול,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין נקופה,31.809098,35.142931,jerusalem,ירושלים / הרי יהודה והשפלה,water,מעיין / מקור מים,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין חנדק,31.762368,35.139001,jerusalem,ירושלים / הרי יהודה והשפלה,water,מעיין / מקור מים,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין אל בלד,31.743927,35.146051,jerusalem,ירושלים / הרי יהודה והשפלה,water,מעיין / מקור מים,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין חובילה,31.6576,35.1022,jerusalem,ירושלים / הרי יהודה והשפלה,water,מעיין / מקור מים,נקודת מעיין,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין סעדים,31.75269,35.12617,jerusalem,ירושלים / הרי יהודה והשפלה,water,מעיין / מקור מים,נקודת מעיין,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין אשקף,31.756634,35.126874,jerusalem,ירושלים / הרי יהודה והשפלה,water,מעיין / מקור מים,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין אורה,31.7409583333,35.1469833333,jerusalem,ירושלים / הרי יהודה והשפלה,water,מעיין / מקור מים,נקודת מעיין,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר טייסים,31.773072,35.090605,jerusalem,ירושלים / הרי יהודה והשפלה,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר יעלה,31.7511,35.0425,jerusalem,ירושלים / הרי יהודה והשפלה,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר גיורא,31.744711,35.08257,jerusalem,ירושלים / הרי יהודה והשפלה,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר רפאים,31.735601,35.102341,jerusalem,ירושלים / הרי יהודה והשפלה,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר עמינדב,31.747391,35.139277,jerusalem,ירושלים / הרי יהודה והשפלה,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר תנופה,31.784233,34.969751,jerusalem,ירושלים / הרי יהודה והשפלה,mountains,תצפית / פסגה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר שמשון,31.767052,35.03705,jerusalem,ירושלים / הרי יהודה והשפלה,viewpoints,תצפית / פסגה,פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר יערן,31.707424,35.039458,jerusalem,ירושלים / הרי יהודה והשפלה,viewpoints,תצפית / פסגה,פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מצפור הר טייסים,31.7721,35.0886,jerusalem,ירושלים / הרי יהודה והשפלה,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+חורבת סעדים,31.751953,35.129163,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+חורבת מדרס,31.65594,34.93747,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,אתר ארכאולוגי,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+חורבת בורגין,31.63607,34.96877,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,אתר ארכאולוגי,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+חורבת קיאפה,31.69643,34.95736,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,אתר ארכאולוגי,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מערת הנטיפים,31.756128,35.023152,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,מערה / אתר טבע,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מערת התאומים,31.726425,35.022234,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,מערה / אתר טבע,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מערת שמשון,31.764352,35.022712,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,מערה / אתר טבע,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מערת בני ברית,31.776829,35.03383,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,מערה / אתר טבע,נקודת ישות גאוגרפית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מערות בית גוברין,31.605326,34.903718,jerusalem,ירושלים / הרי יהודה והשפלה,nature,נקודת עניין / טיול,אתר/מערות,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל גודד,31.633864,34.90991,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל בית שמש,31.750796,34.974873,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל ירמות,31.707923,34.975151,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל צרעה,31.774602,34.985869,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל לכיש,31.565443,34.848845,jerusalem,ירושלים / הרי יהודה והשפלה,archaeology,אתר מורשת / ארכיאולוגיה,נקודת אתר ארכאולוגי / תל,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+תל צפית,31.702,34.8474,jerusalem,ירושלים / הרי יהודה והשפלה,viewpoints,אתר מורשת / ארכיאולוגיה,נקודת תצפית / אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עמק הארזים,31.800344,35.171345,jerusalem,ירושלים / הרי יהודה והשפלה,nature,נקודת עניין / טיול,נקודת ייחוס אזורית,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+גן לאומי עין חמד,31.796716,35.123935,jerusalem,ירושלים / הרי יהודה והשפלה,parks,פארק / שמורה / יער,נקודת ישות גאוגרפית,גבוהה,https://www.tiuli.com/points-of-interest
+גן לאומי הקסטל,31.7955,35.1448,jerusalem,ירושלים / הרי יהודה והשפלה,parks,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+גן לאומי בית גוברין,31.6128,34.8954,jerusalem,ירושלים / הרי יהודה והשפלה,parks,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+פארק העצמאות תל אביב,32.0887,34.7708,center,מרכז / גוש דן ואתרים עירוניים,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+פארק המסילה תל אביב,32.0592,34.7675,center,מרכז / גוש דן ואתרים עירוניים,nature,פארק / שמורה / יער,נקודת אתר / מרכז אתר,גבוהה,https://www.kkl.org.il/travel/
+טיילת תל אביב,32.0781,34.7662,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+טיילת יפו,32.0524,34.7505,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+טיילת הרצליה,32.1695,34.8009,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+טיילת נתניה,32.3216,34.8505,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+טיילת בת ים,32.018,34.739,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+טיילת ראשון לציון,31.9805,34.7402,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+טיילת אשדוד,31.7957,34.6339,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+טיילת אשקלון,31.675,34.5545,center,מרכז / גוש דן ואתרים עירוניים,nature,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+נמל יפו,32.0522,34.7502,center,מרכז / גוש דן ואתרים עירוניים,nature,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+נמל תל אביב,32.0964,34.7734,center,מרכז / גוש דן ואתרים עירוניים,nature,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+נמל קיסריה,32.5008,34.8917,center,מרכז / גוש דן ואתרים עירוניים,nature,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+נמל עכו,32.9182,35.068,center,מרכז / גוש דן ואתרים עירוניים,nature,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+מתחם התחנה תל אביב,32.0566,34.7614,center,מרכז / גוש דן ואתרים עירוניים,nature,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+מתחם התחנה ירושלים,31.7685,35.2242,center,מרכז / גוש דן ואתרים עירוניים,nature,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+שרונה תל אביב,32.0715,34.788,center,מרכז / גוש דן ואתרים עירוניים,nature,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+יפו העתיקה,32.0543,34.7522,center,מרכז / גוש דן ואתרים עירוניים,archaeology,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עכו העתיקה,32.9213,35.0685,center,מרכז / גוש דן ואתרים עירוניים,archaeology,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+קיסריה העתיקה,32.5005,34.8922,center,מרכז / גוש דן ואתרים עירוניים,archaeology,נקודת עניין / טיול,נקודת אתר / מרכז אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+בריכת הקשתות רמלה,31.9304,34.8733,center,מרכז / גוש דן ואתרים עירוניים,water,מעיין / מקור מים,נקודת אתר / מרכז אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל ערוגות,31.455,35.385,deadsea,מדבר יהודה / ים המלח ובקעת הירדן,water,נחל / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+נחל דוד,31.47,35.39,deadsea,מדבר יהודה / ים המלח ובקעת הירדן,water,נחל / מסלול,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין פשחה,31.72,35.455,deadsea,מדבר יהודה / ים המלח ובקעת הירדן,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין שולמית,31.468,35.392,deadsea,מדבר יהודה / ים המלח ובקעת הירדן,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין עוג'ה,31.955,35.445,deadsea,מדבר יהודה / ים המלח ובקעת הירדן,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין חגלה,31.83,35.51,deadsea,מדבר יהודה / ים המלח ובקעת הירדן,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר קנאים,31.2993,35.2968,deadsea,מדבר יהודה / ים המלח ובקעת הירדן,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין עבדת,30.83,34.77,south,נגב / באר שבע והר הנגב,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין מור,30.81,34.785,south,נגב / באר שבע והר הנגב,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר רמון,30.499856,34.630766,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר ארדון,30.6408,34.9503,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר קטום,30.5763,34.8951,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר עידו,30.5048,34.6853,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר צרור,30.8603,34.8212,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מצפור ליפא גל,30.8223,34.7413,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+מצפור חגי,30.887672,34.791927,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,נקודת תצפית / אתר,גבוהה,https://www.kkl.org.il/travel/
+מצפור המכתש הקטן,30.9398,35.1631,south,נגב / באר שבע והר הנגב,viewpoints,תצפית / פסגה,נקודת תצפית / אתר,גבוהה,https://www.kkl.org.il/travel/
+באר רבובה,31.256611,34.488218,south,נגב / באר שבע והר הנגב,nature,באר / בור מים,באר/אתר,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר שלמה,29.5801,34.8997,south,ערבה / הרי אילת,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר נשף,29.6659,34.866,south,ערבה / הרי אילת,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+הר צניפים,30.1286,34.8604,south,ערבה / הרי אילת,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין עברונה,29.66,35.02,south,ערבה / הרי אילת,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+עין יהב,30.65,35.21,south,ערבה / הרי אילת,water,מעיין / מקור מים,נקודת אתר / מקור מים,גבוהה,https://www.geonames.org/advanced-search.html?country=IL&q=Israeli
+מצפור הר ברך,29.79242,34.91584,south,ערבה / הרי אילת,viewpoints,תצפית / פסגה,נקודת תצפית / אתר,גבוהה,https://www.kkl.org.il/travel/
+מצפור דרך השלום,30.7788,35.2935,south,ערבה / הרי אילת,viewpoints,תצפית / פסגה,נקודת תצפית / פסגה,גבוהה,https://www.kkl.org.il/travel/
+חוף האלמוגים,29.5072,34.9203,south,ערבה / הרי אילת,water,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+חוף הנסיכה,29.4957,34.9161,south,ערבה / הרי אילת,water,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
+חוף המגדלור,29.505,34.9178,south,ערבה / הרי אילת,water,חוף / טיילת,נקודת אתר / מרכז אתר,גבוהה,https://www.tiuli.com/points-of-interest
