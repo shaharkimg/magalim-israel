@@ -9,32 +9,26 @@
 -- שני אתרים אמיתיים ומובחנים בתוך אותו אזור גיאוגרפי רחב.
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('hukok', 'חוקוק',
    'אתר ארכיאולוגי בגליל התחתון, בו התגלה בית-כנסת עתיק ומפואר מהתקופה הרומית-ביזנטית עם רצפות-פסיפס יוצאות-דופן, כולל תיאורי שמשון וסצנות מקראיות נדירות - אתר-חפירות פעיל ומתפתח.',
-   'archaeology', 'easy', 'north', 32.8803979, 35.4964716, 'שעה-שעה וחצי', 1,
-   10, 90, true, false, false, false, 'free',
+   'archaeology', 'easy', 'north', 32.8803979, 35.4964716, 'שעה-שעה וחצי', 1, 90, true, false, false, false, 'free',
    null, 1, null),
 
   ('agmon-hula', 'אגמון החולה',
    'אתר-ביקורים פעיל בלב עמק החולה, המציע צפייה מקרוב במיליוני עופות נודדים (בעיקר עגורים) העוברים בו כל חורף - סיורי רכבי-גולף, אופניים והליכה לאורך בריכות ומצפורים.',
-   'nature', 'easy', 'north', 33.1108438, 35.5860665, 'שעתיים-שלוש', 3,
-   10, 200, true, false, true, true, 'paid',
+   'nature', 'easy', 'north', 33.1108438, 35.5860665, 'שעתיים-שלוש', 3, 200, true, false, true, true, 'paid',
    null, 2.5, null),
 
   ('adullam-france-park', 'גן ארכיאולוגי פארק עדולם-צרפת',
    'פארק יער בשפלת יהודה המשלב שרידים ארכיאולוגיים (בהם חורבת עתרי) עם שבילי-הליכה ואתרי-פיקניק - נטוע בשיתוף קרן היהודים בצרפת, ומציע נוף פתוח על גבעות השפלה.',
-   'archaeology', 'easy', 'center', 31.644743, 34.960909, 'שעה-שעתיים', 2,
-   10, 80, true, true, false, false, 'free',
+   'archaeology', 'easy', 'center', 31.644743, 34.960909, 'שעה-שעתיים', 2, 80, true, true, false, false, 'free',
    null, 1.5, null),
 
   ('yeruham-navon-park', 'פארק יצחק נבון ירוחם',
    'פארק עירוני עם אגם-מים מלאכותי בלב העיירה ירוחם בנגב - נדבך ירוק ופתוח לנופש ופנאי משפחתי בתוך נוף מדברי, קרוב למכתש רמון ולשמורות הסובבות.',
-   'parks', 'easy', 'south', 31.0286231, 34.9556957, 'שעה-שעתיים', 2,
-   10, 60, true, true, true, true, 'free',
+   'parks', 'easy', 'south', 31.0286231, 34.9556957, 'שעה-שעתיים', 2, 60, true, true, true, true, 'free',
    null, 1.5, null)
 
 on conflict (id) do nothing;

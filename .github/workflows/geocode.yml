@@ -1,0 +1,49 @@
+name: איתור מיקומים ליעדים חדשים
+
+# מורץ ידנית בלבד. הרשת של הסביבה המקומית חוסמת את מסד המפות, אבל של GitHub
+# פתוחה - ולכן זה המקום שבו זה באמת יכול לרוץ, בלי להתקין כלום.
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'לשמור את התוצאה לענף? (בפעם הראשונה השאירו כבוי)'
+        type: boolean
+        default: false
+
+jobs:
+  geocode:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: איתור המיקומים
+        run: node scripts/match_osm.js
+
+      # גם כשלא שומרים - כך אפשר להוריד ולבדוק את התוצאה לפני שמחליטים
+      - name: שמירת התוצאות להורדה
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geocode-results
+          path: |
+            supabase/migrations_new_landmarks_from_list.sql
+            data/geocode_accepted.csv
+            data/geocode_duplicates.csv
+            data/geocode_review.csv
+          if-no-files-found: ignore
+
+      - name: שמירה לענף
+        if: inputs.commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A supabase/migrations_new_landmarks_from_list.sql \
+            data/geocode_accepted.csv data/geocode_duplicates.csv data/geocode_review.csv
+          git diff --staged --quiet && echo "אין שינוי לשמור" && exit 0
+          git commit -m "יעדים חדשים: מיקומים שאותרו מתוך OpenStreetMap"
+          git push

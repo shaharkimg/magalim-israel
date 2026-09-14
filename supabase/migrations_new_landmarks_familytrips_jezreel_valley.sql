@@ -12,32 +12,26 @@
 -- 4 מעיינות אושרו ונוספו:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-oren-hazin', 'עין אורן (עין חזין)',
    'מעיין קטן ומטופח בצפון עמק יזרעאל, סמוך לרמת ישי - בריכת-מים נעימה בשטח פתוח ושליו.',
-   'water', 'easy', 'north', 32.7163745, 35.1608064, 'כחצי שעה', 0.5,
-   10, 13, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.7163745, 35.1608064, 'כחצי שעה', 0.5, 13, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-uzi', 'עין עוזי (עין עזי)',
    'מעיין ייחודי הנובע לתוך מבנה-בטון קטן סמוך למושב היוגב, עם עצי שקד ותאנה מסביב - אתר תיירותי-כפרי צנוע.',
-   'water', 'medium', 'north', 32.594013, 35.1813944, 'כחצי שעה', 0.5,
-   10, 17, true, false, false, true, 'free',
+   'water', 'medium', 'north', 32.594013, 35.1813944, 'כחצי שעה', 0.5, 17, true, false, false, true, 'free',
    null, 0.5, null),
 
   ('ein-kazan', 'עין קאזאן',
    'מאגר-מעיין גדול בכפר כמא, מול נופי הר התבור - יעד רחצה שקט ופחות מוכר לתיירים מחוץ לאזור.',
-   'water', 'easy', 'north', 32.7131841, 35.414704, 'שעה', 0.5,
-   10, 184, true, false, false, true, 'free',
+   'water', 'easy', 'north', 32.7131841, 35.414704, 'שעה', 0.5, 184, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-sharkarek', 'עין שרקרק',
    'מעיין קטן וצנוע באזור אלונים-טבעון, בשטח פתוח ושקט - יעד לחובבי מעיינות-נסתרים.',
-   'water', 'medium', 'north', 32.7132919, 35.1419806, 'שעה', 1,
-   10, 18, true, false, false, true, 'free',
+   'water', 'medium', 'north', 32.7132919, 35.1419806, 'שעה', 1, 18, true, false, false, true, 'free',
    null, 1, null)
 
 on conflict (id) do nothing;

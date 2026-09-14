@@ -4,6 +4,10 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
 const APP_VERSION = "20260914a1";
+// הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
+// הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
+// ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
+const SITE_HOST = "megalim-israel.co.il";
 // רישום Service Worker - app-shell בלבד, network-first (ראו sw.js). Fire-and-forget,
 // לא חוסם את טעינת הנתונים ב-bootPublic(). CACHE_VERSION בתוך sw.js חייב להתעדכן יחד
 // עם APP_VERSION הזה בכל דיפלוי.
@@ -42,20 +46,29 @@ function maybeShowInstallBanner(){
   if(!deferredInstallPrompt && !isIOSSafariNotStandalone()) return;
   el.dataset.shown = "1";
   $("installBannerText").textContent = deferredInstallPrompt
-    ? "אוהבים לטייל עם Magalim? הוסיפו אותה למסך הבית לגישה מהירה."
-    : 'אוהבים לטייל עם Magalim? הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית".';
+    ? "אוהבים לטייל עם מגלים? הוסיפו אותה למסך הבית לגישה מהירה."
+    : 'אוהבים לטייל עם מגלים? הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית".';
   $("installBannerActionBtn").classList.toggle("hidden", !deferredInstallPrompt);
   el.classList.remove("hidden");
+}
+// כפתור התקנה קבוע בהגדרות (בנוסף לבאנר החד-פעמי למעלה) - כדי שמי שדחה את הבאנר פעם
+// אחת (magalim-install-dismissed נשמר לצמיתות) עדיין יוכל להתקין ביוזמתו מתי שירצה.
+function updateSettingsInstallRow(){
+  const row = $("installAppRow");
+  if(!row) return;
+  row.classList.toggle("hidden", isStandaloneDisplay() || (!deferredInstallPrompt && !isIOSSafariNotStandalone()));
 }
 window.addEventListener("beforeinstallprompt", (e)=>{
   e.preventDefault();
   deferredInstallPrompt = e;
   maybeShowInstallBanner();
+  updateSettingsInstallRow();
 });
 window.addEventListener("appinstalled", ()=>{
   deferredInstallPrompt = null;
   try{ localStorage.setItem("magalim-install-dismissed","1"); }catch(e){}
   $("installBanner")?.classList.add("hidden");
+  updateSettingsInstallRow();
   track("install_prompt_accepted");
 });
 // העדפת ערכת-נושא ידנית (הגדרות) - ה-CSS כבר תומך ב-:root[data-theme] מהשדרוג הוויזואלי,
@@ -122,6 +135,38 @@ const DIFF_TIERS = [
   { key:"hard", dbValue:"extreme", label:"קשה", emoji:"🔴", xp:50, color:"var(--danger)" },
 ];
 const DIFF_TIER_BY_DB = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t]));
+
+/* ============ ניקוד: מאמץ × קושי ============ */
+// עד כה הניקוד נגזר מדרגת-הקושי בלבד, כך שתצפית של רבע שעה ומסלול של חמש שעות באותה
+// דרגת-קושי היו שווים בדיוק. עכשיו הבסיס הוא סוג-המאמץ (כמה באמת הולכים), והקושי רק
+// מכפיל אותו. כך "מקום שבאים לבקר בו" שווה פחות ממסלול, ומסלול קצר שווה פחות מארוך.
+const EFFORT_TIERS = {
+  visit: { key:"visit", label:"ביקור",       hint:"מגיעים, מסתכלים, מצטלמים", xp:10 },
+  walk:  { key:"walk",  label:"טיול קצר",    hint:"עד כשעתיים הליכה",         xp:22 },
+  hike:  { key:"hike",  label:"מסלול",       hint:"כשעתיים וחצי עד ארבע וחצי", xp:38 },
+  trek:  { key:"trek",  label:"מסלול ארוך",  hint:"חמש שעות ומעלה",           xp:58 },
+};
+const DIFF_XP_MULTIPLIER = { easy:1, medium:1.1, hard:1.25, extreme:1.4 };
+// קטגוריות שבהן המקום עצמו הוא היעד ולא ההליכה אליו (תצפית, אתר מורשת, מעיין בצד הדרך)
+const VISIT_FIRST_CATEGORIES = new Set(["viewpoints","religious","urban","heritage","archaeology"]);
+function effortClassFor(l){
+  const hours = l.durationHours != null ? l.durationHours : estimateHours(l);
+  const km = l.distanceKm != null ? l.distanceKm : 0;
+  // מעט מאוד הליכה = ביקור, גם אם שוהים במקום זמן מה (חוף, תצפית, אתר עתיקות)
+  if(km <= 1.5 && (hours <= 1.5 || VISIT_FIRST_CATEGORIES.has(l.category))) return EFFORT_TIERS.visit;
+  if(hours < 2.5) return EFFORT_TIERS.walk;
+  if(hours < 4.5) return EFFORT_TIERS.hike;
+  return EFFORT_TIERS.trek;
+}
+// הניקוד שיוענק על כיבוש ראשון של היעד. מעוגל ל-5 הקרוב כדי שהמספרים יישארו "עגולים"
+// בממשק (10/20/40/60/80) ולא 41.8.
+// עמודת landmarks.points הוסרה מהסכמה (migrations_drop_landmarks_points.sql): היא החזיקה
+// 10/25/50/100 שנגזרו מדרגת-הקושי בלבד - בדיוק העיוות שהחישוב הזה בא לתקן.
+function pointsForLandmark(l){
+  const base = effortClassFor(l).xp;
+  const mult = DIFF_XP_MULTIPLIER[l.difficulty] != null ? DIFF_XP_MULTIPLIER[l.difficulty] : 1;
+  return Math.max(5, Math.round(base*mult/5)*5);
+}
 function tierForDb(rawDifficulty){ return DIFF_TIER_BY_DB[rawDifficulty] || DIFF_TIERS[0]; }
 // dict בצורת {dbValue:{label}} - לשימוש ב-buildChips/צ'יפים ידניים שממפתחים data-id=dbValue
 // (מסנן/wizard/העדפות) בלי לשבור את ה-id הגולמי שנשלח ל-filters/DB - רק התווית משתנה.
@@ -247,6 +292,48 @@ function computeRegionHulls(){
   return hulls;
 }
 let fogLayers = {};
+// הנקודה הקודמת הייתה עיגול ירוק-כהה קטן (‎#146F67, אותה משפחת-צבעים של המפה ושל
+// סיכות-היעדים) בלי שום סימן-היכר - קל מאוד לפספס אותה, ובוודאי מעל צמחייה. עכשיו:
+// כחול, הקונבנציה שמוכרת מכל אפליקציית-מפות ולא מתנגשת עם צבעי-הקושי של הסיכות,
+// טבעת לבנה, והילה בגודל שגיאת-המדידה שהמכשיר עצמו דיווח עליה - כלומר היא מציגה
+// כמה המיקום מדויק במקום להעמיד פנים שהוא נקודתי. ב-pane ייעודי מעל הסיכות והערפל,
+// אחרת היא נקברת מתחתיהם בדיוק כמו שקרה לכפתורי-המפה.
+function renderUserLocation(){
+  if(!leafletMap) return;
+  [userLocMarker, userLocHalo].forEach(layer=>{ if(layer) leafletMap.removeLayer(layer); });
+  userLocMarker = userLocHalo = null;
+  if(!userLoc) return;
+  if(userLoc.manual || userLoc.approx){
+    // מיקום שלא נמדד על-ידי המכשיר נראה אחרת מכוונה: ענבר ולא כחול, כדי שלא ייראה
+    // כאילו אותר בפועל. למקורב-לפי-רשת יש גם הילה רחבה, כי הוא באמת עשוי להיות
+    // רחוק כמה עשרות קילומטרים - הצגתו כנקודה חדה הייתה שקר ויזואלי.
+    if(userLoc.approx){
+      userLocHalo = L.circle([userLoc.lat,userLoc.lon], {
+        radius: userLoc.accuracy || APPROX_RADIUS_M, stroke:false, fillColor:"#9E6F2E",
+        fillOpacity:0.12, interactive:false, pane:USER_LOC_PANE,
+      }).addTo(leafletMap);
+    }
+    userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], {
+      radius:8, color:"#fff", weight:3, fillColor:"#9E6F2E", fillOpacity:1,
+      interactive:false, pane:USER_LOC_PANE,
+    }).addTo(leafletMap);
+    return;
+  }
+  if(userLoc.accuracy > 0 && isFreshFix(userLoc)){
+    // רק למדידה טרייה. הילת-דיוק סביב מיקום ישן מציגה ודאות שאין לה כיסוי
+    userLocHalo = L.circle([userLoc.lat,userLoc.lon], {
+      radius: Math.min(userLoc.accuracy, 2000), stroke:false, fillColor:"#1A73E8",
+      fillOpacity:0.15, interactive:false, pane:USER_LOC_PANE,
+    }).addTo(leafletMap);
+  }
+  const fresh = isFreshFix(userLoc);
+  userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], {
+    radius:8, color:"#fff", weight:3,
+    fillColor: fresh ? "#1A73E8" : "#8A9187", fillOpacity: fresh ? 1 : .75,
+    dashArray: fresh ? null : "3 3",
+    interactive:false, className: fresh ? "user-loc-dot" : "user-loc-dot stale", pane:USER_LOC_PANE,
+  }).addTo(leafletMap);
+}
 function renderFogOfWar(){
   if(!leafletMap) return;
   const hulls = computeRegionHulls();
@@ -347,6 +434,106 @@ function catIconSvg(cat,size){
   return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="'+(stroke?"none":"currentColor")+'" stroke="'+(stroke?"currentColor":"none")+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">'+paths[cat]+"</svg>";
 }
 
+/* ============ UI ICON SET ============ */
+// משפחת-אייקונים אחת לכל הממשק (stroke, viewBox 24, stroke-width 1.8) - אותה שפה ויזואלית
+// כמו האייקונים שכבר מוטמעים ב-index.html (ניווט תחתון/הגדרות/חיפוש). מחליף emoji ששימשו
+// כאייקוני-ממשק; emoji נשארים רק היכן שהם חלק מהתוכן/gamification (תגים, חגיגות).
+const UI_ICON_PATHS = {
+  difficulty:'<path d="M7 4h6l1 7 4 3.5V20H6v-4l1-3V4Z"/><path d="M6 17h12"/>',
+  duration:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  water:'<path d="M12 3.5c2.6 3.9 5 6.9 5 10a5 5 0 0 1-10 0c0-3.1 2.4-6.1 5-10Z"/>',
+  points:'<path d="M12 3.5 14 9l5.5 2-5.5 2-2 5.5L10 13l-5.5-2L10 9l2-5.5Z"/>',
+  region:'<path d="M12 21s6.5-5.6 6.5-10.2A6.5 6.5 0 0 0 5.5 10.8C5.5 15.4 12 21 12 21Z"/><circle cx="12" cy="10.6" r="2.3"/>',
+  family:'<circle cx="8.5" cy="8" r="2.6"/><circle cx="16" cy="9.5" r="2"/><path d="M4 19c.6-3 2.4-4.6 4.5-4.6S12.4 16 13 19M14 19c.4-2.2 1.6-3.4 3-3.4S19.6 16.8 20 19"/>',
+  dog:'<path d="M5 10V6l3 2h8l3-2v4a4 4 0 0 1-1.5 3.1V19h-11v-5.9A4 4 0 0 1 5 10Z"/><path d="M10 15h4"/>',
+  heart:'<path d="M12 19.5S4.5 14.8 4.5 9.9A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7.5 1.9c0 4.9-7.5 9.6-7.5 9.6Z"/>',
+  check:'<path d="M5 12.5 10 17.5 19 7"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
+  compass:'<circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/>',
+  flame:'<path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/>',
+};
+function uiIcon(name, size){
+  const d = UI_ICON_PATHS[name];
+  if(!d) return "";
+  size = size || 16;
+  return '<svg class="ui-ic" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+d+'</svg>';
+}
+
+/* ============ SHARED EMPTY STATE ============ */
+// מצב-ריק אחד לכל האפליקציה (§12): אייקון עדין, כותרת קצרה, משפט מעודד ו-CTA אחד -
+// במקום שורות טקסט מופרדות ב-<br> שהיו משוכפלות בכל מסך.
+function emptyStateHtml(o){
+  return '<div class="empty-state">'
+    + (o.icon ? '<div class="empty-icon">'+o.icon+'</div>' : "")
+    + '<div class="empty-title">'+o.title+'</div>'
+    + (o.sub ? '<div class="empty-sub">'+o.sub+'</div>' : "")
+    + (o.ctaLabel ? '<button class="btn btn-primary empty-cta" id="'+o.ctaId+'" type="button">'+o.ctaLabel+'</button>' : "")
+    + '</div>';
+}
+
+/* ============ SHARED PLACE CARD ============ */
+// רכיב-כרטיס אחד לכל המקומות שבהם מוצג יעד ברשימה (חיפוש / רשימת-משאלות / כבשתי /
+// היסטוריה / פאנל-צד בדסקטופ) - במקום 5 העתקים כמעט-זהים של אותו markup.
+// התמונה היא האלמנט המרכזי, והמידע המשני מוצג כאייקונים קטנים ולא כטקסט ארוך.
+function placeMetaHtml(l, opts){
+  opts = opts || {};
+  const tier = tierForDb(l.difficulty);
+  const bits = [];
+  if(opts.region !== false) bits.push('<span class="place-meta-item">'+uiIcon("region",13)+REGIONS[l.region]+'</span>');
+  bits.push('<span class="place-meta-item">'+uiIcon("difficulty",13)+tier.label+'</span>');
+  if(l.duration) bits.push('<span class="place-meta-item">'+uiIcon("duration",13)+l.duration+'</span>');
+  if(l.hasWater) bits.push('<span class="place-meta-item">'+uiIcon("water",13)+'מים</span>');
+  return '<div class="place-meta">'+bits.join("")+'</div>';
+}
+// points: מספר להצגה כ"+40", או null כדי להסתיר. done:true מציג "נכבש" במקום ניקוד עתידי.
+function placeCardHtml(l, opts){
+  opts = opts || {};
+  const cat = CATEGORIES[l.category];
+  const thumb = opts.thumb || (opts.photo
+    ? '<img src="'+opts.photo+'" loading="lazy" decoding="async" alt="'+l.name+'">'
+    : catIconSvg(cat.icon, 26));
+  const meta = opts.metaHtml != null ? opts.metaHtml : placeMetaHtml(l, opts);
+  const pts = opts.points == null ? pointsForLandmark(l) : opts.points;
+  const ptsHtml = opts.hidePoints ? "" : (opts.done
+    ? '<div class="place-pts done">'+uiIcon("check",13)+pts.toLocaleString()+'</div>'
+    : '<div class="place-pts">+'+pts.toLocaleString()+'</div>');
+  const wished = myWishlist.includes(l.id);
+  const wishBtn = opts.hideWish ? "" :
+    '<button type="button" class="card-wish'+(wished?" active":"")+'" data-lm="'+l.id+'"'
+    + ' aria-pressed="'+(wished?"true":"false")+'" aria-label="'+(wished?"הסר מרשימת המשאלות":"הוסף לרשימת המשאלות")+'">'
+    + uiIcon("heart",17)+'</button>';
+  return '<div class="mini-card place-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
+    + '<div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
+    + '<div class="mini-info"><div class="name">'+l.name+'</div>'
+    + meta
+    + (opts.extra||"")
+    + '</div>'
+    + '<div class="card-side">'+ptsHtml+wishBtn+'</div>'
+    + '</div>';
+}
+// מאזין-על אחד לכל כפתורי ה-favorite שבכרטיסים (§5). capture:true כדי שהלחיצה על הלב
+// לא תיפול גם על onclick של הכרטיס עצמו (שמנווט ליעד) - בלי לגעת בשום wiring קיים.
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest(".card-wish");
+  if(!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id = btn.dataset.lm;
+  const run = async ()=>{
+    btn.disabled = true;
+    const justAdded = await toggleWishlist(id);
+    btn.disabled = false;
+    btn.classList.toggle("active", justAdded);
+    btn.setAttribute("aria-pressed", justAdded ? "true" : "false");
+    btn.setAttribute("aria-label", justAdded ? "הסר מרשימת המשאלות" : "הוסף לרשימת המשאלות");
+    if(justAdded){
+      btn.classList.remove("wish-pop"); void btn.offsetWidth; btn.classList.add("wish-pop");
+    }
+  };
+  if(!requireAuth("רוצה לשמור את המקום לפעם הבאה? צרו חשבון בחינם", run)) return;
+  run();
+}, true);
+
 /* ============ RUNTIME STATE ============ */
 let session = null, myProfile = null;
 let LANDMARKS = [], lmById = {};
@@ -357,7 +544,32 @@ let followingSet = new Set();
 let myTravelStatus = null;
 let myGroups = [], activeGroupId = null, pendingGroupSwitch = false;
 let boardTab = "leaders";
-let userLoc = null;
+// userLoc היה בזיכרון בלבד: כל רענון מחק אותו, והנקודה נעלמה מהמפה עד שהמשתמש לחץ
+// שוב על כפתור המיקום. שומרים את האחרון עם חותמת-זמן ומשחזרים אותו אם הוא עדיין טרי,
+// כדי שהנקודה תהיה שם מיד עם פתיחת המפה. אימות-הקרבה של צ'ק-אין לא נוגע בזה - הוא
+// לוקח מדידה טרייה משלו (preciseOnly) ולא מסתמך על הערך השמור.
+const LAST_LOC_KEY = "magalim-last-loc";
+const LAST_LOC_MAX_AGE = 24*3600*1000;
+function restoreLastLoc(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(LAST_LOC_KEY) || "null");
+    if(!saved || typeof saved.lat!=="number" || typeof saved.lon!=="number") return null;
+    if(Date.now() - (saved.at||0) > LAST_LOC_MAX_AGE) return null;
+    return { lat:saved.lat, lon:saved.lon, accuracy:saved.accuracy, at:saved.at,
+             manual:!!saved.manual, approx:!!saved.approx };
+  }catch(e){ return null; }
+}
+function saveLastLoc(){
+  if(!userLoc) return;
+  if(!userLoc.at) userLoc.at = Date.now();
+  try{ localStorage.setItem(LAST_LOC_KEY, JSON.stringify(userLoc)); }catch(e){}
+}
+// מיקום שנשמר מהפעם הקודמת הוא נקודת-פתיחה סבירה, אבל הוא לא "המיקום שלך עכשיו".
+// אחרי חמש דקות הוא כבר עלול להיות במרחק נסיעה שלם, ולכן הוא מצויר אחרת - אפור
+// ומקווקו במקום כחול מלא - עד שמגיעה מדידה טרייה שמחליפה אותו.
+const LOCATION_FRESH_MS = 5*60*1000;
+function isFreshFix(loc){ return !!(loc && loc.at && Date.now()-loc.at < LOCATION_FRESH_MS); }
+let userLoc = restoreLastLoc();
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
 let prevBadgeSet = new Set();
@@ -419,6 +631,27 @@ function track(eventName, payload){
 
 /* ============ HELPERS ============ */
 function $(id){ return document.getElementById(id); }
+
+/* ============ נגישות לקורא מסך ============ */
+// זו אפליקציית עמוד-אחד: החלפת מסך או הודעת שגיאה מחליפות DOM בלי טעינת עמוד,
+// וקורא מסך לא מבחין בזה בכלל. הזרקת טקסט לאזור aria-live היא הדרך היחידה
+// לספר למשתמש עיוור שמשהו קרה.
+const VIEW_TITLES = { home:"בית", map:"מפה", saved:"מקומות שמורים", board:"המסע שלנו", profile:"פרופיל" };
+let announceTimer = null;
+function announce(message, urgent){
+  const el = $(urgent ? "srAlert" : "srAnnouncer");
+  if(!el || !message) return;
+  // ריקון לפני הכתיבה: אותה הודעה פעמיים ברצף לא תוכרז שוב אם הטקסט לא השתנה
+  el.textContent = "";
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(()=>{ el.textContent = message; }, 60);
+}
+// בלי העברת פוקוס הקורא נשאר על הכפתור שנלחץ וממשיך להקריא את המסך הקודם,
+// שכבר אינו מוצג. preventScroll כי resetViewScroll כבר מטפל בגלילה.
+function focusView(view){
+  const el = $("view-" + view);
+  if(el) el.focus({ preventScroll:true });
+}
 function toast(msg, action){
   const el = $("toast");
   el.innerHTML = `<span style="flex:1;">${msg}</span>`;
@@ -433,6 +666,10 @@ function toast(msg, action){
   el.classList.add("show");
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.classList.remove("show"), action ? 4500 : 3400);
+  // ה-toast הוא ערוץ המשוב המרכזי, והוא ויזואלי בלבד. מוכרז דרך announce ולא
+  // דרך aria-live על האלמנט עצמו, שאחרת שתי הכתיבות (הטקסט ואז כפתור הפעולה)
+  // מוכרזות פעמיים. el.textContent מפשיט את ה-HTML שיכול להגיע ב-msg.
+  announce(el.textContent + (action ? ". " + action.label : ""));
 }
 async function submitFeedback(type, textareaEl){
   const message = textareaEl.value.trim();
@@ -452,6 +689,12 @@ async function submitFeedback(type, textareaEl){
 }
 async function renderLocationPermStatus(){
   const el = $("locationPermStatus"); if(!el) return;
+  // תמיד, לא רק במסלול שבו navigator.permissions קיים - אחרת הכפתור נשאר מוסתר
+  // בדיוק בדפדפנים שבהם המיקום הידני הכי נחוץ
+  const clearBtn = $("locationClearManualBtn");
+  if(clearBtn) clearBtn.classList.toggle("hidden", !(userLoc && (userLoc.manual || userLoc.approx)));
+  const liveToggle = $("liveTrackingToggle");
+  if(liveToggle) liveToggle.checked = wantsLiveLocation();
   if(!navigator.permissions || !navigator.permissions.query){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
     el.style.color = "var(--text-muted)";
@@ -466,16 +709,423 @@ async function renderLocationPermStatus(){
     };
     el.textContent = labels[status.state] || status.state;
     el.style.color = status.state==="denied" ? "var(--danger)" : status.state==="granted" ? "var(--success)" : "var(--text-muted)";
+    const help = $("locationDeniedHelp");
+    if(help){
+      // code 1 בזמן ש"ההרשאה עוד לא נשאלה" = החסימה היא מתחת לדפדפן, לא באתר
+      const osBlocked = status.state==="prompt" && lastGeoError && lastGeoError.code===1;
+      help.classList.toggle("hidden", !(status.state==="denied" || osBlocked));
+      if(status.state==="denied") help.innerHTML = deniedHelpHtml();
+      else if(osBlocked){
+        help.innerHTML = osBlockHelpHtml();
+        const openBtn = $("openInBrowserBtn");
+        if(openBtn) openBtn.onclick = openInPlainBrowser;
+      }
+    }
   }catch(e){
     el.textContent = "לא ניתן לבדוק את מצב ההרשאה בדפדפן הזה.";
     el.style.color = "var(--text-muted)";
   }
 }
+// ‏getCurrentPosition עם enableHighAccuracy נופל בקלות ל-timeout על אנדרואיד בתוך מבנים:
+// ה-GPS מנסה לנעול לוויינים ונכשל, גם כשהרשת/Wi-Fi היו נותנות מיקום טוב בהרבה ממספיק
+// כדי לסמן נקודה על מפה. 8 שניות היו קצרות מדי, וכל שלושת מסלולי-האיתור הציגו את אותה
+// הודעה ("יש לאשר גישה למיקום") לכל סוגי הכישלון - כלומר שלחו את המשתמש להגדרות
+// הדפדפן גם כשההרשאה הייתה תקינה לגמרי והבעיה הייתה קליטה. עכשיו: ניסיון מדויק, ואם
+// נגמר הזמן ניסיון שני גס ומהיר לפני שמוותרים, והודעה לפי סוג הכישלון בפועל.
+const GEO_MESSAGES = {
+  1: 'הגישה למיקום חסומה — יש לאפשר "מיקום" עבור האתר בהגדרות הדפדפן ולנסות שוב',
+  2: "לא הצלחנו לקבל מיקום מהמכשיר — בדקו ששירותי המיקום (GPS) פעילים",
+  3: "לוקח יותר מדי זמן לאתר מיקום — נסו שוב בחוץ או ליד חלון",
+};
+function geoErrorMessage(err){
+  return (err && GEO_MESSAGES[err.code]) || "לא הצלחנו לאתר מיקום כרגע";
+}
+// נשמר כדי שמסך-האבחון יוכל להראות מה באמת קרה בפעם האחרונה. בלי זה כל מה שיש הוא
+// "לא עובד", ואין דרך לדעת אם הדפדפן סירב, ה-GPS לא נעל, או שבכלל לא נשאלה שאלה.
+let lastGeoError = null, lastGeoFix = null;
+function noteGeoError(err){ lastGeoError = { code: err && err.code, message: err && err.message, at: Date.now() }; }
+function noteGeoFix(pos){ lastGeoFix = { accuracy: pos.coords.accuracy, at: Date.now() }; }
+// onOk מקבל את ה-position המקורי; userLoc מתעדכן כאן, כדי ששלושת המסלולים לא יעשו
+// את זה כל אחד בדרכו. opts.preciseOnly מוותר על ניסיון-הגיבוי הגס ועל מיקום מהקאש -
+// לאימות-קרבה של צ'ק-אין (1500 מ') מיקום גס או ישן הוא לא ראיה טובה מספיק.
+function locateUser(onOk, onFail, opts){
+  opts = opts || {};
+  if(!navigator.geolocation){ onFail({ code:2 }); return; }
+  const accept = pos=>{
+    noteGeoFix(pos);
+    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy, at:Date.now() };
+    saveLastLoc();
+    onOk(pos);
+  };
+  const reject = err=>{ noteGeoError(err); onFail(err); };
+  navigator.geolocation.getCurrentPosition(accept, err=>{
+    if(opts.preciseOnly || err.code!==3){ reject(err); return; }
+    navigator.geolocation.getCurrentPosition(accept, reject,
+      { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
+  }, { enableHighAccuracy:true, timeout:opts.preciseOnly?15000:12000, maximumAge:opts.preciseOnly?0:60000 });
+}
+
+// מעקב-מיקום חי. עד עכשיו היה כאן רק getCurrentPosition חד-פעמי: המשתמש היה צריך
+// לדעת שקיים כפתור-כוונת בפינת המפה, ללחוץ עליו, ולחזור וללחוץ אחרי כל תזוזה - אחרת
+// הנקודה נשארה קפואה במקום שבו הוא היה כשלחץ. עכשיו watchPosition מעדכן אותה ברציפות
+// כל עוד המפה פתוחה.
+//
+// המעקב נעצר ביציאה מהמפה וכשהלשונית מוסתרת (watchPosition עם enableHighAccuracy מדליק
+// את ה-GPS ומרוקן סוללה), וחוזר מעצמו בכניסה הבאה. ההעדפה נשמרת, וכשההרשאה כבר ניתנה
+// המעקב מתחיל לבד - בלי לבקש הרשאה מחדש ובלי לחכות ללחיצה.
+const LOC_WATCH_KEY = "magalim-loc-live";
+let locWatchId = null;
+let locTrackingOn = false;
+function wantsLiveLocation(){
+  try{ return localStorage.getItem(LOC_WATCH_KEY) === "1"; }catch(e){ return false; }
+}
+function setWantsLiveLocation(on){
+  try{ localStorage.setItem(LOC_WATCH_KEY, on ? "1" : "0"); }catch(e){}
+}
+// כפתור-הכוונת הוא אייקון בלי תווית בפינה; title/aria-label לא נראים במגע, ומשתמש
+// שחיפש "איפה מציגים את המיקום שלי" פשוט לא מצא אותו. בועה חד-פעמית מצביעה עליו
+// כשההרשאה עוד לא ניתנה. לא מבקשים הרשאה מעצמנו בטעינה - זה חייב לבוא מלחיצה.
+const LOC_HINT_KEY = "magalim-loc-hint";
+function dismissLocateHint(){
+  const el = $("locateHint"); if(el) el.classList.add("hidden");
+  try{ localStorage.setItem(LOC_HINT_KEY, "1"); }catch(e){}
+}
+async function maybeShowLocateHint(){
+  const el = $("locateHint"); if(!el || !navigator.geolocation) return;
+  let seen = false;
+  try{ seen = localStorage.getItem(LOC_HINT_KEY) === "1"; }catch(e){}
+  if(seen || locTrackingOn || userLoc) return;
+  if(navigator.permissions && navigator.permissions.query){
+    try{
+      const status = await navigator.permissions.query({ name:"geolocation" });
+      if(status.state !== "prompt") return;
+    }catch(e){}
+  }
+  el.classList.remove("hidden");
+}
+function setLocateBtnState(state){
+  const btn = $("locateBtn"); if(!btn) return;
+  btn.classList.toggle("busy", state==="locating");
+  btn.classList.toggle("live", state==="live");
+  const label = state==="live" ? "המיקום שלי — מעקב פעיל, לחצו למרכוז ורענון"
+    : state==="locating" ? "מאתר מיקום..." : "הצג את המיקום שלי";
+  btn.setAttribute("aria-label", label);
+  btn.setAttribute("aria-pressed", String(state==="live"));
+  btn.title = label;
+}
+function startLocationWatch(opts){
+  opts = opts || {};
+  if(!navigator.geolocation) return;
+  locTrackingOn = true;
+  if(locWatchId!=null) return;
+  let firstFix = true;
+  setLocateBtnState(userLoc ? "live" : "locating");
+  locWatchId = navigator.geolocation.watchPosition(pos=>{
+    noteGeoFix(pos);
+    userLoc = { lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy:pos.coords.accuracy, at:Date.now() };
+    saveLastLoc();
+    renderUserLocation();
+    setLocateBtnState("live");
+    if(firstFix){
+      firstFix = false;
+      if(opts.recenter && leafletMap) leafletMap.setView([userLoc.lat, userLoc.lon], Math.max(leafletMap.getZoom(), 12));
+      if(opts.announce) toast("המיקום שלך מוצג על המפה");
+      $("distHint").textContent = "המיקום שלך אותר — ניתן לסנן לפי מרחק נסיעה";
+      syncFilterUI();
+    }
+  }, err=>{
+    noteGeoError(err);
+    // timeout/unavailable הם רעש רגיל תוך כדי מעקב - ה-watch ממשיך לנסות. רק סירוב
+    // הרשאה הוא סופי, ורק אז מכבים ומודיעים.
+    if(err.code===1){
+      stopLocationWatch();
+      setWantsLiveLocation(false);
+      locTrackingOn = false;
+      setLocateBtnState("off");
+      explainGeoFailure(err).then(msg=> toast(msg, { label:"מה לעשות?", onClick:()=> openSettingsAtLocation() }));
+    } else if(opts.announce && firstFix){
+      firstFix = false;
+      setLocateBtnState(userLoc ? "live" : "off");
+      toast(geoErrorMessage(err));
+    }
+  }, { enableHighAccuracy:true, timeout:20000, maximumAge:5000 });
+}
+function stopLocationWatch(){
+  if(locWatchId!=null){ navigator.geolocation.clearWatch(locWatchId); locWatchId = null; }
+}
+// נקרא בכל כניסה למפה: ממשיך מעקב שהמשתמש כבר ביקש, או מתחיל לבד אם ההרשאה כבר
+// ניתנה בעבר (אין טעם להמתין ללחיצה על משהו שכבר אושר).
+async function resumeLocationTracking(){
+  if(!navigator.geolocation || locWatchId!=null) return;
+  if(wantsLiveLocation()){ startLocationWatch(); return; }
+  if(!navigator.permissions || !navigator.permissions.query) return;
+  try{
+    const status = await navigator.permissions.query({ name:"geolocation" });
+    if(status.state === "granted"){ setWantsLiveLocation(true); startLocationWatch(); }
+  }catch(e){}
+}
+// באג שדווח: הכפתור היה מתג, והמעקב מתחיל מעצמו בכניסה למפה - כך שהלחיצה הראשונה
+// על "המיקום שלי" דווקא כיבתה אותו ("מעקב המיקום כובה"). גרוע מזה, הכיבוי גם ביטל
+// את ההעדפה, כך שהמעקב לא חזר יותר, והנקודה נתקעה על המדידה הישנה שהוצגה בפתיחה.
+// שני הסימפטומים היו תקלה אחת. עכשיו הכפתור עושה מה שכפתור-מיקום עושה בכל אפליקציית
+// מפות: מאתר ומרכז. כיבוי המעקב עבר למתג ייעודי בהגדרות, שם הוא פעולה מכוונת.
+function recenterOnUser(){
+  if(!userLoc || !leafletMap) return;
+  leafletMap.setView([userLoc.lat, userLoc.lon], Math.max(leafletMap.getZoom(), 12));
+}
+function handleLocateTap(){
+  setWantsLiveLocation(true);
+  if(!locTrackingOn || locWatchId==null){
+    startLocationWatch({ recenter:true, announce:true });
+    return;
+  }
+  // המעקב כבר רץ: מרכזים מיד על מה שיש, ובמקביל מבקשים מדידה טרייה - כי מה שמוצג
+  // עשוי להיות המדידה ששוחזרה מהפעם הקודמת ולא המיקום הנוכחי
+  recenterOnUser();
+  setLocateBtnState("locating");
+  locateUser(()=>{
+    renderUserLocation();
+    recenterOnUser();
+    setLocateBtnState("live");
+  }, err=>{
+    setLocateBtnState(userLoc ? "live" : "off");
+    explainGeoFailure(err).then(msg=> toast(msg, { label:"מה לעשות?", onClick:()=> openSettingsAtLocation() }));
+  });
+}
+function setLiveTracking(on){
+  setWantsLiveLocation(on);
+  if(on){ startLocationWatch({ announce:true }); return; }
+  stopLocationWatch();
+  locTrackingOn = false;
+  setLocateBtnState(userLoc ? "off" : "off");
+  toast("מעקב המיקום כובה — הנקודה לא תתעדכן עד שתדליקו שוב");
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden) stopLocationWatch();
+  else if(locTrackingOn && currentView==="map") startLocationWatch();
+});
+
+// ---- אבחון מיקום + מיקום ידני ----
+//
+// אין דרך לאפליקציית-web לעקוף את הרשאת-המיקום של הדפדפן ולאשר מיקום "מבפנים" -
+// ההרשאה נאכפת על-ידי הדפדפן ומערכת-ההפעלה, וכל כפתור באפליקציה יכול לכל היותר
+// לפתוח את אותה בקשה עצמה. מה שכן אפשר, וזה מה שיש כאן:
+//   1. להראות בדיוק מה מצב ההרשאה ומה הייתה השגיאה האחרונה, במקום לנחש
+//   2. לתת הוראות-שחזור מדויקות כשההרשאה חסומה (אז הדפדפן כבר לא ישאל שוב לבד)
+//   3. לאפשר לסמן מיקום ידנית על המפה, כדי שמי שה-GPS שלו לא עובד עדיין יוכל
+//      להשתמש בסינון לפי מרחק וב"מה עושים היום". מיקום ידני מסומן ככזה ולעולם אינו
+//      מתקבל כאימות-קרבה לצ'ק-אין - שם נדרשת מדידה טרייה מהמכשיר.
+function inIframe(){ try{ return window.self !== window.top; }catch(e){ return true; } }
+async function geoPermissionState(){
+  if(!navigator.permissions || !navigator.permissions.query) return "unknown";
+  try{ return (await navigator.permissions.query({ name:"geolocation" })).state; }
+  catch(e){ return "unknown"; }
+}
+function ago(ts){
+  if(!ts) return "—";
+  const sec = Math.round((Date.now()-ts)/1000);
+  return sec < 60 ? `לפני ${sec} שנ׳` : `לפני ${Math.round(sec/60)} דק׳`;
+}
+async function geoDiagnostics(){
+  const lines = [
+    "APP_VERSION: " + APP_VERSION,
+    "secureContext: " + (window.isSecureContext ? "yes" : "NO (geolocation is blocked)"),
+    "protocol: " + location.protocol,
+    "geolocation API: " + (navigator.geolocation ? "present" : "MISSING"),
+    "permission: " + await geoPermissionState(),
+    "in iframe: " + (inIframe() ? "YES (needs allow=\"geolocation\")" : "no"),
+    "display-mode: " + (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches ? "standalone (installed)" : "browser"),
+    "online: " + (navigator.onLine ? "yes" : "no"),
+    "live watch: " + (locWatchId!=null ? "running" : locTrackingOn ? "wanted, not running" : "off"),
+    "userLoc: " + (userLoc ? `${userLoc.lat.toFixed(4)}, ${userLoc.lon.toFixed(4)} ${userLoc.manual ? "(manual)" : userLoc.approx ? "(network, approx)" : `±${Math.round(userLoc.accuracy||0)}m (gps)`}` : "none"),
+    "last fix: " + (lastGeoFix ? `${ago(lastGeoFix.at)} ±${Math.round(lastGeoFix.accuracy||0)}m` : "never"),
+    "last error: " + (lastGeoError ? `code ${lastGeoError.code} (${lastGeoError.message||""}) ${ago(lastGeoError.at)}` : "none"),
+    "userAgent: " + navigator.userAgent,
+  ];
+  return lines.join("\n");
+}
+async function showLocationDiagnostics(){
+  const box = $("locationDiag");
+  box.textContent = await geoDiagnostics();
+  box.classList.remove("hidden");
+  $("locationCopyBtn").classList.remove("hidden");
+}
+function runLocationTest(){
+  const box = $("locationDiag");
+  box.classList.remove("hidden");
+  $("locationCopyBtn").classList.remove("hidden");
+  box.textContent = "בודק... (עד 15 שניות)";
+  const started = Date.now();
+  locateUser(pos=>{
+    box.textContent = `OK after ${Date.now()-started}ms\n`
+      + `lat ${pos.coords.latitude.toFixed(5)}, lon ${pos.coords.longitude.toFixed(5)}\n`
+      + `accuracy ±${Math.round(pos.coords.accuracy)}m`;
+    renderUserLocation();
+    renderLocationPermStatus();
+    toast("המיקום אותר — הנקודה מוצגת על המפה");
+  }, async err=>{
+    box.textContent = `FAILED after ${Date.now()-started}ms\ncode ${err && err.code} — ${await explainGeoFailure(err)}\n\n`
+      + await geoDiagnostics();
+    renderLocationPermStatus();
+  });
+}
+// חתימה שראינו בפועל: getCurrentPosition נכשל תוך 5 מילישניות עם code 1
+// ("User denied Geolocation") בזמן שה-Permissions API מדווח שההרשאה לאתר עדיין
+// "prompt". כלומר אף אחד לא שאל את המשתמש - הדפדפן לא הספיק להציג בקשה, כי הבקשה
+// נחסמה מתחתיו: הרשאת-המיקום של מערכת-ההפעלה לאפליקציה (או שירותי-המיקום של המכשיר
+// עצמו) כבויה. זה נפוץ במיוחד באפליקציה מותקנת (WebAPK), שמקבלת חבילת-אנדרואיד
+// משלה ועם זה הרשאות-ריצה משלה - נפרדות מאלה של הדפדפן.
+//
+// זה משנה את התשובה לגמרי: ההודעה "אפשרו מיקום לאתר בהגדרות הדפדפן" שולחת את
+// המשתמש למקום שבו אין מה לתקן.
+async function geoBlockScope(){
+  const state = await geoPermissionState();
+  if(state === "denied") return "site";
+  if(state === "prompt") return "os";
+  return "unknown";
+}
+async function explainGeoFailure(err){
+  if(!err || err.code !== 1) return geoErrorMessage(err);
+  return (await geoBlockScope()) === "os"
+    ? "המכשיר חוסם מיקום עבור האפליקציה — צריך לאשר בהגדרות המכשיר, לא בדפדפן"
+    : geoErrorMessage(err);
+}
+function osBlockHelpHtml(){
+  const installed = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
+  const appName = installed ? "מגלים" : "הדפדפן (Chrome)";
+  return '<strong>הבקשה נחסמה מתחת לדפדפן, לא באתר.</strong> הדפדפן דיווח שההרשאה לאתר '
+    + 'עדיין לא נשאלה, ובכל זאת הבקשה נדחתה מיד — כלומר שירותי-המיקום של המכשיר כבויים, '
+    + 'או שהרשאת המיקום של האפליקציה עצמה לא ניתנה. כך מתקנים:'
+    + "<ol>"
+    + "<li>הגדרות המכשיר ← מיקום — לוודא שהוא דולק</li>"
+    + `<li>הגדרות המכשיר ← אפליקציות ← <b>${appName}</b> ← הרשאות ← מיקום ← "אפשר"</li>`
+    + (installed ? "<li>האפליקציה המותקנת מקבלת הרשאות-אנדרואיד משלה, נפרדות מאלה של Chrome — לכן צריך לאשר אותה בנפרד</li>"
+                 : "")
+    + "<li>לחזור לכאן וללחוץ שוב על \u0022בדיקת מיקום\u0022</li>"
+    + "</ol>"
+    + (installed ? '<b>בדיקה מהירה:</b> פתחו את האתר ב-Chrome רגיל (לא מהאייקון המותקן). '
+                 + 'אם שם המיקום עובד — הבעיה היא בהרשאת-האנדרואיד של האפליקציה המותקנת.'
+                 + '<div class="loc-actions"><button type="button" class="btn btn-outline btn-sm" id="openInBrowserBtn">פתיחה בדפדפן</button></div>' : "")
+    + 'ובינתיים, אפשר לאתר לפי הרשת או לסמן ידנית על המפה, בכפתורים שלמעלה.';
+}
+function deniedHelpHtml(){
+  const android = /Android/i.test(navigator.userAgent);
+  const steps = android
+    ? ["בשורת הכתובת של הדפדפן, לחצו על האייקון שמשמאל לכתובת (מנעול או סמל הגדרות)",
+       'בחרו "הרשאות" או "Permissions", ואז "מיקום"',
+       'שנו ל"אפשר" / "Allow"',
+       "ודאו ששירותי המיקום של המכשיר דולקים (הגדרות ← מיקום)",
+       "חזרו לכאן ולחצו על \u0022בדיקת מיקום\u0022"]
+    : ["לחצו על אייקון המנעול/ההגדרות בשורת הכתובת",
+       'שנו את הרשאת "מיקום" ל"אפשר"',
+       "רעננו את הדף ולחצו על \u0022בדיקת מיקום\u0022"];
+  return '<strong>הרשאת המיקום חסומה, ולכן הדפדפן כבר לא ישאל שוב מעצמו.</strong>'
+    + ' אפליקציית-web לא יכולה לעקוף את זה מבפנים - ההרשאה נאכפת על-ידי הדפדפן. כך מחזירים אותה:'
+    + "<ol>" + steps.map(x=>`<li>${x}</li>`).join("") + "</ol>"
+    + 'אם אתם מעדיפים לא לאשר, אפשר לסמן מיקום ידנית על המפה בכפתור שלמעלה.';
+}
+// מהאפליקציה המותקנת, window.open עם _blank מוציא את הכתובת לדפדפן החיצוני. זו גם
+// הבדיקה המפלה וגם מעקף מיידי: אם החסימה היא בהרשאת-האנדרואיד של האפליקציה המותקנת
+// (חבילה נפרדת עם הרשאות-ריצה משלה), ב-Chrome עצמו המיקום עשוי לעבוד בלי שום שינוי
+// בהגדרות. את ההרשאה עצמה שום קוד בדף לא יכול להעניק - היא נאכפת מחוץ לדפדפן.
+function openInPlainBrowser(){
+  window.open(location.origin + location.pathname + "#/map", "_blank", "noopener");
+}
+// קיצור מההודעה אל ההסבר המלא - בלעדיו המשתמש מקבל שורה אחת בלי מה לעשות איתה
+function openSettingsAtLocation(){
+  openSheet("settingsSheet","settingsScrim");
+  renderLocationPermStatus();
+  setTimeout(()=>{ const el = $("locationPermStatus"); if(el && el.scrollIntoView) el.scrollIntoView({ block:"start", behavior:"smooth" }); }, 80);
+}
+// --- מיקום מקורב לפי הרשת ---
+//
+// למה זה קיים בכלל: הדפדפן חושף בדיוק ממשק-מיקום אחד, navigator.geolocation, והוא
+// זה שחסום. שילוש לפי Wi-Fi/אנטנות סלולריות אינו נגיש בנפרד - הוא מסופק דרך אותו
+// ממשק עצמו. כלומר כשההרשאה חסומה, לא נשאר בדפדפן שום מקור-מיקום. מה שכן אפשר הוא
+// לשאול שירות חיצוני "מאיפה הבקשה הזו הגיעה" לפי כתובת ה-IP.
+//
+// זה מקורב: ברמת עיר, ועל רשת סלולרית הוא עלול להצביע על שער-היציאה של המפעיל ולא
+// על המשתמש - לפעמים עשרות קילומטרים משם. מספיק לסינון "יעדים עד 50 ק\"מ" ולהערכת
+// זמן-נסיעה, לא מספיק ליותר מזה.
+//
+// יזום על-ידי המשתמש בלבד, לעולם לא אוטומטי: הבקשה חושפת את כתובת ה-IP לשירות
+// החיצוני, וזו לא החלטה שנכון לקבל בשבילו בשקט. לשני הספקים יש CORS ואין צורך
+// במפתח; אם הראשון נופל מנסים את השני, ואם שניהם נופלים נשארים עם הסימון הידני.
+const IP_LOCATION_PROVIDERS = [
+  { url:"https://ipwho.is/", parse: d => (d && d.success!==false && d.latitude!=null) ? { lat:d.latitude, lon:d.longitude, city:d.city } : null },
+  { url:"https://ipapi.co/json/", parse: d => (d && !d.error && d.latitude!=null) ? { lat:d.latitude, lon:d.longitude, city:d.city } : null },
+];
+const APPROX_RADIUS_M = 15000;  // רדיוס-אי-ודאות מוצג. לא מדידה - הערכה שמרנית לרמת-עיר
+async function fetchApproxLocation(){
+  for(const provider of IP_LOCATION_PROVIDERS){
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(()=> ctrl.abort(), 6000);
+      const res = await fetch(provider.url, { signal: ctrl.signal, cache:"no-store" });
+      clearTimeout(t);
+      if(!res.ok) continue;
+      const parsed = provider.parse(await res.json());
+      if(parsed) return parsed;
+    }catch(e){ /* ספק נפל - ננסה את הבא */ }
+  }
+  return null;
+}
+async function useApproxLocation(){
+  const btn = $("locationApproxBtn");
+  setBtnLoading(btn, true, "מאתר...");
+  const found = await fetchApproxLocation();
+  setBtnLoading(btn, false);
+  if(!found){
+    toast("לא הצלחנו לאתר גם לפי הרשת — אפשר לסמן ידנית על המפה");
+    return;
+  }
+  userLoc = { lat:found.lat, lon:found.lon, approx:true, accuracy:APPROX_RADIUS_M, at:Date.now() };
+  saveLastLoc();
+  renderUserLocation();
+  syncFilterUI();
+  $("distHint").textContent = "מיקום מקורב לפי הרשת — ניתן לסנן לפי מרחק נסיעה";
+  renderLocationPermStatus();
+  toast(found.city ? `מיקום מקורב נקבע (${found.city}). לצ׳ק-אין עדיין נדרש GPS אמיתי.`
+                   : "מיקום מקורב נקבע. לצ׳ק-אין עדיין נדרש GPS אמיתי.");
+}
+// --- מיקום ידני ---
+let pickingLocation = false;
+function startManualLocationPick(){
+  pickingLocation = true;
+  $("mapWrap").classList.add("picking-location");
+  $("manualLocBar").classList.remove("hidden");
+  closeSheet("settingsSheet","settingsScrim");
+  navigate("#/map");
+}
+function cancelManualLocationPick(){
+  pickingLocation = false;
+  const wrap = $("mapWrap"); if(wrap) wrap.classList.remove("picking-location");
+  const bar = $("manualLocBar"); if(bar) bar.classList.add("hidden");
+}
+function setManualLocation(lat, lon){
+  cancelManualLocationPick();
+  userLoc = { lat, lon, manual:true, at:Date.now() };
+  saveLastLoc();
+  renderUserLocation();
+  syncFilterUI();
+  $("distHint").textContent = "מיקום ידני נקבע — ניתן לסנן לפי מרחק נסיעה";
+  renderLocationPermStatus();
+  toast("המיקום הידני נקבע. לצ׳ק-אין עדיין נדרש GPS אמיתי.");
+}
+function clearManualLocation(){
+  if(!userLoc || !(userLoc.manual || userLoc.approx)) return;
+  userLoc = null;
+  try{ localStorage.removeItem(LAST_LOC_KEY); }catch(e){}
+  renderUserLocation();
+  renderLocationPermStatus();
+  toast("המיקום הידני נמחק");
+}
+
 let retryHandlers = {}, retryHandlerSeq = 0;
 function errorStateHtml(message, retryFn){
   const id = "r"+(retryHandlerSeq++);
   retryHandlers[id] = retryFn;
-  return `<div class="empty-state">${message}<br><button class="btn btn-outline empty-cta" data-retry="${id}" type="button">🔄 נסה שוב</button></div>`;
+  return `<div class="empty-state"><div class="empty-title">${message}</div><button class="btn btn-outline empty-cta" data-retry="${id}" type="button">נסו שוב</button></div>`;
 }
 document.addEventListener("click", e=>{
   const btn = e.target.closest("[data-retry]");
@@ -640,7 +1290,7 @@ function wireWazeButton(btn, l){
   btn.innerHTML = WAZE_ICON_SVG;
   btn.setAttribute("aria-label", label);
   btn.title = label;
-  btn.onclick = (e)=>{ e.stopPropagation(); openWazeNavigation(l.lat, l.lon, l.name); };
+  btn.onclick = (e)=>{ e.stopPropagation(); track("navigation_started", { landmark_id: l.id }); openWazeNavigation(l.lat, l.lon, l.name); };
 }
 function friendlyAuthError(msg){
   if(!msg) return "משהו השתבש. נסו שוב.";
@@ -657,9 +1307,9 @@ function friendlyAuthError(msg){
 
 /* ============ AUTH ============ */
 let authMode = "login";
-$("tabLogin").onclick = ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("nameField").classList.add("hidden"); $("authSubmit").textContent="התחברות"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.remove("hidden"); showAuthTabs(); };
+$("tabLogin").onclick = ()=>{ setAuthMode("login"); showAuthTabs(); };
 $("tabSignup").onclick = async ()=>{
-  authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("nameField").classList.remove("hidden"); $("authSubmit").textContent="הרשמה"; $("authError").classList.remove("show"); $("authNote").classList.remove("show"); $("forgotPasswordLink").classList.add("hidden");
+  setAuthMode("signup");
   showAuthTabs();
   if(sessionStorage.getItem("pendingInviteCode")) return; // יש קישור הזמנה בהמתנה — מדלגים על הבדיקה, ה-trigger באמת יאמת את זה
   const gate = await checkRegistrationGate();
@@ -683,31 +1333,146 @@ const WAITLIST_COPY = {
   invite_only: { title:"ההרשמה כרגע פתוחה רק בהזמנה", sub:"בשלב הזה אפשר להצטרף רק עם קישור הזמנה מחבר.\nרוצים שנעדכן אתכם כשההרשמה תיפתח לכולם?" },
 };
 function showWaitlistView(reason){
-  document.querySelector(".auth-tabs").classList.add("hidden");
-  $("oauthRow").classList.add("hidden");
-  $("oauthDivider").classList.add("hidden");
-  $("authForm").classList.add("hidden");
-  $("resetPasswordForm").classList.add("hidden");
   const copy = WAITLIST_COPY[reason] || WAITLIST_COPY.full;
   $("waitlistTitle").textContent = copy.title;
   $("waitlistSub").textContent = copy.sub;
   $("waitlistError").classList.remove("show");
   $("waitlistNote").classList.remove("show");
-  $("waitlistView").classList.remove("hidden");
+  showAuthView("waitlist");
 }
 function showAuthTabs(){
-  document.querySelector(".auth-tabs").classList.remove("hidden");
   $("oauthRow").classList.remove("hidden");
   $("oauthDivider").classList.remove("hidden");
-  $("waitlistView").classList.add("hidden");
-  $("resetPasswordForm").classList.add("hidden");
   $("authForm").classList.remove("hidden");
+  showAuthView("form");
+}
+/* ============ AUTH VIEWS (§1-§5) ============ */
+// שכבת-תצוגה בלבד מעל מנגנון ה-auth הקיים: אותו authMode, אותו authForm, אותם handlers
+// של Google/Facebook/שחזור-סיסמה/רשימת-המתנה. רק הניווט בין המסכים הוא חדש.
+const AUTH_VIEWS = { welcome:"authViewWelcome", form:"authViewForm", reset:"resetPasswordForm", waitlist:"waitlistView" };
+let authView = "form";
+function showAuthView(name){
+  authView = name;
+  Object.entries(AUTH_VIEWS).forEach(([k,id])=> $(id).classList.toggle("hidden", k!==name));
+  // "חזרה" רלוונטי רק כשהגענו לטופס ממסך ה-Welcome
+  $("authBackBtn").classList.toggle("hidden", name!=="form" || !authCameFromWelcome);
+}
+let authCameFromWelcome = false;
+function setAuthMode(mode){
+  authMode = mode;
+  const signup = mode==="signup";
+  $("authTitle").textContent = signup ? "יוצאים לדרך" : "טוב לראות אתכם שוב";
+  $("authIntroText").textContent = authGateMessage || (signup ? "צרו חשבון והתחילו לגלות את ישראל" : "התחברו כדי להמשיך במסע");
+  $("authSubmit").textContent = signup ? "יצירת חשבון" : "התחברות";
+  $("nameField").classList.toggle("hidden", !signup);
+  $("forgotPasswordLink").classList.toggle("hidden", signup);
+  $("oauthDividerText").textContent = signup ? "או המשיכו עם" : "או התחברו עם";
+  $("authSwitchText").textContent = signup ? "כבר יש לכם חשבון?" : "עדיין אין לכם חשבון?";
+  $("authSwitchBtn").textContent = signup ? "התחברו" : "הירשמו";
+  $("authPassword").setAttribute("autocomplete", signup ? "new-password" : "current-password");
+  $("tabLogin").classList.toggle("active", !signup);
+  $("tabSignup").classList.toggle("active", signup);
+  clearAuthErrors();
+}
+function clearAuthErrors(){
+  $("authError").classList.remove("show");
+  $("authNote").classList.remove("show");
+  ["authName","authEmail","authPassword"].forEach(id=>{
+    $(id).classList.remove("invalid");
+    const err = $(id+"Err"); if(err) err.classList.remove("show");
+  });
+}
+function setFieldError(id, message){
+  const field = $(id), err = $(id+"Err");
+  field.classList.add("invalid");
+  field.setAttribute("aria-invalid","true");
+  if(err){ err.innerHTML = uiIcon("flame",13)+"<span>"+message+"</span>"; err.classList.add("show"); }
+}
+// ולידציה בצד הלקוח רק למה שאפשר לבדוק בוודאות. דרישת הסיסמה נלקחת מה-minlength שכבר
+// מוגדר בשדה (6) - לא ממציאים כללים שהשרת לא אוכף.
+function validateAuthForm(){
+  clearAuthErrors();
+  let ok = true;
+  const name = $("authName").value.trim();
+  const email = $("authEmail").value.trim();
+  const password = $("authPassword").value;
+  if(authMode==="signup" && !name){ setFieldError("authName","צריך שם כדי שנדע איך לפנות אליכם"); ok = false; }
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ setFieldError("authEmail","כתובת האימייל לא נראית תקינה"); ok = false; }
+  const minLen = Number($("authPassword").getAttribute("minlength")) || 6;
+  if(!password || password.length < minLen){ setFieldError("authPassword","הסיסמה צריכה להכיל לפחות "+minLen+" תווים"); ok = false; }
+  if(!ok){ const first = document.querySelector(".text-input.invalid"); if(first) first.focus(); }
+  return ok;
+}
+function setBtnLoading(btn, loading, label){
+  if(!btn) return;
+  if(loading){ btn.dataset.label = btn.textContent; btn.textContent = label || btn.textContent; btn.classList.add("is-loading"); btn.disabled = true; }
+  else { if(btn.dataset.label) btn.textContent = btn.dataset.label; btn.classList.remove("is-loading"); btn.disabled = false; }
+}
+const EYE_OPEN = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>';
+const EYE_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l16 16"/><path d="M9.9 5.9A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.4 4.1M6.4 7.9A16.6 16.6 0 0 0 2.5 12S6 18.5 12 18.5c1 0 1.9-.2 2.7-.5"/></svg>';
+function wireAuthViews(){
+  $("authPasswordEye").innerHTML = EYE_OPEN;
+  $("authPasswordEye").onclick = ()=>{
+    const input = $("authPassword");
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    $("authPasswordEye").innerHTML = show ? EYE_OFF : EYE_OPEN;
+    $("authPasswordEye").setAttribute("aria-pressed", show ? "true" : "false");
+    $("authPasswordEye").setAttribute("aria-label", show ? "הסתרת הסיסמה" : "הצגת הסיסמה");
+  };
+  $("welcomeStartBtn").onclick = ()=>{ authCameFromWelcome = true; $("tabSignup").click(); };
+  $("welcomeLoginBtn").onclick = ()=>{ authCameFromWelcome = true; setAuthMode("login"); showAuthTabs(); };
+  // מצב אורח נשמר בכוונה: כל האפליקציה בנויה סביב requireAuth, והמפה/הבית ניתנים לגלישה
+  // בלי חשבון. הבחירה נזכרת כדי שלא נחסום את אותו משתמש שוב בכל פתיחה.
+  $("welcomeGuestBtn").onclick = ()=>{
+    try{ localStorage.setItem(GUEST_CHOICE_KEY, "1"); }catch(e){}
+    closeAuthSheet();
+  };
+  $("authBackBtn").onclick = ()=>{ authCameFromWelcome = false; showAuthView("welcome"); };
+  $("authSwitchBtn").onclick = ()=>{
+    if(authMode==="signup"){ setAuthMode("login"); showAuthTabs(); }
+    else $("tabSignup").click();
+  };
+  ["authName","authEmail","authPassword"].forEach(id=>{
+    $(id).addEventListener("input", ()=>{
+      $(id).classList.remove("invalid");
+      $(id).removeAttribute("aria-invalid");
+      const err = $(id+"Err"); if(err) err.classList.remove("show");
+    });
+  });
+}
+const GUEST_CHOICE_KEY = "magalim-guest-choice-v1";
+const DEFAULT_PROFILE_NAME = "מטייל/ת חדש/ה";
+// §7 - אם אחרי הרשמה (בעיקר דרך Google/Facebook) לא קיבלנו שם אמיתי, מבקשים אותו פעם אחת
+// דרך מסך עריכת-הפרופיל הקיים, במקום להשאיר "מטייל/ת חדש/ה" כשם התצוגה לנצח.
+let namePromptShown = false;
+function maybePromptForName(){
+  if(namePromptShown || !session || !myProfile) return;
+  if(myProfile.name && myProfile.name !== DEFAULT_PROFILE_NAME) return;
+  namePromptShown = true;
+  openEditProfile();
+  toast("איך לקרוא לכם? הוסיפו שם כדי שחברים יזהו אתכם");
+}
+// מסך הפתיחה מוצג רק אחרי שידוע שאין session (§8), ורק למי שלא בחר כבר להמשיך כאורח.
+function maybeShowWelcome(){
+  if(session) return;
+  try{ if(localStorage.getItem(GUEST_CHOICE_KEY)) return; }catch(e){}
+  if(sessionStorage.getItem("pendingInviteCode")) return;  // הזמנה מטפלת בעצמה (§9)
+  authGateMessage = null;
+  authCameFromWelcome = false;
+  setAuthMode("signup");
+  $("authCloseBtn").classList.add("hidden");
+  $("authScreen").classList.remove("hidden");
+  showAuthView("welcome");
 }
 async function signInWithOAuth(provider){
   $("authError").classList.remove("show");
-  const { error } = await supabase.auth.signInWithOAuth({ provider, options:{ redirectTo: location.origin + location.pathname } });
-  if(error){
-    $("authError").textContent = friendlyAuthError(error.message);
+  // בלי try/catch דחייה של signInWithOAuth נבלעת והכפתור נראה כאילו הוא לא מגיב
+  try{
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options:{ redirectTo: location.origin + location.pathname } });
+    if(error) throw error;
+  }catch(err){
+    $("authError").textContent = friendlyAuthError(err && err.message);
     $("authError").classList.add("show");
   }
 }
@@ -743,13 +1508,12 @@ $("authForm").addEventListener("submit", async (e)=>{
   const email = $("authEmail").value.trim();
   const password = $("authPassword").value;
   const name = $("authName").value.trim();
-  $("authError").classList.remove("show");
-  $("authNote").classList.remove("show");
-  $("authSubmit").disabled = true;
+  if(!validateAuthForm()) return;
+  setBtnLoading($("authSubmit"), true, authMode==="signup" ? "יוצרים חשבון..." : "מתחברים...");
   try{
     if(authMode==="signup"){
       const pendingCode = sessionStorage.getItem("pendingInviteCode");
-      const meta = { name: name || "מטייל/ת חדש/ה" };
+      const meta = { name: name || DEFAULT_PROFILE_NAME };
       if(pendingCode) meta.invite_code = pendingCode;
       const { data, error } = await supabase.auth.signUp({ email, password, options:{ data: meta } });
       if(error) throw error;
@@ -772,11 +1536,16 @@ $("authForm").addEventListener("submit", async (e)=>{
       $("authError").classList.add("show");
     }
   }finally{
-    $("authSubmit").disabled = false;
+    setBtnLoading($("authSubmit"), false);
   }
 });
 
-$("signOutBtn").onclick = async ()=>{ await supabase.auth.signOut(); };
+$("signOutBtn").onclick = async ()=>{
+  try{ localStorage.removeItem(GUEST_CHOICE_KEY); }catch(e){}
+  namePromptShown = false;
+  await supabase.auth.signOut();
+  maybeShowWelcome();
+};
 $("authCloseBtn").onclick = ()=> closeAuthSheet();
 
 $("forgotPasswordLink").onclick = async ()=>{
@@ -827,13 +1596,14 @@ let authSheetHistoryPushed = false;
 function openAuthSheet(message, onSuccess){
   authGateMessage = message || null;
   pendingAuthAction = onSuccess || null;
-  $("authIntroText").textContent = message || "הצטרפו וצאו לכבוש את הארץ";
   $("authCloseBtn").classList.remove("hidden");
   $("authScreen").classList.remove("hidden");
+  authCameFromWelcome = false;
+  setAuthMode(authMode==="signup" ? "signup" : "login");
   showAuthTabs();
   if(!authSheetHistoryPushed){
     authSheetHistoryPushed = true;
-    history.pushState({magalimAuthSheet:true}, "", location.hash || "#/map");
+    history.pushState({magalimAuthSheet:true}, "", location.hash || "#/home");
   }
 }
 function closeAuthSheet(){
@@ -857,11 +1627,7 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
   if(event==="PASSWORD_RECOVERY"){
     $("authScreen").classList.remove("hidden");
     $("authCloseBtn").classList.add("hidden");
-    document.querySelector(".auth-tabs").classList.add("hidden");
-    $("oauthRow").classList.add("hidden");
-    $("oauthDivider").classList.add("hidden");
-    $("authForm").classList.add("hidden");
-    $("resetPasswordForm").classList.remove("hidden");
+    showAuthView("reset");
     return;
   }
   if(session) closeAuthSheet();
@@ -880,6 +1646,8 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
     }
     const pendingCode = sessionStorage.getItem("pendingInviteCode");
     if(session && pendingCode) handleInviteCode(pendingCode);
+    if(session) maybePromptForName();
+    else if(booted) maybeShowWelcome();
   });
 });
 
@@ -887,11 +1655,11 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
 let navStack = [];
 function navigate(hash, push){
   if(push===undefined) push = true;
-  if(push){ navStack.push(location.hash || "#/map"); history.pushState({magalim:true}, "", hash); }
+  if(push){ navStack.push(location.hash || "#/home"); history.pushState({magalim:true}, "", hash); }
   else history.replaceState({magalim:true}, "", hash);
   applyRoute();
 }
-function goBack(){ navigate(navStack.pop() || "#/map", false); }
+function goBack(){ navigate(navStack.pop() || "#/home", false); }
 function goToDestination(id){ navigate("#/destination/"+encodeURIComponent(id)); }
 // מקלדת מובייל: כשמקלידים לתוך שדה בתוך sheet, מוודאים שהוא (וה-CTA שמתחתיו) נשארים
 // בתצוגה כשהמקלדת נפתחת ומצמצמת את הגובה הזמין - 100dvh כבר עוזר חלקית, זו תוספת קלה.
@@ -911,15 +1679,76 @@ window.addEventListener("popstate", ()=>{
   applyRoute();
 });
 
-function switchView(view){
-  if(view==="feed"){ view = "board"; boardTab = "feed"; }
-  if(!["map","board","profile"].includes(view)) view = "map";
-  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
+let currentView = null;
+// מעבר בין מסכים מחזיר את מסך-היעד למצב ההתחלתי שלו: גלילה לראש, טאב-משנה ברירת-מחדל,
+// ובלי שאריות מהמסך הקודם (כרטיס-תצוגה שנשאר פתוח על המפה). בלי זה חזרה לטאב מציגה
+// את אמצע המסך מהפעם הקודמת, או טאב-משנה שהמשתמש כבר לא זוכר שבחר.
+function setProfileListTab(tab){
+  profileListTab = tab;
+  document.querySelectorAll(".tab-row [data-list]").forEach(b=>
+    b.classList.toggle("active", b.dataset.list===tab));
+}
+function setBoardPeriod(period){
+  lbPeriod = period;
+  $("periodSeg").querySelectorAll("button").forEach(b=>
+    b.classList.toggle("active", b.dataset.period===period));
+}
+function resetViewScroll(view){
+  const root = $("view-"+view);
+  if(!root) return;
+  root.scrollTop = 0;
+  root.querySelectorAll(".scroll-area").forEach(a=>{ a.scrollTop = 0; });
+}
+function switchView(view, opts){
+  opts = opts || {};
+  // "feed" הוא בקשה מפורשת לטאב מסוים - היא גוברת על האיפוס
+  let explicitBoardTab = null;
+  if(view==="feed"){ view = "board"; explicitBoardTab = "feed"; }
+  if(!["home","map","saved","board","profile"].includes(view)) view = "home";
+  const changed = view !== currentView;
+  // ה-GPS נכבה ביציאה מהמפה בכל מקרה, גם ב-keepState: אין לו צרכן מחוץ למפה, והוא
+  // מרוקן סוללה ברקע. ההעדפה נשמרת, כך שהוא חוזר מעצמו בכניסה הבאה.
+  if(changed && currentView==="map") stopLocationWatch();
+  if(changed && !opts.keepState){
+    if(currentView==="map") closePreview();
+    if(view==="board" && !explicitBoardTab) boardTab = "leaders";
+    if(view==="board") setBoardPeriod("week");
+    if(view==="profile") setProfileListTab("visited");
+    // סינוני-המפה לא מתאפסים כאן בכוונה: הם בחירה מכוונת של המשתמש, וכפתור
+    // "הצג את היעדים שנותרו" באתגרים מגדיר filters.customIds ואז קורא ל-
+    // navigate("#/map") - איפוס כאן היה מוחק לו את התוכן לפני שהמפה בכלל מצטיירת.
+  }
+  if(explicitBoardTab) boardTab = explicitBoardTab;
+  currentView = view;
+  document.querySelectorAll(".nav-btn").forEach(b=>{
+    const on = b.dataset.view===view;
+    b.classList.toggle("active", on);
+    // הצבע לבדו לא מספיק - aria-current הוא מה שמכריז "נבחר" לקורא מסך
+    if(on) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
+  });
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   $("view-"+view).classList.add("active");
-  if(view==="map") setTimeout(()=>{ if(leafletMap) leafletMap.invalidateSize(); renderMap(); },0);
+  if(view==="map") setTimeout(()=>{
+    // אחרי invalidateSize, אחרת המפה עוד לא יודעת את הגודל האמיתי שלה ו-fitBounds
+    // יחשב זום שגוי
+    if(leafletMap) leafletMap.invalidateSize();
+    if(changed && !opts.keepState){
+      if(keepMapFraming) keepMapFraming = false;
+      else fitIsrael();
+    }
+    renderMap();
+    resumeLocationTracking();
+    maybeShowLocateHint();
+  },0);
   if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
+  if(view==="home") renderHome();
+  if(view==="saved") renderSaved();
+  if(changed) resetViewScroll(view);
+  if(changed){
+    focusView(view);
+    announce(VIEW_TITLES[view] || view);
+  }
 }
 function switchBoardTab(tab){
   boardTab = tab;
@@ -950,7 +1779,7 @@ const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen"
 const SIMPLE_OVERLAY_IDS = Object.values(SIMPLE_OVERLAY_ROUTES);
 function applyRoute(){
   if(!booted) return;
-  const hash = location.hash || "#/map";
+  const hash = location.hash || "#/home";
   const destMatch = hash.match(/^#\/destination\/(.+)$/);
   if(destMatch){
     const id = decodeURIComponent(destMatch[1]);
@@ -995,14 +1824,17 @@ function applyRoute(){
   closeSheet("detailSheet","detailScrim");
   closeSheet("inviteSheet","inviteScrim");
   closePreview();
-  const view = hash.replace(/^#\//,"").split("/")[0] || "map";
+  const view = hash.replace(/^#\//,"").split("/")[0] || "home";
   switchView(view);
 }
 
 /* ============ BOOT / DATA LOAD ============ */
 let booted = false, publicBootPromise = null;
 async function bootPublic(){
+  track("session_started", {});
   try{
+    // .select() לבד נחתך אוטומטית ב-1000 שורות ע"י PostgREST - יש לדפדף במפורש כדי לקבל
+    // את כל היעדים גם אחרי שחצינו את ה-1000 (התגלה בפועל כשמספר היעדים עבר 1000).
     const lms = [];
     const PAGE = 1000;
     for(let from=0; ; from+=PAGE){
@@ -1035,15 +1867,19 @@ async function bootPublic(){
     $("topbar").classList.remove("hidden");
     $("bottomNav").classList.remove("hidden");
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("hidden"));
-    $("view-map").classList.add("active");
+    $("view-home").classList.add("active");   // applyRoute() מיד אחר כך יחליף לפי ה-hash אם צריך
     wireStaticUI();
     subscribeRealtime();
     booted = true;
     syncFilterUI();
     updateOnlineStatus();
     refreshHeader();
+    // לפני applyRoute: הכתובת עוד מכילה את השגיאה, ו-applyRoute ינקה אותה לנתיב
+    const redirectError = readAuthRedirectError();
     applyRoute();
+    if(redirectError) showAuthRedirectError(redirectError);
     initOnboarding();
+    if(!session) maybeShowWelcome();
     setTimeout(checkForNewVersion, 60000);
     bumpVisitCount();
     setTimeout(maybeShowInstallBanner, 8000);
@@ -1058,7 +1894,8 @@ async function bootUserData(){
   if(!session){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
     myConquests = []; myBonusGrants = [];
-    refreshHeader(); renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    if(!activeTrip){ activeTrip = loadActiveTrip(); if(activeTrip) minimiseTrip(); }
+    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
   try{
@@ -1069,7 +1906,7 @@ async function bootUserData(){
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
-    renderMap(); renderProfile(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     // Gamification Overhaul, Phase 5 - אם המשתמש נכנס דרך deep-link ישיר ל-#/destination/<id>
     // (openDetail כבר רץ פעם אחת ב-bootPublic, לפני ש-myVisits/myConquests נטענו), מרעננים
     // אותו עכשיו כדי שמצב-נכבש/XP יוצג נכון - אותו דפוס-race בדיוק כמו ה-refresh הקיים
@@ -1111,7 +1948,9 @@ async function loadMyProfile(){
   let { data, error } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
   if(error) throw error;
   if(!data){
-    const name = session.user.user_metadata?.name || "מטייל/ת חדש/ה";
+    const meta = session.user.user_metadata || {};
+    const name = meta.name || meta.full_name || meta.preferred_username
+      || (meta.email ? String(meta.email).split("@")[0] : "") || DEFAULT_PROFILE_NAME;
     const { data: created, error: upErr } = await supabase.from("profiles").insert({ id: uid, name }).select().single();
     if(upErr) throw upErr;
     data = created;
@@ -1201,6 +2040,34 @@ async function createGroup(){
   populateGroupSelect(); updateGroupBarVisibility();
   toast('הקבוצה "'+escapeHtml(data.name)+'" נוצרה!');
   renderGroupPanel();
+}
+// כשסבב OAuth נכשל, הספק ו-Supabase מחזירים את הסיבה בכתובת עצמה - לפעמים ב-query
+// ולפעמים ב-hash - והאפליקציה פשוט התעלמה ממנה ועלתה כרגיל. מבחוץ זה נראה כמו
+// "ההתחברות לא עובדת", בלי שום רמז, בזמן שהסיבה המדויקת הייתה כתובה בשורת הכתובת.
+// גרוע מזה: hash של שגיאה (#error=...) נכנס לראוטר כאילו היה נתיב.
+const OAUTH_ERROR_HINTS = {
+  access_denied: "הביטול הגיע מהספק — אם לא ביטלתם בעצמכם, בדקו שהאפליקציה במצב Live אצלו",
+  redirect_uri_mismatch: "כתובת ההחזרה אצל הספק לא תואמת. היא צריכה להצביע ל-Supabase, לא לאתר",
+  invalid_request: "בקשה שגויה לספק — לרוב הגדרה חסרה במסך ההסכמה",
+  unauthorized_client: "הספק לא מאשר את האפליקציה — בדקו שהיא Published/Live ולא במצב בדיקה",
+  server_error: "הספק אישר, אבל השלב מול Supabase נכשל — לרוב Redirect URLs שלא כוללת את הכתובת הזו",
+};
+function readAuthRedirectError(){
+  const fromQuery = new URLSearchParams(location.search);
+  const fromHash = new URLSearchParams((location.hash || "").replace(/^#\/?/, ""));
+  const code = fromQuery.get("error") || fromHash.get("error");
+  if(!code) return null;
+  const raw = fromQuery.get("error_description") || fromHash.get("error_description") || "";
+  const desc = decodeURIComponent(raw.replace(/\+/g, " "));
+  // מנקים את הכתובת, אחרת רענון מציג את השגיאה שוב וה-hash ממשיך להתפרש כנתיב
+  history.replaceState({magalim:true}, "", location.pathname + "#/home");
+  return { code, desc, hint: OAUTH_ERROR_HINTS[code] || null };
+}
+function showAuthRedirectError(err){
+  if(!err) return;
+  const parts = [err.hint || "ההתחברות לא הושלמה", err.desc, "(" + err.code + ")"].filter(Boolean);
+  openAuthSheet(parts.join(" — "));
+  console.error("OAuth redirect error:", err);
 }
 async function handleInviteLinks(){
   const params = new URLSearchParams(location.search);
@@ -1296,12 +2163,21 @@ async function handleInviteCode(code){
 }
 function openInvitePreview(code, data){
   const actionText = data.invite_type==="circle" ? `הצטרפות למעגל "${escapeHtml(data.circle_name||'')}"` : "הצטרפות כחברים";
+  const inviterName = escapeHtml(data.inviter_name||'מטייל/ת');
   $("inviteBody").innerHTML = `
-    <div style="font-size:38px;margin:10px 0 8px;">✉️</div>
-    <h2 style="margin:0 0 6px;font-size:19px;">${escapeHtml(data.inviter_name||'מטייל/ת')} הזמינ/ה אותך</h2>
-    <p style="color:var(--text-muted);font-size:13.5px;margin:0 0 20px;">${actionText}</p>
-    <button class="btn btn-primary btn-block" id="inviteAcceptBtn">אישור ההזמנה</button>
-    <button class="btn btn-ghost btn-block" id="inviteDismissBtn" style="margin-top:8px;">לא עכשיו</button>
+    <div class="invite-hero">
+      <div class="invite-mark"><img src="./logo.png" alt=""></div>
+      <h2 class="invite-title">${inviterName} הזמינ/ה אותך למסע</h2>
+      <p class="invite-sub">תגלו מקומות, תצברו נקודות ותראו מי מכיר את ישראל טוב יותר.</p>
+      <div class="invite-preview">
+        <div class="invite-preview-item">${uiIcon("region",16)}<b>${LANDMARKS.length||''}</b> מקומות בישראל</div>
+        <div class="invite-preview-item">${uiIcon("points",16)}נקודות על כל כיבוש</div>
+        <div class="invite-preview-item">${uiIcon("trophy",16)}תגים והישגים</div>
+      </div>
+      <p class="invite-action-note">${actionText}</p>
+    </div>
+    <button class="btn btn-primary btn-block" id="inviteAcceptBtn">הצטרפו למסע</button>
+    <button class="btn btn-ghost btn-block" id="inviteDismissBtn" style="margin-top:var(--space-2);">לא עכשיו</button>
   `;
   $("inviteAcceptBtn").onclick = async ()=>{
     $("inviteAcceptBtn").disabled = true;
@@ -1431,7 +2307,8 @@ function subscribeRealtime(){
 
 /* ============ MAP (Leaflet + OpenStreetMap) ============ */
 const ISRAEL_CENTER = [31.55, 34.95], DEFAULT_ZOOM = 8;
-let leafletMap = null, clusterGroup = null, userLocMarker = null;
+let leafletMap = null, clusterGroup = null, userLocMarker = null, userLocHalo = null;
+const USER_LOC_PANE = "userLocPane";
 
 const DURATION_BUCKETS = {
   short:h=>h<=1, medium:h=>h>1&&h<=3, half:h=>h>3&&h<=6, full:h=>h>6,
@@ -1530,38 +2407,336 @@ function wizExplain(l){
   parts.push("מתאים ל"+(l.duration||DURATION_LABEL[wizState.duration]||""));
   return parts.join(" · ");
 }
-function getRecommendedDestination(){
-  if(!session || !myVisits.length) return null;
+// המלצה אישית: מחזירה {landmark, matchPct, reasons[]}.
+// שלושה תיקונים מהותיים לגרסה הקודמת:
+//   1. עבדה רק למשתמש מחובר עם היסטוריית ביקורים - כלומר בדיוק למי שכבר בפנים, ולא
+//      למשתמש חדש או אורח, שהם הקהל שהכי צריך "היעד הבא שלך". עכשיו יש fallback
+//      שמבוסס על קרבה, התאמה למשפחות, נגישות ופופולריות.
+//   2. הניקוד כלל Math.random(), כך שההמלצה התחלפה בכל רינדור. עכשיו הזרע יציב
+//      לפי משתמש+יום, כך ש"היעד הבא שלך" נשאר אותו יעד לאורך היום.
+//   3. לא היה אחוז-התאמה. עכשיו יש, והוא מחושב מהאותות האמיתיים - ומוצג רק כשיש
+//      מספיק אותות כדי שהמספר יהיה אמיתי (ראו MIN_SIGNALS_FOR_PCT).
+const MIN_SIGNALS_FOR_PCT = 2;
+function stableSeed(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) >>> 0;
+  return (h % 1000) / 1000;
+}
+function recommendationCandidates(){
   const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+  return LANDMARKS.filter(l=>!visitedIds.has(l.id));
+}
+// מחזירה earned/applicable בנפרד: אחוז-ההתאמה הוא "כמה מהקריטריונים הרלוונטיים למשתמש
+// הזה המקום באמת עונה עליהם", ולא ציון גולמי חלקי מקסימום תיאורטי שאף מקום לא מגיע אליו
+// (בגרסה הראשונה זה נתן 60% כמעט תמיד - כלומר מספר חסר-משמעות).
+function scoreLandmarkFor(l, profile, seedSalt){
+  let earned = 0, applicable = 0, signals = 0;
+  const reasons = [];
+  const add = (weight, matched, reason)=>{
+    applicable += weight;
+    if(matched){ earned += weight; signals++; if(reason) reasons.push(reason); }
+  };
+  if(userLoc){
+    const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
+    const near = km < 40;
+    applicable += 30;
+    earned += Math.max(0, 30-km);
+    if(near){ signals++; reasons.push(km<1 ? "ממש לידך" : "כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך"); }
+  }
+  if(profile.preferredDiff) add(18, l.difficulty===profile.preferredDiff, "ברמת הקושי שאתם הכי אוהבים");
+  else add(10, l.difficulty==="easy", "מסלול קל");
+  if(profile.waterShare>0.4) add(14, l.category==="water"||l.hasWater, "יש שם מים, בדיוק כמו שאתם אוהבים");
+  else if(!profile.hasHistory) add(8, l.category==="water"||l.hasWater, "יש מים");
+  if(profile.familyShare>0.5) add(12, l.familyFriendly, "מתאים למשפחה");
+  else if(!profile.hasHistory) add(7, l.familyFriendly, "מתאים למשפחות");
+  if(profile.hasHistory) add(10, regionDiscoveryPct(l.region)<0.3, "אזור שכמעט לא גיליתם");
+  else add(8, !!l.baseVisits && l.baseVisits>3000, "אחד האהובים על המטיילים");
+  const tieBreak = stableSeed(l.id + "|" + seedSalt) * 4;   // שובר-שוויון יציב, לא אקראי
+  return { l, score: earned + tieBreak, earned, applicable, reasons, signals };
+}
+function travelProfile(){
   const visitedLandmarks = myVisits.map(v=>lmById[v.landmark_id]).filter(Boolean);
-  if(!visitedLandmarks.length) return null;
+  if(!visitedLandmarks.length) return { hasHistory:false, preferredDiff:null, waterShare:0, familyShare:0 };
   const diffCounts = {};
   visitedLandmarks.forEach(l=>{ diffCounts[l.difficulty] = (diffCounts[l.difficulty]||0)+1; });
-  const preferredDiff = Object.keys(diffCounts).sort((a,b)=>diffCounts[b]-diffCounts[a])[0] || null;
-  const waterShare = visitedLandmarks.filter(l=>l.category==="water"||l.hasWater).length/visitedLandmarks.length;
-  const familyShare = visitedLandmarks.filter(l=>l.familyFriendly).length/visitedLandmarks.length;
-  const candidates = LANDMARKS.filter(l=>!visitedIds.has(l.id));
+  return {
+    hasHistory: true,
+    preferredDiff: Object.keys(diffCounts).sort((a,b)=>diffCounts[b]-diffCounts[a])[0] || null,
+    waterShare: visitedLandmarks.filter(l=>l.category==="water"||l.hasWater).length/visitedLandmarks.length,
+    familyShare: visitedLandmarks.filter(l=>l.familyFriendly).length/visitedLandmarks.length,
+  };
+}
+function recommendationSeed(extra){
+  const day = new Date().toISOString().slice(0,10);
+  return (session ? session.user.id.slice(0,8) : "guest") + "|" + day + (extra ? "|"+extra : "");
+}
+function recommendDestination(opts){
+  opts = opts || {};
+  const candidates = recommendationCandidates().filter(l=> !opts.excludeId || l.id!==opts.excludeId);
   if(!candidates.length) return null;
-  let best = null, bestScore = -Infinity;
+  const profile = travelProfile();
+  const salt = recommendationSeed(opts.salt);
+  let best = null;
   candidates.forEach(l=>{
-    let score = 0;
-    const reasons = [];
-    if(userLoc){
-      const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
-      score += Math.max(0, 30-km);
-      if(km<30) reasons.push(km<1 ? "ממש לידך" : "כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך");
-    }
-    if(preferredDiff && l.difficulty===preferredDiff){ score += 18; reasons.push("ברמת הקושי שאתם הכי אוהבים"); }
-    if(waterShare>0.4 && (l.category==="water"||l.hasWater)){ score += 14; reasons.push("יש שם מים, בדיוק כמו שאתם אוהבים"); }
-    if(familyShare>0.5 && l.familyFriendly){ score += 12; reasons.push("מתאים למשפחה"); }
-    const pct = regionDiscoveryPct(l.region);
-    if(pct<0.3){ score += 10; reasons.push("אזור שכמעט לא גיליתם"); }
-    score += Math.random()*4;
-    if(score>bestScore){ bestScore = score; best = { l, reasons }; }
+    const scored = scoreLandmarkFor(l, profile, salt);
+    if(!best || scored.score > best.score) best = scored;
   });
   if(!best) return null;
-  return { landmark: best.l, reason: best.reasons.slice(0,2).join(" · ") || tierForDb(best.l.difficulty).label };
+  const pct = best.applicable > 0 ? Math.round(best.earned/best.applicable*100) : 0;
+  return {
+    landmark: best.l,
+    reasons: best.reasons.slice(0,4),
+    // מוצג רק כשבאמת יש על מה לבסס אותו - אחרת null, ולא מספר שנשמע מדויק אבל אינו
+    matchPct: (best.signals >= MIN_SIGNALS_FOR_PCT && pct >= 50) ? Math.min(99, pct) : null,
+  };
 }
+function getRecommendedDestination(){
+  const rec = recommendDestination();
+  if(!rec) return null;
+  return { landmark: rec.landmark, reason: rec.reasons.slice(0,2).join(" · ") || tierForDb(rec.landmark.difficulty).label };
+}
+/* ============ TRIP MODE (§14) ============ */
+// מסך-טיול מינימלי לשימוש בחוץ: מעט טקסט, ארבע מטרות-מגע גדולות, בלי ניווט מסיח.
+// המצב נשמר ב-localStorage כדי שסגירת הדפדפן/רענון באמצע טיול לא יאבד אותו.
+const TRIP_KEY = "magalim-active-trip-v1";
+let activeTrip = null, tripTimer = null;
+function loadActiveTrip(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(TRIP_KEY)||"null");
+    // טיול נשכח (מעל 12 שעות) לא נשאר תקוע על המסך לנצח
+    if(raw && Date.now()-raw.startedAt < 12*3600*1000 && lmById[raw.landmarkId]) return raw;
+  }catch(e){}
+  return null;
+}
+function saveActiveTrip(){
+  try{
+    if(activeTrip) localStorage.setItem(TRIP_KEY, JSON.stringify(activeTrip));
+    else localStorage.removeItem(TRIP_KEY);
+  }catch(e){}
+}
+function tripElapsedText(){
+  if(!activeTrip) return "";
+  const mins = Math.max(0, Math.round((Date.now()-activeTrip.startedAt)/60000));
+  if(mins < 1) return "יצאתם ממש עכשיו";
+  if(mins < 60) return "התחלתם לפני "+mins+" דק׳";
+  const h = Math.floor(mins/60), m = mins%60;
+  return "התחלתם לפני "+h+" שע׳"+(m?" ו-"+m+" דק׳":"");
+}
+function startTrip(landmarkId){
+  if(!lmById[landmarkId]) return;
+  activeTrip = { landmarkId, startedAt: Date.now() };
+  saveActiveTrip();
+  track("trip_started", { landmark_id: landmarkId });
+  closeSheet("detailSheet","detailScrim");
+  renderTripMode();
+}
+function endTrip(silent){
+  if(!activeTrip) return;
+  if(!silent) track("trip_ended", { landmark_id: activeTrip.landmarkId,
+    minutes: Math.round((Date.now()-activeTrip.startedAt)/60000) });
+  activeTrip = null;
+  saveActiveTrip();
+  renderTripMode();
+}
+function renderTripMode(){
+  const el = $("tripMode"), resume = $("tripResume");
+  if(!el) return;
+  if(tripTimer){ clearInterval(tripTimer); tripTimer = null; }
+  if(!activeTrip){ el.classList.add("hidden"); resume.classList.add("hidden"); return; }
+  const l = lmById[activeTrip.landmarkId];
+  if(!l){ endTrip(true); return; }
+  $("tripName").textContent = l.name;
+  $("tripElapsed").textContent = tripElapsedText();
+  $("tripCheckinIc").innerHTML = uiIcon("trophy",26);
+  $("tripNavIc").innerHTML = uiIcon("region",24);
+  $("tripInfoIc").innerHTML = uiIcon("duration",24);
+  el.classList.remove("hidden");
+  resume.classList.add("hidden");
+  tripTimer = setInterval(()=>{
+    if(!activeTrip || el.classList.contains("hidden")) return;
+    $("tripElapsed").textContent = tripElapsedText();
+  }, 30000);
+}
+function minimiseTrip(){
+  if(!activeTrip) return;
+  const l = lmById[activeTrip.landmarkId];
+  $("tripMode").classList.add("hidden");
+  $("tripResume").innerHTML = uiIcon("compass",17)+"<span>חזרה לטיול ב"+(l?l.name:"")+"</span>";
+  $("tripResume").classList.remove("hidden");
+}
+function wireTripMode(){
+  const l = ()=> activeTrip ? lmById[activeTrip.landmarkId] : null;
+  $("tripEndBtn").onclick = ()=> endTrip();
+  $("tripResume").onclick = ()=> renderTripMode();
+  $("tripCheckinBtn").onclick = ()=>{
+    const lm = l(); if(!lm) return;
+    minimiseTrip();
+    openDetail(lm.id);
+    setTimeout(()=>{ const b = $("checkinBtn"); if(b && !b.disabled) b.click(); }, 350);
+  };
+  $("tripNavBtn").onclick = ()=>{ const lm = l(); if(lm) openWazeNavigation(lm.lat, lm.lon, lm.name); };
+  $("tripInfoBtn").onclick = ()=>{ const lm = l(); if(!lm) return; minimiseTrip(); openDetail(lm.id); };
+}
+
+/* ============ TIME-BOXED CHALLENGE (§9) ============ */
+// אתגר חודשי מחושב מהנתונים האמיתיים (myVisits.visited_at) - בלי טבלה חדשה ובלי נתונים
+// מומצאים. היעד קבוע (5 מקומות חדשים בחודש) והדחיפות אמיתית: ימים שנותרו בחודש.
+const MONTHLY_CHALLENGE_TARGET = 5;
+const HE_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+function monthlyChallenge(){
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  const done = myVisits.filter(v=>{ const d=new Date(v.visited_at); return d>=monthStart && d<=now; }).length;
+  const daysLeft = Math.max(0, Math.ceil((monthEnd-now)/86400000));
+  return { target:MONTHLY_CHALLENGE_TARGET, done:Math.min(done,MONTHLY_CHALLENGE_TARGET), daysLeft,
+           monthName:HE_MONTHS[now.getMonth()], pct:Math.min(100,Math.round(done/MONTHLY_CHALLENGE_TARGET*100)),
+           complete: done>=MONTHLY_CHALLENGE_TARGET };
+}
+function monthlyChallengeHtml(){
+  const c = monthlyChallenge();
+  const days = c.daysLeft===0 ? "היום האחרון" : (c.daysLeft===1 ? "נשאר יום אחד" : "נשארו "+c.daysLeft+" ימים");
+  return `<div class="challenge-strip${c.complete?" done":""}">
+    <div class="challenge-strip-head"><div class="challenge-strip-title">אתגר ${c.monthName}</div>
+      <div class="challenge-strip-days">${c.complete ? "הושלם!" : days}</div></div>
+    <div class="challenge-strip-sub">${c.complete ? "השלמתם את האתגר החודשי — כל הכבוד" : "לגלות "+c.target+" מקומות חדשים"}</div>
+    <div class="bar"><i style="width:${c.pct}%"></i></div>
+    <div class="challenge-strip-foot"><span class="ltr">${c.done}/${c.target}</span></div>
+  </div>`;
+}
+
+/* ============ WEEKEND PLANNER (§12) ============ */
+function isWeekendWindow(){ const d=new Date().getDay(); return d===4||d===5||d===6; }
+const WEEKEND_PICKS = [
+  { key:"water", label:"מקום מים", icon:"water",      match:l=> l.category==="water" || l.hasWater },
+  { key:"trail", label:"מסלול",    icon:"difficulty", match:l=> ["nature","mountains","parks","reserves"].includes(l.category) },
+  { key:"view",  label:"תצפית",    icon:"region",     match:l=> l.category==="viewpoints" },
+];
+function weekendIdeas(){
+  const visitedIds = new Set(myVisits.map(v=>v.landmark_id));
+  const profile = travelProfile();
+  const salt = recommendationSeed("weekend");
+  const used = new Set();
+  return WEEKEND_PICKS.map(pick=>{
+    const pool = LANDMARKS.filter(l=> !visitedIds.has(l.id) && !used.has(l.id) && pick.match(l));
+    if(!pool.length) return null;
+    let best = null;
+    pool.forEach(l=>{ const sc = scoreLandmarkFor(l, profile, salt); if(!best || sc.score>best.score) best = sc; });
+    if(!best) return null;
+    used.add(best.l.id);
+    return { pick, landmark: best.l };
+  }).filter(Boolean);
+}
+
+/* ============ HOME (§1,§2,§9,§10,§12) ============ */
+function landmarkPhotoStyle(l){
+  const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
+  const cat = CATEGORIES[l.category];
+  return url ? `background-image:url('${url}')`
+             : `background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`;
+}
+function whyRowsHtml(reasons){
+  if(!reasons || !reasons.length) return "";
+  return '<div class="next-goal-why"><div class="next-goal-why-title">למה בחרנו לכם את זה?</div>'
+    + reasons.map(r=>`<div class="why-row">${uiIcon("check",15)}<span>${r}</span></div>`).join("")
+    + '</div>';
+}
+function nextGoalCardHtml(rec){
+  const l = rec.landmark;
+  const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
+  return `<div class="next-goal" data-id="${l.id}">
+    <div class="next-goal-photo" style="${landmarkPhotoStyle(l)}">
+      ${hasPhoto ? "" : catIconSvg(CATEGORIES[l.category].icon,54).replace('<svg ','<svg style="color:#fff;opacity:.65" ')}
+      ${rec.matchPct ? `<span class="match">${rec.matchPct}% התאמה</span>` : ""}
+      <span class="pts">+${pointsForLandmark(l)}</span>
+    </div>
+    <div class="next-goal-body">
+      <div class="next-goal-name">${l.name}</div>
+      <div class="place-meta">
+        <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+        <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
+        ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
+        ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
+      </div>
+      ${whyRowsHtml(rec.reasons)}
+      <div class="next-goal-actions">
+        <button class="btn btn-primary" data-go="${l.id}">יאללה, יוצאים</button>
+        <button class="btn btn-outline btn-sm" id="homeMoreOptions">עוד אפשרויות</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderHome(){
+  if(!$("homeNextGoal") || !LANDMARKS.length) return;
+  const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
+  $("homeRingPct").textContent = discPct+"%";
+  $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
+  const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
+  $("homeGreet").textContent = firstName ? firstName+", המסע שלך בישראל" : "המסע שלך בישראל";
+  $("homeHeroSub").textContent = myVisits.length
+    ? myVisits.length+" מקומות נכבשו · "+(LANDMARKS.length-myVisits.length)+" מחכים לכם"
+    : "המקום הראשון שלכם מחכה ממש מעבר לפינה";
+
+  const rec = recommendDestination();
+  const goalEl = $("homeNextGoal");
+  if(rec){
+    goalEl.innerHTML = nextGoalCardHtml(rec);
+    goalEl.querySelector("[data-go]").onclick = (e)=>{ e.stopPropagation();
+      track("next_destination_clicked", { landmark_id: rec.landmark.id, match_pct: rec.matchPct||0 });
+      goToDestination(rec.landmark.id); };
+    goalEl.querySelector(".next-goal").onclick = ()=> goToDestination(rec.landmark.id);
+    $("homeMoreOptions").onclick = (e)=>{ e.stopPropagation(); openTodaySheet(); };
+    track("recommendation_generated", { source:"home", match_pct: rec.matchPct||0 });
+  } else {
+    goalEl.innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title:"כבשתם הכול!",
+      sub:"גיליתם את כל המקומות שיש לנו כרגע. עוד יעדים בדרך.", ctaId:"homeEmptyCta", ctaLabel:"למפה" });
+    const cta = $("homeEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/map");
+  }
+
+  const daily = recommendDestination({ salt:"daily", excludeId: rec ? rec.landmark.id : null });
+  const dailyEl = $("homeDaily");
+  $("homeDailyHead").classList.toggle("hidden", !daily);
+  if(daily){
+    const l = daily.landmark;
+    const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
+    dailyEl.innerHTML = `<div class="daily-card" data-id="${l.id}">
+      <div class="daily-thumb" style="${landmarkPhotoStyle(l)}">${hasPhoto?"":catIconSvg(CATEGORIES[l.category].icon,26).replace('<svg ','<svg style="color:#fff" ')}</div>
+      <div class="daily-body"><div class="daily-kicker">מצאנו לכם מקום שאולי לא הכרתם</div>
+        <div class="daily-name">${l.name}</div>
+        <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span></div></div>
+      <div class="place-pts">+${pointsForLandmark(l)}</div></div>`;
+    dailyEl.querySelector(".daily-card").onclick = ()=> goToDestination(l.id);
+  } else dailyEl.innerHTML = "";
+
+  // אתגר חודשי + מתכנן סופ״ש - שני מנועי-חזרה מבוססי-זמן (§9, §12)
+  $("homeChallenge").innerHTML = session ? monthlyChallengeHtml() : "";
+  const ideas = isWeekendWindow() ? weekendIdeas() : [];
+  $("homeWeekendHead").classList.toggle("hidden", !ideas.length);
+  $("homeWeekend").innerHTML = ideas.map(({pick,landmark})=>
+    `<button class="weekend-idea" data-id="${landmark.id}" type="button">
+       <span class="weekend-idea-ic">${uiIcon(pick.icon,17)}</span>
+       <span class="weekend-idea-body"><span class="weekend-idea-kind">${pick.label}</span>
+         <span class="weekend-idea-name">${landmark.name}</span></span>
+       <span class="place-pts">+${pointsForLandmark(landmark)}</span></button>`).join("");
+  $("homeWeekend").querySelectorAll("[data-id]").forEach(b=> b.onclick = ()=> goToDestination(b.dataset.id));
+  if(ideas.length) track("weekend_planner_shown", { ideas: ideas.length });
+
+  // "כמעט שם" - open loop אמיתי מתוך התקדמות האזורים הקיימת (§10)
+  const almostEl = $("homeAlmost");
+  const almost = Object.keys(REGIONS).map(r=>{
+    const all = LANDMARKS.filter(l=>l.region===r);
+    const done = all.filter(l=> myVisits.some(v=>v.landmark_id===l.id)).length;
+    return { r, done, total: all.length, left: all.length-done };
+  }).filter(x=> x.total>0 && x.left>0 && x.done>0).sort((a,b)=>a.left-b.left)[0];
+  if(almost && almost.left<=3){
+    almostEl.innerHTML = `<div class="almost-card" id="homeAlmostCard">${uiIcon("trophy",20)}
+      <div class="almost-text">נשאר${almost.left===1?"":"ו"} <b>${almost.left===1?"מקום אחד":almost.left+" מקומות"}</b> כדי להשלים את ${REGIONS[almost.r]}</div>
+      ${uiIcon("compass",18)}</div>`;
+    $("homeAlmostCard").onclick = ()=> navigate("#/map");
+  } else almostEl.innerHTML = "";
+}
+
 function wizIntroWhyText(l){
   const parts = [tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label];
   if(l.category==="water"||l.hasWater) parts.push("יש מים");
@@ -1621,6 +2796,7 @@ function renderWizIntro(){
   return true;
 }
 function openTodaySheet(){
+  track("discovery_started", {});
   openSheet("todaySheet","todayScrim");
   renderWizIntro();
 }
@@ -1631,7 +2807,8 @@ function renderWizardResults(){
   $("wizBackBtn").classList.remove("hidden");
   $("wizFindBtn").classList.add("hidden");
   if(!results.length){
-    $("wizResults").innerHTML = '<div class="empty-state"><div class="big">🤔</div>לא מצאנו טיול שמתאים לכל הקריטריונים.<br>נסו להרחיב את המרחק או לשחרר קריטריון.</div>';
+    $("wizResults").innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title: "לא מצאנו התאמה מדויקת",
+      sub: "נסו להרחיב את המרחק או לשחרר קריטריון." });
     return;
   }
   let note = "";
@@ -1693,7 +2870,7 @@ function assignWizLabels(scored){
     let adventureIdx = -1, maxPts = -1;
     scored.forEach((s,i)=>{
       if(labels[i]) return;
-      const pts = tierForDb(s.l.difficulty).xp;
+      const pts = pointsForLandmark(s.l);
       if(pts>maxPts){ maxPts=pts; adventureIdx=i; }
     });
     if(adventureIdx>=0) labels[adventureIdx] = "🧭 יותר הרפתקני";
@@ -1702,6 +2879,16 @@ function assignWizLabels(scored){
 }
 
 let israelBounds = null;
+// המסגור ההתחלתי של המפה: כל הארץ. משמש גם בטעינה הראשונה, גם בכפתור "אפס זום"
+// וגם בכל כניסה מחדש למסך המפה, כדי שלשלושתם תהיה בדיוק אותה תוצאה.
+function fitIsrael(){
+  if(!leafletMap) return;
+  if(israelBounds) leafletMap.fitBounds(israelBounds, { padding:[28,28] });
+  else leafletMap.setView(ISRAEL_CENTER, DEFAULT_ZOOM);
+}
+// מסלול-כניסה שמביא מסגור משלו (אתגר/אוסף שעושה fitBounds ליעדים שנותרו) מסמן את
+// הדגל לפני navigate, כדי שהאיפוס לא ימחק את המסגור שלו. נצרך פעם אחת.
+let keepMapFraming = false;
 function initLeafletMap(){
   leafletMap = L.map("mapSvg", { zoomControl:false, attributionControl:true, minZoom:6, maxZoom:17 })
     .setView(ISRAEL_CENTER, DEFAULT_ZOOM);
@@ -1709,14 +2896,20 @@ function initLeafletMap(){
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(leafletMap);
+  // מעל markerPane (600) ו-overlayPane (400), מתחת ל-popupPane (700). נוצר מיד עם
+  // המפה, לפני כל שכבה, כדי ש-renderUserLocation לעולם לא יבקש pane שעוד לא קיים.
+  leafletMap.createPane(USER_LOC_PANE).style.zIndex = 655;
   clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false });
   leafletMap.addLayer(clusterGroup);
-  leafletMap.on("click", closePreview);
+  leafletMap.on("click", (e)=>{
+    if(pickingLocation){ setManualLocation(e.latlng.lat, e.latlng.lng); return; }
+    closePreview();
+  });
   let moveDebounce = null;
   leafletMap.on("moveend", ()=>{ clearTimeout(moveDebounce); moveDebounce = setTimeout(renderDiscoveryCarousel, 150); });
   if(LANDMARKS.length){
     israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
-    leafletMap.fitBounds(israelBounds, { padding:[28,28] });
+    fitIsrael();
   }
   renderFogOfWar();
 }
@@ -1734,8 +2927,13 @@ function openPreview(id){
     : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
-  $("destPreviewFacts").textContent = distText+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"");
-  $("destPreviewWish").textContent = wished ? "❤️" : "🤍";
+  const previewTier = tierForDb(l.difficulty);
+  $("destPreviewFacts").innerHTML = (distText ? '<span class="place-meta-item">'+distText.replace(/ · $/,"")+'</span>' : "")
+    + '<span class="place-meta-item">'+uiIcon("difficulty",13)+previewTier.label+'</span>'
+    + (l.duration ? '<span class="place-meta-item">'+uiIcon("duration",13)+l.duration+'</span>' : "")
+    + '<span class="place-pts">+'+previewTier.xp+'</span>';
+  $("destPreviewWish").innerHTML = uiIcon("heart",17);
+  $("destPreviewWish").classList.toggle("active", !!wished);
   wireWazeButton($("destPreviewNav"), l);
   $("destPreview").classList.add("open");
   renderMap();
@@ -1776,15 +2974,31 @@ function renderMap(){
     marker.on("click", (e)=>{ L.DomEvent.stopPropagation(e); openPreview(l.id); });
     clusterGroup.addLayer(marker);
   });
-  if(userLoc){
-    if(userLocMarker) leafletMap.removeLayer(userLocMarker);
-    userLocMarker = L.circleMarker([userLoc.lat,userLoc.lon], { radius:8, color:"#fff", weight:2.5, fillColor:"#146F67", fillOpacity:1 }).addTo(leafletMap);
-  }
+  renderUserLocation();
   renderFogOfWar();
   renderDiscoveryCarousel();
 }
 
+// הפס התחתון של המפה (קרוסלת-הגילוי או כרטיס-התצוגה) פרוס לרוחב מלא ומעל כפתורי-
+// המפה ב-z-index, כך שכפתור "המיקום שלי", איפוס-הזום והמקרא נקברו מתחתיו ולחיצה
+// עליהם נחתה בפועל על כרטיס-יעד. מרימים אותם בדיוק מעל מה שמוצג כרגע - לפי הגובה
+// האמיתי שלו, כי הקרוסלה משנה גובה בין כרטיסים למצב "אין יעדים באזור", ובדסקטופ
+// שני הפסים בכלל מוסתרים (offsetHeight אפס) והכפתורים חוזרים למקומם.
+const MAP_OVERLAY_INSET = 12;  // ה-bottom של הפס התחתון
+const MAP_CTL_GAP = 8;         // רווח בין הפס לכפתורים
+function syncMapControlsOffset(){
+  const wrap = $("mapWrap"); if(!wrap) return;
+  const preview = $("destPreview"), section = $("discoverySection");
+  let h = 0;
+  if(preview.classList.contains("open")) h = preview.offsetHeight;
+  else if(!section.classList.contains("hidden")) h = section.offsetHeight;
+  wrap.style.setProperty("--map-ctl-bottom", h ? (h + MAP_OVERLAY_INSET + MAP_CTL_GAP) + "px" : "");
+}
 function renderDiscoveryCarousel(){
+  fillDiscoveryCarousel();
+  syncMapControlsOffset();
+}
+function fillDiscoveryCarousel(){
   if(!leafletMap) return;
   renderMapSidePanel();
   const section = $("discoverySection");
@@ -1807,10 +3021,11 @@ function renderDiscoveryCarousel(){
     const thumb = photoUrl
       ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">'
       : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,20).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+    const tier = tierForDb(l.difficulty);
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
-      + '<div class="discovery-card-thumb">'+thumb+'</div>'
+      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts">+'+pointsForLandmark(l)+'</span></div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
-      + '<div class="discovery-card-facts">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"")+'</div>'
+      + '<div class="discovery-card-facts">'+uiIcon("difficulty",12)+tier.label+(l.duration?'<span class="dot-sep"></span>'+uiIcon("duration",12)+l.duration:"")+'</div>'
       + '</div>';
   }).join("");
   el.querySelectorAll(".discovery-card").forEach(card=>{
@@ -1845,12 +3060,12 @@ function renderMapSidePanel(){
         <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
         ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
         ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
-        <div class="lm-stat"><div class="v">${panelConquest ? "✓ "+panelConquest.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${panelConquest ? "נכבש" : "נקודות"}</div></div>
+        <div class="lm-stat"><div class="v">${panelConquest ? '<span class="ltr">✓ '+panelConquest.xp_awarded.toLocaleString()+'</span>' : '<span class="ltr">+'+pointsForLandmark(l)+'</span>'}</div><div class="l">${panelConquest ? "נכבש" : effortClassFor(l).label}</div></div>
       </div>
       <p class="lm-desc">${l.desc}</p>
       <div class="lm-actions">
         <button class="icon-btn waze-btn" id="panelWazeBtn"></button>
-        <button class="btn btn-outline" id="panelWishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
+        <button class="btn btn-outline${wished?" is-wished":""}" id="panelWishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
         <button class="btn btn-primary" id="panelDetailBtn">פרטים מלאים</button>
       </div>
     `;
@@ -1869,11 +3084,7 @@ function renderMapSidePanel(){
     const bounds = leafletMap.getBounds();
     const list = filteredLandmarks().filter(l=>bounds.contains([l.lat,l.lon])).slice(0,40);
     panel.innerHTML = '<div class="side-panel-head"><h3>יעדים באזור</h3></div><div class="side-list">' + list.map(l=>{
-      const cat = CATEGORIES[l.category];
-      const photoUrl = landmarkPhotos[l.id];
-      const thumb = photoUrl ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">' : catIconSvg(cat.icon,24);
-      return '<div class="mini-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'"><div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
-        + '<div class="mini-info"><div class="name">'+l.name+'</div><div class="sub">'+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label+(l.duration?" · "+l.duration:"")+'</div></div></div>';
+      return placeCardHtml(l, { photo: landmarkPhotos[l.id], region:false });
     }).join("") + '</div>';
     panel.querySelectorAll(".mini-card").forEach(card=>{
       const go = ()=>{
@@ -1889,6 +3100,8 @@ function renderMapSidePanel(){
 }
 
 function wireStaticUI(){
+  wireTripMode();
+  wireAuthViews();
   initLeafletMap();
   $("onboardingSkip").onclick = closeOnboarding;
   $("onboardingNext").onclick = ()=>{
@@ -1896,13 +3109,17 @@ function wireStaticUI(){
   };
   $("zoomIn").onclick=()=> leafletMap.zoomIn();
   $("zoomOut").onclick=()=> leafletMap.zoomOut();
-  $("zoomReset").onclick=()=> israelBounds ? leafletMap.fitBounds(israelBounds,{padding:[28,28]}) : leafletMap.setView(ISRAEL_CENTER, DEFAULT_ZOOM);
+  $("zoomReset").onclick = fitIsrael;
   // Gamification Overhaul, Phase 4 - מקרא-קושי: תוכן סטטי מ-DIFF_TIERS (טקסט+אימוג'י-צבעוני,
   // לא צבע-בלבד), נבנה פעם אחת. נסגר אוטומטית עם closePreview (אותה קריאה שכבר קיימת על
   // לחיצה על המפה) כדי לא להישאר פתוח ולחסום תוך כדי שימוש רגיל במפה.
-  $("diffLegendPopover").innerHTML = DIFF_TIERS.map(t=>
-    `<div class="diff-legend-row">${t.emoji} ${t.label}</div>`
-  ).join("");
+  $("diffLegendPopover").innerHTML =
+    '<div class="legend-title">צבע הסיכה — רמת קושי</div>'
+    + DIFF_TIERS.map(t=>`<div class="diff-legend-row">${t.emoji} ${t.label}</div>`).join("")
+    + '<div class="legend-title legend-title-gap">ניקוד — לפי המאמץ</div>'
+    + Object.values(EFFORT_TIERS).map(t=>
+        `<div class="diff-legend-row"><span class="legend-pts">+${t.xp}</span> ${t.label} <span class="legend-hint">${t.hint}</span></div>`
+      ).join("");
   $("diffLegendBtn").onclick = (e)=>{
     e.stopPropagation();
     const open = $("diffLegendPopover").classList.toggle("hidden")===false;
@@ -1910,14 +3127,20 @@ function wireStaticUI(){
   };
   $("locateBtn").onclick=()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
-    navigator.geolocation.getCurrentPosition(pos=>{
-      userLoc = {lat:pos.coords.latitude, lon:pos.coords.longitude};
-      $("distHint").textContent = "המיקום שלך אותר — ניתן לסנן לפי מרחק נסיעה";
-      syncFilterUI(); renderMap();
-      const count = filteredLandmarks().length;
-      toast(filters.maxDist<400 ? `נמצאו ${count} יעדים במרחק נסיעה של עד ${estimateDriveMinutes(filters.maxDist)} דק'` : "המיקום אותר בהצלחה");
-      leafletMap.setView([userLoc.lat, userLoc.lon], 12);
-    }, ()=> toast("לא הצלחנו לאתר מיקום — יש לאשר גישה למיקום בדפדפן"), {enableHighAccuracy:true, timeout:8000});
+    dismissLocateHint();
+    handleLocateTap();
+  };
+  $("locateHintBtn").onclick = ()=>{ dismissLocateHint(); $("locateBtn").click(); };
+  $("locateHintClose").onclick = (e)=>{ e.stopPropagation(); dismissLocateHint(); };
+  $("locationTestBtn").onclick = runLocationTest;
+  $("locationManualBtn").onclick = startManualLocationPick;
+  $("locationApproxBtn").onclick = useApproxLocation;
+  $("liveTrackingToggle").onchange = (e)=> setLiveTracking(e.target.checked);
+  $("locationClearManualBtn").onclick = clearManualLocation;
+  $("manualLocCancel").onclick = cancelManualLocationPick;
+  $("locationCopyBtn").onclick = async ()=>{
+    try{ await navigator.clipboard.writeText($("locationDiag").textContent); toast("הדוח הועתק"); }
+    catch(e){ toast("לא הצלחנו להעתיק — אפשר לסמן ולהעתיק ידנית"); }
   };
   $("openFilters").onclick=()=>{ syncFilterUI(); openSheet("filterSheet","filterScrim"); };
   $("openFilters").onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); syncFilterUI(); openSheet("filterSheet","filterScrim"); } };
@@ -1933,7 +3156,7 @@ function wireStaticUI(){
     const id = previewId;
     const run = async ()=>{
       const justAdded = await toggleWishlist(id);
-      $("destPreviewWish").textContent = justAdded ? "❤️" : "🤍";
+      $("destPreviewWish").classList.toggle("active", justAdded);
       if(justAdded){
         $("destPreviewWish").classList.remove("wish-pop");
         void $("destPreviewWish").offsetWidth;
@@ -1988,15 +3211,14 @@ function wireStaticUI(){
   $("wizLocateBtn").onclick = ()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
     $("wizLocStatus").innerHTML = '<span class="ic">📡</span> מאתר מיקום...';
-    navigator.geolocation.getCurrentPosition(pos=>{
-      wizState.loc = { lat:pos.coords.latitude, lon:pos.coords.longitude };
-      userLoc = wizState.loc;
+    locateUser(()=>{
+      wizState.loc = userLoc;
       $("wizLocStatus").className = "checkin-status ok";
       $("wizLocStatus").innerHTML = '<span class="ic">✓</span> המיקום אותר בהצלחה';
-    }, ()=>{
+    }, err=>{
       $("wizLocStatus").className = "checkin-status bad";
-      $("wizLocStatus").innerHTML = '<span class="ic">✕</span> לא הצלחנו לאתר מיקום — עדיין אפשר לחפש בלי זה';
-    }, {enableHighAccuracy:true, timeout:8000});
+      $("wizLocStatus").innerHTML = '<span class="ic">✕</span> ' + escapeHtml(geoErrorMessage(err)) + ' — עדיין אפשר לחפש בלי זה';
+    });
   };
   $("wizFindBtn").onclick = ()=> renderWizardResults();
   $("wizBackBtn").onclick = ()=>{
@@ -2014,6 +3236,7 @@ function wireStaticUI(){
   $("regionScrim").onclick = ()=> closeSheet("regionSheet","regionScrim");
   $("openSettingsBtn").onclick = ()=>{
     openSheet("settingsSheet","settingsScrim");
+    updateSettingsInstallRow();
     renderBlockedUsers();
     renderLocationPermStatus();
     const av = (myProfile && myProfile.activity_visibility) || "friends_groups";
@@ -2102,10 +3325,11 @@ function wireStaticUI(){
   document.querySelectorAll(".nav-btn").forEach(btn=>{
     btn.onclick=()=> navigate("#/"+btn.dataset.view);
   });
+  // מקפיץ את הפוקוס אל המסך הפעיל, כדי לא לעבור בטאב על הכותרת בכל מסך מחדש
+  $("skipToContent").onclick=(e)=>{ e.preventDefault(); focusView(currentView); };
   document.querySelectorAll(".tab-row [data-list]").forEach(btn=>{
     btn.onclick=()=>{
-      document.querySelectorAll(".tab-row [data-list]").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active"); profileListTab = btn.dataset.list; renderProfile();
+      setProfileListTab(btn.dataset.list); renderProfile();
     };
   });
   $("editNameBtn").onclick = ()=> navigate("#/settings/profile");
@@ -2128,6 +3352,16 @@ function wireStaticUI(){
   $("installBannerDismissBtn").onclick = ()=>{
     $("installBanner").classList.add("hidden");
     try{ localStorage.setItem("magalim-install-dismissed","1"); }catch(e){}
+  };
+  $("settingsInstallBtn").onclick = async ()=>{
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{ await deferredInstallPrompt.userChoice; }catch(e){}
+      deferredInstallPrompt = null;
+      updateSettingsInstallRow();
+    } else if(isIOSSafariNotStandalone()){
+      toast('הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית"');
+    }
   };
   $("notifBellBtn").onclick = ()=> navigate("#/notifications");
   $("notificationsCloseBtn").onclick = goBack;
@@ -2212,8 +3446,7 @@ function wireStaticUI(){
   $("markAllReadBtn").onclick = async ()=>{ await markAllNotificationsRead(); renderNotifications(); };
   document.querySelectorAll("#boardTabs button").forEach(b=> b.onclick = ()=> switchBoardTab(b.dataset.tab));
   $("periodSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    $("periodSeg").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active"); lbPeriod=b.dataset.period; renderBoard();
+    setBoardPeriod(b.dataset.period); renderBoard();
   });
   $("inviteBtn").onclick = async ()=>{
     let url;
@@ -2224,7 +3457,7 @@ function wireStaticUI(){
       if(err.code==="quota_exceeded"){ toast(err.message); return; }
       url = `${location.origin}${location.pathname}?ref=${session.user.id}`;
     }
-    shareLink(url, "מגלים את ישראל", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
+    shareLink(url, "מגלים", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
   };
   $("groupSelect").onchange = e=>{ activeGroupId = e.target.value; renderGroupPanel(); };
   $("groupNewBtn").onclick = createGroup;
@@ -2240,7 +3473,7 @@ function wireStaticUI(){
       if(err.code==="quota_exceeded"){ toast(err.message); return; }
       url = `${location.origin}${location.pathname}?group=${activeGroupId}`;
     }
-    shareLink(url, "מגלים את ישראל", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים את ישראל!`);
+    shareLink(url, "מגלים", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים!`);
   };
   window.addEventListener("online", ()=>{ updateOnlineStatus(); flushPendingQueue(); });
   window.addEventListener("offline", updateOnlineStatus);
@@ -2379,29 +3612,69 @@ document.addEventListener("keydown", e=>{
 // confirmSheet). מבוטל דרך transform מוטבע-inline בזמן הגרירה בלבד; ברגע שהוא מוסר (touchend)
 // חוזרים לחלוטין למנגנון ה-CSS class-based הקיים (transform:translateY(100%)/(0)) - לא נבנה
 // מנגנון-אנימציה מקביל.
+// snap-sheets (§6): גובה ה-sheet נעצר באחת משלוש מדרגות במקום להיות קבוע. אותו handler
+// של הגרירה משרת גם אותם - גרירה למעלה מגדילה את הגובה, גרירה למטה מקטינה ובסוף סוגרת.
+const SHEET_SNAPS = { collapsed:0.42, mid:0.68, full:0.92 };
+function sheetContainerHeight(sheetEl){
+  return (sheetEl.offsetParent || document.documentElement).clientHeight || window.innerHeight;
+}
+function setSheetSnap(sheetEl, name){
+  if(!sheetEl || !sheetEl.classList.contains("snap-sheet")) return;
+  sheetEl.classList.remove("snap-collapsed","snap-mid","snap-full");
+  sheetEl.classList.add("snap-"+name);
+  sheetEl.style.height = "";
+  const scrim = $("detailScrim");
+  if(scrim) scrim.classList.toggle("soft", name !== "full");
+}
 (function wireSheetSwipeToClose(){
   let drag = null;
   document.addEventListener("touchstart", e=>{
     const handle = e.target.closest(".sheet-handle");
     const sheetEl = handle && handle.closest(".sheet");
     if(!sheetEl || !sheetEl.classList.contains("open")) return;
-    drag = { sheetEl, startY: e.touches[0].clientY, dy: 0, height: sheetEl.getBoundingClientRect().height };
-    sheetEl.style.transition = "none";
+    drag = { sheetEl, startY: e.touches[0].clientY, dy: 0,
+             height: sheetEl.getBoundingClientRect().height,
+             snap: sheetEl.classList.contains("snap-sheet") };
+    if(drag.snap) sheetEl.classList.add("dragging"); else sheetEl.style.transition = "none";
   }, {passive:true});
   document.addEventListener("touchmove", e=>{
     if(!drag) return;
-    drag.dy = Math.max(0, e.touches[0].clientY - drag.startY);
+    const raw = e.touches[0].clientY - drag.startY;
+    if(drag.snap){
+      const containerH = sheetContainerHeight(drag.sheetEl);
+      const maxH = containerH*SHEET_SNAPS.full;
+      const wanted = drag.height - raw;            // גרירה למעלה (raw שלילי) מגדילה
+      if(wanted <= maxH){
+        drag.dy = Math.max(0, raw);
+        drag.sheetEl.style.height = Math.max(60, wanted)+"px";
+        drag.sheetEl.style.transform = "";
+      }
+      return;
+    }
+    drag.dy = Math.max(0, raw);
     drag.sheetEl.style.transform = `translateY(${drag.dy}px)`;
   }, {passive:true});
   document.addEventListener("touchend", ()=>{
     if(!drag) return;
-    const { sheetEl, dy, height } = drag;
-    sheetEl.style.transition = ""; sheetEl.style.transform = "";
+    const { sheetEl, dy, height, snap } = drag;
     drag = null;
-    if(dy > Math.min(110, height*0.28)){
+    const closeIt = ()=>{
       const entry = openSheetStack.find(s=> s.sheetId===sheetEl.id);
       if(entry){ if(entry.onEscape) entry.onEscape(); else closeSheet(entry.sheetId, entry.scrimId); }
+    };
+    if(snap){
+      sheetEl.classList.remove("dragging");
+      const containerH = sheetContainerHeight(sheetEl);
+      const frac = sheetEl.getBoundingClientRect().height / containerH;
+      sheetEl.style.height = "";
+      if(frac < SHEET_SNAPS.collapsed*0.72){ closeIt(); return; }
+      const nearest = Object.keys(SHEET_SNAPS).reduce((best,k)=>
+        Math.abs(SHEET_SNAPS[k]-frac) < Math.abs(SHEET_SNAPS[best]-frac) ? k : best, "mid");
+      setSheetSnap(sheetEl, nearest);
+      return;
     }
+    sheetEl.style.transition = ""; sheetEl.style.transform = "";
+    if(dy > Math.min(110, height*0.28)) closeIt();
   }, {passive:true});
 })();
 
@@ -2424,6 +3697,7 @@ function refreshOpenDetailIfShowing(id){
   if(location.hash === "#/destination/"+encodeURIComponent(id)) openDetail(id);
 }
 async function toggleWishlist(id){
+  track("destination_saved", { landmark_id: id, saved: !myWishlist.includes(id) });
   let justAdded = false;
   if(myWishlist.includes(id)){
     myWishlist = myWishlist.filter(x=>x!==id);
@@ -2435,12 +3709,12 @@ async function toggleWishlist(id){
     toast("הוסר מהשמורים", { label:"ביטול", onClick: async ()=>{
       const stillPending = !!pendingWishlistRemovals[id];
       if(stillPending){ clearTimeout(pendingWishlistRemovals[id]); delete pendingWishlistRemovals[id]; }
-      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); }
+      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); }
       if(!stillPending){
         // ה-timer כבר ירה וה-DELETE כבר בוצע בפועל - הביטול חייב להכניס את השורה מחדש,
         // לא רק לשחזר state מקומי (אחרת המסך יראה "שמור" בזמן שב-DB זה כבר נמחק).
         const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
-        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
+        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
       }
     }});
   } else if(pendingWishlistRemovals[id]){
@@ -2477,33 +3751,36 @@ function openDetail(id){
       <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
       ${userLoc ? `<div class="lm-from-you">📍 ${Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} ק"מ ממך · כ-${estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} דק׳ נסיעה (משוער)</div>` : ""}
     </div></div>
-    <p class="lm-desc">${l.desc}</p>
-    <div class="lm-stats">
+    <p class="lm-desc" data-stage="mid">${l.desc}</p>
+    <div class="lm-stats" data-stage="mid">
       <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
       ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
       ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
-      <div class="lm-stat"><div class="v">${conquestEntry ? "✓ "+conquestEntry.xp_awarded.toLocaleString() : "+"+tierForDb(l.difficulty).xp}</div><div class="l">${conquestEntry ? "נכבש" : "נקודות"}</div></div>
+      <div class="lm-stat"><div class="v">${conquestEntry ? '<span class="ltr">✓ '+conquestEntry.xp_awarded.toLocaleString()+'</span>' : '<span class="ltr">+'+pointsForLandmark(l)+'</span>'}</div><div class="l">${conquestEntry ? "נכבש" : effortClassFor(l).label}</div></div>
     </div>
-    <div class="lm-important-head">⚠️ חשוב לדעת לפני שיוצאים</div>
-    <div class="amenity-row">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
-    <div id="fieldReportsBox"></div>
-    ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link">🔗 מידע נוסף באתר הרשמי</a>` : ""}
+    <div class="lm-important-head" data-stage="full">⚠️ חשוב לדעת לפני שיוצאים</div>
+    <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
+    <div id="fieldReportsBox" data-stage="full"></div>
+    ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
       <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
       <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       </button>
-      <button class="btn btn-outline" id="wishBtn">${wished?"❤️ ברשימת המשאלות":"🤍 רוצה להגיע"}</button>
+      <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
+    ${visitedEntry ? "" : `<button class="btn btn-secondary btn-block" id="startTripBtn" style="margin-top:var(--space-2);">יוצאים לדרך</button>`}
     <div id="checkinFlow"></div>
-    <button type="button" id="reportPlaceInfoBtn" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
+    <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
+  const startTripBtn = $("startTripBtn");
+  if(startTripBtn) startTripBtn.onclick = ()=> startTrip(l.id);
   $("detailShareBtn").onclick = ()=>{
     const url = `${location.origin}${location.pathname}#/destination/${encodeURIComponent(id)}`;
-    shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים את ישראל!`);
+    shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים!`);
   };
   $("reportPlaceInfoBtn").onclick = ()=>{
     openReportSheet("דיווח על "+l.name, PLACE_REPORT_REASONS, async (reason, message)=>{
@@ -2527,8 +3804,9 @@ function openDetail(id){
     if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם", ()=>startCheckin(l))) return;
     startCheckin(l);
   };
-  $("detailSheet").style.maxHeight="90%";
+  setSheetSnap($("detailSheet"), "mid");
   openSheet("detailSheet","detailScrim");
+  track("destination_viewed", { landmark_id: id, points: pointsForLandmark(l) });
   renderFieldReports(id, l);
 }
 
@@ -2592,6 +3870,8 @@ function wireFieldReportChips(){
   });
 }
 function startCheckin(l){
+  // הצ׳ק-אין דורש את כל המסך - פותחים את ה-sheet למדרגה המלאה כדי שהזרימה לא תיחתך
+  setSheetSnap($("detailSheet"), "full");
   activeCheckinPhoto = null;
   reportState = { water:null, crowding:null, parking:null };
   $("checkinFlow").innerHTML = `
@@ -2643,19 +3923,21 @@ function runGpsCheck(l){
     photoStep.classList.remove("hidden"); return;
   }
   if(!navigator.geolocation){ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> המכשיר לא תומך באיתור מיקום'; return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
+  locateUser(pos=>{
     const d = haversine(pos.coords.latitude,pos.coords.longitude,l.lat,l.lon)*1000;
-    userLoc = {lat:pos.coords.latitude, lon:pos.coords.longitude};
-    if(d<=300){
+    if(d<=1500){
       statusEl.className="checkin-status ok";
       statusEl.innerHTML = '<span class="ic">✓</span> אומת! את/ה במרחק '+Math.round(d)+' מטר מהיעד';
       photoStep.classList.remove("hidden");
     } else {
       statusEl.className="checkin-status bad";
-      statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 300 מ׳ כדי לבצע צ׳ק-אין';
+      statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 1.5 ק"מ כדי לבצע צ׳ק-אין';
       photoStep.classList.add("hidden");
     }
-  }, ()=>{ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> לא ניתן לאתר מיקום — יש לאשר הרשאת GPS בדפדפן'; }, {enableHighAccuracy:true, timeout:8000});
+  }, err=>{
+    statusEl.className="checkin-status bad";
+    statusEl.innerHTML = '<span class="ic">✕</span> ' + escapeHtml(geoErrorMessage(err));
+  }, { preciseOnly:true });
 }
 
 // Gamification Overhaul, Phase 2 - מענק XP אטומי ואידמפוטנטי: בסיס-כיבוש-ראשון דרך
@@ -2666,17 +3948,17 @@ function runGpsCheck(l){
 // מחזיר {baseXP, bonuses:[{type,label,xp}], totalGranted, isFirstConquest} - כל השדות
 // מבוססים על מה שבאמת נכנס ל-DB (data.length אחרי upsert-ignoreDuplicates), לא ניחוש.
 async function grantConquestAndBonuses(l){
-  const tier = tierForDb(l.difficulty);
+  const conquestXp = pointsForLandmark(l);
   const result = { baseXP:0, bonuses:[], totalGranted:0, isFirstConquest:false };
   const { data: conquestRows, error: cErr } = await supabase.from("landmark_conquests")
-    .upsert({ user_id:session.user.id, landmark_id:l.id, xp_awarded:tier.xp, difficulty_at_conquest:l.difficulty },
+    .upsert({ user_id:session.user.id, landmark_id:l.id, xp_awarded:conquestXp, difficulty_at_conquest:l.difficulty },
       { onConflict:"user_id,landmark_id", ignoreDuplicates:true })
     .select();
   if(cErr){ console.warn("landmark_conquests לא זמינה עדיין (יתכן שה-migration טרם רץ):", cErr.message||cErr); return result; }
   if(!conquestRows || !conquestRows.length) return result; // ביקור חוזר - 0 XP, לא בונוסים
   result.isFirstConquest = true;
-  result.baseXP = tier.xp;
-  result.totalGranted = tier.xp;
+  result.baseXP = conquestXp;
+  result.totalGranted = conquestXp;
   const prevConquests = myConquests.slice();
   myConquests.push(conquestRows[0]);
 
@@ -2738,7 +4020,7 @@ async function submitFieldReport(landmarkId){
 
 async function confirmCheckin(l){
   const prevTotalXP = totalXP();
-  const tier = tierForDb(l.difficulty);
+  const optimisticXp = pointsForLandmark(l);
   const note = ($("checkinNote")?.value || "").trim().slice(0,120) || null;
   if(!navigator.onLine){
     // אופליין - אין גישה ל-DB כדי להריץ את מנגנון-הדה-דופ האמיתי, אז שומרים בתור עם הערכה
@@ -2747,7 +4029,7 @@ async function confirmCheckin(l){
     const pending = { landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, note, ts:new Date().toISOString() };
     const queue = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
     queue.push(pending); localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
-    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:tier.xp, note, pending:true });
+    myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:optimisticXp, note, pending:true });
     refreshHeader(); closeSheet("detailSheet","detailScrim");
     toast("נשמר במצב אופליין — יסונכרן כשהחיבור יחזור");
     renderMap(); renderProfile(); return;
@@ -2768,6 +4050,7 @@ async function confirmCheckin(l){
     }
     if(error) throw error;
     myVisits.push(data);
+    if(activeTrip && activeTrip.landmarkId===l.id) endTrip(true);
     track("checkin_completed", { landmark_id: l.id });
     submitFieldReport(l.id);
     refreshHeader(); closeSheet("detailSheet","detailScrim");
@@ -2828,14 +4111,26 @@ async function confirmCheckin(l){
       const d = haversine(l.lat,l.lon,cand.lat,cand.lon);
       if(d<=15 && d<nextDist){ nextDist=d; nextPlace=cand; }
     });
-    if(nextPlace){
+    // §6 - צ׳ק-אין תמיד נגמר ביעד הבא, אף פעם לא ב-dead end. אם אין מקום קרוב (עד 15 ק"מ),
+    // נופלים להמלצה האישית במקום לסיים ב"געו כדי להמשיך".
+    let nextStep = nextPlace
+      ? { place: nextPlace, title:"כבר באזור? יש עוד מקום קרוב",
+          sub: nextPlace.name+" · כ-"+estimateDriveMinutes(nextDist)+" דק' נסיעה" }
+      : null;
+    if(!nextStep){
+      const rec = recommendDestination({ excludeId: l.id });
+      if(rec) nextStep = { place: rec.landmark, title:"היעד הבא שלכם",
+        sub: rec.landmark.name + (rec.reasons.length ? " · "+rec.reasons[0] : "") };
+    }
+    if(nextStep){
+      const np = nextStep.place;
       steps.push({
         emoji:"🌳",
-        title:"כבר באזור? יש עוד מקום קרוב",
-        sub: nextPlace.name+" · כ-"+estimateDriveMinutes(nextDist)+" דק' נסיעה",
+        title: nextStep.title,
+        sub: nextStep.sub,
         actions: [
-          { label:"קחו אותי לשם", primary:true, onClick:()=> goToDestination(nextPlace.id) },
-          { label:"שמור לפעם הבאה", onClick:()=>{ if(!myWishlist.includes(nextPlace.id)) toggleWishlist(nextPlace.id).then(()=>renderProfile()); } },
+          { label:"קחו אותי לשם", primary:true, onClick:()=> goToDestination(np.id) },
+          { label:"שמור לפעם הבאה", onClick:()=>{ if(!myWishlist.includes(np.id)) toggleWishlist(np.id).then(()=>renderProfile()); } },
         ],
       });
     }
@@ -2978,10 +4273,10 @@ function paintIsraelMap(ctx, w, h, { padFrac, landColor, outlineColor, dotVisite
   ctx.beginPath();
   SHARE_OUTLINE.forEach(([la,lo],i)=>{ const [x,y]=project(la,lo); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
   ctx.closePath();
-  ctx.fillStyle = landColor || getCssVar("--map-land","#E4DEC9");
+  ctx.fillStyle = landColor || getCssVar("--map-land","#EEE9DA");
   ctx.fill();
   ctx.lineWidth = Math.max(1, w/300);
-  ctx.strokeStyle = outlineColor || getCssVar("--map-outline","#B7A97E");
+  ctx.strokeStyle = outlineColor || getCssVar("--map-outline","#C9BF9E");
   ctx.stroke();
   // ערפל לפי אזור - אותה גיאומטריה בדיוק כמו שכבת ה-Fog of War על ה-Leaflet map (Phase 1),
   // מוקרנת דרך אותה fitIsraelTransform - כך שגם כרטיס השיתוף (generateShareCard) מקבל את זה בחינם.
@@ -3007,7 +4302,7 @@ function paintIsraelMap(ctx, w, h, { padFrac, landColor, outlineColor, dotVisite
     ctx.beginPath();
     ctx.arc(x,y, visited?r*1.5:r*0.75, 0, Math.PI*2);
     ctx.globalAlpha = visited?1:0.4;
-    ctx.fillStyle = visited ? (dotVisited || getCssVar("--accent-strong","#96610F")) : (dotOther || outlineColor || getCssVar("--map-outline","#B7A97E"));
+    ctx.fillStyle = visited ? (dotVisited || getCssVar("--accent-strong","#145C3C")) : (dotOther || outlineColor || getCssVar("--map-outline","#C9BF9E"));
     ctx.fill();
     if(visited){ ctx.lineWidth = Math.max(0.6, w/500); ctx.strokeStyle = "#fff"; ctx.stroke(); }
   });
@@ -3070,17 +4365,79 @@ function openRegionSheet(r){
 function renderCollections(){
   const el = $("collectionGrid");
   if(!el) return;
-  el.innerHTML = COLLECTIONS.map(c=>{
+  // מיון לפי "כמה קרוב להשלמה" - האוסף שנשאר בו הכי מעט עולה למעלה, כי זה ה-open loop
+  // שהכי סביר שיגרום ליציאה לטיול הבא (§10). אוספים שהושלמו יורדים לסוף.
+  const rows = COLLECTIONS.map(c=>{
     const { done, total } = collectionProgress(c);
-    const on = total>0 && done>=total;
-    const progressLine = on ? "" : `<div class="badge-progress">${done}/${total}</div>`;
-    return `<div class="badge${on?" unlocked":""}" data-id="${c.id}"><div class="circ">${c.icon}</div><div class="lbl">${c.label}</div>${progressLine}</div>`;
+    return { c, done, total, left: total-done, pct: total ? Math.round(done/total*100) : 0 };
+  }).filter(r=> r.total>0)
+    .sort((a,b)=>{
+      const aDone = a.left===0, bDone = b.left===0;
+      if(aDone!==bDone) return aDone ? 1 : -1;
+      if(a.done===0 && b.done>0) return 1;
+      if(b.done===0 && a.done>0) return -1;
+      return a.left-b.left;
+    });
+  el.innerHTML = rows.map(r=>{
+    const left = r.left===0
+      ? "הושלם!"
+      : (r.done===0 ? `${r.total} מקומות באוסף` : `נשאר${r.left===1?"" : "ו"} <b>${r.left===1?"מקום אחד":r.left+" מקומות"}</b> להשלמה`);
+    return `<div class="collection-card${r.left===0?" done":""}" data-id="${r.c.id}" role="button" tabindex="0">
+      <div class="collection-icon">${r.c.icon}</div>
+      <div class="collection-body">
+        <div class="collection-title">${r.c.label}</div>
+        <div class="collection-left">${left}</div>
+        <div class="collection-bar"><i style="width:${r.pct}%"></i></div>
+      </div>
+      <div class="collection-count">${r.done}/${r.total}</div>
+    </div>`;
   }).join("");
-  el.querySelectorAll("[data-id]").forEach(elm=> elm.onclick = ()=> navigate("#/collection/"+elm.dataset.id));
+  el.querySelectorAll("[data-id]").forEach(elm=>{
+    const go = ()=> navigate("#/collection/"+elm.dataset.id);
+    elm.onclick = go;
+    elm.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+/* ============ SAVED (§15) ============ */
+// "שמורים" קיבל טאב ניווט משלו במקום להיות טאב שלישי בתוך הפרופיל. אותה רשימה, אותה
+// לוגיקה (myWishlist + wishlistContextLines) - רק מקום אחד ברור להגיע אליו.
+function renderSaved(){
+  const listEl = $("savedList"); if(!listEl) return;
+  const subEl = $("savedSub");
+  if(!session){
+    subEl.textContent = "";
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "שמרו מקומות לפעם הבאה",
+      sub: "התחברו כדי לשמור יעדים שתרצו להגיע אליהם.", ctaId:"savedGuestCta", ctaLabel:"התחברות / הרשמה" });
+    const cta=$("savedGuestCta"); if(cta) cta.onclick = ()=> openAuthSheet("שמרו את הטיול הראשון שלכם");
+    return;
+  }
+  if(!myWishlist.length){
+    subEl.textContent = "";
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "עוד לא שמרתם מקומות",
+      sub: "סמנו בלב כל מקום שתרצו להגיע אליו, והוא יחכה לכם כאן.", ctaId:"savedEmptyCta", ctaLabel:"גלו מקומות" });
+    const cta=$("savedEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/home");
+    return;
+  }
+  loadWishlistFriendVisits();
+  subEl.textContent = myWishlist.length+" מקומות מחכים לכם";
+  const sorted = userLoc
+    ? myWishlist.slice().sort((a,b)=>{
+        const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
+        return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
+      })
+    : myWishlist;
+  listEl.innerHTML = sorted.map(id=>{
+    const l = lmById[id]; if(!l) return "";
+    const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
+    return placeCardHtml(l, { extra: ctx });
+  }).join("");
+  listEl.querySelectorAll(".mini-card").forEach(elm=> elm.onclick = ()=> goToDestination(elm.dataset.id));
+  wireMiniCardKeydown(listEl);
 }
 function openCollectionSheet(id){
   const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
   const { done, total } = collectionProgress(c);
+  track("collection_progressed", { collection: id, done, total });
   const subtitle = (c.description||"")+"  ·  "+done+"/"+total+" הושלמו";
   renderPlaceListSheet(c.icon+" "+c.label, collectionLandmarks(c), subtitle);
 }
@@ -3089,11 +4446,11 @@ async function generateShareCard(){
   const canvas = document.createElement("canvas");
   canvas.width=W; canvas.height=H;
   const ctx = canvas.getContext("2d");
-  const bg = getCssVar("--bg","#EDEAE0"), surface = getCssVar("--surface","#FFFFFF"), text = getCssVar("--text","#241F1A"), muted = getCssVar("--text-muted","#6B6255"), accent = getCssVar("--accent-strong","#96610F"), teal = getCssVar("--teal","#146F67");
+  const bg = getCssVar("--bg","#F7F5EF"), surface = getCssVar("--surface","#FFFFFF"), text = getCssVar("--text","#202622"), muted = getCssVar("--text-muted","#6F7772"), accent = getCssVar("--accent-strong","#145C3C"), teal = getCssVar("--teal","#2D838C");
   ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
   ctx.textAlign = "center";
   ctx.fillStyle = text; ctx.font = "700 54px Heebo, sans-serif";
-  ctx.fillText("מגלים את ישראל", W/2, 130);
+  ctx.fillText("מגלים", W/2, 130);
   ctx.fillStyle = muted; ctx.font = "400 32px Heebo, sans-serif";
   ctx.fillText("המסע של "+(myProfile?myProfile.name:"מטייל/ת"), W/2, 185);
   const pct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
@@ -3111,7 +4468,7 @@ async function generateShareCard(){
   ctx.fillText(totalXP().toLocaleString()+" נקודות · רצף "+computeStreak()+" שבועות", W-110, 1515);
   ctx.textAlign = "center";
   ctx.fillStyle = muted; ctx.font = "400 28px Heebo, sans-serif";
-  ctx.fillText("magalim-israel.vercel.app", W/2, H-40);
+  ctx.fillText(SITE_HOST, W/2, H-40);
   return new Promise(resolve=> canvas.toBlob(blob=>resolve(blob), "image/png"));
 }
 async function shareMyMap(){
@@ -3121,7 +4478,7 @@ async function shareMyMap(){
     const blob = await generateShareCard();
     const file = new File([blob], "המסע-שלי-בישראל.png", { type:"image/png" });
     if(navigator.canShare && navigator.canShare({ files:[file] })){
-      await navigator.share({ files:[file], title:"מגלים את ישראל", text:"המסע שלי בישראל 🇮🇱" });
+      await navigator.share({ files:[file], title:"מגלים", text:"המסע שלי בישראל 🇮🇱" });
     } else {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -3160,7 +4517,7 @@ function loadWishlistFriendVisits(){
       const counts = {};
       data.forEach(v=>{ counts[v.landmark_id] = (counts[v.landmark_id]||0)+1; });
       wishlistFriendVisits = counts;
-      if(profileListTab==="wishlist") renderProfile();
+      renderSaved();   // רשימת השמורים עברה למסך משלה - שם צריכות להופיע שורות "חברים ביקרו כאן"
     });
   });
 }
@@ -3288,9 +4645,7 @@ function searchLandmarks(query){
   }).slice(0,40);
 }
 function searchMiniCardHtml(l, subLine){
-  const cat = CATEGORIES[l.category];
-  return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-    <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${subLine}</div></div></div>`;
+  return placeCardHtml(l, { metaHtml: subLine ? `<div class="sub">${subLine}</div>` : undefined });
 }
 function wireMiniCardKeydown(container){
   container.querySelectorAll(".mini-card").forEach(card=>{
@@ -3367,16 +4722,22 @@ function renderProfile(){
   $("nextLevelCta").classList.toggle("hidden", progress.isMax);
   $("welcomeBanner").classList.toggle("hidden", myVisits.length>0);
   $("progressSection").classList.toggle("hidden", myVisits.length===0);
-  document.querySelector(".journey-stats-3")?.classList.toggle("hidden", myVisits.length===0);
   // Gamification Overhaul, Phase 6 - ציר-הסיכום הראשון מציג את אחוז-הגילוי ("ישראל שלי X%",
   // בדיוק כמו הדוגמה במפרט), לא ספירה גולמית של יעדים - הספירה הגולמית עדיין מוצגת ב-profSub
   // ("X יעדים נכבשו") וברשימת "כבשתי" למטה, אז שום מידע לא אבד.
   const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
-  $("statIsraelPct").textContent = discPct+"%";
   const regionsVisited = new Set(myVisits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean));
   $("statRegions").textContent = regionsVisited.size+"/"+Object.keys(REGIONS).length;
+  $("statPlaces").textContent = myVisits.length;
   drawPersonalMap($("profileMapCanvas"));
+  // Hero metric: אותו נתון-גילוי, עכשיו כטבעת-התקדמות + כותרת ראשית (ולא שורת-טקסט קטנה)
   $("myIsraelPct").textContent = "גילית "+discPct+"% מישראל";
+  $("israelRingPct").textContent = discPct+"%";
+  const RING_C = 213.6;
+  $("israelRing").style.strokeDashoffset = (RING_C*(1-discPct/100)).toFixed(1);
+  $("myIsraelSub").textContent = myVisits.length
+    ? myVisits.length+" מתוך "+LANDMARKS.length+" מקומות · "+regionsVisited.size+" אזורים"
+    : "כל צ׳ק-אין פותח עוד פיסה מהמפה";
   renderRegionProgress();
   $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();
@@ -3384,49 +4745,29 @@ function renderProfile(){
   const listEl = $("profList");
   if(profileListTab==="visited"){
     if(!myVisits.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">🗺️</div>עדיין לא כבשת יעדים.<br>צאו לטייל ועשו צ׳ק-אין ביעד הראשון!<br><button class="btn btn-primary empty-cta" id="emptyVisitedCta">🗺️ גלו יעדים במפה</button></div>';
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("compass",26), title: "עוד לא כבשת אף מקום",
+        sub: "הטיול הראשון שלך מחכה ממש מעבר לפינה.", ctaId: "emptyVisitedCta", ctaLabel: "גלו מקומות" });
       $("emptyVisitedCta").onclick = ()=> navigate("#/map");
     } else {
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
         const l = lmById[v.landmark_id]; if(!l) return "";
         const cat = CATEGORIES[l.category];
-        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,24);
-        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${thumb}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div></div>
-          <div class="mini-pts">+${v.points_awarded}</div></div>`;
-      }).join("");
-    }
-  } else if(profileListTab==="wishlist"){
-    if(!myWishlist.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">⭐</div>רשימת המשאלות ריקה.<br>שמרו יעדים מהמפה לטיול הבא.<br><button class="btn btn-primary empty-cta" id="emptyWishlistCta">🗺️ גלו יעדים במפה</button></div>';
-      $("emptyWishlistCta").onclick = ()=> navigate("#/map");
-    } else {
-      loadWishlistFriendVisits();
-      const sortedWishlist = userLoc
-        ? myWishlist.slice().sort((a,b)=>{
-            const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
-            return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
-          })
-        : myWishlist;
-      listEl.innerHTML = sortedWishlist.map(id=>{
-        const l = lmById[id]; if(!l) return ""; const cat = CATEGORIES[l.category];
-        const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
-        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]}${l.duration?" · "+l.duration:""}</div>${ctx}</div>
-          <div class="mini-pts">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div></div>`;
+        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,26);
+        return placeCardHtml(l, {
+          thumb,
+          metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
+          points: v.points_awarded, done: true,
+        });
       }).join("");
     }
   } else {
     const recentlyViewed = getRecentlyViewed().map(id=>lmById[id]).filter(Boolean);
     if(!recentlyViewed.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">🕓</div>עדיין אין היסטוריה.<br>יעדים שתצפו בהם יופיעו כאן.<br><button class="btn btn-primary empty-cta" id="emptyHistoryCta">🗺️ גלו יעדים במפה</button></div>';
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("duration",26), title: "עדיין אין היסטוריה",
+        sub: "מקומות שתצפו בהם יופיעו כאן.", ctaId: "emptyHistoryCta", ctaLabel: "גלו מקומות" });
       $("emptyHistoryCta").onclick = ()=> navigate("#/map");
     } else {
-      listEl.innerHTML = recentlyViewed.map(l=>{
-        const cat = CATEGORIES[l.category];
-        return `<div class="mini-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
-          <div class="mini-info"><div class="name">${l.name}</div><div class="sub">${REGIONS[l.region]} · ${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div></div></div>`;
-      }).join("");
+      listEl.innerHTML = recentlyViewed.map(l=> placeCardHtml(l)).join("");
     }
   }
   listEl.querySelectorAll(".mini-card").forEach(el=>el.onclick=()=>goToDestination(el.dataset.id));
@@ -3597,11 +4938,11 @@ async function markAllNotificationsRead(){
   await supabase.from("notifications").update({ is_read:true }).eq("user_id",session.user.id).eq("is_read",false);
 }
 function notificationIcon(type){
-  if(type==="friend_request") return "👋";
-  if(type==="friend_accepted") return "🤝";
-  if(type==="circle_joined") return "👥";
-  if(type==="friend_checkin") return "🏆";
-  return "🔔";
+  if(type==="friend_request") return uiIcon("family",18);
+  if(type==="friend_accepted") return uiIcon("check",18);
+  if(type==="circle_joined") return uiIcon("family",18);
+  if(type==="friend_checkin") return uiIcon("trophy",18);
+  return uiIcon("flame",18);
 }
 function notificationText(n){
   const p = n.payload || {};
@@ -3637,7 +4978,8 @@ async function renderNotifications(){
   $("navUnreadDot").classList.toggle("show", unread>0);
   $("bellUnreadDot").classList.toggle("show", unread>0);
   if(!list.length){
-    listEl.innerHTML = '<div class="empty-state"><div class="big">🔔</div>הכול שקט כאן.<br>התראות חדשות יופיעו כאן.</div>';
+    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("flame",26), title: "הכול שקט כאן",
+      sub: "התראות חדשות יופיעו כאן." });
     return;
   }
   listEl.innerHTML = list.map(n=>
@@ -3682,7 +5024,7 @@ async function setSharingEnabled(enabled){
     if(error) throw error;
     myTravelStatus = { ...(myTravelStatus||{}), sharing_enabled:enabled };
     renderPrivacySection();
-    toast(enabled ? "שיתוף מיקום כללי הופעל" : "שיתוף המיקום כובה");
+    toast(enabled ? "שיתוף אזור-הטיול עם חברים הופעל" : "שיתוף אזור-הטיול כובה");
   }catch(err){ toast("לא ניתן לעדכן כרגע (יתכן שהתכונה עדיין לא מופעלת)"); $("sharingToggle").checked = !enabled; }
 }
 async function setTravelingToday(region){
@@ -3773,7 +5115,8 @@ async function renderBoard(){
     const rows = profs.map(p=>({ id:p.id, name:p.name, avatarUrl:p.avatar_url, val:totals[p.id]||0, destCount:destCount[p.id]||0, regionCount:regionsSet[p.id].size })).sort((a,b)=>b.val-a.val);
     renderLbSummary(rows);
     const friendsEmptyBanner = (rows.length<=1)
-      ? '<div class="empty-state"><div class="big">👥</div>עדיין אין לך חברים באפליקציה.<br>הזמינו חברים כדי להתחרות יחד!<br><button class="btn btn-primary empty-cta" id="emptyFriendsCta">👥 הזמן חברים</button></div>'
+      ? emptyStateHtml({ icon: uiIcon("family",26), title: "המסע מהנה יותר ביחד",
+          sub: "הזמינו חברים ותראו מי מכיר את ישראל טוב יותר.", ctaId: "emptyFriendsCta", ctaLabel: "הזמן חברים" })
       : "";
     listEl.innerHTML = friendsEmptyBanner + rows.map((r,i)=>{
       const isMe = r.id===session.user.id;
@@ -3817,7 +5160,7 @@ function feedCardHtml(row){
     ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
     <div class="feed-actions">
       <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
-      ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${wished?"❤️ ברשימת המשאלות":"🤍 הוסף לרשימת המשאלות"}</button>`}
+      ${visited ? "" : `<button class="feed-wish-btn${wished?" active":""}" data-lm="${l.id}">${uiIcon("heart",14)}${wished?"ברשימת המשאלות":"הוסף לרשימת המשאלות"}</button>`}
     </div>
   </div>`;
 }
@@ -3887,7 +5230,8 @@ async function renderFeed(){
       if(!bErr && bdata) badgeEvents = bdata;
     }catch(e){}
     if(!data.length && !badgeEvents.length){
-      listEl.innerHTML = '<div class="empty-state"><div class="big">📷</div>עדיין אין צ׳ק-אינים בפיד.<br>היו הראשונים לכבוש יעד!<br><button class="btn btn-primary empty-cta" id="emptyFeedCta">🗺️ גלו יעדים במפה</button></div>';
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("trophy",26), title: "הפיד עוד ריק",
+      sub: "היו הראשונים לכבוש מקום ולספר עליו.", ctaId: "emptyFeedCta", ctaLabel: "גלו מקומות" });
       $("emptyFeedCta").onclick = ()=> navigate("#/map");
       renderChallenge(); renderPersonalChallenges(); return;
     }
@@ -3963,6 +5307,15 @@ async function renderGroupPanel(){
         <div class="lb-pts">${r.xp.toLocaleString()}</div></div>`;
     }).join("") : '<div class="empty-state">אין עדיין נתונים.</div>';
 
+    // §11 - hero משותף: פנים החברים, כמה נכבש יחד, ומה היעד הבא. מחושב מאותם נתונים
+    // שכבר נטענו למעלה (members/visits/xpByMember) - בלי שאילתה נוספת.
+    const groupName = (myGroups.find(g=>g.id===activeGroupId) || {}).name || "הקבוצה";
+    const facePile = statRows.slice(0,5).map(r=>
+      `<div class="face" style="background:${stringColor(r.name)}">${avatarInner(r.name, r.avatarUrl)}</div>`).join("")
+      + (statRows.length>5 ? `<div class="face more">+${statRows.length-5}</div>` : "");
+    const groupXp = statRows.reduce((sum,r)=>sum+r.xp, 0);
+    const groupPlaces = new Set(visits.map(v=>v.landmark_id)).size;
+    const groupRegions = new Set(visits.map(v=>lmById[v.landmark_id]?.region).filter(Boolean)).size;
     const combinedVisitedIds = new Set(visits.map(v=>v.landmark_id));
     let chosenChallenge = null, chProgress = 0;
     for(const ch of CHALLENGES){
@@ -3983,6 +5336,27 @@ async function renderGroupPanel(){
     } else {
       $("groupChallengeCard").innerHTML = '<div class="empty-state">🎉 הקבוצה השלימה את כל האתגרים הזמינים!</div>';
     }
+
+    $("groupHero").innerHTML = `<div class="group-hero">
+      <div class="face-pile">${facePile}</div>
+      <div class="group-hero-title">${escapeHtml(groupName)}</div>
+      <div class="group-hero-sub">${groupPlaces} מקומות נכבשו יחד · ${groupXp.toLocaleString()} נקודות · ${groupRegions} אזורים</div>
+      ${chosenChallenge ? `<div class="group-hero-next">${uiIcon("compass",17)}<span>היעד הבא: ${escapeHtml(chosenChallenge.title)} — ${chProgress} מתוך ${chosenChallenge.target}</span></div>` : ""}
+    </div>`;
+
+    // רצועת-פעילות קצרה ("שקד כבשה את נחל השופט") מעל פיד-התמונות המלא
+    const recentActivity = visits.slice()
+      .sort((a,b)=> new Date(b.visited_at) - new Date(a.visited_at)).slice(0,6);
+    $("groupActivityStrip").innerHTML = recentActivity.length ? recentActivity.map(v=>{
+      const lm = lmById[v.landmark_id];
+      const who = nameById[v.user_id] || "מטייל/ת";
+      return `<div class="activity-row">
+        <div class="activity-avatar" style="background:${stringColor(who)}">${avatarInner(who, avatarById[v.user_id])}</div>
+        <div class="activity-text"><b>${who}</b> כבש/ה את ${lm ? escapeHtml(lm.name) : "יעד"}</div>
+        <div class="activity-time">${timeAgo(v.visited_at)}</div>
+      </div>`;
+    }).join("") : emptyStateHtml({ icon: uiIcon("flame",26), title: "עוד לא קרה כלום כאן",
+        sub: "הכיבוש הראשון של הקבוצה מחכה לכם." });
 
     $("groupBadgeGrid").innerHTML = BADGES.map(b=>{
       const count = memberIds.filter(id=> b.current(byMember[id])>=b.target(byMember[id])).length;
@@ -4062,6 +5436,7 @@ function renderPersonalChallenges(){
       filters = defaultFilters();
       filters.customIds = new Set(remaining.map(l=>l.id));
       filters.customLabel = ch.title;
+      keepMapFraming = true;
       navigate("#/map");
       setTimeout(()=>{
         syncFilterUI(); renderMap();

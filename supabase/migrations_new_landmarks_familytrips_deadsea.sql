@@ -14,44 +14,36 @@
 -- 6 יעדים אושרו ונוספו, קואורדינטות מאומתות בנפרד לכל אחד מול Google Maps:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('gev-halon', 'גב חלון',
    'גב-מים טבעי בשמורת עין גדי, עם בריכת-סלע צלולה בתוך נוף-מדברי דרמטי - יעד מרשים בתוך מערכת הנחלים של השמורה.',
-   'water', 'medium', 'deadsea', 31.472478, 35.3828, 'שעתיים', 3,
-   10, 30, false, false, false, true, 'paid',
+   'water', 'medium', 'deadsea', 31.472478, 35.3828, 'שעתיים', 3, 30, false, false, false, true, 'paid',
    null, 2, null),
 
   ('nahal-rahaf', 'נחל רחף',
    'קניון מדברי מרשים עם גבי-מים בעומקים שונים (בעונה הרטובה), מסלול-הליכה ארוך יחסית עם נופי-מדבר עוצרי-נשימה.',
-   'water', 'hard', 'deadsea', 31.281831, 35.318172, '4 שעות', 8,
-   10, 49, false, false, false, true, 'free',
+   'water', 'hard', 'deadsea', 31.281831, 35.318172, '4 שעות', 8, 49, false, false, false, true, 'free',
    'winter', 4, null),
 
   ('patriot-yam-hamelach', 'פטריות ים המלח',
    'תופעת-טבע ייחודית - עמודי-מלח בצורת "פטריות" על חוף ים המלח, יעד תיירותי מוכר ופופולרי מאוד.',
-   'nature', 'easy', 'deadsea', 31.1896851, 35.3652565, 'כחצי שעה', 0.5,
-   10, 1322, true, false, true, true, 'free',
+   'nature', 'easy', 'deadsea', 31.1896851, 35.3652565, 'כחצי שעה', 0.5, 1322, true, false, true, true, 'free',
    null, 0.5, null),
 
   ('amatzyahu-ecological-park', 'פארק אקולוגי נחל אמציהו',
    'פארק-מים ירוק בנאות הכיכר, דרום ים המלח - בריכת-שכשוך, ספסלי-ישיבה ואנדרטה, יעד משפחתי נעים באזור המדברי.',
-   'water', 'easy', 'deadsea', 30.9407053, 35.3689517, 'שעה', 1,
-   10, 217, true, true, true, true, 'free',
+   'water', 'easy', 'deadsea', 30.9407053, 35.3689517, 'שעה', 1, 217, true, true, true, true, 'free',
    null, 1, null),
 
   ('ein-plotit', 'עין פלוטית (המעיין הנסתר)',
    'מעיין-אגם נסתר ליד נאות הכיכר, דרום ים המלח - מים צלולים לשחייה בלב נוף-מדבר צחיח, יעד פופולרי ומוערך.',
-   'water', 'easy', 'deadsea', 30.9559055, 35.3638077, 'שעה', 1,
-   10, 412, true, false, false, true, 'free',
+   'water', 'easy', 'deadsea', 30.9559055, 35.3638077, 'שעה', 1, 412, true, false, false, true, 'free',
    null, 1, null),
 
   ('nahal-hemar', 'נחל חימר (הגרנד קניון של ישראל)',
    'הקניון הארוך בישראל (כ-18 ק"מ), עם מעוק דרמטי, גבים לאחר שיטפונות ומפל מרשים - מסלול מדברי מאתגר ומתגמל.',
-   'water', 'hard', 'deadsea', 31.149493, 35.241663, '6 שעות', 18,
-   10, 42, false, false, false, true, 'free',
+   'water', 'hard', 'deadsea', 31.149493, 35.241663, '6 שעות', 18, 42, false, false, false, true, 'free',
    'winter', 6, null)
 
 on conflict (id) do nothing;

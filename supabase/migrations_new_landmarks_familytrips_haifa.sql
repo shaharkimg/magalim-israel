@@ -13,38 +13,31 @@
 -- 5 מעיינות אושרו ונוספו:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('ein-kedem', 'עין קדם',
    'מעיין נופי בכרמל, עם בריכה קטנה בין סלעים ומערה סמוכה - נוף פתוח ושקט הרחק מהעיר, מבוקש בעיקר בסתיו ובחורף.',
-   'water', 'medium', 'north', 32.760393, 34.99532, 'שעה', 2,
-   10, 30, true, false, false, true, 'free',
+   'water', 'medium', 'north', 32.760393, 34.99532, 'שעה', 2, 30, true, false, false, true, 'free',
    null, 1, null),
 
   ('maayan-elroi', 'מעיין אלרואי',
    'מעיין ובריכת-מים לצד טיילת רכבת העמק ופארק הקטר בחיפה - נגיש ונעים, יעד פופולרי למשפחות בעיר.',
-   'water', 'easy', 'north', 32.7135487, 35.1021183, 'כחצי שעה', 1,
-   10, 300, true, false, true, true, 'free',
+   'water', 'easy', 'north', 32.7135487, 35.1021183, 'כחצי שעה', 1, 300, true, false, true, true, 'free',
    null, 0.5, null),
 
   ('ein-al-balad', 'עין אל בלד',
    'מעיין הכפר הדרוזי בעוספיא, עם בריכת-אבן ותיקה במרכז הכפר - אתר תיירותי ומקומי כאחד, חלק ממורשת הכפר.',
-   'water', 'easy', 'north', 32.7196252, 35.0715348, 'כחצי שעה', 0.3,
-   10, 90, true, false, true, true, 'free',
+   'water', 'easy', 'north', 32.7196252, 35.0715348, 'כחצי שעה', 0.3, 90, true, false, true, true, 'free',
    null, 0.5, null),
 
   ('ein-alon', 'עין אלון',
    'מעיין קטן בלב הכרמל, סמוך לבית אורן ולאנדרטה לזכר נספי שריפת הכרמל - נקודת-מים שקטה בתוך יער.',
-   'water', 'medium', 'north', 32.72688, 35.022907, 'שעה', 1.5,
-   10, 45, true, false, false, true, 'free',
+   'water', 'medium', 'north', 32.72688, 35.022907, 'שעה', 1.5, 45, true, false, false, true, 'free',
    null, 1, null),
 
   ('ein-siach', 'עין שיח',
    'בריכת מעיין ירוקה ופופולרית בנחל שיח בחיפה, בתוך פארק עירוני נעים - יעד משפחתי נגיש עם מקום לשבת ולנוח.',
-   'water', 'easy', 'north', 32.8025321, 34.9711695, 'כחצי שעה', 1,
-   10, 140, true, false, true, true, 'free',
+   'water', 'easy', 'north', 32.8025321, 34.9711695, 'כחצי שעה', 1, 140, true, false, true, true, 'free',
    null, 0.5, null)
 
 on conflict (id) do nothing;

@@ -1,4 +1,4 @@
-# מגלים את ישראל
+# מגלים
 
 אפליקציית טיולים חברתית-תחרותית לישראל. מפה אינטראקטיבית של 25 יעדים, צ'ק-אין מבוסס GPS + תמונה,
 ניקוד ותגים, טבלת דירוג ופיד חברתי — הכל חי מול Supabase (Postgres + Auth + Storage + Realtime).
@@ -28,8 +28,45 @@ npx serve .
 בפלטפורמת האחסון היא "Static Site" עם Output Directory = תיקיית השורש.
 
 **חשוב לאחר הפריסה הראשונה:** בדשבורד של Supabase → Authentication → URL Configuration, יש לעדכן את
-ה-Site URL לכתובת האמיתית של האתר (למשל `https://magalim-israel.vercel.app`), אחרת קישורי אימות מייל
+ה-Site URL לכתובת האמיתית של האתר (`https://megalim-israel.co.il`), אחרת קישורי אימות מייל
 יפנו לכתובת שגויה.
+
+### מעבר דומיין
+
+הדומיין הרשמי הוא `megalim-israel.co.il`. בריפו הוא מופיע ב-`SITE_HOST` שב-`app.js`
+(מוטבע על תמונת-השיתוף) וב-`twa/twa-manifest.json`; `node scripts/check_twa.js` מוודא
+שהשניים מסכימים ושלא נשארה כתובת ישנה.
+
+**מקום אחד מחוץ לריפו שובר התחברות אם לא מעדכנים אותו:**
+Supabase ← Authentication ← URL Configuration — Site URL ו-Redirect URLs.
+
+‏Google ו-Facebook **לא** צריכים עדכון של redirect URI: ה-OAuth מפנה חזרה ל-Supabase
+(`<project>.supabase.co/auth/v1/callback`), לא לאתר, ורק Supabase מפנה משם לדומיין
+שלנו. מה שכן כדאי לעדכן שם הוא קישורי מדיניות הפרטיות והתנאים — לא שובר כלום, אבל
+מוצג למשתמש במסך ההסכמה.
+
+**להשאיר גם את הכתובת הישנה** ב-Redirect URLs של Supabase. קישורי הזמנה
+(`#/invite/<code>`) שכבר נשלחו למשתמשים מפנים אליה, והסרתה תשבור אותם.
+
+הפירוט המלא: [`docs/OAUTH-DOMAIN.md`](docs/OAUTH-DOMAIN.md).
+חיבור הדומיין עצמו ב-Vercel וב-DNS: [`docs/VERCEL-DOMAIN.md`](docs/VERCEL-DOMAIN.md).
+
+## בדיקות
+
+כל הבדיקות רצות אוטומטית ב-GitHub Actions על כל push, וניתנות להרצה ידנית
+דרך **Actions ← בדיקות ← Run workflow** (שם גם נבדק האתר החי).
+
+מקומית, בלי שום התקנה מלבד Node:
+
+```bash
+node scripts/check_version.js   # שהגרסה זהה ב-app.js, index.html ו-sw.js
+node scripts/check_wiring.js    # שפונקציות קריטיות לא נותקו מקוראיהן
+node scripts/check_twa.js       # שאריזת האנדרואיד עקבית עם האפליקציה
+node scripts/check_live.js      # שהאתר הפרוס תקין (דורש רשת)
+node scripts/test_geolocation.js scripts/test_view_reset.js \
+     scripts/test_recommendation.js scripts/test_auth_views.js scripts/test_oauth_error.js
+node scripts/test_map_controls.js   # דורש Playwright; בלעדיו מדלג בהודעה ברורה
+```
 
 ## אבטחה
 

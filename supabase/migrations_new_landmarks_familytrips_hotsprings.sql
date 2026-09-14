@@ -11,44 +11,36 @@
 -- 6 יעדים אושרו ונוספו, קואורדינטות מאומתות בנפרד לכל אחד מול Google Maps:
 
 insert into public.landmarks
-  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km,
-   points, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type,
-   season, duration_hours, official_url)
+  (id, name, description, category, difficulty, region, lat, lon, duration, distance_km, base_visits, family_friendly, dog_friendly, accessible, has_water, price_type, season, duration_hours, official_url)
 values
   ('birkat-ram', 'ברכת רם',
    'אגם טבעי בלוע הר-געש כבוי ברמת הגולן, עם מים ממעיין תת-קרקעי ולעיתים גם הזרמת-מים-חמים מצינור - נוף מרהיב אל הר החרמון. הגישה למקטע המים-החמים קשה ובוצית.',
-   'water', 'medium', 'north', 33.2325, 35.7661111, 'שעה', 1,
-   10, 169, false, false, false, true, 'free',
+   'water', 'medium', 'north', 33.2325, 35.7661111, 'שעה', 1, 169, false, false, false, true, 'free',
    'winter', 1, null),
 
   ('maagar-orvim', 'מאגר עורבים עליון',
    'מאגר-מים ברמת הגולן המקבל הזרמה של מים חמים טבעיים (עד כ-40 מעלות) מקידוחים סמוכים - "ספא חינם בטבע", דורש רכב גבוה/4x4 להגעה.',
-   'water', 'medium', 'north', 33.1426226, 35.7318156, 'שעה', 1,
-   10, 159, false, true, false, true, 'free',
+   'water', 'medium', 'north', 33.1426226, 35.7318156, 'שעה', 1, 159, false, true, false, true, 'free',
    'winter', 1, null),
 
   ('hamat-gader', 'חמת גדר',
    'אתר-המים-החמים המפורסם בישראל, בית-מרחצאות טבעי לצד אתר ארכיאולוגי רומי בן כ-1,800 שנה - בריכות טבילה, ספא, מסעדה וגן-חיות קטן באווירה טרופית.',
-   'heritage', 'easy', 'north', 32.6833586, 35.6647332, 'חצי יום', 0.5,
-   10, 500, true, false, true, true, 'paid',
+   'heritage', 'easy', 'north', 32.6833586, 35.6647332, 'חצי יום', 0.5, 500, true, false, true, true, 'paid',
    null, 3, null),
 
   ('ein-gonen', 'עין ג''ונס',
    'מעיין חם טבעי עם ריח גופרית, בתוך שרידי מבנים עתיקים ומרחצאות רומיים, סמוך לחמת גדר - חוויית-טבע בלתי-אמצעית ופחות מוסדרת מהאתר המסחרי הסמוך.',
-   'heritage', 'medium', 'north', 32.6820921, 35.6664943, 'שעה', 0.5,
-   10, 1654, false, false, false, true, 'free',
+   'heritage', 'medium', 'north', 32.6820921, 35.6664943, 'שעה', 0.5, 1654, false, false, false, true, 'free',
    null, 1, null),
 
   ('hamei-gaash', 'חמי געש',
    'ספא-מעיינות מסחרי במרכז הארץ, סמוך לקיבוץ געש - בריכות מים תרמו-מינרליים (36-40 מעלות), מקלחת-גופרית, סאונות ובריכת-שחייה, יעד פופולרי מאוד.',
-   'water', 'easy', 'center', 32.2312905, 34.8265997, 'חצי יום', 0.5,
-   10, 1000, true, false, true, true, 'paid',
+   'water', 'easy', 'center', 32.2312905, 34.8265997, 'חצי יום', 0.5, 1000, true, false, true, true, 'paid',
    null, 3, null),
 
   ('ein-kedem-hot-springs', 'עין קדם (מעיינות חמים בנחל קדם)',
    'מעיינות חמים טבעיים (40-45 מעלות) הזורמים אל חוף ים המלח, סמוך למצוקי דרגות - האזור מועד לבולענים ומשתנה עם הזמן, מומלץ להגיע עם מדריך מקומי בלבד.',
-   'water', 'medium', 'deadsea', 31.514975, 35.395478, 'שעה', 1,
-   10, 405, false, false, false, true, 'free',
+   'water', 'medium', 'deadsea', 31.514975, 35.395478, 'שעה', 1, 405, false, false, false, true, 'free',
    'winter', 1, null)
 
 on conflict (id) do nothing;
