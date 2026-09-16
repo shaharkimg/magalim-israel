@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260916a1";
+const APP_VERSION = "20260916b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -485,13 +485,26 @@ function placeMetaHtml(l, opts){
   if(l.hasWater) bits.push('<span class="place-meta-item">'+uiIcon("water",13)+'מים</span>');
   return '<div class="place-meta">'+bits.join("")+'</div>';
 }
+function greetingForNow(){
+  const h = new Date().getHours();
+  if(h < 5) return "לילה טוב";
+  if(h < 12) return "בוקר טוב";
+  if(h < 16) return "צהריים טובים";
+  if(h < 19) return "אחר צהריים טובים";
+  return "ערב טוב";
+}
+// Placeholder אחיד לכל כרטיס בלי תמונה (ראו .photo-fallback ב-index.html): גרדיאנט בצבע
+// הקטגוריה + קווי-גובה + אייקון, במקום ריבוע צבע שטוח שהיה נראה כמו נתון חסר.
+function photoFallbackHtml(l, size){
+  const cat = CATEGORIES[l.category];
+  return '<div class="photo-fallback" style="--ph-color:'+cat.color+'">'+catIconSvg(cat.icon, size||28)+'</div>';
+}
 // points: מספר להצגה כ"+40", או null כדי להסתיר. done:true מציג "נכבש" במקום ניקוד עתידי.
 function placeCardHtml(l, opts){
   opts = opts || {};
-  const cat = CATEGORIES[l.category];
   const thumb = opts.thumb || (opts.photo
     ? '<img src="'+opts.photo+'" loading="lazy" decoding="async" alt="'+l.name+'">'
-    : catIconSvg(cat.icon, 26));
+    : photoFallbackHtml(l, 30));
   const meta = opts.metaHtml != null ? opts.metaHtml : placeMetaHtml(l, opts);
   const pts = opts.points == null ? pointsForLandmark(l) : opts.points;
   const ptsHtml = opts.hidePoints ? "" : (opts.done
@@ -503,7 +516,7 @@ function placeCardHtml(l, opts){
     + ' aria-pressed="'+(wished?"true":"false")+'" aria-label="'+(wished?"הסר מרשימת המשאלות":"הוסף לרשימת המשאלות")+'">'
     + uiIcon("heart",17)+'</button>';
   return '<div class="mini-card place-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
-    + '<div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
+    + '<div class="mini-thumb">'+thumb+'</div>'
     + '<div class="mini-info"><div class="name">'+l.name+'</div>'
     + meta
     + (opts.extra||"")
@@ -2277,7 +2290,7 @@ async function renderAdminDashboard(){
   const eventStatsEl = $("adminEventStats");
   const { data: eventStats, error: eventStatsErr } = await supabase.rpc("get_event_counts");
   if(eventStatsErr || !eventStats){
-    eventStatsEl.innerHTML = '<div class="empty-state" style="font-size:12.5px;">אין עדיין נתוני אירועים (יתכן שהתכונה עדיין לא מופעלת).</div>';
+    eventStatsEl.innerHTML = '<div class="empty-state" style="font-size:14px;">אין עדיין נתוני אירועים (יתכן שהתכונה עדיין לא מופעלת).</div>';
   } else {
     eventStatsEl.innerHTML = Object.entries(EVENT_STAT_LABELS).map(([key,label])=>
       `<div class="stat-box"><div class="v">${(eventStats[key]??0).toLocaleString()}</div><div class="l">${label}</div></div>`
@@ -2688,19 +2701,21 @@ function nextGoalCardHtml(rec){
   const l = rec.landmark;
   const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
   return `<div class="next-goal" data-id="${l.id}">
-    <div class="next-goal-photo" style="${landmarkPhotoStyle(l)}">
-      ${hasPhoto ? "" : catIconSvg(CATEGORIES[l.category].icon,54).replace('<svg ','<svg style="color:#fff;opacity:.65" ')}
+    <div class="next-goal-photo" style="${hasPhoto ? landmarkPhotoStyle(l) : ""}">
+      ${hasPhoto ? "" : photoFallbackHtml(l, 56)}
       ${rec.matchPct ? `<span class="match">${rec.matchPct}% התאמה</span>` : ""}
-      <span class="pts">+${pointsForLandmark(l)}</span>
+      <span class="pts"><bdi dir="ltr">+${pointsForLandmark(l)}</bdi></span>
+      <div class="next-goal-overlay">
+        <div class="next-goal-name">${l.name}</div>
+        <div class="place-meta">
+          <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
+          ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
+          ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
+        </div>
+      </div>
     </div>
     <div class="next-goal-body">
-      <div class="next-goal-name">${l.name}</div>
-      <div class="place-meta">
-        <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
-        <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
-        ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
-        ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
-      </div>
       ${whyRowsHtml(rec.reasons)}
       <div class="next-goal-actions">
         <button class="btn btn-primary" data-go="${l.id}">יאללה, יוצאים</button>
@@ -2715,6 +2730,7 @@ function renderHome(){
   $("homeRingPct").textContent = discPct+"%";
   $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
   const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
+  $("homeHeadGreet").textContent = greetingForNow() + (firstName ? ", "+firstName : "");
   $("homeGreet").textContent = firstName ? firstName+", המסע שלך בישראל" : "המסע שלך בישראל";
   $("homeHeroSub").textContent = myVisits.length
     ? myVisits.length+" מקומות נכבשו · "+(LANDMARKS.length-myVisits.length)+" מחכים לכם"
@@ -2743,7 +2759,7 @@ function renderHome(){
     const l = daily.landmark;
     const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
     dailyEl.innerHTML = `<div class="daily-card" data-id="${l.id}">
-      <div class="daily-thumb" style="${landmarkPhotoStyle(l)}">${hasPhoto?"":catIconSvg(CATEGORIES[l.category].icon,26).replace('<svg ','<svg style="color:#fff" ')}</div>
+      <div class="daily-thumb" style="${hasPhoto?landmarkPhotoStyle(l):""}">${hasPhoto?"":photoFallbackHtml(l,26)}</div>
       <div class="daily-body"><div class="daily-kicker">מצאנו לכם מקום שאולי לא הכרתם</div>
         <div class="daily-name">${l.name}</div>
         <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
@@ -2868,7 +2884,7 @@ function renderWizardResults(){
       const tag = tagLabels[i] ? `<div class="wiz-match-tag">${tagLabels[i]}</div>` : "";
       const pctChip = s.pct!=null ? `<div class="wiz-match-pct">${s.pct}% התאמה</div>` : "";
       return `<div class="mini-card wiz-result-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}">
-        <div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+        <div class="mini-thumb">${photoFallbackHtml(l, 28)}</div>
         <div class="mini-info">${tag}<div class="name">${l.name}</div><div class="sub">${wizExplain(l)}</div>${pctChip}</div>
       </div>`;
     }).join("");
@@ -2967,7 +2983,7 @@ function openPreview(id){
   const photoUrl = landmarkPhotos[id];
   $("destPreviewHero").innerHTML = photoUrl
     ? '<img src="'+photoUrl+'" alt="'+l.name+'">'
-    : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+    : photoFallbackHtml(l, 34);
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
   const previewTier = tierForDb(l.difficulty);
@@ -3063,10 +3079,10 @@ function fillDiscoveryCarousel(){
     const photoUrl = landmarkPhotos[l.id];
     const thumb = photoUrl
       ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">'
-      : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,20).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+      : photoFallbackHtml(l, 26);
     const tier = tierForDb(l.difficulty);
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
-      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts">+'+pointsForLandmark(l)+'</span></div>'
+      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts"><bdi dir="ltr">+'+pointsForLandmark(l)+'</bdi></span></div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
       + '<div class="discovery-card-facts">'+uiIcon("difficulty",12)+tier.label+(l.duration?'<span class="dot-sep"></span>'+uiIcon("duration",12)+l.duration:"")+'</div>'
       + '</div>';
@@ -3213,7 +3229,7 @@ function wireStaticUI(){
   wireSingleSelectChips("durationChips", "duration");
   wireSingleSelectChips("seasonChips", "season");
   wireBooleanChips("amenityChips", { family:"family", dog:"dog", water:"water", accessible:"accessible", free:"free" });
-  document.querySelectorAll("#quickChipRow .quick-chip").forEach(chip=>{
+  document.querySelectorAll(".quick-chip-row .quick-chip").forEach(chip=>{
     chip.onclick = ()=>{
       const key = chip.dataset.quick;
       if(key==="near"){
@@ -3227,6 +3243,9 @@ function wireStaticUI(){
       else if(key==="accessible") filters.accessible = !filters.accessible;
       else if(key==="free") filters.free = !filters.free;
       renderMap(); syncFilterUI(); syncQuickChips();
+      // אותה שורת-צ'יפים קיימת גם במסך הבית: שם הכוונה היא "תראה לי את אלה", אז עוברים
+      // למפה עם הסינון שכבר הוחל (במפה עצמה נשארים במקום).
+      if(!location.hash || location.hash==="#/home") navigate("#/map");
     };
   });
   $("shareMapBtn").onclick = ()=> shareMyMap();
@@ -3417,6 +3436,7 @@ function wireStaticUI(){
   $("notifBellBtn").onclick = ()=> navigate("#/notifications");
   $("notificationsCloseBtn").onclick = goBack;
   $("openSearchBtn").onclick = openSearchSheet;
+  $("homeSearchBtn").onclick = openSearchSheet;
   $("closeSearchSheet").onclick = ()=> closeSheet("searchSheet","searchScrim");
   $("searchScrim").onclick = ()=> closeSheet("searchSheet","searchScrim");
   let searchInputDebounce = null;
@@ -3568,7 +3588,7 @@ function wireBooleanChips(containerId, keyMap){
   });
 }
 function syncQuickChips(){
-  document.querySelectorAll("#quickChipRow .quick-chip").forEach(chip=>{
+  document.querySelectorAll(".quick-chip-row .quick-chip").forEach(chip=>{
     const key = chip.dataset.quick;
     let active = false;
     if(key==="near") active = filters.maxDist<400;
@@ -3824,7 +3844,7 @@ function openDetail(id){
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
     ${visitedEntry ? "" : `<button class="btn btn-secondary btn-block" id="startTripBtn" style="margin-top:var(--space-2);">יוצאים לדרך</button>`}
-    <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
+    <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:13.5px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
   const startTripBtn = $("startTripBtn");
@@ -3940,7 +3960,7 @@ function startCheckin(l){
       <input class="text-input" id="checkinNote" maxlength="120" placeholder="לדוגמה: יש מים עכשיו, המסלול מעולה!">
       ${fieldReportChips(l)}
     </div>
-    <button type="button" id="checkinReportProblemBtn" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">נתקלתם בבעיה באפליקציה? דווחו לנו</button>`;
+    <button type="button" id="checkinReportProblemBtn" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:13.5px;text-decoration:underline;cursor:pointer;">נתקלתם בבעיה באפליקציה? דווחו לנו</button>`;
   $("checkinReportProblemBtn").onclick = ()=>{
     closeSheet("checkinSheet","checkinScrim");
     navigate("#/help");
@@ -4811,7 +4831,7 @@ function renderProfile(){
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
         const l = lmById[v.landmark_id]; if(!l) return "";
         const cat = CATEGORIES[l.category];
-        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,26);
+        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : photoFallbackHtml(l,30);
         return placeCardHtml(l, {
           thumb,
           metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
@@ -5339,7 +5359,7 @@ function feedCardHtml(row){
   const visited = myVisits.some(v=>v.landmark_id===l.id);
   const bg = row.photo_url ? `background-image:url('${row.photo_url}')` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%))`;
   return `<div class="feed-card">
-    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${avatarInner(name,avatarUrl)}</div>
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:13.5px;">${avatarInner(name,avatarUrl)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
     <div class="feed-photo" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
     ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
@@ -5385,7 +5405,7 @@ function badgeFeedCardHtml(row){
   const badge = BADGES.find(b=>b.id===row.badge_id);
   if(!badge) return "";
   return `<div class="feed-card badge-feed-card">
-    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${avatarInner(name,avatarUrl)}</div>
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:13.5px;">${avatarInner(name,avatarUrl)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.unlocked_at)} · פתח/ה תג חדש</div></div></div>
     <div class="badge-feed-body"><span class="badge-feed-icon">${badge.icon}</span><span class="badge-feed-label">${badge.label}</span></div>
   </div>`;
