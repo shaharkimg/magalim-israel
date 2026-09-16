@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260914b2";
+const APP_VERSION = "20260916a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1453,6 +1453,22 @@ function maybePromptForName(){
   openEditProfile();
   toast("איך לקרוא לכם? הוסיפו שם כדי שחברים יזהו אתכם");
 }
+// מבקשים מיקום והתראות פעם אחת, בהתחברות הראשונה למכשיר הזה - כדי שמי שלא מגיע
+// לבד להגדרות עדיין ייהנה מהתכונות. דגל ב-localStorage (לא namePromptShown-style,
+// כי זה צריך לשרוד רענון עמוד) מבטיח שזה קורה פעם אחת בלבד לנצח, בין אם המשתמש
+// אישר, דחה, או פשוט התעלם מהדיאלוג - ההפעלה הידנית מההגדרות תמיד נשארת זמינה.
+const PERMISSIONS_PROMPT_KEY = "magalim-permissions-prompted-v1";
+async function maybePromptForPermissionsOnLogin(){
+  if(!session) return;
+  try{ if(localStorage.getItem(PERMISSIONS_PROMPT_KEY)) return; }catch(e){}
+  try{ localStorage.setItem(PERMISSIONS_PROMPT_KEY, "1"); }catch(e){}
+  if(navigator.geolocation){
+    await new Promise(resolve=> locateUser(resolve, resolve));
+  }
+  if(pushSupported() && Notification.permission==="default"){
+    await enablePush();
+  }
+}
 // מסך הפתיחה מוצג רק אחרי שידוע שאין session (§8), ורק למי שלא בחר כבר להמשיך כאורח.
 function maybeShowWelcome(){
   if(session) return;
@@ -1646,7 +1662,7 @@ supabase.auth.onAuthStateChange((event, newSession)=>{
     }
     const pendingCode = sessionStorage.getItem("pendingInviteCode");
     if(session && pendingCode) handleInviteCode(pendingCode);
-    if(session) maybePromptForName();
+    if(session){ maybePromptForName(); maybePromptForPermissionsOnLogin(); }
     else if(booted) maybeShowWelcome();
   });
 });
