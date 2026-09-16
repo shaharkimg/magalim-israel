@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260916b1";
+const APP_VERSION = "20260916c1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -484,6 +484,25 @@ function placeMetaHtml(l, opts){
   if(l.duration) bits.push('<span class="place-meta-item">'+uiIcon("duration",13)+l.duration+'</span>');
   if(l.hasWater) bits.push('<span class="place-meta-item">'+uiIcon("water",13)+'מים</span>');
   return '<div class="place-meta">'+bits.join("")+'</div>';
+}
+/* ============ HAPTICS ============ */
+// משוב מישושי רק ברגעים שבהם באמת קרה משהו: צ'ק-אין מוצלח, תג חדש, עליית רמה. לא על
+// כל לחיצה - רטט שמגיע כל הזמן מפסיק לסמן משהו והופך למטרד. שני דפוסים קצרים בלבד:
+// success לאישור, milestone למשהו שנפתח. אם המכשיר לא תומך (iOS Safari לא תומך
+// ב-Vibration API כלל) הכל ממשיך כרגיל - הרטט לעולם לא נושא מידע שאין גם על המסך.
+const HAPTICS_KEY = "magalim-haptics-v1";
+const HAPTIC_PATTERNS = { success: 18, milestone: [14, 55, 26] };
+function hapticsEnabled(){
+  try{ return localStorage.getItem(HAPTICS_KEY) !== "off"; }catch(e){ return true; }
+}
+function setHapticsEnabled(on){
+  try{ localStorage.setItem(HAPTICS_KEY, on ? "on" : "off"); }catch(e){}
+}
+function haptic(kind){
+  if(!hapticsEnabled()) return;
+  const pattern = HAPTIC_PATTERNS[kind];
+  if(!pattern || !navigator.vibrate) return;
+  try{ navigator.vibrate(pattern); }catch(e){}
 }
 function greetingForNow(){
   const h = new Date().getHours();
@@ -1248,6 +1267,7 @@ function celebrate(steps){
       + actionsHtml
       + tapHint;
     if(s.xp!=null) animateXpCount($("celebrateXpNum"), s.xp);
+    if(s.haptic) haptic(s.haptic);
     if(s.confetti && !reducedMotion && window.confetti){
       window.confetti({ particleCount:60, spread:65, origin:{y:0.35}, scalar:0.9, ticks:150 });
     }
@@ -2724,6 +2744,84 @@ function nextGoalCardHtml(rec){
     </div>
   </div>`;
 }
+/* ============ WEEKLY CHALLENGE ============ */
+// אתגר אחד קצר לשבוע, זהה לכל המשתמשים ומתחלף לבד לפי מספר-השבוע - בלי טבלה חדשה
+// ובלי תזמון בשרת. ההתקדמות נספרת מביקורים אמיתיים של השבוע הנוכחי, והפרס ניתן דרך
+// מנגנון-הבונוסים הקיים (xp_bonus_grants, מפתח ייחודי user+type+source) כך שהוא באמת
+// מתווסף ל-totalXP ולא יכול להינתן פעמיים. כשיהיה backend לאתגרים, רק CHALLENGES
+// ו-currentChallenge() צריכים להתחלף - כל השאר כבר מדבר בממשק הזה.
+const WEEKLY_CHALLENGE_XP = 50;
+// ה"פרס" הוא רק מה שבאמת ניתן: בונוס XP דרך xp_bonus_grants. לא מבטיחים כאן חותמת או
+// תג - אין ישות כזו שנוצרת בסוף האתגר, והבטחה שלא מתממשת גרועה מאין-פרס.
+const WEEKLY_CHALLENGES = [
+  { id:"water", task:"בקרו השבוע במקום חדש שיש בו מים", match:l=>l.hasWater,
+    filter:f=>{ f.water = true; } },
+  { id:"family", task:"צאו השבוע לטיול שמתאים לילדים", match:l=>l.familyFriendly,
+    filter:f=>{ f.family = true; } },
+  { id:"easy", task:"השלימו השבוע מסלול קל אחד", match:l=>l.difficulty==="easy",
+    filter:f=>{ f.diffs = ["easy"]; } },
+  { id:"north", task:"גלו השבוע מקום חדש בצפון", match:l=>l.region==="north",
+    filter:f=>{ f.regions = ["north"]; } },
+  { id:"south", task:"גלו השבוע מקום חדש בדרום", match:l=>l.region==="south",
+    filter:f=>{ f.regions = ["south"]; } },
+  { id:"accessible", task:"בקרו השבוע במקום נגיש לעגלות ולכיסא גלגלים", match:l=>l.accessible,
+    filter:f=>{ f.accessible = true; } },
+];
+// שבוע ישראלי: ראשון עד שבת. מפתח יציב לשבוע ("2026-W38") שמשמש גם כ-source_id של הבונוס.
+function weekStart(d){
+  const s = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay());
+  s.setHours(0,0,0,0);
+  return s;
+}
+function currentWeekKey(){
+  const s = weekStart(new Date());
+  const yearStart = new Date(s.getFullYear(), 0, 1);
+  const week = Math.floor((s - weekStart(yearStart)) / 604800000) + 1;
+  return s.getFullYear() + "-W" + String(week).padStart(2, "0");
+}
+function currentWeeklyChallenge(){
+  const s = weekStart(new Date());
+  const index = Math.floor(s.getTime() / 604800000) % WEEKLY_CHALLENGES.length;
+  return WEEKLY_CHALLENGES[index];
+}
+function challengeVisitsThisWeek(ch){
+  const from = weekStart(new Date()).getTime();
+  return myVisits.filter(v=>{
+    const l = lmById[v.landmark_id];
+    return l && ch.match(l) && new Date(v.visited_at).getTime() >= from;
+  }).length;
+}
+function challengeDaysLeft(){
+  const end = weekStart(new Date()).getTime() + 604800000;
+  return Math.max(1, Math.ceil((end - Date.now()) / 86400000));
+}
+function renderWeeklyChallenge(){
+  const el = $("homeWeeklyChallenge");
+  if(!el) return;
+  const ch = currentWeeklyChallenge();
+  const done = Math.min(1, challengeVisitsThisWeek(ch));
+  const days = challengeDaysLeft();
+  el.innerHTML = `<div class="weekly-chal${done?" is-done":""}">
+    <div class="weekly-chal-top">
+      <div class="weekly-chal-task">${ch.task}</div>
+      <div class="weekly-chal-left">${days===1?"נותר יום אחרון":"נותרו "+days+" ימים"}</div>
+    </div>
+    <div class="weekly-chal-progress">
+      <div class="bar"><i style="width:${done*100}%"></i></div>
+      <span class="weekly-chal-count"><bdi dir="ltr">${done} / 1</bdi></span>
+    </div>
+    <div class="weekly-chal-reward">${done ? "הושלם! קיבלתם " : "הצ׳ק-אין הראשון שעונה על האתגר מזכה ב"}<b>+${WEEKLY_CHALLENGE_XP} נקודות</b>${done ? " בנוסף לנקודות הצ׳ק-אין" : ""}</div>
+    ${done ? "" : `<button class="btn btn-outline btn-sm" id="challengeShowBtn">הצגת מקומות מתאימים</button>`}
+  </div>`;
+  const btn = $("challengeShowBtn");
+  if(btn) btn.onclick = ()=>{
+    Object.assign(filters, defaultFilters());
+    ch.filter(filters);
+    syncFilterUI(); syncQuickChips();
+    navigate("#/map");
+    renderMap();
+  };
+}
 function renderHome(){
   if(!$("homeNextGoal") || !LANDMARKS.length) return;
   const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
@@ -2731,6 +2829,7 @@ function renderHome(){
   $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
   const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
   $("homeHeadGreet").textContent = greetingForNow() + (firstName ? ", "+firstName : "");
+  renderWeeklyChallenge();
   $("homeGreet").textContent = firstName ? firstName+", המסע שלך בישראל" : "המסע שלך בישראל";
   $("homeHeroSub").textContent = myVisits.length
     ? myVisits.length+" מקומות נכבשו · "+(LANDMARKS.length-myVisits.length)+" מחכים לכם"
@@ -2966,6 +3065,8 @@ function initLeafletMap(){
   });
   let moveDebounce = null;
   leafletMap.on("moveend", ()=>{ clearTimeout(moveDebounce); moveDebounce = setTimeout(renderDiscoveryCarousel, 150); });
+  leafletMap.on("zoomend", syncPinLabels);
+  syncPinLabels();
   if(LANDMARKS.length){
     israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
     fitIsrael();
@@ -2973,6 +3074,15 @@ function initLeafletMap(){
   renderFogOfWar();
 }
 
+// שם ליד כל סיכה בכל רמות הזום הפך את המפה לקיר טקסט - בתצוגת "כל הארץ" התוויות
+// נחתכות זו בזו ומסתירות את הסיכות עצמן. מציגים אותן רק כשהזום מספיק קרוב כדי שהן
+// לא יתנגשו; הסיכה הנבחרת והסיכה שזה עתה בוצע בה צ'ק-אין מסומנות תמיד (CSS).
+const PIN_LABEL_MIN_ZOOM = 11;
+function syncPinLabels(){
+  if(!leafletMap) return;
+  const wrap = document.querySelector(".map-wrap");
+  if(wrap) wrap.classList.toggle("labels-on", leafletMap.getZoom() >= PIN_LABEL_MIN_ZOOM);
+}
 let previewId = null;
 let justCheckedInId = null;
 function openPreview(id){
@@ -3437,6 +3547,19 @@ function wireStaticUI(){
   $("notificationsCloseBtn").onclick = goBack;
   $("openSearchBtn").onclick = openSearchSheet;
   $("homeSearchBtn").onclick = openSearchSheet;
+  // מכשיר בלי Vibration API (כל ה-iPhone, למשל) - מציגים מצב אמיתי במקום מתג שלא עושה כלום
+  const hapticsToggle = $("hapticsToggle");
+  if(!navigator.vibrate){
+    hapticsToggle.checked = false;
+    hapticsToggle.disabled = true;
+    $("hapticsStatusText").textContent = "המכשיר הזה לא תומך ברטט מתוך הדפדפן.";
+  } else {
+    hapticsToggle.checked = hapticsEnabled();
+    hapticsToggle.onchange = ()=>{
+      setHapticsEnabled(hapticsToggle.checked);
+      if(hapticsToggle.checked) haptic("success");
+    };
+  }
   $("closeSearchSheet").onclick = ()=> closeSheet("searchSheet","searchScrim");
   $("searchScrim").onclick = ()=> closeSheet("searchSheet","searchScrim");
   let searchInputDebounce = null;
@@ -4054,6 +4177,10 @@ async function grantConquestAndBonuses(l){
     }
   };
 
+  // אתגר השבוע: אותו מנגנון-בונוס הקיים, עם מפתח-שבוע כ-source_id - כך שהפרס ניתן
+  // פעם אחת בשבוע לכל היותר, גם אם כובשים כמה מקומות שעונים על האתגר.
+  const weekly = currentWeeklyChallenge();
+  if(weekly.match(l)) await grantBonus("weekly_challenge", currentWeekKey(), WEEKLY_CHALLENGE_XP, "אתגר השבוע הושלם!");
   if(prevConquests.length===0) await grantBonus("first_destination", "", 10, "יעד ראשון!");
   const hadRegionBefore = prevConquests.some(c=> lmById[c.landmark_id] && lmById[c.landmark_id].region===l.region);
   if(!hadRegionBefore) await grantBonus("new_region", l.region, 5, "אזור חדש!");
@@ -4171,8 +4298,9 @@ async function confirmCheckin(l){
       region: regionInfo,
       progress: levelField,
       confetti: true,
+      haptic: "success",
     }];
-    newBadges.forEach(b=> steps.push({ emoji:"🏅", title:"תג חדש נפתח — "+b.icon+" "+b.label, confetti:false }));
+    newBadges.forEach(b=> steps.push({ emoji:"🏅", title:"תג חדש נפתח — "+b.icon+" "+b.label, confetti:false, haptic:"milestone" }));
     if(leveledUpTo){
       steps.push({
         emoji: leveledUpTo.icon,
@@ -4180,6 +4308,7 @@ async function confirmCheckin(l){
         subtitle: "רמה "+(newLevelIndex+1),
         tag: leveledUpTo.icon+" "+leveledUpTo.name,
         confetti: true,
+        haptic: "milestone",
       });
     }
     // Next Adventure - הצעת המשך מיידית מהיעד שזה עתה נכבש, לא מהמיקום החי (עובד גם ב-demo mode)

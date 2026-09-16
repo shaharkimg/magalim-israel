@@ -364,7 +364,12 @@ button{font-family:inherit;}
 .fog-region{transition:fill-opacity .8s ease;pointer-events:none;}
 .lm-pin .check{transform:rotate(45deg);color:#fff;font-size:13.5px;font-weight:900;line-height:1;}
 .lm-pin-star{position:absolute;top:-9px;right:-7px;color:var(--sand);text-shadow:0 1px 2px rgba(0,0,0,.5);z-index:2;font-size:14.5px;}
-.lm-pin-label{margin-top:1px;white-space:nowrap;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.94);color:#202622;padding:2px var(--space-2);border-radius:var(--radius-sm);box-shadow:0 1px 3px rgba(0,0,0,.22);pointer-events:none;}
+/* מוסתרות כברירת מחדל ומופיעות רק בזום קרוב (ראו syncPinLabels) - אחרת הן נערמות
+   זו על זו ומסתירות את הסיכות. הסיכה הנבחרת/שזה עתה נכבשה מסומנת תמיד. */
+.lm-pin-label{display:none;margin-top:1px;white-space:nowrap;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.94);color:#202622;padding:2px var(--space-2);border-radius:var(--radius-sm);box-shadow:0 1px 3px rgba(0,0,0,.22);pointer-events:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+.map-wrap.labels-on .lm-pin-label,
+.lm-pin.selected ~ .lm-pin-label,
+.lm-pin.pulse ~ .lm-pin-label{display:block;}
 .marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background-color:color-mix(in srgb, var(--accent) 30%, transparent);}
 .marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background-color:var(--accent-strong);color:#fff;font-weight:800;font-family:"Heebo";}
 .leaflet-control-attribution{font-size:11.5px;}
@@ -681,6 +686,20 @@ button{font-family:inherit;}
 .collection-count{font-size:var(--font-caption);font-weight:800;color:var(--text-muted);font-variant-numeric:tabular-nums;direction:ltr;flex:none;}
 
 /* ---------- Home (§1) ---------- */
+/* אתגר השבוע - משימה אחת, התקדמות אמיתית, פרס, וזמן שנותר. לא כרטיס-לבן-בתוך-לבן:
+   רקע ירוק-בהיר שמבדיל אותו מכרטיסי-המקומות בלי להוסיף עוד סוג-כרטיס למערכת. */
+.weekly-chal{background:var(--color-primary-light);border-radius:var(--radius-card);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+.weekly-chal.is-done{background:color-mix(in srgb, var(--success) 14%, transparent);}
+.weekly-chal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);}
+.weekly-chal-task{font-size:var(--font-h3);font-weight:700;line-height:1.35;}
+.weekly-chal-left{flex:none;font-size:var(--font-caption);font-weight:700;color:var(--text-muted);white-space:nowrap;}
+.weekly-chal-progress{display:flex;align-items:center;gap:var(--space-3);}
+/* הרקע הירקרק של הכרטיס קרוב מדי ל---bg-elevated של הפס, אז המסלול הריק נעלם */
+.weekly-chal-progress .bar{flex:1;background:color-mix(in srgb, var(--color-primary) 16%, #fff);}
+.weekly-chal-count{font-size:var(--font-caption);font-weight:800;color:var(--color-primary);font-variant-numeric:tabular-nums;}
+.weekly-chal-reward{font-size:var(--font-caption);color:var(--text-muted);line-height:1.5;}
+.weekly-chal-reward b{color:var(--color-accent);}
+.weekly-chal .btn{align-self:flex-start;}
 /* כותרת מסך הבית - הדבר הראשון שנראה: ברכה שקטה, שאלה אחת גדולה, וכניסה לחיפוש */
 .home-head{padding:var(--space-5) 0 var(--space-2);}
 .home-head-greet{font-size:var(--font-body);font-weight:600;color:var(--text-muted);}
@@ -1355,6 +1374,9 @@ input[type=file]{display:none;}
       <div class="section-head"><h2>היעד הבא שלך</h2></div>
       <div id="homeNextGoal"></div>
 
+      <div class="section-head" id="homeWeeklyChallengeHead"><h2>אתגר השבוע</h2></div>
+      <div id="homeWeeklyChallenge"></div>
+
       <div class="home-hero">
         <div class="home-hero-top">
           <div>
@@ -1813,6 +1835,11 @@ input[type=file]{display:none;}
         <label class="switch"><input type="checkbox" id="pushToggle" aria-label="התראות למכשיר הזה"><span class="track"></span></label>
       </div>
       <p id="pushStatusText" style="font-size:13.5px;color:var(--text-muted);margin:-2px 0 12px;"></p>
+      <div class="privacy-toggle-row" id="hapticsToggleRow">
+        <span>רטט ומשוב מישושי</span>
+        <label class="switch"><input type="checkbox" id="hapticsToggle" aria-label="רטט ומשוב מישושי"><span class="track"></span></label>
+      </div>
+      <p id="hapticsStatusText" style="font-size:13.5px;color:var(--text-muted);margin:-2px 0 12px;">רטט קצר בצ׳ק-אין מוצלח, בתג חדש ובעליית רמה.</p>
       <div class="section-head"><h2>פרטיות</h2></div>
       <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:8px;">
         <span>מי רואה את הפעילות שלי (צ'ק-אינים, תמונות, תגים)</span>
@@ -1926,6 +1953,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260916b1"></script>
+<script type="module" src="./app.js?v=20260916c1"></script>
 </body>
 </html>
