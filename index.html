@@ -39,6 +39,10 @@
   --teal:var(--color-secondary); --teal-ink:var(--color-secondary-ink);
   --success:#3E8A5A; --warn:#C96F4A; --danger:#B3432E; --shadow:rgba(24,39,32,0.12);
   --sand:#E8C98D; --terracotta:#C96F4A;
+  /* דרגות-מתכת לחותמות אזוריות (ברונזה/כסף/זהב) - אחיד בין stamp/badge-feed/celebrate/
+     region-milestone, לא הועתק כערך-hex ל-4 מקומות נפרדים. אותו ערך בהיר/כהה - צבעי
+     מדליה, לא חלק ממערכת bg/text שמתהפכת במצב כהה. */
+  --metal-bronze:#A9713B; --metal-silver:#7E8891; --metal-gold:#B8902F;
   --map-land:#EEE9DA; --map-land-2:#E3DCC6; --map-outline:#C9BF9E; --map-water:#8FC0CE; --sheet-scrim:rgba(20,26,22,0.45);
   --cat-nature:var(--color-primary);--cat-mountains:#8C5A3C;--cat-water:var(--color-secondary);--cat-heritage:var(--terracotta);
   --cat-archaeology:#B08A3E;--cat-viewpoints:#D9AE5E;--cat-religious:#7A6A9C;--cat-parks:#3E8B6B;
@@ -844,7 +848,8 @@ button{font-family:inherit;}
 .region-row-head .name{font-weight:700;font-size:15px;}
 .region-row-head .count{font-size:13.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
 .region-row-nudge{font-size:13px;color:var(--text-muted);margin-top:6px;}
-.region-row-milestone{font-size:13px;font-weight:700;color:var(--accent);margin-top:6px;}
+.region-row-milestone{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--accent);margin-top:6px;}
+.milestone-ic{display:inline-flex;flex:none;}
 .region-sheet-subtitle{font-size:14.5px;color:var(--text-muted);margin:0 0 var(--space-3);}
 .region-place-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-1);border-bottom:1px solid var(--border);}
 .region-place-row:last-child{border-bottom:none;}
@@ -881,9 +886,9 @@ button{font-family:inherit;}
   color:var(--color-accent);opacity:1;background:var(--color-accent-light);transform:rotate(-4deg);}
 .stamp.is-earned:nth-child(2n) .stamp-face{transform:rotate(3deg);}
 .stamp.is-earned:nth-child(3n) .stamp-face{transform:rotate(-6deg);}
-.stamp.is-earned.metal-bronze .stamp-face{border-color:#A9713B;color:#A9713B;background:color-mix(in srgb,#A9713B 14%,transparent);}
-.stamp.is-earned.metal-silver .stamp-face{border-color:#7E8891;color:#7E8891;background:color-mix(in srgb,#7E8891 14%,transparent);}
-.stamp.is-earned.metal-gold .stamp-face{border-color:#B8902F;color:#B8902F;background:color-mix(in srgb,#B8902F 16%,transparent);}
+.stamp.is-earned.metal-bronze .stamp-face{border-color:var(--metal-bronze);color:var(--metal-bronze);background:color-mix(in srgb,var(--metal-bronze) 14%,transparent);}
+.stamp.is-earned.metal-silver .stamp-face{border-color:var(--metal-silver);color:var(--metal-silver);background:color-mix(in srgb,var(--metal-silver) 14%,transparent);}
+.stamp.is-earned.metal-gold .stamp-face{border-color:var(--metal-gold);color:var(--metal-gold);background:color-mix(in srgb,var(--metal-gold) 16%,transparent);}
 /* שתי שורות שמורות לתווית בכל תא, כדי ששמות ארוכים ("כובש אזור ראשון") לא יזיזו את
    המונה של שאר התאים בשורה ויהפכו את הרשת למדורגת */
 .stamp-label{font-size:var(--font-caption);font-weight:600;color:var(--text-muted);line-height:1.3;
@@ -937,6 +942,8 @@ button{font-family:inherit;}
 .lb-summary-sub{font-size:14px;opacity:.85;margin-top:3px;}
 .lb-summary-cta{margin-top:12px;background:#fff;color:var(--teal-gradient-to);display:inline-flex;padding:var(--space-2) var(--space-4);font-size:14.5px;}
 .lb-mini-stats{display:flex;gap:var(--space-2);flex:none;font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.lb-mini-stats span{display:inline-flex;align-items:center;gap:3px;}
+.lb-mini-stats .ui-ic{flex:none;}
 /* §11 - "המסע שלנו": פנים, התקדמות משותפת ויעד הבא, במקום עוד dashboard */
 .group-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-2);box-shadow:var(--shadow-card);}
 .face-pile{display:flex;align-items:center;margin-bottom:var(--space-3);}
@@ -984,9 +991,9 @@ button{font-family:inherit;}
 .badge-feed-body{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) var(--space-4);}
 .badge-feed-icon{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
   background:var(--color-accent-light);color:var(--color-accent);}
-.badge-feed-icon.metal-bronze{background:color-mix(in srgb,#A9713B 14%,transparent);color:#A9713B;}
-.badge-feed-icon.metal-silver{background:color-mix(in srgb,#7E8891 14%,transparent);color:#7E8891;}
-.badge-feed-icon.metal-gold{background:color-mix(in srgb,#B8902F 16%,transparent);color:#B8902F;}
+.badge-feed-icon.metal-bronze{background:color-mix(in srgb,var(--metal-bronze) 14%,transparent);color:var(--metal-bronze);}
+.badge-feed-icon.metal-silver{background:color-mix(in srgb,var(--metal-silver) 14%,transparent);color:var(--metal-silver);}
+.badge-feed-icon.metal-gold{background:color-mix(in srgb,var(--metal-gold) 16%,transparent);color:var(--metal-gold);}
 .badge-feed-label{font-weight:700;font-size:15px;}
 .feed-photo .lm-label{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.4);color:#fff;font-size:13px;font-weight:700;padding:var(--space-1) var(--space-2);border-radius:999px;}
 .feed-actions{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-3) var(--space-3);}
@@ -1020,9 +1027,9 @@ button{font-family:inherit;}
 .celebrate-stamp{width:104px;height:104px;margin:0 auto var(--space-3);position:relative;}
 .celebrate-stamp .stamp-face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
   border:2.5px solid var(--color-accent);color:var(--color-accent);background:var(--color-accent-light);transform:rotate(-5deg);}
-.celebrate-stamp.metal-bronze .stamp-face{border-color:#A9713B;color:#A9713B;background:color-mix(in srgb,#A9713B 14%,transparent);}
-.celebrate-stamp.metal-silver .stamp-face{border-color:#7E8891;color:#7E8891;background:color-mix(in srgb,#7E8891 14%,transparent);}
-.celebrate-stamp.metal-gold .stamp-face{border-color:#B8902F;color:#B8902F;background:color-mix(in srgb,#B8902F 16%,transparent);}
+.celebrate-stamp.metal-bronze .stamp-face{border-color:var(--metal-bronze);color:var(--metal-bronze);background:color-mix(in srgb,var(--metal-bronze) 14%,transparent);}
+.celebrate-stamp.metal-silver .stamp-face{border-color:var(--metal-silver);color:var(--metal-silver);background:color-mix(in srgb,var(--metal-silver) 14%,transparent);}
+.celebrate-stamp.metal-gold .stamp-face{border-color:var(--metal-gold);color:var(--metal-gold);background:color-mix(in srgb,var(--metal-gold) 16%,transparent);}
 @media (prefers-reduced-motion: no-preference){
   .celebrate-stamp .stamp-face{animation:stampPressBig .6s cubic-bezier(.2,1.5,.4,1);}
 }
@@ -1128,6 +1135,11 @@ svg{overflow:visible;}
 .ltr{direction:ltr;display:inline-block;}
 input[type=file]{display:none;}
 .field-label{font-size:13.5px;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;}
+/* כותרת-קבוצה עם אייקון אחד לקטגוריה (לא אימוג'י על כל ערך בתוכה) - האייקון הוא
+   מה שמסמן "זו שורת החניה", הערכים עצמם טקסט נקי. */
+.report-group{margin-top:10px;}
+.report-group-title{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:6px;}
+.report-group .report-chip-row{margin-top:0;}
 .text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:15.5px;color:var(--text);font-family:inherit;}
 .loading-screen{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;align-items:stretch;justify-content:flex-start;flex-direction:column;}
 .boot-skeleton{width:100%;max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top) + var(--space-6)) var(--space-4) 0;}
@@ -2112,6 +2124,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917j1"></script>
+<script type="module" src="./app.js?v=20260917k1"></script>
 </body>
 </html>

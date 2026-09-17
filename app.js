@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260917j1";
+const APP_VERSION = "20260917k1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -462,6 +462,8 @@ const UI_ICON_PATHS = {
   flame:'<path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/>',
   wheelchair:'<circle cx="15.5" cy="5.3" r="1.6"/><path d="M14.3 8 15 12h4.3M9.7 12H15"/><circle cx="10.3" cy="16.3" r="4"/><path d="M10.3 12.3v4l3.5 2.3"/>',
   block:'<circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5 17.5 17.5"/>',
+  gift:'<rect x="4.5" y="10" width="15" height="10" rx="1.5"/><path d="M4.5 10h15M12 10v10"/><path d="M12 10c-1.5-4-6-4.5-6-2s2.5 2 6 2ZM12 10c1.5-4 6-4.5 6-2s-2.5 2-6 2Z"/>',
+  car:'<path d="M5 16v-3l1.8-3.8h10.4L19 13v3"/><path d="M5 16h14M7 16v1.8M17 16v1.8"/><circle cx="8" cy="16" r="1.3"/><circle cx="16" cy="16" r="1.3"/>',
 };
 /* ============ STAMPS ============ */
 // חותמות המסע. משפחת-איור אחת בדיוק כמו UI_ICON_PATHS (viewBox 24, קו 1.8, פינות
@@ -4217,12 +4219,16 @@ function openDetail(id){
   renderFieldReports(id, l);
 }
 
+// אייקון אחד לכל קטגוריה (לא לכל ערך בתוכה) - בדיוק כמו amenityChips. קודם היו אימוג'ים
+// על כל ערך שגם שימשו בפועל כתחליף-לכותרת-הקבוצה (המשתמש היה מזהה "זו שורת החניה"
+// לפי ה-🅿️, לא לפי טקסט) - עכשיו הכותרת עצמה נושאת את האייקון, והערכים טקסט נקי.
 const FIELD_REPORT_LABELS = {
-  water: { flowing:"💧 יש מים", low:"💧 מעט מים", dry:"🏜️ יבש" },
-  crowding: { quiet:"🙂 שקט", moderate:"🙂 בינוני", crowded:"😅 עמוס" },
-  parking: { available:"🅿️ יש מקום", limited:"🅿️ מוגבל", full:"🅿️ מלא" },
+  water: { flowing:"יש מים", low:"מעט מים", dry:"יבש" },
+  crowding: { quiet:"שקט", moderate:"בינוני", crowded:"עמוס" },
+  parking: { available:"יש מקום", limited:"מוגבל", full:"מלא" },
 };
 const FIELD_REPORT_TITLES = { water:"מצב מים", crowding:"עומס", parking:"חניה" };
+const FIELD_REPORT_ICONS = { water:"water", crowding:"family", parking:"car" };
 async function renderFieldReports(id, l){
   const box = $("fieldReportsBox");
   if(!box) return;
@@ -4238,13 +4244,13 @@ async function renderFieldReports(id, l){
     }
     const keys = Object.keys(latest);
     if(!keys.length){ box.innerHTML = ""; return; }
-    box.innerHTML = `<div class="field-reports"><div class="field-reports-title">📋 דיווחים מהשטח</div>` +
+    box.innerHTML = `<div class="field-reports"><div class="field-reports-title">דיווחים מהשטח</div>` +
       keys.map(key=>{
         const r = latest[key];
         const ageDays = (Date.now()-new Date(r.at).getTime())/86400000;
         const stale = ageDays>14;
         return `<div class="field-report-row${stale?" stale":""}">
-          <span>${FIELD_REPORT_TITLES[key]}: ${FIELD_REPORT_LABELS[key][r.val]}</span>
+          <span>${uiIcon(FIELD_REPORT_ICONS[key],13)} ${FIELD_REPORT_TITLES[key]}: ${FIELD_REPORT_LABELS[key][r.val]}</span>
           <span class="field-report-time">${timeAgo(r.at)}${stale?" · ייתכן שהמצב השתנה":""}</span>
         </div>`;
       }).join("") + `</div>`;
@@ -4253,19 +4259,16 @@ async function renderFieldReports(id, l){
   }
 }
 
-const FIELD_REPORT_OPTIONS = {
-  water: [ ["flowing","💧 יש מים"], ["low","💧 מעט מים"], ["dry","🏜️ יבש"] ],
-  crowding: [ ["quiet","🙂 שקט"], ["moderate","🙂 בינוני"], ["crowded","😅 עמוס"] ],
-  parking: [ ["available","🅿️ יש מקום"], ["limited","🅿️ מוגבל"], ["full","🅿️ מלא"] ],
-};
 function fieldReportChips(l){
   const groups = [];
   if(l.hasWater || l.category==="water") groups.push("water");
   groups.push("crowding","parking");
   return `<label class="field-label" style="margin-top:10px;">איך המצב בשטח עכשיו? (אופציונלי)</label>` +
-    groups.map(key=>`<div class="chip-row report-chip-row" id="report_${key}" style="margin-top:6px;">` +
-      FIELD_REPORT_OPTIONS[key].map(([val,label])=>`<button type="button" class="chip teal" data-report="${key}" data-val="${val}">${label}</button>`).join("") +
-      `</div>`).join("");
+    groups.map(key=>`<div class="report-group">
+      <div class="report-group-title">${uiIcon(FIELD_REPORT_ICONS[key],13)} ${FIELD_REPORT_TITLES[key]}</div>
+      <div class="chip-row report-chip-row" id="report_${key}">` +
+      Object.entries(FIELD_REPORT_LABELS[key]).map(([val,label])=>`<button type="button" class="chip teal" data-report="${key}" data-val="${val}">${label}</button>`).join("") +
+      `</div></div>`).join("");
 }
 function wireFieldReportChips(){
   document.querySelectorAll(".report-chip-row .chip").forEach(chip=>{
@@ -4752,11 +4755,15 @@ function drawPersonalMap(canvas){
 // Gamification Overhaul, Phase 6 - שם אבן-הדרך הנוכחית באזור, לפי 25/50/75/100% (מפרש
 // נפרד מ-3 דרגות-התג הקיימות ב-BADGES, שם 25/60/100 - כדי לא לבלבל בין "תג שנפתח" לבין
 // "תווית-התקדמות בפרופיל", ראו plan). null אם עוד לא הגיעו ל-25%.
+// אותה שפת-חותמות בדיוק כמו region tier badges (regionTierBadges) - גליף+צבע-דרגה,
+// לא אימוג'י. שני הצרכנים (שורת התקדמות-אזור ושורת-בונוס בחגיגת ה-Check-in) מציגים
+// HTML, אז מותר להטביע כאן span צבוע במקום טקסט בלבד.
 function regionMilestoneLabel(pct, r){
-  if(pct>=100) return "🏆 אלוף "+REGION_THE[r];
-  if(pct>=75) return "🥇 מומחה "+REGION_THE[r];
-  if(pct>=50) return "🥈 חוקר "+REGION_THE[r];
-  if(pct>=25) return "🥉 מגלה "+REGION_THE[r];
+  const metalIcon = m=>'<span class="milestone-ic" style="color:var(--metal-'+m+')">'+stampGlyph("seal",13)+'</span>';
+  if(pct>=100) return uiIcon("trophy",13)+" אלוף "+REGION_THE[r];
+  if(pct>=75) return metalIcon("gold")+" מומחה "+REGION_THE[r];
+  if(pct>=50) return metalIcon("silver")+" חוקר "+REGION_THE[r];
+  if(pct>=25) return metalIcon("bronze")+" מגלה "+REGION_THE[r];
   return null;
 }
 function renderRegionProgress(){
@@ -5692,7 +5699,7 @@ async function renderBoard(){
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
         <div class="lb-avatar" style="background:${stringColor(r.name)}">${avatarInner(r.name,r.avatarUrl)}</div>
         <div class="lb-name">${safeName}${isMe?'<small>הדירוג שלך</small>':''}</div>
-        <div class="lb-mini-stats"><span>🏆${r.destCount}</span><span>🗺️${r.regionCount}</span></div>
+        <div class="lb-mini-stats"><span>${uiIcon("trophy",12)}<bdi dir="ltr">${r.destCount}</bdi></span><span>${uiIcon("region",12)}<bdi dir="ltr">${r.regionCount}</bdi></span></div>
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
     if(friendsEmptyBanner) $("emptyFriendsCta").onclick = ()=> $("inviteBtn").click();
@@ -5996,7 +6003,7 @@ function renderPersonalChallenges(){
     return `<div class="pchallenge-card${done?" done":""}">
       <div class="pchallenge-head">
         <div class="pchallenge-icon" style="background:${ch.color}">${stampGlyph(ch.icon,20)}</div>
-        <div><div class="pchallenge-title">${ch.title}</div><div class="pchallenge-reward">🎁 ${ch.reward}</div></div>
+        <div><div class="pchallenge-title">${ch.title}</div><div class="pchallenge-reward">${uiIcon("gift",13)} ${ch.reward}</div></div>
       </div>
       <div class="pchallenge-progress-row"><span>${current} / ${ch.target} הושלמו</span><span>${done?"הושלם! 🎉":pct+"%"}</span></div>
       <div class="bar"><i style="width:${pct}%;background:${ch.color}"></i></div>
