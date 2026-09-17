@@ -132,7 +132,7 @@ h3{font-size:var(--font-h3);}
 .overlay-title{font-size:var(--font-h1);margin:var(--space-2) 0 var(--space-4);}
 /* כפתור קומפקטי - במקום font-size/padding מוטבעים על כל כפתור משני */
 .btn-sm{flex:none;padding:var(--space-2) var(--space-4);font-size:14.5px;}
-.waitlist-emoji{font-size:40px;line-height:1;}
+.waitlist-icon{width:64px;height:64px;margin:0 auto var(--space-3);border-radius:50%;background:var(--color-primary-light);color:var(--color-primary);display:flex;align-items:center;justify-content:center;}
 button{font-family:inherit;}
 ::selection{background:var(--accent);color:var(--accent-ink);}
 /* position:fixed;inset:0 (לא height:100dvh+position:relative) - אותו תיקון-שורש שכבר הוכח
@@ -265,7 +265,7 @@ button{font-family:inherit;}
 #notifBellBtn{margin-left:8px;}
 .stat-pill{display:flex;align-items:center;gap:var(--space-2);color:var(--text-muted);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;}
 .stat-pill b{color:var(--color-accent);font-weight:700;}
-.stat-pill .flame{color:var(--terracotta);font-size:13.5px;}
+.stat-pill .flame{display:flex;align-items:center;gap:3px;color:var(--terracotta);font-size:13.5px;}
 
 .view{display:none;flex:1;min-height:0;flex-direction:column;}
 .view.active{display:flex;}
@@ -529,7 +529,7 @@ button{font-family:inherit;}
 .lm-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);margin-top:12px;}
 .lm-title-row h2{margin:0;font-size:var(--font-h1);}
 .lm-region{color:var(--text-muted);font-size:14px;margin-top:2px;}
-.lm-from-you{color:var(--teal);background:color-mix(in srgb, var(--teal) 14%, transparent);display:inline-block;font-size:13.5px;font-weight:600;padding:var(--space-1) var(--space-2);border-radius:20px;margin-top:8px;}
+.lm-from-you{color:var(--teal);background:color-mix(in srgb, var(--teal) 14%, transparent);display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;padding:var(--space-1) var(--space-2);border-radius:20px;margin-top:8px;}
 .lm-desc{color:var(--text-muted);font-size:16px;line-height:1.65;margin:var(--space-3) 0;}
 .lm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);margin:var(--space-4) 0;}
 .lm-stat{background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-2);text-align:center;}
@@ -539,7 +539,7 @@ button{font-family:inherit;}
 .amenity-chip{background:var(--bg-elevated);border:1px solid var(--border);border-radius:999px;padding:var(--space-1) var(--space-3);font-size:13.5px;font-weight:600;color:var(--text);
   display:inline-flex;align-items:center;gap:5px;}
 .amenity-chip .ui-ic{flex:none;color:var(--color-primary);}
-.lm-important-head{font-size:15px;font-weight:700;color:var(--text);margin:var(--space-4) 0 var(--space-2);}
+.lm-important-head{font-size:15px;font-weight:700;color:var(--text);margin:var(--space-4) 0 var(--space-2);display:flex;align-items:center;gap:5px;}
 .lm-official-link{display:block;margin-top:10px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;}
 .lm-official-link:active{opacity:.7;}
 /* שורת-פעולות אחת שלא נשברת: שני כפתורי-הטקסט מתחלקים ברוחב שנשאר אחרי כפתורי
@@ -560,11 +560,12 @@ button{font-family:inherit;}
 .field-report-time{color:var(--text-muted);font-size:13px;flex:none;}
 .field-report-row.stale .field-report-time{color:var(--warn);}
 .report-chip-row .chip{font-size:13.5px;padding:var(--space-2) var(--space-3);}
-.checkin-status .ic{flex:none;font-size:19px;}
+.checkin-status .ic{flex:none;display:flex;}
+.checkin-status .ic .ui-ic{width:19px;height:19px;}
 .checkin-status.ok{color:var(--success);}
 .checkin-status.bad{color:var(--danger);}
 .checkin-extras-divider{text-align:center;color:var(--text-muted);font-size:13.5px;margin:var(--space-4) 0 var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--border);}
-.photo-drop{border:1.5px dashed var(--border);border-radius:var(--radius-card);padding:var(--space-5) var(--space-3);text-align:center;color:var(--text-muted);cursor:pointer;margin:var(--space-3) 0;font-size:15px;}
+.photo-drop{border:1.5px dashed var(--border);border-radius:var(--radius-card);padding:var(--space-5) var(--space-3);text-align:center;color:var(--text-muted);cursor:pointer;margin:var(--space-3) 0;font-size:15px;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
 .photo-preview{width:100%;border-radius:var(--radius-card);display:block;margin:var(--space-3) 0;max-height:220px;object-fit:cover;}
 .privacy-card{background:var(--accent-light);border:1px solid transparent;border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:16px;}
 .privacy-head{display:flex;gap:var(--space-3);align-items:flex-start;margin-bottom:14px;}
@@ -632,9 +633,9 @@ button{font-family:inherit;}
 .notif-row .notif-time{font-size:13px;color:var(--text-muted);margin-top:2px;}
 .wiz-relaxed-note{background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);font-size:13.5px;color:var(--text-muted);margin-bottom:12px;}
 .wiz-result-card .mini-info .sub{font-size:13px;}
-.wiz-match-tag{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:2px;}
+.wiz-match-tag{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:2px;display:flex;align-items:center;gap:4px;}
 .wiz-match-pct{font-size:13px;color:var(--text-muted);margin-top:3px;}
-.wishlist-context{font-size:13px;color:var(--text-muted);margin-top:2px;}
+.wishlist-context{font-size:13px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px;}
 .wiz-intro-greet{margin:0 0 var(--space-3);font-size:16px;font-weight:700;}
 .wiz-intro-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:14px;}
 .wiz-intro-hero{width:100%;height:130px;border-radius:12px;overflow:hidden;margin-bottom:10px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#fff;}
@@ -670,7 +671,7 @@ button{font-family:inherit;}
 .guest-gate p{margin:0 0 var(--space-4);}
 .guest-gate .btn{display:inline-flex;padding:var(--space-3) var(--space-5);}
 .welcome-banner{background:var(--teal-gradient);color:#fff;border-radius:var(--radius-card);padding:var(--space-5);margin:var(--space-4) 0;text-align:center;}
-.welcome-banner .big{font-size:34px;margin-bottom:6px;}
+.welcome-banner .big{margin-bottom:6px;display:flex;justify-content:center;}
 .welcome-banner p{margin:0 0 var(--space-4);font-size:15px;line-height:1.6;opacity:.95;}
 .welcome-banner .btn{display:inline-flex;background:#fff;color:var(--teal-gradient-to);padding:var(--space-3) var(--space-5);}
 
@@ -912,7 +913,8 @@ button{font-family:inherit;}
 .group-bar{display:flex;gap:var(--space-2);margin:0 0 var(--space-4);align-items:center;}
 .group-bar select{-webkit-appearance:none;appearance:none;}
 .seg{display:flex;background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-1);flex:1;}
-.seg button{flex:1;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
+.seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
+.seg button svg{flex:none;}
 .seg button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-card);}
 /* גרסה קומפקטית - לבקרות משניות/הקשריות (למשל: סינון-תקופה ליד כותרת-סקשן), כדי שלא
    ייראו כמו עוד שורת-ניווט ראשית מתחת לטאבים העיקריים */
@@ -943,7 +945,7 @@ button{font-family:inherit;}
 .lb-summary-cta{margin-top:12px;background:#fff;color:var(--teal-gradient-to);display:inline-flex;padding:var(--space-2) var(--space-4);font-size:14.5px;}
 .lb-mini-stats{display:flex;gap:var(--space-2);flex:none;font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
 .lb-mini-stats span{display:inline-flex;align-items:center;gap:3px;}
-.lb-mini-stats .ui-ic{flex:none;}
+.lb-mini-stats .ui-ic,.lb-mini-stats .stamp-ic{flex:none;}
 /* §11 - "המסע שלנו": פנים, התקדמות משותפת ויעד הבא, במקום עוד dashboard */
 .group-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-2);box-shadow:var(--shadow-card);}
 .face-pile{display:flex;align-items:center;margin-bottom:var(--space-3);}
@@ -1022,7 +1024,11 @@ button{font-family:inherit;}
 .celebrate-overlay.show{opacity:1;pointer-events:auto;}
 .celebrate-card{background:var(--color-surface-elevated);border-radius:var(--radius-sheet);padding:var(--space-6) var(--space-6);text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.35);max-width:280px;transform:scale(.85);opacity:0;transition:transform .32s cubic-bezier(.2,1.4,.4,1),opacity .25s;}
 .celebrate-overlay.show .celebrate-card{transform:scale(1);opacity:1;}
-.celebrate-emoji{font-size:44px;line-height:1;margin-bottom:6px;}
+/* "היעד הבא" בסיום הצ'ק-אין: אותו מבנה-עיגול כמו חותמת/רמה, בצבע ניטרלי (טיל) כי זו
+   לא הטבעת-הישג אלא הזמנה להמשיך לדרך. */
+.celebrate-icon{width:104px;height:104px;margin:0 auto var(--space-3);position:relative;}
+.celebrate-icon .stamp-face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:2.5px solid var(--teal);color:var(--teal);background:color-mix(in srgb,var(--teal) 14%,transparent);}
 /* רגע ההטבעה: אותה חותמת מהאוסף, בגודל כפול, נחתמת פנימה */
 .celebrate-stamp{width:104px;height:104px;margin:0 auto var(--space-3);position:relative;}
 .celebrate-stamp .stamp-face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -1336,14 +1342,14 @@ input[type=file]{display:none;}
   <div class="full-overlay hidden" id="termsScreen">
     <button class="sheet-close" id="termsCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <h1 class="overlay-title">תנאי שימוש</h1>
-    <div class="wiz-relaxed-note" style="margin-bottom:16px;">📝 טיוטה — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
+    <div class="wiz-relaxed-note" style="margin-bottom:16px;"><b>טיוטה</b> — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
     <p class="t-body">השימוש באפליקציית מגלים כפוף לתנאים כלליים: השירות מוצע כפי שהוא ("as-is"), התוכן נועד למטרות מידע והשראה לטיולים ואינו תחליף לבדיקת תנאי שטח/מזג אוויר/הנחיות רשמיות בזמן אמת, והמשתמשים אחראים לשימוש נכון ובטוח באפליקציה במהלך טיולים בפועל. תנאי שימוש מלאים ומחייבים יפורסמו בהמשך.</p>
   </div>
 
   <div class="full-overlay hidden" id="privacyPolicyScreen">
     <button class="sheet-close" id="privacyPolicyCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <h1 class="overlay-title">מדיניות פרטיות</h1>
-    <div class="wiz-relaxed-note" style="margin-bottom:16px;">📝 טיוטה — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
+    <div class="wiz-relaxed-note" style="margin-bottom:16px;"><b>טיוטה</b> — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
     <p class="t-body">מגלים שומרת מידע הדרוש להפעלת השירות בלבד — פרטי חשבון, ביקורים ותמונות שהעליתם, רשימת משאלות, וקשרי חברים/קבוצות. אנחנו לא חושפים מיקום חי בזמן אמת, ואתם שולטים במי רואה את הפעילות שלכם דרך הגדרות → פרטיות. אפשר למחוק את החשבון ואת כל המידע האישי הנלווה בכל עת. מדיניות פרטיות מלאה ומחייבת תפורסם בהמשך.</p>
   </div>
 
@@ -1478,7 +1484,7 @@ input[type=file]{display:none;}
     <!-- רשימת המתנה (מנגנון קיים - registration gating) -->
     <form class="auth-form auth-view hidden" id="waitlistView">
       <div class="auth-head" style="text-align:center;">
-        <div class="waitlist-emoji">🎒</div>
+        <div class="waitlist-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/></svg></div>
         <h1 id="waitlistTitle"></h1>
         <p id="waitlistSub" style="white-space:pre-line;"></p>
       </div>
@@ -1505,7 +1511,7 @@ input[type=file]{display:none;}
       </button>
       <div class="stat-pill hidden" id="headerPoints">
         <span><b id="pointsVal">0</b> נקודות</span>
-        <span class="flame hidden">🔥<span id="streakVal">0</span></span>
+        <span class="flame hidden"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/></svg><span id="streakVal">0</span></span>
       </div>
       <button class="btn btn-primary btn-sm hidden" id="headerLoginBtn">התחברות</button>
     </div>
@@ -1765,8 +1771,8 @@ input[type=file]{display:none;}
         </div>
       </div>
       <div class="welcome-banner hidden" id="welcomeBanner">
-        <div class="big">🗺️</div>
-        <p>ישראל מחכה שתגלו אותה 🗺️<br>צאו לטיול הראשון שלכם והתחילו לפתוח את המפה.</p>
+        <div class="big"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4 6.3 9 5l6 2 5-1.7v13.4L15 20l-6-2-5 1.7V6.3Z"/><path d="M9 5v13M15 7v13"/></svg></div>
+        <p>ישראל מחכה שתגלו אותה<br>צאו לטיול הראשון שלכם והתחילו לפתוח את המפה.</p>
         <button class="btn btn-primary" id="welcomeFindBtn">מצא לי מקום ראשון</button>
       </div>
       <div id="progressSection">
@@ -1899,7 +1905,7 @@ input[type=file]{display:none;}
       <div id="wizForm">
         <div class="filter-group">
           <h3>מיקום</h3>
-          <div class="checkin-status" id="wizLocStatus"><span class="ic">📡</span> לחצו כדי לאתר את המיקום שלכם</div>
+          <div class="checkin-status" id="wizLocStatus"><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/></svg></span> לחצו כדי לאתר את המיקום שלכם</div>
           <button class="btn btn-outline btn-block" id="wizLocateBtn" style="margin-top:8px;">אתר את המיקום שלי</button>
         </div>
         <div class="filter-group"><h3>כמה זמן יש לך</h3><div class="chip-row" id="wizDuration">
@@ -1961,9 +1967,9 @@ input[type=file]{display:none;}
       <div class="settings-row">
         <span>ערכת נושא</span>
         <div class="seg" id="themeSeg">
-          <button type="button" data-theme="light">☀️ בהיר</button>
-          <button type="button" data-theme="dark">🌙 כהה</button>
-          <button type="button" data-theme="system">📱 מערכת</button>
+          <button type="button" data-theme="light"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18"/></svg> בהיר</button>
+          <button type="button" data-theme="dark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10Z"/></svg> כהה</button>
+          <button type="button" data-theme="system"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="7" y="3.5" width="10" height="17" rx="2"/><path d="M10.5 17.5h3"/></svg> מערכת</button>
         </div>
       </div>
       <div class="privacy-toggle-row">
@@ -2050,7 +2056,7 @@ input[type=file]{display:none;}
       <div class="section-head"><h2>אפליקציה</h2></div>
       <div class="settings-row hidden" id="installAppRow" style="flex-direction:column;align-items:flex-start;gap:8px;">
         <span class="t-caption">התקינו את מגלים למסך הבית לגישה מהירה, כמו אפליקציה רגילה.</span>
-        <button type="button" class="btn btn-outline btn-block" id="settingsInstallBtn">📲 הוסף למסך הבית</button>
+        <button type="button" class="btn btn-outline btn-block" id="settingsInstallBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="7" y="3.5" width="10" height="17" rx="2"/><path d="M10.5 17.5h3M12 7.5v5M9.5 10l2.5 2.5L14.5 10"/></svg> הוסף למסך הבית</button>
       </div>
       <div class="section-head"><h2>תמיכה</h2></div>
       <button class="btn btn-outline btn-block" id="settingsHelpBtn">עזרה ומשוב</button>
@@ -2104,7 +2110,7 @@ input[type=file]{display:none;}
   <div class="toast" id="toast"></div>
 
   <div class="update-banner hidden" id="updateBanner">
-    <span>🔄 גרסה חדשה זמינה</span>
+    <span style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5"/><path d="M17 3.5v3.5h-3.5M7 20.5V17h3.5"/></svg> גרסה חדשה זמינה</span>
     <button id="updateBannerBtn" type="button">רענון</button>
   </div>
 
@@ -2124,6 +2130,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917k1"></script>
+<script type="module" src="./app.js?v=20260917l1"></script>
 </body>
 </html>
