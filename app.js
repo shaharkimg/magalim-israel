@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260917d1";
+const APP_VERSION = "20260917e1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -472,7 +472,25 @@ const STAMP_GLYPHS = {
   wreath:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
   seal:'<path d="M12 3.5 14 8l4.8.5-3.6 3.3 1 4.7-4.2-2.4-4.2 2.4 1-4.7L5.2 8.5 10 8l2-4.5Z"/><path d="M8.5 20h7"/>',
   lock:'<rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  // דרגות (LEVELS_V2) משתמשות באותה משפחת-גליפים - לא סט אייקונים נפרד.
+  seedling:'<path d="M12 20v-7"/><path d="M12 13c0-3-2-5-5-5 0 3 2 5 5 5Z"/><path d="M12 13c0-3 2-5 5-5 0 3-2 5-5 5Z"/><path d="M7.5 20h9"/>',
+  tent:'<path d="M4 19 12 5l8 14Z"/><path d="M9.2 19 12 11.5l2.8 7.5"/><path d="M4 19h16"/>',
+  leaf:'<path d="M5 19c0-8.5 5-13.5 14-14.5-1 9-6 14-14 14.5Z"/><path d="M6.3 17.7 13 11"/>',
+  mapOutline:'<path d="M4 6.3 9 5l6 2 5-1.7v13.4L15 20l-6-2-5 1.7V6.3Z"/><path d="M9 5v13M15 7v13"/>',
+  eagle:'<path d="M12 6.5c-2.3 1.4-5.5 2.7-8 2.3 1.7 2 4.2 2.9 6.3 2.3-1 2-2.7 3.8-2.9 5.9 2-1 3.8-3 4.6-5 .8 2 2.6 4 4.6 5-.2-2.1-1.9-3.9-2.9-5.9 2.1.6 4.6-.3 6.3-2.3-2.5.4-5.7-.9-8-2.3Z"/>',
+  star6:'<path d="M12 3 20 17H4Z"/><path d="M12 21 4 7h16Z"/>',
+  sunrise:'<path d="M3.5 17.5h17"/><path d="M6 17.5a6 6 0 0 1 12 0"/><path d="M12 5.5v3M6.8 10.3l1.7 1.7M17.2 10.3l-1.7 1.7"/>',
+  crown:'<path d="m4 17-1-9 5 4 4-6 4 6 5-4-1 9Z"/><path d="M4 17h16"/>',
+  star5:'<path d="m12 3 2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 16.9 6.4 20.1l1.4-6.3L3 9.5l6.4-.6Z"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
 };
+// אינדקס ברמה -> שם גליף. עוקב אחרי הדפוס שכבר קיים באימוג'ים המקוריים (8 גליפים-בסיס
+// חוזרים בשתי מחזוריות + 3 גליפי-שיא ייחודיים) - לא ממציא רצף חדש, רק מתרגם אותו לקו.
+const LEVEL_GLYPH_SEQUENCE = [
+  "seedling","tent","footprint","compassRose","boot","leaf","mapOutline","peaks","eagle","star6",
+  "compassRose","sunrise","mapOutline","boot","peaks","eagle","star6","trophy","crown","star5",
+];
+function levelGlyphName(index){ return LEVEL_GLYPH_SEQUENCE[index] || "seal"; }
 function stampGlyph(name, size){
   const d = STAMP_GLYPHS[name] || STAMP_GLYPHS.seal;
   size = size || 26;
@@ -1290,7 +1308,9 @@ function celebrate(steps){
       ? `<div class="celebrate-hero"><img src="${s.photoUrl}" alt=""></div>`
       : s.stampId
         ? `<div class="celebrate-stamp${s.metal?" metal-"+s.metal:""}"><div class="stamp-face">${stampGlyph(badgeGlyphName(s.stampId), 44)}</div></div>`
-        : s.emoji ? `<div class="celebrate-emoji">${s.emoji}</div>` : "";
+        : s.levelIndex!=null
+          ? `<div class="celebrate-level"><div class="stamp-face">${stampGlyph(levelGlyphName(s.levelIndex), 44)}</div></div>`
+          : s.emoji ? `<div class="celebrate-emoji">${s.emoji}</div>` : "";
     const actionsHtml = s.actions
       ? `<div class="celebrate-actions">${s.actions.map((a,ai)=>`<button class="btn ${a.primary?"btn-primary":"btn-outline"}" data-action-i="${ai}">${a.label}</button>`).join("")}</div>`
       : "";
@@ -4423,7 +4443,7 @@ async function confirmCheckin(l){
     // utility functions שכבר משמשים את הפרופיל - לא לוגיקה נפרדת).
     const lvlProgress = getCurrentLevelProgress(newTotalXP);
     const levelField = {
-      levelLabel: lvlProgress.level.icon+" רמה "+(lvlProgress.index+1)+" — "+lvlProgress.level.name,
+      levelLabel: stampGlyph(levelGlyphName(lvlProgress.index),15)+" רמה "+(lvlProgress.index+1)+" — "+lvlProgress.level.name,
       current: lvlProgress.xpIntoLevel, total: lvlProgress.xpForLevel,
       pct: getLevelProgressPercentage(newTotalXP), isMax: lvlProgress.isMax,
       hint: lvlProgress.isMax ? "🎉 הגעתם לרמה הגבוהה ביותר!" : "עוד "+getXPToNextLevel(newTotalXP).toLocaleString()+" נקודות לרמה הבאה",
@@ -4448,10 +4468,10 @@ async function confirmCheckin(l){
     }));
     if(leveledUpTo){
       steps.push({
-        emoji: leveledUpTo.icon,
+        levelIndex: newLevelIndex,
         title: "🎉 עליתם רמה!",
         subtitle: "רמה "+(newLevelIndex+1),
-        tag: leveledUpTo.icon+" "+leveledUpTo.name,
+        tag: leveledUpTo.name,
         confetti: true,
         haptic: "milestone",
       });
@@ -5072,15 +5092,17 @@ function renderProfile(){
   const progress = getCurrentLevelProgress(xp);
   const level = progress.level;
   $("avatarLetter").innerHTML = myProfile.avatar_url ? `<img src="${myProfile.avatar_url}" alt="">` : (myProfile.name.trim().charAt(0) || "א");
-  $("avatarLevelBadge").textContent = level.icon;
+  $("avatarLevelBadge").innerHTML = stampGlyph(levelGlyphName(progress.index), 14);
   $("profName").firstChild.textContent = myProfile.name;
-  $("profSub").innerHTML = `<span class="level-chip">${level.icon} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
+  $("profSub").innerHTML = `<span class="level-chip">${stampGlyph(levelGlyphName(progress.index),14)} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
   const levelPct = getLevelProgressPercentage(xp);
   $("progNum").firstChild.textContent = progress.next ? progress.xpIntoLevel.toLocaleString() : xp.toLocaleString();
   $("progNum").querySelector("span").textContent = progress.next ? "/ "+progress.xpForLevel.toLocaleString()+" נקודות" : "נקודות · רמה מקסימלית";
   $("progPct").textContent = levelPct+"%";
   $("progBar").style.width = levelPct+"%";
-  $("levelHint").textContent = progress.next ? `${progress.next.icon} עוד ${getXPToNextLevel(xp).toLocaleString()} נקודות לרמת "${progress.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  $("levelHint").innerHTML = progress.next
+    ? `${stampGlyph(levelGlyphName(progress.index+1),14)} עוד ${getXPToNextLevel(xp).toLocaleString()} נקודות לרמת "${progress.next.name}"`
+    : "🎉 הגעתם לרמה הגבוהה ביותר!";
   // Gamification Overhaul, Phase 6 - "NEXT LEVEL CTA": מצביע לאותו openTodaySheet() הקיים
   // (המלצה מבוססת בטיחות/העדפות, לא "הכי הרבה XP") - לא מנוע-המלצות חדש. לא מוצג ברמה
   // מקסימלית (אין "רמה הבאה" למצוא-לקראתה).
