@@ -458,7 +458,10 @@ button{font-family:inherit;}
 .lm-hero{height:172px;border-radius:var(--radius-card);position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:var(--space-4);flex:none;}
 .lm-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .lm-hero.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.4), transparent 55%);}
-.lm-hero svg{position:absolute;opacity:.5;width:110px;height:110px;left:-14px;top:-16px;}
+/* ‎> svg‎ בכוונה: האייקון של .photo-fallback מקונן בתוכו וממורכז בעצמו, והכלל הזה
+   (פינה, 110px, חצי-שקוף) נועד רק ל-svg שיושב ישירות בגיבוי הישן */
+.lm-hero > svg{position:absolute;opacity:.5;width:110px;height:110px;left:-14px;top:-16px;}
+.lm-hero .photo-fallback{position:absolute;inset:0;}
 .lm-hero .badge-count{position:relative;z-index:1;background:rgba(0,0,0,.32);color:#fff;font-size:13.5px;font-weight:700;padding:var(--space-1) var(--space-3);border-radius:999px;backdrop-filter:blur(2px);}
 .lm-hero .lm-photo-credit{position:absolute;z-index:1;left:8px;bottom:6px;font-size:11px;color:rgba(255,255,255,.75);background:rgba(0,0,0,.28);padding:2px var(--space-2);border-radius:6px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cat-tag{display:inline-flex;align-items:center;gap:var(--space-1);color:#fff;font-size:13px;font-weight:700;padding:var(--space-1) var(--space-2);border-radius:999px;}
@@ -476,7 +479,16 @@ button{font-family:inherit;}
 .lm-important-head{font-size:15px;font-weight:700;color:var(--text);margin:var(--space-4) 0 var(--space-2);}
 .lm-official-link{display:block;margin-top:10px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;}
 .lm-official-link:active{opacity:.7;}
-.lm-actions{display:flex;gap:var(--space-3);margin-top:6px;}
+/* שורת-פעולות אחת שלא נשברת: שני כפתורי-הטקסט מתחלקים ברוחב שנשאר אחרי כפתורי
+   האייקון (44px קבוע כל אחד), והתווית לא עוברת שורה גם כשהיא ארוכה ("ברשימת המשאלות") */
+/* הפעולה הראשית נשארת בהישג אגודל בלי קשר לאורך התיאור: נדבקת לתחתית אזור-הגלילה
+   של ה-sheet, עם רקע מלא כדי שהתוכן לא ייראה "מבצבץ" מתחתיה. */
+.detail-cta{position:sticky;bottom:0;z-index:3;margin:var(--space-3) 0 0;
+  padding:var(--space-3) 0 calc(env(safe-area-inset-bottom) + var(--space-2));
+  background:linear-gradient(to top, var(--surface) 72%, transparent);}
+.lm-actions{display:flex;gap:var(--space-2);margin-top:6px;align-items:stretch;}
+.lm-actions .icon-btn{flex:none;}
+.lm-actions .btn{flex:1 1 0;min-width:0;white-space:nowrap;padding-inline:var(--space-3);}
 
 .checkin-status{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-elevated);border-radius:12px;padding:var(--space-3);margin:var(--space-3) 0;font-size:15px;color:var(--text-muted);}
 .field-reports{background:var(--bg-elevated);border-radius:12px;padding:var(--space-3) var(--space-3);margin:0 0 var(--space-4);}
@@ -997,7 +1009,11 @@ svg{overflow:visible;}
 input[type=file]{display:none;}
 .field-label{font-size:13.5px;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;}
 .text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:15.5px;color:var(--text);font-family:inherit;}
-.loading-screen{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:var(--space-3);}
+.loading-screen{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;align-items:stretch;justify-content:flex-start;flex-direction:column;}
+.boot-skeleton{width:100%;max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top) + var(--space-6)) var(--space-4) 0;}
+/* על ה-bg הרגיל (לא על משטח לבן) הניגודיות של .skel נמוכה מדי כדי לקרוא כשלד */
+.boot-skeleton .skel{background:linear-gradient(90deg,var(--bg-elevated) 25%,color-mix(in srgb, var(--border) 80%, var(--text) 20%) 50%,var(--bg-elevated) 75%);background-size:200% 100%;}
+.boot-chips{display:flex;gap:var(--space-2);margin-top:var(--space-3);}
 .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
@@ -1009,7 +1025,24 @@ input[type=file]{display:none;}
 <div class="sr-only" id="srAlert" role="alert" aria-live="assertive" aria-atomic="true"></div>
 <div class="app-shell" id="appShell">
 
-  <div class="loading-screen" id="loadingScreen"><div class="spinner"></div><div class="t-caption">טוען...</div></div>
+  <!-- שלד של מסך הבית, לא ספינר על מסך ריק: המשתמש רואה מיד את הצורה שהתוכן ייצוק
+       לתוכה, וההופעה שלו מרגישה כמו מילוי ולא כמו קפיצה ממסך אחר. aria-busy + טקסט
+       לקורא-מסך, כי צורה בלבד לא אומרת כלום למי שלא רואה אותה. -->
+  <div class="loading-screen" id="loadingScreen" role="status" aria-busy="true" aria-live="polite">
+    <span class="sr-only">טוען את המקומות…</span>
+    <div class="boot-skeleton" aria-hidden="true">
+      <div class="skel skel-line" style="width:38%;height:14px;"></div>
+      <div class="skel skel-line" style="width:64%;height:26px;margin-top:10px;"></div>
+      <div class="skel skel-block" style="height:52px;border-radius:999px;margin-top:18px;"></div>
+      <div class="boot-chips">
+        <div class="skel skel-block" style="width:74px;height:36px;border-radius:999px;"></div>
+        <div class="skel skel-block" style="width:96px;height:36px;border-radius:999px;"></div>
+        <div class="skel skel-block" style="width:64px;height:36px;border-radius:999px;"></div>
+      </div>
+      <div class="skel skel-line" style="width:32%;height:18px;margin-top:26px;"></div>
+      <div class="skel skel-block" style="aspect-ratio:4/3;border-radius:var(--radius-card);margin-top:12px;"></div>
+    </div>
+  </div>
 
   <div class="onboarding-screen hidden" id="onboardingScreen">
     <button class="sheet-close" id="onboardingSkip" style="position:absolute;top:16px;left:16px;" aria-label="דלג">✕</button>
@@ -1953,6 +1986,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260916c1"></script>
+<script type="module" src="./app.js?v=20260917a1"></script>
 </body>
 </html>

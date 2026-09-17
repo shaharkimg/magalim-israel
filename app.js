@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260916c1";
+const APP_VERSION = "20260917a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3937,8 +3937,8 @@ function openDetail(id){
   const amenities = amenityChips(l);
   const photoUrl = landmarkPhotos[id];
   $("detailBody").innerHTML = `
-    <div class="lm-hero${photoUrl?" has-photo":""}"${photoUrl?"":` style="background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))"`}>
-      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}" loading="eager">` : catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
+    <div class="lm-hero${photoUrl?" has-photo":""}">
+      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}" loading="eager">` : photoFallbackHtml(l, 84)}
       <span class="badge-count">${totalVisits.toLocaleString()} כובשים</span>
       ${photoUrl && photoUrl===l.stockPhotoUrl && l.stockPhotoCredit ? `<span class="lm-photo-credit">${escapeHtml(l.stockPhotoCredit)}</span>` : ""}
     </div>
@@ -3966,12 +3966,24 @@ function openDetail(id){
       <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
       <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
     </div>
-    ${visitedEntry ? "" : `<button class="btn btn-secondary btn-block" id="startTripBtn" style="margin-top:var(--space-2);">יוצאים לדרך</button>`}
+    <div class="detail-cta">
+      ${visitedEntry
+        ? `<button class="btn btn-secondary btn-block" id="detailNavBtn">נווטו למקום</button>`
+        : `<button class="btn btn-secondary btn-block" id="startTripBtn">יוצאים לדרך</button>`}
+    </div>
     <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:13.5px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
   const startTripBtn = $("startTripBtn");
   if(startTripBtn) startTripBtn.onclick = ()=> startTrip(l.id);
+  // ליעד שכבר נכבש אין "יוצאים לדרך" - שם ה-CTA הדביק הוא ניווט. אותה פעולה בדיוק כמו
+  // כפתור-האייקון למעלה, אבל בלי wireWazeButton שדורס את התווית באייקון בלבד.
+  const detailNavBtn = $("detailNavBtn");
+  if(detailNavBtn) detailNavBtn.onclick = (e)=>{
+    e.stopPropagation();
+    track("navigation_started", { landmark_id: l.id });
+    openWazeNavigation(l.lat, l.lon, l.name);
+  };
   $("detailShareBtn").onclick = ()=>{
     const url = `${location.origin}${location.pathname}#/destination/${encodeURIComponent(id)}`;
     shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים!`);
