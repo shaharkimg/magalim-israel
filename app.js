@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260917a1";
+const APP_VERSION = "20260917b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -452,6 +452,48 @@ const UI_ICON_PATHS = {
   compass:'<circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/>',
   flame:'<path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/>',
 };
+/* ============ STAMPS ============ */
+// חותמות המסע. משפחת-איור אחת בדיוק כמו UI_ICON_PATHS (viewBox 24, קו 1.8, פינות
+// עגולות) - במקום אימוג'ים, שלא מתיישרים זה עם זה, משתנים בין מערכות הפעלה, ולא
+// יכולים לקבל צבע לפי מצב החותמת.
+const STAMP_GLYPHS = {
+  footprint:'<path d="M9 4.5c1.6 0 2.5 1.6 2.5 3.8 0 2-.6 3-.6 4.4 0 1.2.6 1.8.6 3 0 1.4-.9 2.3-2.5 2.3S6.5 17.1 6.5 15.7c0-1.2.6-1.8.6-3 0-1.4-.6-2.4-.6-4.4C6.5 6.1 7.4 4.5 9 4.5Z"/><path d="M16.5 8.5c1.1 0 1.8 1.1 1.8 2.6 0 1.4-.4 2-.4 3 0 .8.4 1.2.4 2 0 1-.7 1.6-1.8 1.6s-1.8-.6-1.8-1.6c0-.8.4-1.2.4-2 0-1-.4-1.6-.4-3 0-1.5.7-2.6 1.8-2.6Z"/>',
+  trail:'<path d="M5 19c3.5 0 3.5-4 7-4s3.5-4 7-4"/><circle cx="5" cy="19" r="1.4"/><circle cx="12" cy="15" r="1.4"/><circle cx="19" cy="11" r="1.4"/>',
+  boot:'<path d="M7 4h3.5v7.5c0 1 .6 1.6 1.6 2l4.4 1.7c1.3.5 2 1.4 2 2.6V20H7V4Z"/><path d="M7 16.5h11.5"/>',
+  medal:'<circle cx="12" cy="14.5" r="5"/><path d="M9 9.6 7 3.5h10l-2 6.1"/><path d="m12 12.4.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3.9-1.9Z"/>',
+  peaks:'<path d="M3 18.5 9 8l3.5 5.5L15 9.5l6 9H3Z"/><path d="m9 8 1.8 3.1"/>',
+  gem:'<path d="M7 4h10l4 5.5L12 20 3 9.5 7 4Z"/><path d="M3 9.5h18M9 4l-2 5.5L12 20l5-10.5L15 4"/>',
+  flag:'<path d="M6.5 21V3.5"/><path d="M6.5 5h10l-2 3.4 2 3.4h-10"/>',
+  drop:'<path d="M12 3.5c2.6 3.9 5 6.9 5 10a5 5 0 0 1-10 0c0-3.1 2.4-6.1 5-10Z"/><path d="M9.8 13.4c0 1.4.9 2.4 2.2 2.6"/>',
+  amphora:'<path d="M9 4h6M10 4c0 2-2.5 2.5-2.5 5.5S9 14 9 16.5V20h6v-3.5c0-2.5 1.5-4 1.5-7S14 6 14 4"/><path d="M8.5 11h7"/>',
+  compassRose:'<circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/>',
+  dunes:'<path d="M3 17c2.5-3.5 4.3-5 6-5s2.6 1.2 4 1.2S15.6 11 17 11s2.6 1.5 4 4"/><path d="M3 20h18"/><circle cx="8" cy="6.5" r="2.5"/>',
+  summit:'<path d="M12 3.5 21 19H3l9-15.5Z"/><path d="m8.4 12.8 2.1 1.7 1.5-1.2 1.5 1.2 2.1-1.7"/>',
+  wreath:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
+  seal:'<path d="M12 3.5 14 8l4.8.5-3.6 3.3 1 4.7-4.2-2.4-4.2 2.4 1-4.7L5.2 8.5 10 8l2-4.5Z"/><path d="M8.5 20h7"/>',
+  lock:'<rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+};
+function stampGlyph(name, size){
+  const d = STAMP_GLYPHS[name] || STAMP_GLYPHS.seal;
+  size = size || 26;
+  return '<svg class="stamp-ic" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+d+'</svg>';
+}
+// כל חותמת והגליף שלה. חותמות-האזור (region_<r>_<tier>) חולקות גליף אחד, והדרגה
+// מסומנת בצבע הטבעת (ארד/כסף/זהב) - לא בגליף נפרד לכל אחת מ-18 האפשרויות.
+const BADGE_GLYPHS = {
+  first:"footprint", milestone3:"trail", seven:"boot", milestone10:"medal",
+  milestone25:"peaks", milestone50:"gem", region1:"flag", water5:"drop",
+  hist5:"amphora", north:"compassRose", desert:"dunes", extreme:"summit", all:"wreath",
+};
+function badgeGlyphName(id){
+  if(BADGE_GLYPHS[id]) return BADGE_GLYPHS[id];
+  if(id.startsWith("region_")) return "seal";
+  return "seal";
+}
+function badgeMetal(id){
+  const m = id.match(/^region_.+_(bronze|silver|gold)$/);
+  return m ? m[1] : null;
+}
 function uiIcon(name, size){
   const d = UI_ICON_PATHS[name];
   if(!d) return "";
@@ -605,6 +647,10 @@ let userLoc = restoreLastLoc();
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
 let prevBadgeSet = new Set();
+// badge_id -> unlocked_at. נטען ב-loadMyConquestsAndBonuses, ריק כשאין חיבור/טבלה.
+let myBadgeDates = {};
+// חותמות שנפתחו בסשן הזה - מקבלות הדגשה + אנימציית הטבעה בפעם הראשונה שהן מוצגות.
+let freshStamps = new Set();
 let lbPeriod="week";
 let profileListTab="visited";
 const PENDING_KEY = "magalim-pending-checkins-v1";
@@ -1813,15 +1859,62 @@ function switchBoardTab(tab){
 }
 // תגים+אוספים אישיים - הועברו מטאב "פרופיל" לטאב חדש "הישגים" בתוך "המסע שלנו" (לבקשת
 // המשתמש), נשארים תלויים ב-myVisits/BADGES/COLLECTIONS הגלובליים בדיוק כמו קודם.
+const STAMP_RING_C = 163.4; // 2πr, r=26 - חייב להתאים ל-r ב-stampHtml למטה
+function stampHtml(b, state){
+  const cur = b.current(myVisits), tgt = b.target(myVisits);
+  const pct = tgt ? Math.min(100, Math.round(cur/tgt*100)) : 0;
+  const metal = badgeMetal(b.id);
+  const earned = state === "earned";
+  const date = myBadgeDates[b.id];
+  const fresh = earned && freshStamps.has(b.id);
+  // טבעת-התקדמות רק למי שבדרך: לחותמת נעולה-לגמרי (0%) היא רק רעש, ולחותמת שהושגה
+  // היא כבר לא אומרת כלום.
+  const ring = (!earned && pct > 0)
+    ? `<svg class="stamp-ring" viewBox="0 0 60 60" aria-hidden="true"><circle class="stamp-ring-fill" cx="30" cy="30" r="26"
+         style="stroke-dashoffset:${(STAMP_RING_C*(1-pct/100)).toFixed(1)}"/></svg>`
+    : "";
+  const foot = earned
+    ? `<div class="stamp-date">${date ? new Date(date).toLocaleDateString("he-IL",{month:"short",year:"2-digit"}) : "הושגה"}</div>`
+    : `<div class="stamp-progress"><bdi dir="ltr">${cur} / ${tgt}</bdi></div>`;
+  const aria = earned
+    ? b.label + " — הושגה" + (date ? " ב-"+new Date(date).toLocaleDateString("he-IL") : "")
+    : b.label + " — " + cur + " מתוך " + tgt;
+  return `<div class="stamp${earned?" is-earned":""}${fresh?" is-fresh":""}${metal?" metal-"+metal:""}" role="listitem" aria-label="${aria}">
+    <div class="stamp-disc">${ring}<div class="stamp-face">${stampGlyph(badgeGlyphName(b.id), 26)}</div>
+      ${earned ? "" : `<span class="stamp-lock" aria-hidden="true">${stampGlyph("lock",11)}</span>`}</div>
+    <div class="stamp-label">${b.label}</div>
+    ${foot}
+  </div>`;
+}
 function renderAchievementsPanel(){
   if(!session) return;
-  const ub = unlockedBadges();
-  $("badgeGrid").innerHTML = BADGES.map(b=>{
-    const on = ub.some(u=>u.id===b.id);
-    const cur = b.current(myVisits), tgt = b.target(myVisits);
-    const progressLine = on ? "" : `<div class="badge-progress">${cur}/${tgt}</div>`;
-    return `<div class="badge${on?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div>${progressLine}</div>`;
-  }).join("");
+  const unlockedIds = new Set(unlockedBadges().map(b=>b.id));
+  const earned = BADGES.filter(b=>unlockedIds.has(b.id));
+  const rest = BADGES.filter(b=>!unlockedIds.has(b.id));
+  // היררכיה במקום גריד אחיד: קודם מה שכמעט הושג (הכי מניע), אחר כך מה שנפתח לאחרונה,
+  // ורק אז השאר. חותמת שטרם התחילה (0%) אף פעם לא "קרובה להשלמה".
+  const close = rest
+    .map(b=>{ const t=b.target(myVisits); return { b, pct: t ? b.current(myVisits)/t : 0 }; })
+    .filter(x=> x.pct > 0 && x.pct < 1)
+    .sort((a,b)=> b.pct - a.pct)
+    .slice(0,3)
+    .map(x=>x.b);
+  const closeIds = new Set(close.map(b=>b.id));
+  const recent = earned
+    .filter(b=> myBadgeDates[b.id])
+    .sort((a,b)=> new Date(myBadgeDates[b.id]) - new Date(myBadgeDates[a.id]))
+    .slice(0,3);
+  const recentIds = new Set(recent.map(b=>b.id));
+  const others = BADGES.filter(b=> !closeIds.has(b.id) && !recentIds.has(b.id));
+  const section = (title, list, cls)=> list.length
+    ? `<div class="stamp-section${cls?" "+cls:""}"><div class="stamp-section-head">${title}</div>
+       <div class="stamp-grid" role="list">${list.map(b=>stampHtml(b, unlockedIds.has(b.id)?"earned":"locked")).join("")}</div></div>`
+    : "";
+  $("badgeGrid").innerHTML =
+      section("קרובות להשלמה", close, "is-close")
+    + section("הושגו לאחרונה", recent)
+    + section(earned.length||close.length ? "כל החותמות" : "החותמות שלכם", others);
+  freshStamps.clear();
   renderCollections();
 }
 const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen", "#/privacy-policy":"privacyPolicyScreen", "#/help":"helpScreen", "#/notifications":"notificationsScreen" };
@@ -4407,6 +4500,11 @@ function checkNewBadges(){
   const now = unlockedBadges();
   const newOnes = now.filter(b=>!prevBadgeSet.has(b.id));
   prevBadgeSet = new Set(now.map(b=>b.id));
+  // מסומנות כ"חדשות" עד הפעם הראשונה שמסך-החותמות מצייר אותן (renderAchievementsPanel
+  // מנקה את הסט), כדי שאנימציית ההטבעה תרוץ כשרואים אותן - לא בזמן שהמסך סגור.
+  newOnes.forEach(b=> freshStamps.add(b.id));
+  // התאריך מגיע מה-DB רק בטעינה הבאה; בינתיים מציגים את הזמן האמיתי של עכשיו
+  newOnes.forEach(b=>{ if(!myBadgeDates[b.id]) myBadgeDates[b.id] = new Date().toISOString(); });
   return newOnes;
 }
 function isoWeekKey(d){
@@ -4442,6 +4540,13 @@ async function loadMyConquestsAndBonuses(){
     if(error) throw error;
     myBonusGrants = data || [];
   }catch(err){ myBonusGrants = []; }
+  // תאריכי-הזכייה בחותמות. הנעילה עצמה מחושבת תמיד מ-myVisits (unlockedBadges), אז אם
+  // הטבלה חסרה החותמות עדיין נכונות - רק בלי תאריך ובלי "הושגו לאחרונה".
+  try{
+    const { data, error } = await supabase.from("user_badges").select("badge_id,unlocked_at").eq("user_id", session.user.id);
+    if(error) throw error;
+    myBadgeDates = Object.fromEntries((data||[]).map(r=>[r.badge_id, r.unlocked_at]));
+  }catch(err){ myBadgeDates = {}; }
 }
 function totalXP(){
   return myConquests.reduce((s,c)=>s+(c.xp_awarded||0),0) + myBonusGrants.reduce((s,b)=>s+(b.xp_awarded||0),0);
@@ -5704,9 +5809,17 @@ async function renderGroupPanel(){
     }).join("") : emptyStateHtml({ icon: uiIcon("flame",26), title: "עוד לא קרה כלום כאן",
         sub: "הכיבוש הראשון של הקבוצה מחכה לכם." });
 
+    // אותה שפת-חותמות של המסך האישי, רק שה"הושגה" כאן היא "מישהו בקבוצה השיג"
+    // והכתובית סופרת כמה חברים - לא תאריך.
     $("groupBadgeGrid").innerHTML = BADGES.map(b=>{
       const count = memberIds.filter(id=> b.current(byMember[id])>=b.target(byMember[id])).length;
-      return `<div class="badge${count>0?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div><div class="badge-progress">${count}/${memberIds.length}</div></div>`;
+      const metal = badgeMetal(b.id);
+      return `<div class="stamp${count>0?" is-earned":""}${metal?" metal-"+metal:""}" role="listitem"
+        aria-label="${b.label} — ${count} מתוך ${memberIds.length} חברים">
+        <div class="stamp-disc"><div class="stamp-face">${stampGlyph(badgeGlyphName(b.id), 26)}</div></div>
+        <div class="stamp-label">${b.label}</div>
+        <div class="stamp-progress"><bdi dir="ltr">${count} / ${memberIds.length}</bdi></div>
+      </div>`;
     }).join("");
 
     renderVoteBox();

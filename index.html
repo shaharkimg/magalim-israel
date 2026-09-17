@@ -798,22 +798,48 @@ button{font-family:inherit;}
 .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-2);text-align:center;}
 .stat-box .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
 .stat-box .l{font-size:12.5px;color:var(--text-muted);margin-top:3px;}
-.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin:var(--space-3) 0 var(--space-2);}
-.badge{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);text-align:center;}
-.badge .circ{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg-elevated);border:1.5px solid var(--border);filter:grayscale(1);opacity:.42;transition:transform .2s ease,box-shadow .2s ease;}
-/* פריט-אוסף שנפתח: צבע מלא + הילה/הגבהה עדינה (לא מסגרת מקווקוות "תווית") */
-.badge.unlocked .circ{background:radial-gradient(circle at 32% 26%,var(--color-accent-light),var(--surface) 74%);border:1.5px solid color-mix(in srgb, var(--color-accent) 45%, transparent);box-shadow:0 0 0 5px color-mix(in srgb, var(--color-accent) 12%, transparent),var(--shadow-card);filter:none;opacity:1;}
-.badge.unlocked:nth-child(4n+1) .circ{transform:rotate(-6deg);}
-.badge.unlocked:nth-child(4n+2) .circ{transform:rotate(4deg);}
-.badge.unlocked:nth-child(4n+3) .circ{transform:rotate(-3deg);}
-.badge.unlocked:nth-child(4n+4) .circ{transform:rotate(5deg);}
+/* ============ חותמות מסע ============ */
+/* מחליף את גריד-התגים האחיד. שלושה מצבים חזותיים על אותו רכיב: נעולה (קו מתאר, צבע
+   מופחת), בדרך (טבעת התקדמות), הושגה (צבע מלא + תאריך). "חדשה" מוסיפה הטבעה חד-פעמית. */
+.stamp-section{margin:var(--space-4) 0 var(--space-5);}
+.stamp-section-head{font-size:var(--font-caption);font-weight:800;letter-spacing:.04em;color:var(--text-muted);margin-bottom:var(--space-3);}
+.stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4) var(--space-3);}
+/* הקרובות להשלמה גדולות יותר ובשורה של שלוש - הן הדבר שהמשתמש יכול לעשות עכשיו */
+.stamp-section.is-close .stamp-grid{grid-template-columns:repeat(3,1fr);}
+.stamp-section.is-close .stamp-disc{width:76px;height:76px;}
+.stamp{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);text-align:center;min-width:0;}
+.stamp-disc{position:relative;width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;}
+.stamp-face{position:absolute;inset:5px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:1.5px dashed color-mix(in srgb, var(--text-muted) 45%, transparent);color:var(--text-muted);opacity:.62;background:var(--bg-elevated);}
+.stamp-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+.stamp-ring-fill{fill:none;stroke:var(--color-primary);stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:163.4;transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.3,1);}
+.stamp-lock{position:absolute;bottom:-1px;inset-inline-end:-1px;width:18px;height:18px;border-radius:50%;
+  background:var(--bg-elevated);border:1.5px solid var(--border);color:var(--text-muted);opacity:.7;
+  display:flex;align-items:center;justify-content:center;}
+/* הושגה: חותמת דיו מלאה - קו רציף, צבע מלא, והטיה קלה כדי שתיראה מוטבעת ולא מודפסת */
+.stamp.is-earned .stamp-face{border-style:solid;border-width:2px;border-color:var(--color-accent);
+  color:var(--color-accent);opacity:1;background:var(--color-accent-light);transform:rotate(-4deg);}
+.stamp.is-earned:nth-child(2n) .stamp-face{transform:rotate(3deg);}
+.stamp.is-earned:nth-child(3n) .stamp-face{transform:rotate(-6deg);}
+.stamp.is-earned.metal-bronze .stamp-face{border-color:#A9713B;color:#A9713B;background:color-mix(in srgb,#A9713B 14%,transparent);}
+.stamp.is-earned.metal-silver .stamp-face{border-color:#7E8891;color:#7E8891;background:color-mix(in srgb,#7E8891 14%,transparent);}
+.stamp.is-earned.metal-gold .stamp-face{border-color:#B8902F;color:#B8902F;background:color-mix(in srgb,#B8902F 16%,transparent);}
+/* שתי שורות שמורות לתווית בכל תא, כדי ששמות ארוכים ("כובש אזור ראשון") לא יזיזו את
+   המונה של שאר התאים בשורה ויהפכו את הרשת למדורגת */
+.stamp-label{font-size:var(--font-caption);font-weight:600;color:var(--text-muted);line-height:1.3;
+  min-height:calc(var(--font-caption) * 1.3 * 2);display:flex;align-items:center;justify-content:center;}
+.stamp.is-earned .stamp-label{color:var(--text);font-weight:700;}
+.stamp-progress,.stamp-date{font-size:12px;font-weight:700;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.stamp.is-earned .stamp-date{color:var(--color-accent);}
 @media (prefers-reduced-motion: no-preference){
-  .badge.unlocked .circ{animation:stampReveal .5s ease-out;}
+  .stamp.is-fresh .stamp-face{animation:stampPress .55s cubic-bezier(.2,1.4,.4,1);}
 }
-@keyframes stampReveal{0%{opacity:0;filter:grayscale(1) brightness(1.3);}100%{opacity:1;filter:none;}}
-.badge .lbl{font-size:12px;color:var(--text-muted);font-weight:600;line-height:1.3;}
-.badge-progress{font-size:11.5px;color:var(--accent-strong);font-weight:700;font-variant-numeric:tabular-nums;}
-.badge.unlocked .lbl{color:var(--text);}
+@keyframes stampPress{
+  0%{transform:scale(1.9) rotate(-14deg);opacity:0;}
+  55%{transform:scale(.94) rotate(-4deg);opacity:1;}
+  100%{transform:scale(1) rotate(-4deg);opacity:1;}
+}
 .tab-row{display:flex;gap:var(--space-2);background:var(--bg-elevated);border-radius:12px;padding:var(--space-1);margin:var(--space-4) 0 var(--space-1);}
 .tab-row button{flex:1;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-weight:700;font-size:14px;color:var(--text-muted);cursor:pointer;}
 .tab-row button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow);}
@@ -948,7 +974,7 @@ button{font-family:inherit;}
 /* App Essentials Phase 0F, Round 3 - כפיית הפחתת-אנימציות ידנית (data-motion="reduce"), בנוסף
    ל-prefers-reduced-motion של המכשיר. חייב סלקטור עם ספציפיות גבוהה יותר מ-@media (no-preference)
    של stampReveal כדי לדרוס אותו גם כש-OS לא מוגדר reduce אבל המשתמש כפה את זה ידנית באפליקציה. */
-:root[data-motion="reduce"] .badge.unlocked .circ{animation:none;}
+:root[data-motion="reduce"] .stamp.is-fresh .stamp-face{animation:none;}
 :root[data-motion="reduce"] .skel{animation:none;}
 :root[data-motion="reduce"] .celebrate-card{transition:opacity .2s;}
 :root[data-motion="reduce"] .wish-pop{animation:none;}
@@ -1567,7 +1593,7 @@ input[type=file]{display:none;}
           <div class="section-head"><h2>אתגר קבוצתי</h2></div>
           <div id="groupChallengeCard"></div>
           <div class="section-head"><h2>תגי הקבוצה</h2></div>
-          <div class="badge-grid" id="groupBadgeGrid"></div>
+          <div class="stamp-grid" id="groupBadgeGrid" role="list"></div>
           <div class="section-head"><h2>הצבעה על היעד הבא</h2></div>
           <div id="groupVoteBox"></div>
           <div class="section-head"><h2>פעילות אחרונה בקבוצה</h2></div>
@@ -1591,7 +1617,7 @@ input[type=file]{display:none;}
         <div class="section-head" style="margin-top:4px;"><h2>תגים</h2></div>
         <div class="badge-grid" id="badgeGrid"></div>
         <div class="section-head"><h2>אוספים</h2></div>
-        <div class="badge-grid" id="collectionGrid"></div>
+        <div id="collectionGrid"></div>
       </div>
       </div>
     </div>
@@ -1986,6 +2012,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917a1"></script>
+<script type="module" src="./app.js?v=20260917b1"></script>
 </body>
 </html>
