@@ -445,6 +445,9 @@ button{font-family:inherit;}
 .chip{border:1px solid transparent;background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:var(--space-2) var(--space-4);font-size:14.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:var(--space-2);transition:background .12s,border-color .12s,color .12s,transform .12s;}
 .chip:active{transform:scale(.94);}
 .chip .sw{width:8px;height:8px;border-radius:50%;flex:none;}
+/* אותה נקודת-צבע כמו .sw, לשימוש בתוך טקסט מוטבע (לא בתוך chip flex) - למשל
+   "קושי: קל" בכרטיס מקום. inline-block+vertical-align כדי שתתיישר עם שורת הטקסט. */
+.tier-dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-bottom:2px;margin-inline-end:2px;}
 .chip.active{background:var(--color-primary-light);border-color:var(--color-primary);color:var(--color-primary);}
 .chip.active.teal{background:var(--color-secondary-light);border-color:var(--color-secondary);color:var(--color-secondary);}
 .sheet-actions{display:flex;gap:var(--space-3);padding:0 var(--space-4) var(--space-4);border-top:1px solid var(--border);margin-top:4px;padding-top:14px;}
@@ -501,7 +504,9 @@ button{font-family:inherit;}
 .lm-stat .v{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;}
 .lm-stat .l{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
 .amenity-row{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:0 0 var(--space-4);}
-.amenity-chip{background:var(--bg-elevated);border:1px solid var(--border);border-radius:999px;padding:var(--space-1) var(--space-3);font-size:13.5px;font-weight:600;color:var(--text);}
+.amenity-chip{background:var(--bg-elevated);border:1px solid var(--border);border-radius:999px;padding:var(--space-1) var(--space-3);font-size:13.5px;font-weight:600;color:var(--text);
+  display:inline-flex;align-items:center;gap:5px;}
+.amenity-chip .ui-ic{flex:none;color:var(--color-primary);}
 .lm-important-head{font-size:15px;font-weight:700;color:var(--text);margin:var(--space-4) 0 var(--space-2);}
 .lm-official-link{display:block;margin-top:10px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;}
 .lm-official-link:active{opacity:.7;}
@@ -712,7 +717,7 @@ button{font-family:inherit;}
 /* אוספים (§8): כרטיס עם התקדמות אמיתית, כדי שהמשתמש יחשוב "נשארו לי 3" */
 .collection-card{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
 .collection-card:active{transform:scale(.99);}
-.collection-icon{width:46px;height:46px;border-radius:var(--radius-input);background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;font-size:23px;flex:none;}
+.collection-icon{width:46px;height:46px;border-radius:var(--radius-input);background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;color:var(--color-primary);flex:none;}
 .collection-card.done .collection-icon{background:var(--color-primary-light);}
 .collection-body{flex:1;min-width:0;}
 .collection-title{font-weight:700;font-size:var(--font-h3);}
@@ -949,7 +954,11 @@ button{font-family:inherit;}
 .feed-photo{height:190px;margin:var(--space-3) 0 0;display:flex;align-items:center;justify-content:center;position:relative;background-size:cover;background-position:center;}
 .feed-photo svg{width:52px;height:52px;opacity:.55;}
 .badge-feed-body{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) var(--space-4);}
-.badge-feed-icon{font-size:28px;line-height:1;flex:none;}
+.badge-feed-icon{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  background:var(--color-accent-light);color:var(--color-accent);}
+.badge-feed-icon.metal-bronze{background:color-mix(in srgb,#A9713B 14%,transparent);color:#A9713B;}
+.badge-feed-icon.metal-silver{background:color-mix(in srgb,#7E8891 14%,transparent);color:#7E8891;}
+.badge-feed-icon.metal-gold{background:color-mix(in srgb,#B8902F 16%,transparent);color:#B8902F;}
 .badge-feed-label{font-weight:700;font-size:15px;}
 .feed-photo .lm-label{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.4);color:#fff;font-size:13px;font-weight:700;padding:var(--space-1) var(--space-2);border-radius:999px;}
 .feed-actions{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-3) var(--space-3);}
@@ -1813,13 +1822,7 @@ input[type=file]{display:none;}
         <button class="chip teal" data-id="half">חצי יום</button>
         <button class="chip teal" data-id="full">יום מלא</button>
       </div></div>
-      <div class="filter-group"><h3>מתאים לי היום</h3><div class="chip-row" id="amenityChips">
-        <button class="chip" data-id="family">👪 מתאים למשפחות</button>
-        <button class="chip" data-id="dog">🐕 אפשר עם כלב</button>
-        <button class="chip" data-id="water">💧 יש מים</button>
-        <button class="chip" data-id="accessible">♿ נגיש</button>
-        <button class="chip" data-id="free">🆓 חינם</button>
-      </div></div>
+      <div class="filter-group"><h3>מתאים לי היום</h3><div class="chip-row" id="amenityChips"></div></div>
       <div class="filter-group"><h3>עונה מומלצת</h3><div class="chip-row" id="seasonChips">
         <button class="chip" data-id="spring">אביב</button>
         <button class="chip" data-id="summer">קיץ</button>
@@ -2081,6 +2084,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917f1"></script>
+<script type="module" src="./app.js?v=20260917g1"></script>
 </body>
 </html>
