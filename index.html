@@ -322,7 +322,13 @@ button{font-family:inherit;}
    באג-אמת שדווח: פינים שנופלים ברצועה התחתונה (מתחת לכותרת "מקומות באזור המוצג") לא נלחצו. */
 .discovery-section{position:absolute;left:0;right:0;bottom:12px;z-index:1040;pointer-events:none;}
 .discovery-section.hidden{display:none;}
-.discovery-heading{margin:0 var(--space-3) var(--space-2);font-size:14px;font-weight:700;color:var(--text-muted);}
+/* כותרת-הקרוסלה היא הידית לפתיחת הרשימה המלאה, ולכן כפתור אמיתי באזור-לחיצה תקני */
+.discovery-heading{margin:0 var(--space-3) var(--space-2);display:inline-flex;align-items:center;gap:var(--space-2);
+  min-height:44px;padding:0 var(--space-3);border:none;border-radius:999px;pointer-events:auto;cursor:pointer;
+  background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);
+  font-family:inherit;font-size:14px;font-weight:700;color:var(--text);}
+.discovery-heading svg{flex:none;color:var(--text-muted);}
+.discovery-heading:active{transform:scale(.98);}
 .discovery-carousel{display:flex;gap:var(--space-3);overflow-x:auto;padding:0 var(--space-3);scroll-snap-type:x proximity;scrollbar-width:none;pointer-events:auto;}
 .discovery-carousel::-webkit-scrollbar{display:none;}
 .discovery-empty{margin:0 var(--space-3);padding:var(--space-4) var(--space-4);background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);color:var(--text-muted);font-size:14px;text-align:center;}
@@ -1540,8 +1546,13 @@ input[type=file]{display:none;}
           </div>
         </div>
       </div>
+      <!-- הקרוסלה היא מצב ה"הצצה" של רשימת היעדים: הכותרת היא כפתור שפותח את אותה
+           רשימה כ-sheet נגרר (mapListSheet), וסגירתו מחזירה את המיקוד למפה. -->
       <div class="discovery-section" id="discoverySection">
-        <h3 class="discovery-heading">מקומות באזור המוצג במפה</h3>
+        <button class="discovery-heading" id="openMapList" aria-haspopup="dialog">
+          <span id="discoveryHeadingText">מקומות באזור המוצג במפה</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <div class="discovery-carousel" id="discoveryCarousel"></div>
       </div>
     </div>
@@ -1788,6 +1799,13 @@ input[type=file]{display:none;}
     </div>
   </div>
 
+  <div class="detail-scrim" id="mapListScrim"></div>
+  <div class="sheet snap-sheet snap-mid" id="mapListSheet" role="dialog" aria-label="יעדים באזור המוצג במפה">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="mapListTitle">יעדים באזור</h2><button class="sheet-close" id="closeMapList" aria-label="סגור">✕</button></div>
+    <div class="sheet-body" id="mapListBody"></div>
+  </div>
+
   <div class="detail-scrim" id="detailScrim"></div>
   <div class="sheet snap-sheet snap-mid" id="detailSheet">
     <div class="sheet-handle"></div>
@@ -2029,6 +2047,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917c1"></script>
+<script type="module" src="./app.js?v=20260917d1"></script>
 </body>
 </html>

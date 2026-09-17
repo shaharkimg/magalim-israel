@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260917c1";
+const APP_VERSION = "20260917d1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3263,6 +3263,32 @@ function syncMapControlsOffset(){
 function renderDiscoveryCarousel(){
   fillDiscoveryCarousel();
   syncMapControlsOffset();
+  if($("mapListSheet").classList.contains("open")) renderMapList();
+}
+// אותם יעדים שבקרוסלה, כרשימה מלאה. הקרוסלה היא ההצצה; זו התצוגה שאפשר לגלול בה.
+let discoveryList = [];
+function renderMapList(){
+  const el = $("mapListBody");
+  if(!el) return;
+  $("mapListTitle").textContent = discoveryList.length
+    ? discoveryList.length + " יעדים באזור המוצג"
+    : "אין יעדים באזור המוצג";
+  el.innerHTML = discoveryList.length
+    ? discoveryList.map(l=> placeCardHtml(l)).join("")
+    : emptyStateHtml({ icon: uiIcon("compass",26), title:"אין יעדים באזור המוצג",
+        sub:"הזיזו את המפה או הרחיבו את הסינון כדי לראות עוד." });
+  el.querySelectorAll(".mini-card").forEach(card=> card.onclick = ()=>{
+    closeMapList();
+    goToDestination(card.dataset.id);
+  });
+  wireMiniCardKeydown(el);
+}
+function openMapList(){
+  renderMapList();
+  openSheet("mapListSheet","mapListScrim", closeMapList);
+}
+function closeMapList(){
+  closeSheet("mapListSheet","mapListScrim");
 }
 function fillDiscoveryCarousel(){
   if(!leafletMap) return;
@@ -3277,6 +3303,9 @@ function fillDiscoveryCarousel(){
     .filter(l=> bounds.contains([l.lat,l.lon]))
     .sort((a,b)=> haversine(center.lat,center.lng,a.lat,a.lon) - haversine(center.lat,center.lng,b.lat,b.lon))
     .slice(0,30);
+  discoveryList = list;
+  const headText = $("discoveryHeadingText");
+  if(headText) headText.textContent = list.length ? list.length+" יעדים באזור המוצג" : "אין יעדים באזור המוצג";
   if(!list.length){
     el.innerHTML = '<div class="discovery-empty">אין יעדים באזור המוצג — נסו לזוז במפה או לרענן את הסינון.</div>';
     return;
@@ -3455,6 +3484,9 @@ function wireStaticUI(){
       if(!location.hash || location.hash==="#/home") navigate("#/map");
     };
   });
+  $("openMapList").onclick = openMapList;
+  $("closeMapList").onclick = closeMapList;
+  $("mapListScrim").onclick = closeMapList;
   $("shareMapBtn").onclick = ()=> shareMyMap();
   Object.entries(DIFF_CHIPS_DICT).forEach(([id,d])=>{
     const chip = document.createElement("button");
