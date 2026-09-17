@@ -213,6 +213,32 @@ button{font-family:inherit;}
   #authViewWelcome .welcome-art{display:none;}
 }
 
+/* ---------- מסכי-על במסך מלא (onboarding / admin / notifications / about / terms /
+   privacy / help / edit-profile) ---------- */
+/* באג-אמת שדווח: שלוש המחלקות האלה מופיעות ב-media query שמהפוך אותן ל-position:absolute
+   בדסקטופ (יחד עם .auth-screen/.celebrate-overlay/.loading-screen וכו') אבל בלי כלל-בסיס
+   משלהן במובייל - כלומר עד עכשיו הן נפתחו כ-<div> רגיל בתוך זרימת המסמך, בלי position,
+   רקע או z-index, עם המפה/מסך-הבית עדיין גלויים ולחיצים מתחתיהן. אותו דפוס בדיוק כמו
+   .auth-screen, שכן כבר מוגן נכון. */
+.onboarding-screen,.admin-screen,.full-overlay{position:fixed;inset:0;z-index:1200;background:var(--bg);
+  display:flex;flex-direction:column;overflow-y:auto;
+  padding:calc(env(safe-area-inset-top) + var(--space-5)) var(--space-5) calc(env(safe-area-inset-bottom) + var(--space-5));}
+
+/* onboarding: ה-JS (updateOnboardingStep) כבר מחליף active נכון בין השקופיות והנקודות -
+   רק הציור עצמו היה חסר, אז כל שלוש השקופיות הוצגו זו מתחת לזו בבת אחת. */
+#onboardingSlides{flex:1;position:relative;min-height:0;}
+.onboarding-slide{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  gap:var(--space-3);height:100%;padding:0 var(--space-2);}
+.onboarding-slide.active{display:flex;}
+.onboarding-art{width:min(240px,72%);margin:0 auto;}
+.onboarding-art svg{width:100%;height:auto;display:block;}
+.onboarding-slide h2{margin:0;font-size:var(--font-h1);}
+.onboarding-slide p{margin:0;color:var(--text-muted);font-size:var(--font-body);line-height:1.6;max-width:280px;}
+.onboarding-dots{display:flex;justify-content:center;gap:6px;margin:var(--space-4) 0;flex:none;}
+.onboarding-dots .dot{width:8px;height:8px;border-radius:999px;background:var(--border);transition:width .2s,background .2s;}
+.onboarding-dots .dot.active{width:20px;background:var(--color-primary);}
+#onboardingNext{flex:none;}
+
 /* ---------- Header ---------- */
 /* גריד 3-עמודות כדי שהלוגו יתמרכז באמת ביחס לכל הכותרת, לא רק ביחס לתוכן שלצידו - הצד השני
    (topbar-side-end) משמר את אותה קבוצת-כפתורים/פיל שהייתה קודם, רק עטופה יחד כך שהזחה קטנה
@@ -2084,6 +2110,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917g1"></script>
+<script type="module" src="./app.js?v=20260917h1"></script>
 </body>
 </html>

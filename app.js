@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260917g1";
+const APP_VERSION = "20260917h1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -461,6 +461,7 @@ const UI_ICON_PATHS = {
   compass:'<circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/>',
   flame:'<path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/>',
   wheelchair:'<circle cx="15.5" cy="5.3" r="1.6"/><path d="M14.3 8 15 12h4.3M9.7 12H15"/><circle cx="10.3" cy="16.3" r="4"/><path d="M10.3 12.3v4l3.5 2.3"/>',
+  block:'<circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5 17.5 17.5"/>',
 };
 /* ============ STAMPS ============ */
 // חותמות המסע. משפחת-איור אחת בדיוק כמו UI_ICON_PATHS (viewBox 24, קו 1.8, פינות
@@ -5331,8 +5332,8 @@ async function renderFriends(){
       return `<div class="friend-row" data-id="${f.friendshipId}" data-user="${f.userId}">
         <div class="avatar">${avatarInner(name,avatars[f.userId])}</div>
         <div class="friend-name">${name}</div>
-        <button class="icon-btn" data-act="report" aria-label="דיווח על משתמש" title="דיווח">🚩</button>
-        <button class="icon-btn" data-act="block" aria-label="חסימת משתמש" title="חסום">🚫</button>
+        <button class="icon-btn" data-act="report" aria-label="דיווח על משתמש" title="דיווח">${stampGlyph("flag",16)}</button>
+        <button class="icon-btn" data-act="block" aria-label="חסימת משתמש" title="חסום">${uiIcon("block",16)}</button>
         <button class="icon-btn" data-act="remove" aria-label="הסרת חבר">✕</button>
       </div>`;
     }).join("");
