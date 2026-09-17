@@ -462,7 +462,9 @@ button{font-family:inherit;}
 .detail-scrim.soft{background:color-mix(in srgb, var(--sheet-scrim) 40%, transparent);}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-4) var(--space-3);flex:none;}
 .sheet-head h2{margin:0;font-size:var(--font-h1);}
-.wizard-sub{margin:-var(--space-1) var(--space-4) var(--space-3);font-size:14.5px;color:var(--text-muted);}
+/* -var(--x) הוא תחביר CSS לא חוקי (צריך calc(var(--x) * -1)) - הדפדפן זרק את כל
+   ה-margin בגלל זה, כולל הריווח האופקי, והטקסט נדבק לשפת המסך. */
+.wizard-sub{margin:calc(var(--space-1) * -1) var(--space-4) var(--space-3);font-size:var(--font-body);color:var(--text-muted);}
 .sheet-close{border:none;background:var(--bg-elevated);color:var(--text-muted);width:44px;height:44px;border-radius:50%;font-size:17px;cursor:pointer;}
 .sheet-body{overflow-y:auto;padding:0 var(--space-4) var(--space-4);}
 .filter-group{margin-bottom:24px;}
@@ -2110,6 +2112,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917h1"></script>
+<script type="module" src="./app.js?v=20260917i1"></script>
 </body>
 </html>
