@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260917e1";
+const APP_VERSION = "20260917f1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -563,6 +563,28 @@ function haptic(kind){
   const pattern = HAPTIC_PATTERNS[kind];
   if(!pattern || !navigator.vibrate) return;
   try{ navigator.vibrate(pattern); }catch(e){}
+}
+// גלילה אופקית מעל המפה (שורת-הסינון) ומעל תוכן רגיל (קרוסלת-הגילוי) יושבת פיזית
+// מעל אלמנט אחר (המפה) בלי אף רמז חזותי שיש עוד תוכן לגלול אליו - הצ'יפ האחרון
+// פשוט נעצר בשפת המסך. .scroll-fade מדהה את הקצוות; זו הפונקציה שמחליטה איזה קצה
+// באמת דוהה, לפי כמה עוד יש לגלול - לא דהייה קבועה שנשארת גם כשאין בכלל לאן לגלול.
+function syncScrollFade(el){
+  if(!el) return;
+  const max = el.scrollWidth - el.clientWidth;
+  if(max <= 1){ el.classList.add("no-fade-left","no-fade-right"); return; }
+  // scrollLeft=0 הוא תמיד "תחילת" הגלילה (הפריט הראשון קריאה, ימני ב-RTL) בכל
+  // הדפדפנים המודרניים, וגדל בשלילה לכיוון הפריט האחרון - זה נכון גם ב-RTL,
+  // אין צורך לבדוק כיווניות בנפרד.
+  el.classList.toggle("no-fade-right", el.scrollLeft >= -1);
+  el.classList.toggle("no-fade-left", el.scrollLeft <= -(max-1));
+}
+// מאזין פעם אחת בלבד לכל אלמנט (לא בכל רינדור-מחדש של תוכן, כמו discoveryCarousel
+// שמתעדכן בכל תזוזה במפה - זה היה עורם מאזין כפול על כל תזוזה).
+function wireScrollFade(el){
+  if(!el) return;
+  el.addEventListener("scroll", ()=>syncScrollFade(el), { passive:true });
+  window.addEventListener("resize", ()=>syncScrollFade(el));
+  syncScrollFade(el);
 }
 function greetingForNow(){
   const h = new Date().getHours();
@@ -3328,6 +3350,7 @@ function fillDiscoveryCarousel(){
   if(headText) headText.textContent = list.length ? list.length+" יעדים באזור המוצג" : "אין יעדים באזור המוצג";
   if(!list.length){
     el.innerHTML = '<div class="discovery-empty">אין יעדים באזור המוצג — נסו לזוז במפה או לרענן את הסינון.</div>';
+    syncScrollFade(el);
     return;
   }
   el.innerHTML = list.map(l=>{
@@ -3353,6 +3376,7 @@ function fillDiscoveryCarousel(){
     card.onclick = go;
     card.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
   });
+  syncScrollFade(el);
 }
 
 function renderMapSidePanel(){
@@ -3418,6 +3442,7 @@ function wireStaticUI(){
   wireTripMode();
   wireAuthViews();
   initLeafletMap();
+  document.querySelectorAll(".scroll-fade").forEach(wireScrollFade);
   $("onboardingSkip").onclick = closeOnboarding;
   $("onboardingNext").onclick = ()=>{
     if(onboardingStep<2){ onboardingStep++; updateOnboardingStep(); } else { closeOnboarding(); }

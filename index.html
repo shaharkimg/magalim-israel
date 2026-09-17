@@ -255,8 +255,28 @@ button{font-family:inherit;}
 .map-search-pill svg{color:var(--color-primary);}
 .map-search-pill svg{flex:none;color:var(--text-muted);}
 .map-search-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.quick-chip-row{display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:1px;scrollbar-width:none;}
+/* שורת-סינון אופקית: "בולטת" (bleed) עד לקצה ההורה שלה כדי שהצ'יפ האחרון יוכל
+   לגלול לגמרי מתחת לריווח, ולא יישאר תקוע צמוד לשפת המסך בלי לאותת שיש עוד. --chip-gutter
+   הוא הריווח של ההורה בכל הקשר (מוגדר מחדש ב-.home-head למטה, כי שם הריווח שונה
+   מזה של map-top-bar) - כך שאותה מחלקה עובדת נכון בשני ההקשרים בלי לשכפל כלל. */
+.quick-chip-row{display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:1px;scrollbar-width:none;
+  --chip-gutter:var(--space-3);
+  margin-inline:calc(var(--chip-gutter) * -1);
+  padding-inline:var(--chip-gutter);
+  scroll-padding-inline:var(--chip-gutter);
+  touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
 .quick-chip-row::-webkit-scrollbar{display:none;}
+.home-head .quick-chip-row{--chip-gutter:var(--space-4);}
+/* מסכת-דהייה בקצוות שמאותתת "יש עוד לגלול" - לא קבועה: JS (wireScrollFade) מוסיף
+   no-fade-left/no-fade-right כשבאמת הגענו לקצה, כדי שהצ'יפ הראשון/אחרון לא ייראה
+   כאילו הוא חתוך כשאין בכלל לאן לגלול עוד. */
+.scroll-fade{mask-image:linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  -webkit-mask-image:linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent);}
+.scroll-fade.no-fade-left{mask-image:linear-gradient(to right, #000, #000 calc(100% - 20px), transparent);
+  -webkit-mask-image:linear-gradient(to right, #000, #000 calc(100% - 20px), transparent);}
+.scroll-fade.no-fade-right{mask-image:linear-gradient(to right, transparent, #000 20px, #000);
+  -webkit-mask-image:linear-gradient(to right, transparent, #000 20px, #000);}
+.scroll-fade.no-fade-left.no-fade-right{mask-image:none;-webkit-mask-image:none;}
 .quick-chip{flex:none;padding:var(--space-2) var(--space-3);font-size:14px;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);}
 .quick-chip.active{box-shadow:none;}
 /* כפתורי-המפה יושבים בפינות התחתונות, ובדיוק שם מופיע גם הפס התחתון של המפה -
@@ -1457,7 +1477,7 @@ input[type=file]{display:none;}
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           <span>חיפוש מקום, אזור או מסלול</span>
         </button>
-        <div class="quick-chip-row" id="homeQuickChips">
+        <div class="quick-chip-row scroll-fade" id="homeQuickChips">
           <button class="chip quick-chip" data-quick="near">לידי</button>
           <button class="chip quick-chip" data-quick="family">עם ילדים</button>
           <button class="chip quick-chip teal" data-quick="water">מים</button>
@@ -1519,7 +1539,7 @@ input[type=file]{display:none;}
             <span class="fab-count hidden" id="filterCountBadge"></span>
           </div>
         </div>
-        <div class="quick-chip-row" id="quickChipRow">
+        <div class="quick-chip-row scroll-fade" id="quickChipRow">
           <button class="chip quick-chip" data-quick="near">לידי</button>
           <button class="chip quick-chip" data-quick="family">עם ילדים</button>
           <button class="chip quick-chip teal" data-quick="water">מים</button>
@@ -1567,7 +1587,7 @@ input[type=file]{display:none;}
           <span id="discoveryHeadingText">מקומות באזור המוצג במפה</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <div class="discovery-carousel" id="discoveryCarousel"></div>
+        <div class="discovery-carousel scroll-fade" id="discoveryCarousel"></div>
       </div>
     </div>
     <div class="map-side-panel" id="mapSidePanel"></div>
@@ -2061,6 +2081,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917e1"></script>
+<script type="module" src="./app.js?v=20260917f1"></script>
 </body>
 </html>
