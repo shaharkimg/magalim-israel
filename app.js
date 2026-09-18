@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260918a1";
+const APP_VERSION = "20260918b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4171,8 +4171,7 @@ function openDetail(id){
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
-    ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>
-    ${visitedEntry.pending ? "" : `<button type="button" class="lm-review-link" id="detailReviewBtn">${uiIcon("camera",14)} ${visitedEntry.photo_url||visitedEntry.note ? "עריכת התמונה והביקורת שלכם" : "הוספת תמונה וביקורת"}</button>`}` : ""}
+    ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
       <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
       <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
@@ -4183,7 +4182,9 @@ function openDetail(id){
     </div>
     <div class="detail-cta">
       ${visitedEntry
-        ? `<button class="btn btn-secondary btn-block" id="detailNavBtn">נווטו למקום</button>`
+        ? (visitedEntry.pending
+          ? `<button class="btn btn-secondary btn-block" id="detailNavBtn">נווטו למקום</button>`
+          : `<button class="btn btn-secondary btn-block" id="detailReviewBtn">${uiIcon("camera",16)} ${visitedEntry.photo_url||visitedEntry.note ? "עריכת התמונה והביקורת שלכם" : "הוספת תמונה וביקורת"}</button>`)
         : `<button class="btn btn-secondary btn-block" id="startTripBtn">יוצאים לדרך</button>`}
     </div>
     <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:13.5px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
