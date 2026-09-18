@@ -542,6 +542,8 @@ button{font-family:inherit;}
 .lm-important-head{font-size:15px;font-weight:700;color:var(--text);margin:var(--space-4) 0 var(--space-2);display:flex;align-items:center;gap:5px;}
 .lm-official-link{display:block;margin-top:10px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;}
 .lm-official-link:active{opacity:.7;}
+.lm-review-link{display:flex;align-items:center;gap:5px;margin-top:8px;padding:0;background:none;border:none;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;}
+.lm-review-link:active{opacity:.7;}
 /* שורת-פעולות אחת שלא נשברת: שני כפתורי-הטקסט מתחלקים ברוחב שנשאר אחרי כפתורי
    האייקון (44px קבוע כל אחד), והתווית לא עוברת שורה גם כשהיא ארוכה ("ברשימת המשאלות") */
 /* הפעולה הראשית נשארת בהישג אגודל בלי קשר לאורך התיאור: נדבקת לתחתית אזור-הגלילה
@@ -2079,6 +2081,20 @@ input[type=file]{display:none;}
     </div>
   </div>
 
+  <div class="scrim" id="reviewScrim"></div>
+  <div class="sheet" id="reviewSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="reviewSheetTitle">תמונה וביקורת</h2><button class="sheet-close" id="closeReviewSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body">
+      <div class="photo-drop" id="reviewPhotoDrop"></div>
+      <input type="file" accept="image/*" capture="environment" id="reviewPhotoInput" aria-label="בחירת תמונה">
+      <img class="photo-preview hidden" id="reviewPhotoPreview">
+      <label class="field-label" for="reviewNoteText">הביקורת שלכם (אופציונלי)</label>
+      <textarea class="text-input" id="reviewNoteText" rows="4" maxlength="300" placeholder="איך היה? מה כדאי לדעת לפני שמגיעים?" style="resize:vertical;"></textarea>
+      <button type="button" class="btn btn-primary btn-block" id="saveReviewBtn" style="margin-top:var(--space-3);">שמירה</button>
+    </div>
+  </div>
+
   <div class="scrim" id="reportScrim"></div>
   <div class="sheet" id="reportSheet">
     <div class="sheet-handle"></div>
@@ -2130,6 +2146,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260917l1"></script>
+<script type="module" src="./app.js?v=20260918a1"></script>
 </body>
 </html>

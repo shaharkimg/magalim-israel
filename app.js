@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260917l1";
+const APP_VERSION = "20260918a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3657,6 +3657,9 @@ function wireStaticUI(){
   $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("closeCheckinSheet").onclick = ()=> closeSheet("checkinSheet","checkinScrim");
   $("checkinScrim").onclick = ()=> closeSheet("checkinSheet","checkinScrim");
+  $("closeReviewSheet").onclick = ()=> closeSheet("reviewSheet","reviewScrim");
+  $("reviewScrim").onclick = ()=> closeSheet("reviewSheet","reviewScrim");
+  $("saveReviewBtn").onclick = ()=> saveReview();
   $("closeReportSheet").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportScrim").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportSubmitBtn").onclick = async ()=>{
@@ -4168,7 +4171,8 @@ function openDetail(id){
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
-    ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
+    ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>
+    ${visitedEntry.pending ? "" : `<button type="button" class="lm-review-link" id="detailReviewBtn">${uiIcon("camera",14)} ${visitedEntry.photo_url||visitedEntry.note ? "עריכת התמונה והביקורת שלכם" : "הוספת תמונה וביקורת"}</button>`}` : ""}
     <div class="lm-actions">
       <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
       <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
@@ -4221,6 +4225,8 @@ function openDetail(id){
     if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם", ()=>startCheckin(l))) return;
     startCheckin(l);
   };
+  const reviewBtn = $("detailReviewBtn");
+  if(reviewBtn) reviewBtn.onclick = ()=> openReviewSheet(l, visitedEntry);
   setSheetSnap($("detailSheet"), "mid");
   openSheet("detailSheet","detailScrim");
   track("destination_viewed", { landmark_id: id, points: pointsForLandmark(l) });
@@ -4582,6 +4588,77 @@ async function confirmCheckin(l){
     toast("שגיאה בשמירת הצ'ק-אין: "+(err.message||err));
   }finally{
     if(btn){ btn.disabled=false; btn.textContent="אשר צ'ק-אין"; }
+  }
+}
+
+// תמונה+ביקורת אחרי כיבוש (לא רק בזמן ה-checkin עצמו) - אותו רכיב-תמונה/עיבוד בדיוק כמו
+// ב-startCheckin (input+FileReader+canvas-resize ל-320px/jpeg 0.7), רק שכאן זו עריכה ל-
+// שורת visits קיימת (update) ולא יצירה חדשה (insert) - אין GPS/נקודות/חגיגה, זו רק
+// מטא-דאטה. reviewSheet נפתח מ-openDetail כשיש visitedEntry.
+let activeReviewPhoto = null, reviewTargetLandmark = null, reviewTargetVisit = null;
+function openReviewSheet(l, visitedEntry){
+  reviewTargetLandmark = l; reviewTargetVisit = visitedEntry; activeReviewPhoto = null;
+  $("reviewSheetTitle").textContent = l.name;
+  $("reviewNoteText").value = visitedEntry.note || "";
+  const drop = $("reviewPhotoDrop"), preview = $("reviewPhotoPreview");
+  if(visitedEntry.photo_url){
+    preview.src = visitedEntry.photo_url; preview.classList.remove("hidden");
+    drop.innerHTML = uiIcon("camera",17)+" החליפו תמונה"; drop.classList.remove("hidden");
+  } else {
+    preview.classList.add("hidden");
+    drop.innerHTML = uiIcon("camera",17)+" הוסיפו תמונה מהמקום"; drop.classList.remove("hidden");
+  }
+  $("saveReviewBtn").disabled = false; $("saveReviewBtn").textContent = "שמירה";
+  openSheet("reviewSheet","reviewScrim");
+  drop.onclick = ()=> $("reviewPhotoInput").click();
+  $("reviewPhotoInput").value = "";
+  $("reviewPhotoInput").onchange = e=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW=320, scale=Math.min(1,maxW/img.width);
+        const c = document.createElement("canvas");
+        c.width = img.width*scale; c.height = img.height*scale;
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        c.toBlob(blob=>{
+          activeReviewPhoto = { blob, dataUrl: c.toDataURL("image/jpeg",0.7) };
+          preview.src = activeReviewPhoto.dataUrl;
+          preview.classList.remove("hidden");
+          drop.innerHTML = uiIcon("camera",17)+" החליפו תמונה";
+        }, "image/jpeg", 0.7);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+}
+async function saveReview(){
+  const l = reviewTargetLandmark, visitedEntry = reviewTargetVisit;
+  if(!l || !visitedEntry) return;
+  const btn = $("saveReviewBtn"); btn.disabled = true; btn.textContent = "שומר...";
+  try{
+    let photoUrl = visitedEntry.photo_url || null;
+    if(activeReviewPhoto){
+      const path = `${session.user.id}/${l.id}-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, activeReviewPhoto.blob, { contentType:"image/jpeg" });
+      if(upErr) throw upErr;
+      photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
+    }
+    const note = ($("reviewNoteText").value || "").trim().slice(0,300) || null;
+    const { error } = await supabase.from("visits").update({ photo_url: photoUrl, note }).eq("id", visitedEntry.id);
+    if(error) throw error;
+    visitedEntry.photo_url = photoUrl; visitedEntry.note = note;
+    if(photoUrl) landmarkPhotos[l.id] = photoUrl;
+    closeSheet("reviewSheet","reviewScrim");
+    toast("הביקורת נשמרה, תודה!");
+    renderProfile(); renderFeed();
+  }catch(err){
+    console.error(err);
+    toast("שגיאה בשמירת הביקורת: "+(err.message||err));
+  }finally{
+    btn.disabled = false; btn.textContent = "שמירה";
   }
 }
 
