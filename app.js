@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260916a1";
+const APP_VERSION = "20260918a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -47,7 +47,7 @@ function maybeShowInstallBanner(){
   el.dataset.shown = "1";
   $("installBannerText").textContent = deferredInstallPrompt
     ? "אוהבים לטייל עם מגלים? הוסיפו אותה למסך הבית לגישה מהירה."
-    : 'אוהבים לטייל עם מגלים? הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית".';
+    : 'אוהבים לטייל עם מגלים? הקישו על כפתור השיתוף ואז "הוסף למסך הבית".';
   $("installBannerActionBtn").classList.toggle("hidden", !deferredInstallPrompt);
   el.classList.remove("hidden");
 }
@@ -129,10 +129,10 @@ const REGIONS = { north:"צפון", center:"מרכז", jerusalem:"ירושלים
 // (easy<medium<hard<extreme): hard הישן (3-שי) -> "מאתגר" החדש, extreme הישן (4-שי, הכי הרבה
 // נקודות) -> "קשה" החדש. קונפיג-JS טהור, אפס מיגרציית-DB.
 const DIFF_TIERS = [
-  { key:"easy", dbValue:"easy", label:"קל", emoji:"🟢", xp:10, color:"var(--success)" },
-  { key:"medium", dbValue:"medium", label:"בינוני", emoji:"🔵", xp:20, color:"var(--teal)" },
-  { key:"challenging", dbValue:"hard", label:"מאתגר", emoji:"🟠", xp:35, color:"var(--warn)" },
-  { key:"hard", dbValue:"extreme", label:"קשה", emoji:"🔴", xp:50, color:"var(--danger)" },
+  { key:"easy", dbValue:"easy", label:"קל", xp:10, color:"var(--success)" },
+  { key:"medium", dbValue:"medium", label:"בינוני", xp:20, color:"var(--teal)" },
+  { key:"challenging", dbValue:"hard", label:"מאתגר", xp:35, color:"var(--warn)" },
+  { key:"hard", dbValue:"extreme", label:"קשה", xp:50, color:"var(--danger)" },
 ];
 const DIFF_TIER_BY_DB = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t]));
 
@@ -170,7 +170,11 @@ function pointsForLandmark(l){
 function tierForDb(rawDifficulty){ return DIFF_TIER_BY_DB[rawDifficulty] || DIFF_TIERS[0]; }
 // dict בצורת {dbValue:{label}} - לשימוש ב-buildChips/צ'יפים ידניים שממפתחים data-id=dbValue
 // (מסנן/wizard/העדפות) בלי לשבור את ה-id הגולמי שנשלח ל-filters/DB - רק התווית משתנה.
-const DIFF_CHIPS_DICT = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,{label:t.emoji+" "+t.label}]));
+// buildChips כבר יודע לצייר נקודת-צבע אמיתית (v.color -> .sw) בדיוק בשביל המקרה הזה -
+// היה מיותר לגמרי להטביע אימוג'י-עיגול צבעוני בתוך הטקסט במקום להשתמש במנגנון הקיים.
+const DIFF_CHIPS_DICT = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,{label:t.label, color:t.color}]));
+// אותה נקודת-צבע לשימוש מחוץ ל-chip (טקסט מוטבע בכרטיסים/רשימות) - בלי אימוג'י.
+function tierDotHtml(tier){ return '<span class="tier-dot" style="background:'+tier.color+'"></span>'; }
 // שם-אזור בצורת "עם ה' הידיעה" לתגי חוקר/מומחה (חלק מהאזורים שמות פרטיים - ירושלים/אילת/ים
 // המלח - לא לוקחים ה' הידיעה בעברית, אז אי אפשר פשוט לשרשר "ה"+שם לכל האזורים).
 const REGION_THE = { north:"הצפון", center:"המרכז", jerusalem:"ירושלים", south:"הדרום", deadsea:"ים המלח", eilat:"אילת" };
@@ -178,15 +182,15 @@ const REGION_THE = { north:"הצפון", center:"המרכז", jerusalem:"ירו�
 // מגילוי האזור (לא מספר קבוע) כי גודל האזורים שונה מאוד זה מזה.
 function regionTierBadges(){
   const tiers = [
-    { suffix:"bronze", pct:0.25, icon:"🥉", label:r=>"מתחיל ב"+REGIONS[r] },
-    { suffix:"silver", pct:0.6, icon:"🥈", label:r=>"חוקר "+REGION_THE[r] },
-    { suffix:"gold", pct:1, icon:"🥇", label:r=>"מומחה "+REGION_THE[r] },
+    { suffix:"bronze", pct:0.25, label:r=>"מתחיל ב"+REGIONS[r] },
+    { suffix:"silver", pct:0.6, label:r=>"חוקר "+REGION_THE[r] },
+    { suffix:"gold", pct:1, label:r=>"מומחה "+REGION_THE[r] },
   ];
   const out = [];
   Object.keys(REGIONS).forEach(r=>{
     tiers.forEach(t=>{
       out.push({
-        id:"region_"+r+"_"+t.suffix, label:t.label(r), icon:t.icon,
+        id:"region_"+r+"_"+t.suffix, label:t.label(r),
         target:()=> Math.max(1, Math.ceil(regionCount(r)*t.pct)),
         current:v=> Math.min(regionVisited(v,r), Math.max(1, Math.ceil(regionCount(r)*t.pct))),
       });
@@ -195,32 +199,37 @@ function regionTierBadges(){
   return out;
 }
 const BADGES = [
-  {id:"first",label:"צעד ראשון",icon:"👣",target:()=>1,current:v=>Math.min(v.length,1)},
-  {id:"milestone3",label:"3 יעדים",icon:"🔰",target:()=>3,current:v=>Math.min(v.length,3)},
-  {id:"seven",label:"צועד השבעה",icon:"🥾",target:()=>7,current:v=>Math.min(v.length,7)},
-  {id:"milestone10",label:"10 יעדים",icon:"🏅",target:()=>10,current:v=>Math.min(v.length,10)},
-  {id:"milestone25",label:"25 יעדים",icon:"🥇",target:()=>25,current:v=>Math.min(v.length,25)},
-  {id:"milestone50",label:"50 יעדים",icon:"💎",target:()=>50,current:v=>Math.min(v.length,50)},
-  {id:"region1",label:"כובש אזור ראשון",icon:"🏁",target:v=>bestRegionProgress(v).total,current:v=>bestRegionProgress(v).done},
-  {id:"water5",label:"כובש נחלים",icon:"💧",target:()=>5,current:v=>Math.min(countCat(v,"water"),5)},
-  {id:"hist5",label:"היסטוריון",icon:"🏺",target:()=>5,current:v=>Math.min(countCat(v,"archaeology")+countCat(v,"heritage"),5)},
-  {id:"north",label:"אלוף הצפון",icon:"🧭",target:()=>Math.min(15,regionCount("north")),current:v=>Math.min(regionVisited(v,"north"),15)},
-  {id:"desert",label:"רץ המדבר",icon:"🏜️",target:()=>Math.min(10,regionCount("south")+regionCount("eilat")),current:v=>Math.min(regionVisited(v,"south")+regionVisited(v,"eilat"),10)},
-  {id:"extreme",label:"מטפס ותיק",icon:"⛰️",target:()=>2,current:v=>Math.min(countDiff(v,"extreme"),2)},
-  {id:"all",label:"כל הארץ",icon:"🏆",target:()=>LANDMARKS.length||259,current:v=>v.length},
+  {id:"first",label:"צעד ראשון",target:()=>1,current:v=>Math.min(v.length,1)},
+  {id:"milestone3",label:"3 יעדים",target:()=>3,current:v=>Math.min(v.length,3)},
+  {id:"seven",label:"צועד השבעה",target:()=>7,current:v=>Math.min(v.length,7)},
+  {id:"milestone10",label:"10 יעדים",target:()=>10,current:v=>Math.min(v.length,10)},
+  {id:"milestone25",label:"25 יעדים",target:()=>25,current:v=>Math.min(v.length,25)},
+  {id:"milestone50",label:"50 יעדים",target:()=>50,current:v=>Math.min(v.length,50)},
+  {id:"region1",label:"כובש אזור ראשון",target:v=>bestRegionProgress(v).total,current:v=>bestRegionProgress(v).done},
+  {id:"water5",label:"כובש נחלים",target:()=>5,current:v=>Math.min(countCat(v,"water"),5)},
+  {id:"hist5",label:"היסטוריון",target:()=>5,current:v=>Math.min(countCat(v,"archaeology")+countCat(v,"heritage"),5)},
+  {id:"north",label:"אלוף הצפון",target:()=>Math.min(15,regionCount("north")),current:v=>Math.min(regionVisited(v,"north"),15)},
+  {id:"desert",label:"רץ המדבר",target:()=>Math.min(10,regionCount("south")+regionCount("eilat")),current:v=>Math.min(regionVisited(v,"south")+regionVisited(v,"eilat"),10)},
+  {id:"extreme",label:"מטפס ותיק",target:()=>2,current:v=>Math.min(countDiff(v,"extreme"),2)},
+  {id:"all",label:"כל הארץ",target:()=>LANDMARKS.length||259,current:v=>v.length},
   ...regionTierBadges(),
 ];
 // אוספים קיוריטד - כמו BADGES, כל אחד הוא פילטר על LANDMARKS הקיימים (לא רשימת-ID ידנית).
+// icon כאן הוא שם-גליף (STAMP_GLYPHS) או "ui:<name>" (UI_ICON_PATHS) - לא אימוג'י.
+// שני המילונים מציירים באותה שפה (viewBox 24, קו 1.8), אז ערבוב ביניהם עקבי חזותית.
 const COLLECTIONS = [
-  { id:"water", label:"צייד המים", icon:"💦", description:"נחלים, מעיינות ובריכות טבעיות בכל רחבי הארץ.", filter:l=> l.category==="water"||l.hasWater },
-  { id:"heritage", label:"עתיקות ומורשת", icon:"🏛️", description:"אתרי ארכיאולוגיה ומורשת שמספרים את סיפור הארץ.", filter:l=> l.category==="archaeology"||l.category==="heritage" },
-  { id:"mountains", label:"מסלולי הרים", icon:"⛰️", description:"מסלולי הרים וטיפוס לעבר הפסגות הכי מרשימות בישראל.", filter:l=> l.category==="mountains" },
-  { id:"nature", label:"טבע ונופים", icon:"🌿", description:"נופים פתוחים וטבע ירוק לאורך ולרוחב הארץ.", filter:l=> l.category==="nature" },
-  { id:"desertsea", label:"מדבר וים המלח", icon:"🏜️", description:"מדבר יהודה, הנגב, הערבה וים המלח.", filter:l=> l.region==="south"||l.region==="deadsea"||l.region==="eilat" },
-  { id:"reserves", label:"שמורות ופארקים לאומיים", icon:"🌲", description:"שמורות טבע ופארקים לאומיים מוגנים.", filter:l=> l.category==="reserves"||l.category==="parks" },
-  { id:"family", label:"מושלם למשפחות", icon:"👪", description:"יעדים שמתאימים לטיול עם ילדים.", filter:l=> !!l.familyFriendly },
-  { id:"accessible", label:"פתוח לכולם", icon:"♿", description:"יעדים נגישים לכיסא גלגלים ולעגלות.", filter:l=> !!l.accessible },
+  { id:"water", label:"צייד המים", icon:"drop", description:"נחלים, מעיינות ובריכות טבעיות בכל רחבי הארץ.", filter:l=> l.category==="water"||l.hasWater },
+  { id:"heritage", label:"עתיקות ומורשת", icon:"amphora", description:"אתרי ארכיאולוגיה ומורשת שמספרים את סיפור הארץ.", filter:l=> l.category==="archaeology"||l.category==="heritage" },
+  { id:"mountains", label:"מסלולי הרים", icon:"peaks", description:"מסלולי הרים וטיפוס לעבר הפסגות הכי מרשימות בישראל.", filter:l=> l.category==="mountains" },
+  { id:"nature", label:"טבע ונופים", icon:"leaf", description:"נופים פתוחים וטבע ירוק לאורך ולרוחב הארץ.", filter:l=> l.category==="nature" },
+  { id:"desertsea", label:"מדבר וים המלח", icon:"dunes", description:"מדבר יהודה, הנגב, הערבה וים המלח.", filter:l=> l.region==="south"||l.region==="deadsea"||l.region==="eilat" },
+  { id:"reserves", label:"שמורות ופארקים לאומיים", icon:"pine", description:"שמורות טבע ופארקים לאומיים מוגנים.", filter:l=> l.category==="reserves"||l.category==="parks" },
+  { id:"family", label:"מושלם למשפחות", icon:"ui:family", description:"יעדים שמתאימים לטיול עם ילדים.", filter:l=> !!l.familyFriendly },
+  { id:"accessible", label:"פתוח לכולם", icon:"ui:wheelchair", description:"יעדים נגישים לכיסא גלגלים ולעגלות.", filter:l=> !!l.accessible },
 ];
+function collectionIconHtml(c, size){
+  return c.icon.startsWith("ui:") ? uiIcon(c.icon.slice(3), size) : stampGlyph(c.icon, size);
+}
 function collectionLandmarks(c){ return LANDMARKS.filter(c.filter); }
 function collectionProgress(c, visits){
   visits = visits || myVisits;
@@ -354,13 +363,13 @@ function renderFogOfWar(){
 
 /* ============ CHALLENGES ============ */
 const CHALLENGES = [
-  {id:"icons25", title:"25 המקומות שכל ישראלי חייב לראות", icon:"🏆", color:"var(--cat-heritage)", target:25, match:l=>!l.id.startsWith("tiuli-"), reward:"תג ייחודי בפרופיל"},
-  {id:"water10", title:"אתגר המים — 10 יעדי מים", icon:"💧", color:"var(--cat-water)", target:10, match:l=>l.category==="water"||l.hasWater, reward:"תג ייחודי בפרופיל"},
-  {id:"jlm8", title:"שבילי ירושלים", icon:"🕍", color:"var(--cat-religious)", target:8, match:l=>l.region==="jerusalem", reward:"תג ייחודי בפרופיל"},
-  {id:"desert6", title:"חודש במדבר", icon:"🏜️", color:"var(--cat-mountains)", target:6, match:l=>["south","eilat","deadsea"].includes(l.region), reward:"תג ייחודי בפרופיל"},
-  {id:"peaks10", title:"כובשי הפסגות — 10 מסלולי הרים", icon:"🏔️", color:"var(--cat-mountains)", target:10, match:l=>l.category==="mountains", reward:"תג ייחודי בפרופיל"},
-  {id:"reserves8", title:"שומרי הטבע — 8 שמורות", icon:"🌿", color:"var(--cat-reserves)", target:8, match:l=>l.category==="reserves", reward:"תג ייחודי בפרופיל"},
-  {id:"center12", title:"גלו את המרכז — 12 יעדים", icon:"🏙️", color:"var(--cat-urban)", target:12, match:l=>l.region==="center", reward:"תג ייחודי בפרופיל"},
+  {id:"icons25", title:"25 המקומות שכל ישראלי חייב לראות", icon:"trophy", color:"var(--cat-heritage)", target:25, match:l=>!l.id.startsWith("tiuli-"), reward:"תג ייחודי בפרופיל"},
+  {id:"water10", title:"אתגר המים — 10 יעדי מים", icon:"drop", color:"var(--cat-water)", target:10, match:l=>l.category==="water"||l.hasWater, reward:"תג ייחודי בפרופיל"},
+  {id:"jlm8", title:"שבילי ירושלים", icon:"landmark", color:"var(--cat-religious)", target:8, match:l=>l.region==="jerusalem", reward:"תג ייחודי בפרופיל"},
+  {id:"desert6", title:"חודש במדבר", icon:"dunes", color:"var(--cat-mountains)", target:6, match:l=>["south","eilat","deadsea"].includes(l.region), reward:"תג ייחודי בפרופיל"},
+  {id:"peaks10", title:"כובשי הפסגות — 10 מסלולי הרים", icon:"peaks", color:"var(--cat-mountains)", target:10, match:l=>l.category==="mountains", reward:"תג ייחודי בפרופיל"},
+  {id:"reserves8", title:"שומרי הטבע — 8 שמורות", icon:"pine", color:"var(--cat-reserves)", target:8, match:l=>l.category==="reserves", reward:"תג ייחודי בפרופיל"},
+  {id:"center12", title:"גלו את המרכז — 12 יעדים", icon:"cityscape", color:"var(--cat-urban)", target:12, match:l=>l.region==="center", reward:"תג ייחודי בפרופיל"},
 ];
 function challengeProgress(ch){
   const matched = myVisits.filter(v=> lmById[v.landmark_id] && ch.match(lmById[v.landmark_id]));
@@ -369,26 +378,26 @@ function challengeProgress(ch){
 // Gamification Overhaul - עקומת 20-הרמות + 4 פונקציות-utility בשם מדויק לפי המפרט. מקור-אמת
 // יחיד לכל מערכת-הרמות באפליקציה (מחליף את עקומת-6-הרמות הישנה ואת totalPoints(), שהוסרו).
 const LEVELS_V2 = [
-  { min:0, name:"יוצאים לדרך", icon:"🌱" },
-  { min:50, name:"מתחילים לטייל", icon:"🎒" },
-  { min:120, name:"צועדים קדימה", icon:"👣" },
-  { min:220, name:"מגלי שבילים", icon:"🧭" },
-  { min:350, name:"מטיילים מנוסים", icon:"🥾" },
-  { min:520, name:"חוקרי טבע", icon:"🌿" },
-  { min:730, name:"מגלי הארץ", icon:"🗺️" },
-  { min:980, name:"כובשי שבילים", icon:"⛰️" },
-  { min:1270, name:"חוקרי מרחבים", icon:"🦅" },
-  { min:1600, name:"מטיילי ישראל", icon:"🇮🇱" },
-  { min:1980, name:"מומחי שבילים", icon:"🧭" },
-  { min:2410, name:"רודפי נופים", icon:"🌄" },
-  { min:2890, name:"חוקרי ישראל", icon:"🗺️" },
-  { min:3420, name:"ותיקי השבילים", icon:"🥾" },
-  { min:4000, name:"אדוני השטח", icon:"⛰️" },
-  { min:4640, name:"מגלי אופקים", icon:"🦅" },
-  { min:5340, name:"מומחי הארץ", icon:"🇮🇱" },
-  { min:6100, name:"אלופי השבילים", icon:"🏆" },
-  { min:6920, name:"אגדות מטיילות", icon:"👑" },
-  { min:7800, name:"אגדת ישראל", icon:"⭐" },
+  { min:0, name:"יוצאים לדרך" },
+  { min:50, name:"מתחילים לטייל" },
+  { min:120, name:"צועדים קדימה" },
+  { min:220, name:"מגלי שבילים" },
+  { min:350, name:"מטיילים מנוסים" },
+  { min:520, name:"חוקרי טבע" },
+  { min:730, name:"מגלי הארץ" },
+  { min:980, name:"כובשי שבילים" },
+  { min:1270, name:"חוקרי מרחבים" },
+  { min:1600, name:"מטיילי ישראל" },
+  { min:1980, name:"מומחי שבילים" },
+  { min:2410, name:"רודפי נופים" },
+  { min:2890, name:"חוקרי ישראל" },
+  { min:3420, name:"ותיקי השבילים" },
+  { min:4000, name:"אדוני השטח" },
+  { min:4640, name:"מגלי אופקים" },
+  { min:5340, name:"מומחי הארץ" },
+  { min:6100, name:"אלופי השבילים" },
+  { min:6920, name:"אגדות מטיילות" },
+  { min:7800, name:"אגדת ישראל" },
 ];
 // מוצא את אינדקס-הרמה הנכון גם כשה-XP מדלג על כמה ספים בבת-אחת (הלולאה יורדת מלמעלה,
 // לא +1 נאיבי מלמטה) - עונה במפורש על דרישת "עדכון-XP שחוצה כמה ספים בבת-אחת".
@@ -451,7 +460,82 @@ const UI_ICON_PATHS = {
   trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
   compass:'<circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/>',
   flame:'<path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/>',
+  wheelchair:'<circle cx="15.5" cy="5.3" r="1.6"/><path d="M14.3 8 15 12h4.3M9.7 12H15"/><circle cx="10.3" cy="16.3" r="4"/><path d="M10.3 12.3v4l3.5 2.3"/>',
+  block:'<circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5 17.5 17.5"/>',
+  gift:'<rect x="4.5" y="10" width="15" height="10" rx="1.5"/><path d="M4.5 10h15M12 10v10"/><path d="M12 10c-1.5-4-6-4.5-6-2s2.5 2 6 2ZM12 10c1.5-4 6-4.5 6-2s-2.5 2-6 2Z"/>',
+  car:'<path d="M5 16v-3l1.8-3.8h10.4L19 13v3"/><path d="M5 16h14M7 16v1.8M17 16v1.8"/><circle cx="8" cy="16" r="1.3"/><circle cx="16" cy="16" r="1.3"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18"/>',
+  moon:'<path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10Z"/>',
+  device:'<rect x="7" y="3.5" width="10" height="17" rx="2"/><path d="M10.5 17.5h3"/>',
+  camera:'<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2L9 4.5h6L16.5 7h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5v-9Z"/><circle cx="12" cy="13" r="3.5"/>',
+  refresh:'<path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5"/><path d="M17 3.5v3.5h-3.5M7 20.5V17h3.5"/>',
+  eye:'<path d="M3 12s3.3-6.5 9-6.5S21 12 21 12s-3.3 6.5-9 6.5S3 12 3 12Z"/><circle cx="12" cy="12" r="2.6"/>',
+  warning:'<path d="M12 3.5 21 19.5H3L12 3.5Z"/><path d="M12 9.5v4.5"/><circle cx="12" cy="16.8" r=".1" stroke-width="2.4"/>',
+  leaf:'<path d="M5 19c0-8.5 5-13.5 14-14.5-1 9-6 14-14 14.5Z"/><path d="M6.3 17.7 13 11"/>',
 };
+/* ============ STAMPS ============ */
+// חותמות המסע. משפחת-איור אחת בדיוק כמו UI_ICON_PATHS (viewBox 24, קו 1.8, פינות
+// עגולות) - במקום אימוג'ים, שלא מתיישרים זה עם זה, משתנים בין מערכות הפעלה, ולא
+// יכולים לקבל צבע לפי מצב החותמת.
+const STAMP_GLYPHS = {
+  footprint:'<path d="M9 4.5c1.6 0 2.5 1.6 2.5 3.8 0 2-.6 3-.6 4.4 0 1.2.6 1.8.6 3 0 1.4-.9 2.3-2.5 2.3S6.5 17.1 6.5 15.7c0-1.2.6-1.8.6-3 0-1.4-.6-2.4-.6-4.4C6.5 6.1 7.4 4.5 9 4.5Z"/><path d="M16.5 8.5c1.1 0 1.8 1.1 1.8 2.6 0 1.4-.4 2-.4 3 0 .8.4 1.2.4 2 0 1-.7 1.6-1.8 1.6s-1.8-.6-1.8-1.6c0-.8.4-1.2.4-2 0-1-.4-1.6-.4-3 0-1.5.7-2.6 1.8-2.6Z"/>',
+  trail:'<path d="M5 19c3.5 0 3.5-4 7-4s3.5-4 7-4"/><circle cx="5" cy="19" r="1.4"/><circle cx="12" cy="15" r="1.4"/><circle cx="19" cy="11" r="1.4"/>',
+  boot:'<path d="M7 4h3.5v7.5c0 1 .6 1.6 1.6 2l4.4 1.7c1.3.5 2 1.4 2 2.6V20H7V4Z"/><path d="M7 16.5h11.5"/>',
+  medal:'<circle cx="12" cy="14.5" r="5"/><path d="M9 9.6 7 3.5h10l-2 6.1"/><path d="m12 12.4.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3.9-1.9Z"/>',
+  peaks:'<path d="M3 18.5 9 8l3.5 5.5L15 9.5l6 9H3Z"/><path d="m9 8 1.8 3.1"/>',
+  gem:'<path d="M7 4h10l4 5.5L12 20 3 9.5 7 4Z"/><path d="M3 9.5h18M9 4l-2 5.5L12 20l5-10.5L15 4"/>',
+  flag:'<path d="M6.5 21V3.5"/><path d="M6.5 5h10l-2 3.4 2 3.4h-10"/>',
+  drop:'<path d="M12 3.5c2.6 3.9 5 6.9 5 10a5 5 0 0 1-10 0c0-3.1 2.4-6.1 5-10Z"/><path d="M9.8 13.4c0 1.4.9 2.4 2.2 2.6"/>',
+  amphora:'<path d="M9 4h6M10 4c0 2-2.5 2.5-2.5 5.5S9 14 9 16.5V20h6v-3.5c0-2.5 1.5-4 1.5-7S14 6 14 4"/><path d="M8.5 11h7"/>',
+  compassRose:'<circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/>',
+  dunes:'<path d="M3 17c2.5-3.5 4.3-5 6-5s2.6 1.2 4 1.2S15.6 11 17 11s2.6 1.5 4 4"/><path d="M3 20h18"/><circle cx="8" cy="6.5" r="2.5"/>',
+  summit:'<path d="M12 3.5 21 19H3l9-15.5Z"/><path d="m8.4 12.8 2.1 1.7 1.5-1.2 1.5 1.2 2.1-1.7"/>',
+  wreath:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
+  seal:'<path d="M12 3.5 14 8l4.8.5-3.6 3.3 1 4.7-4.2-2.4-4.2 2.4 1-4.7L5.2 8.5 10 8l2-4.5Z"/><path d="M8.5 20h7"/>',
+  lock:'<rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  // דרגות (LEVELS_V2) משתמשות באותה משפחת-גליפים - לא סט אייקונים נפרד.
+  seedling:'<path d="M12 20v-7"/><path d="M12 13c0-3-2-5-5-5 0 3 2 5 5 5Z"/><path d="M12 13c0-3 2-5 5-5 0 3-2 5-5 5Z"/><path d="M7.5 20h9"/>',
+  tent:'<path d="M4 19 12 5l8 14Z"/><path d="M9.2 19 12 11.5l2.8 7.5"/><path d="M4 19h16"/>',
+  leaf:'<path d="M5 19c0-8.5 5-13.5 14-14.5-1 9-6 14-14 14.5Z"/><path d="M6.3 17.7 13 11"/>',
+  mapOutline:'<path d="M4 6.3 9 5l6 2 5-1.7v13.4L15 20l-6-2-5 1.7V6.3Z"/><path d="M9 5v13M15 7v13"/>',
+  eagle:'<path d="M12 6.5c-2.3 1.4-5.5 2.7-8 2.3 1.7 2 4.2 2.9 6.3 2.3-1 2-2.7 3.8-2.9 5.9 2-1 3.8-3 4.6-5 .8 2 2.6 4 4.6 5-.2-2.1-1.9-3.9-2.9-5.9 2.1.6 4.6-.3 6.3-2.3-2.5.4-5.7-.9-8-2.3Z"/>',
+  star6:'<path d="M12 3 20 17H4Z"/><path d="M12 21 4 7h16Z"/>',
+  sunrise:'<path d="M3.5 17.5h17"/><path d="M6 17.5a6 6 0 0 1 12 0"/><path d="M12 5.5v3M6.8 10.3l1.7 1.7M17.2 10.3l-1.7 1.7"/>',
+  crown:'<path d="m4 17-1-9 5 4 4-6 4 6 5-4-1 9Z"/><path d="M4 17h16"/>',
+  star5:'<path d="m12 3 2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 16.9 6.4 20.1l1.4-6.3L3 9.5l6.4-.6Z"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3 3 0 0 0 7 10M17 6h2.5v1.5A3 3 0 0 1 17 10M10 14v3h4v-3M8 20h8"/>',
+  pine:'<path d="M12 3 17.5 11H6.5Z"/><path d="M12 7.5 18.5 16H5.5Z"/><path d="M11 16h2v4h-2Z"/>',
+  landmark:'<path d="M8 11a4 4 0 0 1 8 0v1H8Z"/><path d="M5.5 20v-9h13v9"/><path d="M10 20v-5h4v5"/>',
+  cityscape:'<path d="M4 20V10h4v10M10 20V6h4v14M16 20v-8h4v8"/><path d="M3 20h18"/>',
+};
+// אינדקס ברמה -> שם גליף. עוקב אחרי הדפוס שכבר קיים באימוג'ים המקוריים (8 גליפים-בסיס
+// חוזרים בשתי מחזוריות + 3 גליפי-שיא ייחודיים) - לא ממציא רצף חדש, רק מתרגם אותו לקו.
+const LEVEL_GLYPH_SEQUENCE = [
+  "seedling","tent","footprint","compassRose","boot","leaf","mapOutline","peaks","eagle","star6",
+  "compassRose","sunrise","mapOutline","boot","peaks","eagle","star6","trophy","crown","star5",
+];
+function levelGlyphName(index){ return LEVEL_GLYPH_SEQUENCE[index] || "seal"; }
+function stampGlyph(name, size){
+  const d = STAMP_GLYPHS[name] || STAMP_GLYPHS.seal;
+  size = size || 26;
+  return '<svg class="stamp-ic" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+d+'</svg>';
+}
+// כל חותמת והגליף שלה. חותמות-האזור (region_<r>_<tier>) חולקות גליף אחד, והדרגה
+// מסומנת בצבע הטבעת (ארד/כסף/זהב) - לא בגליף נפרד לכל אחת מ-18 האפשרויות.
+const BADGE_GLYPHS = {
+  first:"footprint", milestone3:"trail", seven:"boot", milestone10:"medal",
+  milestone25:"peaks", milestone50:"gem", region1:"flag", water5:"drop",
+  hist5:"amphora", north:"compassRose", desert:"dunes", extreme:"summit", all:"wreath",
+};
+function badgeGlyphName(id){
+  if(BADGE_GLYPHS[id]) return BADGE_GLYPHS[id];
+  if(id.startsWith("region_")) return "seal";
+  return "seal";
+}
+function badgeMetal(id){
+  const m = id.match(/^region_.+_(bronze|silver|gold)$/);
+  return m ? m[1] : null;
+}
 function uiIcon(name, size){
   const d = UI_ICON_PATHS[name];
   if(!d) return "";
@@ -485,13 +569,67 @@ function placeMetaHtml(l, opts){
   if(l.hasWater) bits.push('<span class="place-meta-item">'+uiIcon("water",13)+'מים</span>');
   return '<div class="place-meta">'+bits.join("")+'</div>';
 }
+/* ============ HAPTICS ============ */
+// משוב מישושי רק ברגעים שבהם באמת קרה משהו: צ'ק-אין מוצלח, תג חדש, עליית רמה. לא על
+// כל לחיצה - רטט שמגיע כל הזמן מפסיק לסמן משהו והופך למטרד. שני דפוסים קצרים בלבד:
+// success לאישור, milestone למשהו שנפתח. אם המכשיר לא תומך (iOS Safari לא תומך
+// ב-Vibration API כלל) הכל ממשיך כרגיל - הרטט לעולם לא נושא מידע שאין גם על המסך.
+const HAPTICS_KEY = "magalim-haptics-v1";
+const HAPTIC_PATTERNS = { success: 18, milestone: [14, 55, 26] };
+function hapticsEnabled(){
+  try{ return localStorage.getItem(HAPTICS_KEY) !== "off"; }catch(e){ return true; }
+}
+function setHapticsEnabled(on){
+  try{ localStorage.setItem(HAPTICS_KEY, on ? "on" : "off"); }catch(e){}
+}
+function haptic(kind){
+  if(!hapticsEnabled()) return;
+  const pattern = HAPTIC_PATTERNS[kind];
+  if(!pattern || !navigator.vibrate) return;
+  try{ navigator.vibrate(pattern); }catch(e){}
+}
+// גלילה אופקית מעל המפה (שורת-הסינון) ומעל תוכן רגיל (קרוסלת-הגילוי) יושבת פיזית
+// מעל אלמנט אחר (המפה) בלי אף רמז חזותי שיש עוד תוכן לגלול אליו - הצ'יפ האחרון
+// פשוט נעצר בשפת המסך. .scroll-fade מדהה את הקצוות; זו הפונקציה שמחליטה איזה קצה
+// באמת דוהה, לפי כמה עוד יש לגלול - לא דהייה קבועה שנשארת גם כשאין בכלל לאן לגלול.
+function syncScrollFade(el){
+  if(!el) return;
+  const max = el.scrollWidth - el.clientWidth;
+  if(max <= 1){ el.classList.add("no-fade-left","no-fade-right"); return; }
+  // scrollLeft=0 הוא תמיד "תחילת" הגלילה (הפריט הראשון קריאה, ימני ב-RTL) בכל
+  // הדפדפנים המודרניים, וגדל בשלילה לכיוון הפריט האחרון - זה נכון גם ב-RTL,
+  // אין צורך לבדוק כיווניות בנפרד.
+  el.classList.toggle("no-fade-right", el.scrollLeft >= -1);
+  el.classList.toggle("no-fade-left", el.scrollLeft <= -(max-1));
+}
+// מאזין פעם אחת בלבד לכל אלמנט (לא בכל רינדור-מחדש של תוכן, כמו discoveryCarousel
+// שמתעדכן בכל תזוזה במפה - זה היה עורם מאזין כפול על כל תזוזה).
+function wireScrollFade(el){
+  if(!el) return;
+  el.addEventListener("scroll", ()=>syncScrollFade(el), { passive:true });
+  window.addEventListener("resize", ()=>syncScrollFade(el));
+  syncScrollFade(el);
+}
+function greetingForNow(){
+  const h = new Date().getHours();
+  if(h < 5) return "לילה טוב";
+  if(h < 12) return "בוקר טוב";
+  if(h < 16) return "צהריים טובים";
+  if(h < 19) return "אחר צהריים טובים";
+  return "ערב טוב";
+}
+// Placeholder אחיד לכל כרטיס בלי תמונה (ראו .photo-fallback ב-index.html): גרדיאנט בצבע
+// הקטגוריה + קווי-גובה + אייקון, במקום ריבוע צבע שטוח שהיה נראה כמו נתון חסר.
+function photoFallbackHtml(l, size){
+  const cat = CATEGORIES[l.category];
+  return '<div class="photo-fallback" style="--ph-color:'+cat.color+'">'+catIconSvg(cat.icon, size||28)+'</div>';
+}
 // points: מספר להצגה כ"+40", או null כדי להסתיר. done:true מציג "נכבש" במקום ניקוד עתידי.
 function placeCardHtml(l, opts){
   opts = opts || {};
-  const cat = CATEGORIES[l.category];
   const thumb = opts.thumb || (opts.photo
     ? '<img src="'+opts.photo+'" loading="lazy" decoding="async" alt="'+l.name+'">'
-    : catIconSvg(cat.icon, 26));
+    : photoFallbackHtml(l, 30));
   const meta = opts.metaHtml != null ? opts.metaHtml : placeMetaHtml(l, opts);
   const pts = opts.points == null ? pointsForLandmark(l) : opts.points;
   const ptsHtml = opts.hidePoints ? "" : (opts.done
@@ -503,7 +641,7 @@ function placeCardHtml(l, opts){
     + ' aria-pressed="'+(wished?"true":"false")+'" aria-label="'+(wished?"הסר מרשימת המשאלות":"הוסף לרשימת המשאלות")+'">'
     + uiIcon("heart",17)+'</button>';
   return '<div class="mini-card place-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
-    + '<div class="mini-thumb" style="background:'+cat.color+';color:#fff">'+thumb+'</div>'
+    + '<div class="mini-thumb">'+thumb+'</div>'
     + '<div class="mini-info"><div class="name">'+l.name+'</div>'
     + meta
     + (opts.extra||"")
@@ -573,6 +711,10 @@ let userLoc = restoreLastLoc();
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
 let prevBadgeSet = new Set();
+// badge_id -> unlocked_at. נטען ב-loadMyConquestsAndBonuses, ריק כשאין חיבור/טבלה.
+let myBadgeDates = {};
+// חותמות שנפתחו בסשן הזה - מקבלות הדגשה + אנימציית הטבעה בפעם הראשונה שהן מוצגות.
+let freshStamps = new Set();
 let lbPeriod="week";
 let profileListTab="visited";
 const PENDING_KEY = "magalim-pending-checkins-v1";
@@ -1188,7 +1330,7 @@ function animateXpCount(el, target){
   }
   requestAnimationFrame(tick);
 }
-// steps: [{photoUrl, emoji, title, xp, sub, region, confetti}] - מוצגים ברצף אחד, קליק מקדם/סוגר.
+// steps: [{photoUrl, icon, title, xp, sub, region, confetti}] - מוצגים ברצף אחד, קליק מקדם/סוגר.
 // זה מחליף את הרצף הקודם של celebrate()+toast()ים מדורגים נפרדים לכל תג/רמה - עכשיו הכל
 // באותו overlay אחד, קצר ואפשר לדלג עליו בהקשה בכל שלב.
 function celebrate(steps){
@@ -1206,9 +1348,15 @@ function celebrate(steps){
   };
   const renderStep = ()=>{
     const s = steps[i];
+    // stampId מרנדר את החותמת עצמה נחתמת - אותו רכיב בדיוק שמופיע באוסף החותמות,
+    // כדי שהרגע שבו זוכים בה נראה כמו הפריט שנוסף לאוסף ולא כמו אייקון אחר לגמרי.
     const hero = s.photoUrl
       ? `<div class="celebrate-hero"><img src="${s.photoUrl}" alt=""></div>`
-      : s.emoji ? `<div class="celebrate-emoji">${s.emoji}</div>` : "";
+      : s.stampId
+        ? `<div class="celebrate-stamp${s.metal?" metal-"+s.metal:""}"><div class="stamp-face">${stampGlyph(badgeGlyphName(s.stampId), 44)}</div></div>`
+        : s.levelIndex!=null
+          ? `<div class="celebrate-level"><div class="stamp-face">${stampGlyph(levelGlyphName(s.levelIndex), 44)}</div></div>`
+          : s.icon ? `<div class="celebrate-icon"><div class="stamp-face">${uiIcon(s.icon,44)}</div></div>` : "";
     const actionsHtml = s.actions
       ? `<div class="celebrate-actions">${s.actions.map((a,ai)=>`<button class="btn ${a.primary?"btn-primary":"btn-outline"}" data-action-i="${ai}">${a.label}</button>`).join("")}</div>`
       : "";
@@ -1235,6 +1383,7 @@ function celebrate(steps){
       + actionsHtml
       + tapHint;
     if(s.xp!=null) animateXpCount($("celebrateXpNum"), s.xp);
+    if(s.haptic) haptic(s.haptic);
     if(s.confetti && !reducedMotion && window.confetti){
       window.confetti({ particleCount:60, spread:65, origin:{y:0.35}, scalar:0.9, ticks:150 });
     }
@@ -1780,15 +1929,62 @@ function switchBoardTab(tab){
 }
 // תגים+אוספים אישיים - הועברו מטאב "פרופיל" לטאב חדש "הישגים" בתוך "המסע שלנו" (לבקשת
 // המשתמש), נשארים תלויים ב-myVisits/BADGES/COLLECTIONS הגלובליים בדיוק כמו קודם.
+const STAMP_RING_C = 163.4; // 2πr, r=26 - חייב להתאים ל-r ב-stampHtml למטה
+function stampHtml(b, state){
+  const cur = b.current(myVisits), tgt = b.target(myVisits);
+  const pct = tgt ? Math.min(100, Math.round(cur/tgt*100)) : 0;
+  const metal = badgeMetal(b.id);
+  const earned = state === "earned";
+  const date = myBadgeDates[b.id];
+  const fresh = earned && freshStamps.has(b.id);
+  // טבעת-התקדמות רק למי שבדרך: לחותמת נעולה-לגמרי (0%) היא רק רעש, ולחותמת שהושגה
+  // היא כבר לא אומרת כלום.
+  const ring = (!earned && pct > 0)
+    ? `<svg class="stamp-ring" viewBox="0 0 60 60" aria-hidden="true"><circle class="stamp-ring-fill" cx="30" cy="30" r="26"
+         style="stroke-dashoffset:${(STAMP_RING_C*(1-pct/100)).toFixed(1)}"/></svg>`
+    : "";
+  const foot = earned
+    ? `<div class="stamp-date">${date ? new Date(date).toLocaleDateString("he-IL",{month:"short",year:"2-digit"}) : "הושגה"}</div>`
+    : `<div class="stamp-progress"><bdi dir="ltr">${cur} / ${tgt}</bdi></div>`;
+  const aria = earned
+    ? b.label + " — הושגה" + (date ? " ב-"+new Date(date).toLocaleDateString("he-IL") : "")
+    : b.label + " — " + cur + " מתוך " + tgt;
+  return `<div class="stamp${earned?" is-earned":""}${fresh?" is-fresh":""}${metal?" metal-"+metal:""}" role="listitem" aria-label="${aria}">
+    <div class="stamp-disc">${ring}<div class="stamp-face">${stampGlyph(badgeGlyphName(b.id), 26)}</div>
+      ${earned ? "" : `<span class="stamp-lock" aria-hidden="true">${stampGlyph("lock",11)}</span>`}</div>
+    <div class="stamp-label">${b.label}</div>
+    ${foot}
+  </div>`;
+}
 function renderAchievementsPanel(){
   if(!session) return;
-  const ub = unlockedBadges();
-  $("badgeGrid").innerHTML = BADGES.map(b=>{
-    const on = ub.some(u=>u.id===b.id);
-    const cur = b.current(myVisits), tgt = b.target(myVisits);
-    const progressLine = on ? "" : `<div class="badge-progress">${cur}/${tgt}</div>`;
-    return `<div class="badge${on?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div>${progressLine}</div>`;
-  }).join("");
+  const unlockedIds = new Set(unlockedBadges().map(b=>b.id));
+  const earned = BADGES.filter(b=>unlockedIds.has(b.id));
+  const rest = BADGES.filter(b=>!unlockedIds.has(b.id));
+  // היררכיה במקום גריד אחיד: קודם מה שכמעט הושג (הכי מניע), אחר כך מה שנפתח לאחרונה,
+  // ורק אז השאר. חותמת שטרם התחילה (0%) אף פעם לא "קרובה להשלמה".
+  const close = rest
+    .map(b=>{ const t=b.target(myVisits); return { b, pct: t ? b.current(myVisits)/t : 0 }; })
+    .filter(x=> x.pct > 0 && x.pct < 1)
+    .sort((a,b)=> b.pct - a.pct)
+    .slice(0,3)
+    .map(x=>x.b);
+  const closeIds = new Set(close.map(b=>b.id));
+  const recent = earned
+    .filter(b=> myBadgeDates[b.id])
+    .sort((a,b)=> new Date(myBadgeDates[b.id]) - new Date(myBadgeDates[a.id]))
+    .slice(0,3);
+  const recentIds = new Set(recent.map(b=>b.id));
+  const others = BADGES.filter(b=> !closeIds.has(b.id) && !recentIds.has(b.id));
+  const section = (title, list, cls)=> list.length
+    ? `<div class="stamp-section${cls?" "+cls:""}"><div class="stamp-section-head">${title}</div>
+       <div class="stamp-grid" role="list">${list.map(b=>stampHtml(b, unlockedIds.has(b.id)?"earned":"locked")).join("")}</div></div>`
+    : "";
+  $("badgeGrid").innerHTML =
+      section("קרובות להשלמה", close, "is-close")
+    + section("הושגו לאחרונה", recent)
+    + section(earned.length||close.length ? "כל החותמות" : "החותמות שלכם", others);
+  freshStamps.clear();
   renderCollections();
 }
 const SIMPLE_OVERLAY_ROUTES = { "#/about":"aboutScreen", "#/terms":"termsScreen", "#/privacy-policy":"privacyPolicyScreen", "#/help":"helpScreen", "#/notifications":"notificationsScreen" };
@@ -2277,7 +2473,7 @@ async function renderAdminDashboard(){
   const eventStatsEl = $("adminEventStats");
   const { data: eventStats, error: eventStatsErr } = await supabase.rpc("get_event_counts");
   if(eventStatsErr || !eventStats){
-    eventStatsEl.innerHTML = '<div class="empty-state" style="font-size:12.5px;">אין עדיין נתוני אירועים (יתכן שהתכונה עדיין לא מופעלת).</div>';
+    eventStatsEl.innerHTML = '<div class="empty-state" style="font-size:14px;">אין עדיין נתוני אירועים (יתכן שהתכונה עדיין לא מופעלת).</div>';
   } else {
     eventStatsEl.innerHTML = Object.entries(EVENT_STAT_LABELS).map(([key,label])=>
       `<div class="stat-box"><div class="v">${(eventStats[key]??0).toLocaleString()}</div><div class="l">${label}</div></div>`
@@ -2443,10 +2639,11 @@ function wizExplain(l){
     const mins = Math.round(km/55*60/5)*5;
     parts.push(km<1 ? "ממש לידך" : `כ-${mins<5?5:mins} דק' נסיעה ממך`);
   }
-  parts.push(tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label);
+  const tier = tierForDb(l.difficulty);
+  parts.push(tierDotHtml(tier)+tier.label);
   if(l.category==="water"||l.hasWater) parts.push("יש מים");
-  if(l.accessible) parts.push("♿ נגיש");
-  if(l.priceType==="free") parts.push("🆓 חינם");
+  if(l.accessible) parts.push("נגיש");
+  if(l.priceType==="free") parts.push("חינם");
   parts.push("מתאים ל"+(l.duration||DURATION_LABEL[wizState.duration]||""));
   return parts.join(" · ");
 }
@@ -2688,19 +2885,21 @@ function nextGoalCardHtml(rec){
   const l = rec.landmark;
   const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
   return `<div class="next-goal" data-id="${l.id}">
-    <div class="next-goal-photo" style="${landmarkPhotoStyle(l)}">
-      ${hasPhoto ? "" : catIconSvg(CATEGORIES[l.category].icon,54).replace('<svg ','<svg style="color:#fff;opacity:.65" ')}
+    <div class="next-goal-photo" style="${hasPhoto ? landmarkPhotoStyle(l) : ""}">
+      ${hasPhoto ? "" : photoFallbackHtml(l, 56)}
       ${rec.matchPct ? `<span class="match">${rec.matchPct}% התאמה</span>` : ""}
-      <span class="pts">+${pointsForLandmark(l)}</span>
+      <span class="pts"><bdi dir="ltr">+${pointsForLandmark(l)}</bdi></span>
+      <div class="next-goal-overlay">
+        <div class="next-goal-name">${l.name}</div>
+        <div class="place-meta">
+          <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
+          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
+          ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
+          ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
+        </div>
+      </div>
     </div>
     <div class="next-goal-body">
-      <div class="next-goal-name">${l.name}</div>
-      <div class="place-meta">
-        <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
-        <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
-        ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
-        ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
-      </div>
       ${whyRowsHtml(rec.reasons)}
       <div class="next-goal-actions">
         <button class="btn btn-primary" data-go="${l.id}">יאללה, יוצאים</button>
@@ -2709,12 +2908,92 @@ function nextGoalCardHtml(rec){
     </div>
   </div>`;
 }
+/* ============ WEEKLY CHALLENGE ============ */
+// אתגר אחד קצר לשבוע, זהה לכל המשתמשים ומתחלף לבד לפי מספר-השבוע - בלי טבלה חדשה
+// ובלי תזמון בשרת. ההתקדמות נספרת מביקורים אמיתיים של השבוע הנוכחי, והפרס ניתן דרך
+// מנגנון-הבונוסים הקיים (xp_bonus_grants, מפתח ייחודי user+type+source) כך שהוא באמת
+// מתווסף ל-totalXP ולא יכול להינתן פעמיים. כשיהיה backend לאתגרים, רק CHALLENGES
+// ו-currentChallenge() צריכים להתחלף - כל השאר כבר מדבר בממשק הזה.
+const WEEKLY_CHALLENGE_XP = 50;
+// ה"פרס" הוא רק מה שבאמת ניתן: בונוס XP דרך xp_bonus_grants. לא מבטיחים כאן חותמת או
+// תג - אין ישות כזו שנוצרת בסוף האתגר, והבטחה שלא מתממשת גרועה מאין-פרס.
+const WEEKLY_CHALLENGES = [
+  { id:"water", task:"בקרו השבוע במקום חדש שיש בו מים", match:l=>l.hasWater,
+    filter:f=>{ f.water = true; } },
+  { id:"family", task:"צאו השבוע לטיול שמתאים לילדים", match:l=>l.familyFriendly,
+    filter:f=>{ f.family = true; } },
+  { id:"easy", task:"השלימו השבוע מסלול קל אחד", match:l=>l.difficulty==="easy",
+    filter:f=>{ f.diffs = ["easy"]; } },
+  { id:"north", task:"גלו השבוע מקום חדש בצפון", match:l=>l.region==="north",
+    filter:f=>{ f.regions = ["north"]; } },
+  { id:"south", task:"גלו השבוע מקום חדש בדרום", match:l=>l.region==="south",
+    filter:f=>{ f.regions = ["south"]; } },
+  { id:"accessible", task:"בקרו השבוע במקום נגיש לעגלות ולכיסא גלגלים", match:l=>l.accessible,
+    filter:f=>{ f.accessible = true; } },
+];
+// שבוע ישראלי: ראשון עד שבת. מפתח יציב לשבוע ("2026-W38") שמשמש גם כ-source_id של הבונוס.
+function weekStart(d){
+  const s = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay());
+  s.setHours(0,0,0,0);
+  return s;
+}
+function currentWeekKey(){
+  const s = weekStart(new Date());
+  const yearStart = new Date(s.getFullYear(), 0, 1);
+  const week = Math.floor((s - weekStart(yearStart)) / 604800000) + 1;
+  return s.getFullYear() + "-W" + String(week).padStart(2, "0");
+}
+function currentWeeklyChallenge(){
+  const s = weekStart(new Date());
+  const index = Math.floor(s.getTime() / 604800000) % WEEKLY_CHALLENGES.length;
+  return WEEKLY_CHALLENGES[index];
+}
+function challengeVisitsThisWeek(ch){
+  const from = weekStart(new Date()).getTime();
+  return myVisits.filter(v=>{
+    const l = lmById[v.landmark_id];
+    return l && ch.match(l) && new Date(v.visited_at).getTime() >= from;
+  }).length;
+}
+function challengeDaysLeft(){
+  const end = weekStart(new Date()).getTime() + 604800000;
+  return Math.max(1, Math.ceil((end - Date.now()) / 86400000));
+}
+function renderWeeklyChallenge(){
+  const el = $("homeWeeklyChallenge");
+  if(!el) return;
+  const ch = currentWeeklyChallenge();
+  const done = Math.min(1, challengeVisitsThisWeek(ch));
+  const days = challengeDaysLeft();
+  el.innerHTML = `<div class="weekly-chal${done?" is-done":""}">
+    <div class="weekly-chal-top">
+      <div class="weekly-chal-task">${ch.task}</div>
+      <div class="weekly-chal-left">${days===1?"נותר יום אחרון":"נותרו "+days+" ימים"}</div>
+    </div>
+    <div class="weekly-chal-progress">
+      <div class="bar"><i style="width:${done*100}%"></i></div>
+      <span class="weekly-chal-count"><bdi dir="ltr">${done} / 1</bdi></span>
+    </div>
+    <div class="weekly-chal-reward">${done ? "הושלם! קיבלתם " : "הצ׳ק-אין הראשון שעונה על האתגר מזכה ב"}<b>+${WEEKLY_CHALLENGE_XP} נקודות</b>${done ? " בנוסף לנקודות הצ׳ק-אין" : ""}</div>
+    ${done ? "" : `<button class="btn btn-outline btn-sm" id="challengeShowBtn">הצגת מקומות מתאימים</button>`}
+  </div>`;
+  const btn = $("challengeShowBtn");
+  if(btn) btn.onclick = ()=>{
+    Object.assign(filters, defaultFilters());
+    ch.filter(filters);
+    syncFilterUI(); syncQuickChips();
+    navigate("#/map");
+    renderMap();
+  };
+}
 function renderHome(){
   if(!$("homeNextGoal") || !LANDMARKS.length) return;
   const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
   $("homeRingPct").textContent = discPct+"%";
   $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
   const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
+  $("homeHeadGreet").textContent = greetingForNow() + (firstName ? ", "+firstName : "");
+  renderWeeklyChallenge();
   $("homeGreet").textContent = firstName ? firstName+", המסע שלך בישראל" : "המסע שלך בישראל";
   $("homeHeroSub").textContent = myVisits.length
     ? myVisits.length+" מקומות נכבשו · "+(LANDMARKS.length-myVisits.length)+" מחכים לכם"
@@ -2743,7 +3022,7 @@ function renderHome(){
     const l = daily.landmark;
     const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
     dailyEl.innerHTML = `<div class="daily-card" data-id="${l.id}">
-      <div class="daily-thumb" style="${landmarkPhotoStyle(l)}">${hasPhoto?"":catIconSvg(CATEGORIES[l.category].icon,26).replace('<svg ','<svg style="color:#fff" ')}</div>
+      <div class="daily-thumb" style="${hasPhoto?landmarkPhotoStyle(l):""}">${hasPhoto?"":photoFallbackHtml(l,26)}</div>
       <div class="daily-body"><div class="daily-kicker">מצאנו לכם מקום שאולי לא הכרתם</div>
         <div class="daily-name">${l.name}</div>
         <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
@@ -2781,10 +3060,11 @@ function renderHome(){
 }
 
 function wizIntroWhyText(l){
-  const parts = [tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label];
+  const tier = tierForDb(l.difficulty);
+  const parts = [tierDotHtml(tier)+tier.label];
   if(l.category==="water"||l.hasWater) parts.push("יש מים");
-  if(l.accessible) parts.push("♿ נגיש");
-  if(l.priceType==="free") parts.push("🆓 חינם");
+  if(l.accessible) parts.push("נגיש");
+  if(l.priceType==="free") parts.push("חינם");
   if(userLoc) parts.push("כ-"+estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+" דק' נסיעה");
   return parts.join(" · ");
 }
@@ -2814,7 +3094,7 @@ function renderWizIntro(){
   $("wizResults").classList.add("hidden");
   if(actionsEl) actionsEl.classList.add("hidden");
   introEl.innerHTML = `
-    <p class="wiz-intro-greet">👋 לאן ממשיכים?</p>
+    <p class="wiz-intro-greet">לאן ממשיכים?</p>
     <div class="wiz-intro-card">
       <div class="wiz-intro-hero" style="${photoUrl?`background-image:url('${photoUrl}')`:`background:${cat.color}`}">${photoUrl?"":catIconSvg(cat.icon,32)}</div>
       <div class="wiz-intro-body">
@@ -2861,14 +3141,14 @@ function renderWizardResults(){
   }
   const scored = results.map(l=>({ l, pct: wizMatchScore(l) }));
   const tagLabels = assignWizLabels(scored);
-  $("wizResults").innerHTML = `<h3 style="margin:4px 0 12px;">מצאנו לך ${results.length} טיולים להיום 🎉</h3>${note}` +
+  $("wizResults").innerHTML = `<h3 style="margin:4px 0 12px;">מצאנו לך ${results.length} טיולים להיום</h3>${note}` +
     scored.map((s,i)=>{
       const l = s.l;
       const cat = CATEGORIES[l.category];
       const tag = tagLabels[i] ? `<div class="wiz-match-tag">${tagLabels[i]}</div>` : "";
       const pctChip = s.pct!=null ? `<div class="wiz-match-pct">${s.pct}% התאמה</div>` : "";
       return `<div class="mini-card wiz-result-card" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.name}">
-        <div class="mini-thumb" style="background:${cat.color};color:#fff">${catIconSvg(cat.icon,24)}</div>
+        <div class="mini-thumb">${photoFallbackHtml(l, 28)}</div>
         <div class="mini-info">${tag}<div class="name">${l.name}</div><div class="sub">${wizExplain(l)}</div>${pctChip}</div>
       </div>`;
     }).join("");
@@ -2898,7 +3178,7 @@ function assignWizLabels(scored){
   if(!n) return labels;
   let bestIdx = 0;
   for(let i=1;i<n;i++){ if((scored[i].pct??-1) > (scored[bestIdx].pct??-1)) bestIdx=i; }
-  labels[bestIdx] = "🎯 הכי מתאים";
+  labels[bestIdx] = uiIcon("points",13)+" הכי מתאים";
   if(n>1){
     let closestIdx = -1;
     if(wizState.loc){
@@ -2909,14 +3189,14 @@ function assignWizLabels(scored){
         if(d<minDist){ minDist=d; closestIdx=i; }
       });
     }
-    if(closestIdx>=0) labels[closestIdx] = "📍 הכי קרוב";
+    if(closestIdx>=0) labels[closestIdx] = uiIcon("region",13)+" הכי קרוב";
     let adventureIdx = -1, maxPts = -1;
     scored.forEach((s,i)=>{
       if(labels[i]) return;
       const pts = pointsForLandmark(s.l);
       if(pts>maxPts){ maxPts=pts; adventureIdx=i; }
     });
-    if(adventureIdx>=0) labels[adventureIdx] = "🧭 יותר הרפתקני";
+    if(adventureIdx>=0) labels[adventureIdx] = uiIcon("compass",13)+" יותר הרפתקני";
   }
   return labels;
 }
@@ -2950,6 +3230,8 @@ function initLeafletMap(){
   });
   let moveDebounce = null;
   leafletMap.on("moveend", ()=>{ clearTimeout(moveDebounce); moveDebounce = setTimeout(renderDiscoveryCarousel, 150); });
+  leafletMap.on("zoomend", syncPinLabels);
+  syncPinLabels();
   if(LANDMARKS.length){
     israelBounds = L.latLngBounds(LANDMARKS.map(l=>[l.lat,l.lon]));
     fitIsrael();
@@ -2957,6 +3239,15 @@ function initLeafletMap(){
   renderFogOfWar();
 }
 
+// שם ליד כל סיכה בכל רמות הזום הפך את המפה לקיר טקסט - בתצוגת "כל הארץ" התוויות
+// נחתכות זו בזו ומסתירות את הסיכות עצמן. מציגים אותן רק כשהזום מספיק קרוב כדי שהן
+// לא יתנגשו; הסיכה הנבחרת והסיכה שזה עתה בוצע בה צ'ק-אין מסומנות תמיד (CSS).
+const PIN_LABEL_MIN_ZOOM = 11;
+function syncPinLabels(){
+  if(!leafletMap) return;
+  const wrap = document.querySelector(".map-wrap");
+  if(wrap) wrap.classList.toggle("labels-on", leafletMap.getZoom() >= PIN_LABEL_MIN_ZOOM);
+}
 let previewId = null;
 let justCheckedInId = null;
 function openPreview(id){
@@ -2967,7 +3258,7 @@ function openPreview(id){
   const photoUrl = landmarkPhotos[id];
   $("destPreviewHero").innerHTML = photoUrl
     ? '<img src="'+photoUrl+'" alt="'+l.name+'">'
-    : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));display:flex;align-items:center;justify-content:center;">'+catIconSvg(cat.icon,34).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+    : photoFallbackHtml(l, 34);
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
   const previewTier = tierForDb(l.difficulty);
@@ -3040,6 +3331,32 @@ function syncMapControlsOffset(){
 function renderDiscoveryCarousel(){
   fillDiscoveryCarousel();
   syncMapControlsOffset();
+  if($("mapListSheet").classList.contains("open")) renderMapList();
+}
+// אותם יעדים שבקרוסלה, כרשימה מלאה. הקרוסלה היא ההצצה; זו התצוגה שאפשר לגלול בה.
+let discoveryList = [];
+function renderMapList(){
+  const el = $("mapListBody");
+  if(!el) return;
+  $("mapListTitle").textContent = discoveryList.length
+    ? discoveryList.length + " יעדים באזור המוצג"
+    : "אין יעדים באזור המוצג";
+  el.innerHTML = discoveryList.length
+    ? discoveryList.map(l=> placeCardHtml(l)).join("")
+    : emptyStateHtml({ icon: uiIcon("compass",26), title:"אין יעדים באזור המוצג",
+        sub:"הזיזו את המפה או הרחיבו את הסינון כדי לראות עוד." });
+  el.querySelectorAll(".mini-card").forEach(card=> card.onclick = ()=>{
+    closeMapList();
+    goToDestination(card.dataset.id);
+  });
+  wireMiniCardKeydown(el);
+}
+function openMapList(){
+  renderMapList();
+  openSheet("mapListSheet","mapListScrim", closeMapList);
+}
+function closeMapList(){
+  closeSheet("mapListSheet","mapListScrim");
 }
 function fillDiscoveryCarousel(){
   if(!leafletMap) return;
@@ -3054,8 +3371,12 @@ function fillDiscoveryCarousel(){
     .filter(l=> bounds.contains([l.lat,l.lon]))
     .sort((a,b)=> haversine(center.lat,center.lng,a.lat,a.lon) - haversine(center.lat,center.lng,b.lat,b.lon))
     .slice(0,30);
+  discoveryList = list;
+  const headText = $("discoveryHeadingText");
+  if(headText) headText.textContent = list.length ? list.length+" יעדים באזור המוצג" : "אין יעדים באזור המוצג";
   if(!list.length){
     el.innerHTML = '<div class="discovery-empty">אין יעדים באזור המוצג — נסו לזוז במפה או לרענן את הסינון.</div>';
+    syncScrollFade(el);
     return;
   }
   el.innerHTML = list.map(l=>{
@@ -3063,10 +3384,10 @@ function fillDiscoveryCarousel(){
     const photoUrl = landmarkPhotos[l.id];
     const thumb = photoUrl
       ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">'
-      : '<div style="background:linear-gradient(135deg, '+cat.color+', color-mix(in srgb, '+cat.color+' 60%, #000 15%));">'+catIconSvg(cat.icon,20).replace('<svg ','<svg style="color:#fff" ')+'</div>';
+      : photoFallbackHtml(l, 26);
     const tier = tierForDb(l.difficulty);
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
-      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts">+'+pointsForLandmark(l)+'</span></div>'
+      + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts"><bdi dir="ltr">+'+pointsForLandmark(l)+'</bdi></span></div>'
       + '<div class="discovery-card-name">'+l.name+'</div>'
       + '<div class="discovery-card-facts">'+uiIcon("difficulty",12)+tier.label+(l.duration?'<span class="dot-sep"></span>'+uiIcon("duration",12)+l.duration:"")+'</div>'
       + '</div>';
@@ -3081,6 +3402,7 @@ function fillDiscoveryCarousel(){
     card.onclick = go;
     card.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
   });
+  syncScrollFade(el);
 }
 
 function renderMapSidePanel(){
@@ -3100,7 +3422,7 @@ function renderMapSidePanel(){
         <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
       </div></div>
       <div class="lm-stats">
-        <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
+        <div class="lm-stat"><div class="v">${tierDotHtml(tierForDb(l.difficulty))}${tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
         ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
         ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
         <div class="lm-stat"><div class="v">${panelConquest ? '<span class="ltr">✓ '+panelConquest.xp_awarded.toLocaleString()+'</span>' : '<span class="ltr">+'+pointsForLandmark(l)+'</span>'}</div><div class="l">${panelConquest ? "נכבש" : effortClassFor(l).label}</div></div>
@@ -3146,6 +3468,7 @@ function wireStaticUI(){
   wireTripMode();
   wireAuthViews();
   initLeafletMap();
+  document.querySelectorAll(".scroll-fade").forEach(wireScrollFade);
   $("onboardingSkip").onclick = closeOnboarding;
   $("onboardingNext").onclick = ()=>{
     if(onboardingStep<2){ onboardingStep++; updateOnboardingStep(); } else { closeOnboarding(); }
@@ -3153,12 +3476,12 @@ function wireStaticUI(){
   $("zoomIn").onclick=()=> leafletMap.zoomIn();
   $("zoomOut").onclick=()=> leafletMap.zoomOut();
   $("zoomReset").onclick = fitIsrael;
-  // Gamification Overhaul, Phase 4 - מקרא-קושי: תוכן סטטי מ-DIFF_TIERS (טקסט+אימוג'י-צבעוני,
-  // לא צבע-בלבד), נבנה פעם אחת. נסגר אוטומטית עם closePreview (אותה קריאה שכבר קיימת על
-  // לחיצה על המפה) כדי לא להישאר פתוח ולחסום תוך כדי שימוש רגיל במפה.
+  // Gamification Overhaul, Phase 4 - מקרא-קושי: תוכן סטטי מ-DIFF_TIERS (טקסט+נקודת-צבע
+  // אמיתית, לא אימוג'י ולא צבע-בלבד), נבנה פעם אחת. נסגר אוטומטית עם closePreview (אותה
+  // קריאה שכבר קיימת על לחיצה על המפה) כדי לא להישאר פתוח ולחסום תוך כדי שימוש רגיל במפה.
   $("diffLegendPopover").innerHTML =
     '<div class="legend-title">צבע הסיכה — רמת קושי</div>'
-    + DIFF_TIERS.map(t=>`<div class="diff-legend-row">${t.emoji} ${t.label}</div>`).join("")
+    + DIFF_TIERS.map(t=>`<div class="diff-legend-row">${tierDotHtml(t)} ${t.label}</div>`).join("")
     + '<div class="legend-title legend-title-gap">ניקוד — לפי המאמץ</div>'
     + Object.values(EFFORT_TIERS).map(t=>
         `<div class="diff-legend-row"><span class="legend-pts">+${t.xp}</span> ${t.label} <span class="legend-hint">${t.hint}</span></div>`
@@ -3212,8 +3535,16 @@ function wireStaticUI(){
   };
   wireSingleSelectChips("durationChips", "duration");
   wireSingleSelectChips("seasonChips", "season");
+  // אותם אייקונים בדיוק כמו amenityChips() בדף הפרטים (לא אימוג'י בכפתור סינון
+  // ואייקון-קו בכרטיס - שני עיצובים לאותו מושג).
+  const AMENITY_FILTER_CHIPS = [
+    ["family","family","מתאים למשפחות"], ["dog","dog","אפשר עם כלב"], ["water","water","יש מים"],
+    ["accessible","wheelchair","נגיש"], ["free",null,"חינם"],
+  ];
+  $("amenityChips").innerHTML = AMENITY_FILTER_CHIPS.map(([id,icon,label])=>
+    '<button class="chip" data-id="'+id+'">'+(icon?uiIcon(icon,14):"")+label+'</button>').join("");
   wireBooleanChips("amenityChips", { family:"family", dog:"dog", water:"water", accessible:"accessible", free:"free" });
-  document.querySelectorAll("#quickChipRow .quick-chip").forEach(chip=>{
+  document.querySelectorAll(".quick-chip-row .quick-chip").forEach(chip=>{
     chip.onclick = ()=>{
       const key = chip.dataset.quick;
       if(key==="near"){
@@ -3227,8 +3558,14 @@ function wireStaticUI(){
       else if(key==="accessible") filters.accessible = !filters.accessible;
       else if(key==="free") filters.free = !filters.free;
       renderMap(); syncFilterUI(); syncQuickChips();
+      // אותה שורת-צ'יפים קיימת גם במסך הבית: שם הכוונה היא "תראה לי את אלה", אז עוברים
+      // למפה עם הסינון שכבר הוחל (במפה עצמה נשארים במקום).
+      if(!location.hash || location.hash==="#/home") navigate("#/map");
     };
   });
+  $("openMapList").onclick = openMapList;
+  $("closeMapList").onclick = closeMapList;
+  $("mapListScrim").onclick = closeMapList;
   $("shareMapBtn").onclick = ()=> shareMyMap();
   Object.entries(DIFF_CHIPS_DICT).forEach(([id,d])=>{
     const chip = document.createElement("button");
@@ -3253,7 +3590,7 @@ function wireStaticUI(){
   $("wizDistRange").oninput = e=>{ wizState.maxDist = Number(e.target.value); $("wizDistVal").textContent = wizState.maxDist>=400?"ללא הגבלה":wizState.maxDist+' ק"מ'; };
   $("wizLocateBtn").onclick = ()=>{
     if(!navigator.geolocation){ toast("המכשיר לא תומך באיתור מיקום"); return; }
-    $("wizLocStatus").innerHTML = '<span class="ic">📡</span> מאתר מיקום...';
+    $("wizLocStatus").innerHTML = '<span class="ic">'+uiIcon("compass",19)+'</span> מאתר מיקום...';
     locateUser(()=>{
       wizState.loc = userLoc;
       $("wizLocStatus").className = "checkin-status ok";
@@ -3320,6 +3657,9 @@ function wireStaticUI(){
   $("settingsScrim").onclick = ()=> closeSheet("settingsSheet","settingsScrim");
   $("closeCheckinSheet").onclick = ()=> closeSheet("checkinSheet","checkinScrim");
   $("checkinScrim").onclick = ()=> closeSheet("checkinSheet","checkinScrim");
+  $("closeReviewSheet").onclick = ()=> closeSheet("reviewSheet","reviewScrim");
+  $("reviewScrim").onclick = ()=> closeSheet("reviewSheet","reviewScrim");
+  $("saveReviewBtn").onclick = ()=> saveReview();
   $("closeReportSheet").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportScrim").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportSubmitBtn").onclick = async ()=>{
@@ -3411,12 +3751,26 @@ function wireStaticUI(){
       deferredInstallPrompt = null;
       updateSettingsInstallRow();
     } else if(isIOSSafariNotStandalone()){
-      toast('הקישו על שיתוף ⬆️ ואז "הוסף למסך הבית"');
+      toast('הקישו על כפתור השיתוף ואז "הוסף למסך הבית"');
     }
   };
   $("notifBellBtn").onclick = ()=> navigate("#/notifications");
   $("notificationsCloseBtn").onclick = goBack;
   $("openSearchBtn").onclick = openSearchSheet;
+  $("homeSearchBtn").onclick = openSearchSheet;
+  // מכשיר בלי Vibration API (כל ה-iPhone, למשל) - מציגים מצב אמיתי במקום מתג שלא עושה כלום
+  const hapticsToggle = $("hapticsToggle");
+  if(!navigator.vibrate){
+    hapticsToggle.checked = false;
+    hapticsToggle.disabled = true;
+    $("hapticsStatusText").textContent = "המכשיר הזה לא תומך ברטט מתוך הדפדפן.";
+  } else {
+    hapticsToggle.checked = hapticsEnabled();
+    hapticsToggle.onchange = ()=>{
+      setHapticsEnabled(hapticsToggle.checked);
+      if(hapticsToggle.checked) haptic("success");
+    };
+  }
   $("closeSearchSheet").onclick = ()=> closeSheet("searchSheet","searchScrim");
   $("searchScrim").onclick = ()=> closeSheet("searchSheet","searchScrim");
   let searchInputDebounce = null;
@@ -3568,7 +3922,7 @@ function wireBooleanChips(containerId, keyMap){
   });
 }
 function syncQuickChips(){
-  document.querySelectorAll("#quickChipRow .quick-chip").forEach(chip=>{
+  document.querySelectorAll(".quick-chip-row .quick-chip").forEach(chip=>{
     const key = chip.dataset.quick;
     let active = false;
     if(key==="near") active = filters.maxDist<400;
@@ -3734,14 +4088,17 @@ function setSheetSnap(sheetEl, name){
 let activeCheckinPhoto = null, demoMode = false;
 let reportState = { water:null, crowding:null, parking:null };
 const SEASON_LABEL = { spring:"אביב", summer:"קיץ", autumn:"סתיו", winter:"חורף" };
+// אייקון+טקסט (לא אימוג'י) לכל "חשוב לדעת" - אותם UI_ICON_PATHS שכבר משמשים בשאר
+// האפליקציה. "בתשלום/חינם" ו"עונה מומלצת" נשארים טקסט-בלבד בכוונה: לא לכל תג צריך
+// אייקון, וסמל-שקל/לוח-שנה גנרי לא מוסיף מידע שהמילה עצמה לא כבר נותנת.
 function amenityChips(l){
   const chips = [];
-  if(l.familyFriendly) chips.push("👪 מתאים למשפחות");
-  if(l.dogFriendly) chips.push("🐕 אפשר עם כלב");
-  if(l.hasWater) chips.push("💧 יש מים");
-  if(l.accessible) chips.push("♿ נגיש");
-  if(l.priceType==="paid") chips.push("💰 בתשלום"); else chips.push("🆓 חינם");
-  if(l.season) chips.push("🗓 עונה מומלצת: "+SEASON_LABEL[l.season]);
+  if(l.familyFriendly) chips.push(uiIcon("family",14)+" מתאים למשפחות");
+  if(l.dogFriendly) chips.push(uiIcon("dog",14)+" אפשר עם כלב");
+  if(l.hasWater) chips.push(uiIcon("water",14)+" יש מים");
+  if(l.accessible) chips.push(uiIcon("wheelchair",14)+" נגיש");
+  chips.push(l.priceType==="paid" ? "בתשלום" : "חינם");
+  if(l.season) chips.push("עונה מומלצת: "+SEASON_LABEL[l.season]);
   return chips;
 }
 let pendingWishlistRemovals = {};
@@ -3794,41 +4151,54 @@ function openDetail(id){
   const amenities = amenityChips(l);
   const photoUrl = landmarkPhotos[id];
   $("detailBody").innerHTML = `
-    <div class="lm-hero${photoUrl?" has-photo":""}"${photoUrl?"":` style="background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))"`}>
-      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}" loading="eager">` : catIconSvg(cat.icon,110).replace('<svg ','<svg style="color:#fff" ')}
+    <div class="lm-hero${photoUrl?" has-photo":""}">
+      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}" loading="eager">` : photoFallbackHtml(l, 84)}
       <span class="badge-count">${totalVisits.toLocaleString()} כובשים</span>
       ${photoUrl && photoUrl===l.stockPhotoUrl && l.stockPhotoCredit ? `<span class="lm-photo-credit">${escapeHtml(l.stockPhotoCredit)}</span>` : ""}
     </div>
     <div class="lm-title-row"><div><h2>${l.name}</h2>
       <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
-      ${userLoc ? `<div class="lm-from-you">📍 ${Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} ק"מ ממך · כ-${estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} דק׳ נסיעה (משוער)</div>` : ""}
+      ${userLoc ? `<div class="lm-from-you">${uiIcon("region",13)} ${Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} ק"מ ממך · כ-${estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} דק׳ נסיעה (משוער)</div>` : ""}
     </div></div>
     <p class="lm-desc" data-stage="mid">${l.desc}</p>
     <div class="lm-stats" data-stage="mid">
-      <div class="lm-stat"><div class="v">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
+      <div class="lm-stat"><div class="v">${tierDotHtml(tierForDb(l.difficulty))}${tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
       ${l.duration ? `<div class="lm-stat"><div class="v">${l.duration}</div><div class="l">זמן משוער</div></div>` : ""}
       ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
       <div class="lm-stat"><div class="v">${conquestEntry ? '<span class="ltr">✓ '+conquestEntry.xp_awarded.toLocaleString()+'</span>' : '<span class="ltr">+'+pointsForLandmark(l)+'</span>'}</div><div class="l">${conquestEntry ? "נכבש" : effortClassFor(l).label}</div></div>
     </div>
-    <div class="lm-important-head" data-stage="full">⚠️ חשוב לדעת לפני שיוצאים</div>
+    <div class="lm-important-head" data-stage="full">${uiIcon("warning",15)} חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
-    ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
+    ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>
+    ${visitedEntry.pending ? "" : `<button type="button" class="lm-review-link" id="detailReviewBtn">${uiIcon("camera",14)} ${visitedEntry.photo_url||visitedEntry.note ? "עריכת התמונה והביקורת שלכם" : "הוספת תמונה וביקורת"}</button>`}` : ""}
     <div class="lm-actions">
       <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
       <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       </button>
       <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
-      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":"🏆 כבשתי"}</button>
+      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":uiIcon("trophy",16)+" כבשתי"}</button>
     </div>
-    ${visitedEntry ? "" : `<button class="btn btn-secondary btn-block" id="startTripBtn" style="margin-top:var(--space-2);">יוצאים לדרך</button>`}
-    <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
+    <div class="detail-cta">
+      ${visitedEntry
+        ? `<button class="btn btn-secondary btn-block" id="detailNavBtn">נווטו למקום</button>`
+        : `<button class="btn btn-secondary btn-block" id="startTripBtn">יוצאים לדרך</button>`}
+    </div>
+    <button type="button" id="reportPlaceInfoBtn" data-stage="full" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:13.5px;text-decoration:underline;cursor:pointer;">מצאת מידע לא נכון? דווח על טעות</button>
   `;
   wireWazeButton($("detailWazeBtn"), l);
   const startTripBtn = $("startTripBtn");
   if(startTripBtn) startTripBtn.onclick = ()=> startTrip(l.id);
+  // ליעד שכבר נכבש אין "יוצאים לדרך" - שם ה-CTA הדביק הוא ניווט. אותה פעולה בדיוק כמו
+  // כפתור-האייקון למעלה, אבל בלי wireWazeButton שדורס את התווית באייקון בלבד.
+  const detailNavBtn = $("detailNavBtn");
+  if(detailNavBtn) detailNavBtn.onclick = (e)=>{
+    e.stopPropagation();
+    track("navigation_started", { landmark_id: l.id });
+    openWazeNavigation(l.lat, l.lon, l.name);
+  };
   $("detailShareBtn").onclick = ()=>{
     const url = `${location.origin}${location.pathname}#/destination/${encodeURIComponent(id)}`;
     shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים!`);
@@ -3855,18 +4225,24 @@ function openDetail(id){
     if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם", ()=>startCheckin(l))) return;
     startCheckin(l);
   };
+  const reviewBtn = $("detailReviewBtn");
+  if(reviewBtn) reviewBtn.onclick = ()=> openReviewSheet(l, visitedEntry);
   setSheetSnap($("detailSheet"), "mid");
   openSheet("detailSheet","detailScrim");
   track("destination_viewed", { landmark_id: id, points: pointsForLandmark(l) });
   renderFieldReports(id, l);
 }
 
+// אייקון אחד לכל קטגוריה (לא לכל ערך בתוכה) - בדיוק כמו amenityChips. קודם היו אימוג'ים
+// על כל ערך שגם שימשו בפועל כתחליף-לכותרת-הקבוצה (המשתמש היה מזהה "זו שורת החניה"
+// לפי ה-🅿️, לא לפי טקסט) - עכשיו הכותרת עצמה נושאת את האייקון, והערכים טקסט נקי.
 const FIELD_REPORT_LABELS = {
-  water: { flowing:"💧 יש מים", low:"💧 מעט מים", dry:"🏜️ יבש" },
-  crowding: { quiet:"🙂 שקט", moderate:"🙂 בינוני", crowded:"😅 עמוס" },
-  parking: { available:"🅿️ יש מקום", limited:"🅿️ מוגבל", full:"🅿️ מלא" },
+  water: { flowing:"יש מים", low:"מעט מים", dry:"יבש" },
+  crowding: { quiet:"שקט", moderate:"בינוני", crowded:"עמוס" },
+  parking: { available:"יש מקום", limited:"מוגבל", full:"מלא" },
 };
 const FIELD_REPORT_TITLES = { water:"מצב מים", crowding:"עומס", parking:"חניה" };
+const FIELD_REPORT_ICONS = { water:"water", crowding:"family", parking:"car" };
 async function renderFieldReports(id, l){
   const box = $("fieldReportsBox");
   if(!box) return;
@@ -3882,13 +4258,13 @@ async function renderFieldReports(id, l){
     }
     const keys = Object.keys(latest);
     if(!keys.length){ box.innerHTML = ""; return; }
-    box.innerHTML = `<div class="field-reports"><div class="field-reports-title">📋 דיווחים מהשטח</div>` +
+    box.innerHTML = `<div class="field-reports"><div class="field-reports-title">דיווחים מהשטח</div>` +
       keys.map(key=>{
         const r = latest[key];
         const ageDays = (Date.now()-new Date(r.at).getTime())/86400000;
         const stale = ageDays>14;
         return `<div class="field-report-row${stale?" stale":""}">
-          <span>${FIELD_REPORT_TITLES[key]}: ${FIELD_REPORT_LABELS[key][r.val]}</span>
+          <span>${uiIcon(FIELD_REPORT_ICONS[key],13)} ${FIELD_REPORT_TITLES[key]}: ${FIELD_REPORT_LABELS[key][r.val]}</span>
           <span class="field-report-time">${timeAgo(r.at)}${stale?" · ייתכן שהמצב השתנה":""}</span>
         </div>`;
       }).join("") + `</div>`;
@@ -3897,19 +4273,16 @@ async function renderFieldReports(id, l){
   }
 }
 
-const FIELD_REPORT_OPTIONS = {
-  water: [ ["flowing","💧 יש מים"], ["low","💧 מעט מים"], ["dry","🏜️ יבש"] ],
-  crowding: [ ["quiet","🙂 שקט"], ["moderate","🙂 בינוני"], ["crowded","😅 עמוס"] ],
-  parking: [ ["available","🅿️ יש מקום"], ["limited","🅿️ מוגבל"], ["full","🅿️ מלא"] ],
-};
 function fieldReportChips(l){
   const groups = [];
   if(l.hasWater || l.category==="water") groups.push("water");
   groups.push("crowding","parking");
   return `<label class="field-label" style="margin-top:10px;">איך המצב בשטח עכשיו? (אופציונלי)</label>` +
-    groups.map(key=>`<div class="chip-row report-chip-row" id="report_${key}" style="margin-top:6px;">` +
-      FIELD_REPORT_OPTIONS[key].map(([val,label])=>`<button type="button" class="chip teal" data-report="${key}" data-val="${val}">${label}</button>`).join("") +
-      `</div>`).join("");
+    groups.map(key=>`<div class="report-group">
+      <div class="report-group-title">${uiIcon(FIELD_REPORT_ICONS[key],13)} ${FIELD_REPORT_TITLES[key]}</div>
+      <div class="chip-row report-chip-row" id="report_${key}">` +
+      Object.entries(FIELD_REPORT_LABELS[key]).map(([val,label])=>`<button type="button" class="chip teal" data-report="${key}" data-val="${val}">${label}</button>`).join("") +
+      `</div></div>`).join("");
 }
 function wireFieldReportChips(){
   document.querySelectorAll(".report-chip-row .chip").forEach(chip=>{
@@ -3929,18 +4302,18 @@ function startCheckin(l){
   activeCheckinPhoto = null;
   reportState = { water:null, crowding:null, parking:null };
   $("checkinFlow").innerHTML = `
-    <div class="checkin-status" id="gpsStatus"><span class="ic">📡</span> מאתר מיקום GPS...</div>
+    <div class="checkin-status" id="gpsStatus"><span class="ic">${uiIcon("compass",19)}</span> מאתר מיקום GPS...</div>
     <div id="photoStep" class="hidden">
-      <button class="btn btn-primary btn-block" id="confirmCheckin">🏆 אשר צ'ק-אין וקבל נקודות</button>
+      <button class="btn btn-primary btn-block" id="confirmCheckin">${uiIcon("trophy",16)} אשר צ'ק-אין וקבל נקודות</button>
       <div class="checkin-extras-divider">תוספות אופציונליות (לא נדרש כדי לקבל נקודות)</div>
-      <div class="photo-drop" id="photoDrop">📷 הוסיפו תמונה מהמקום (אופציונלי)</div>
+      <div class="photo-drop" id="photoDrop">${uiIcon("camera",17)} הוסיפו תמונה מהמקום (אופציונלי)</div>
       <input type="file" accept="image/*" capture="environment" id="photoInput">
       <img class="photo-preview hidden" id="photoPreview">
       <label class="field-label" style="margin-top:6px;">הערה קצרה לחברים (אופציונלי)</label>
       <input class="text-input" id="checkinNote" maxlength="120" placeholder="לדוגמה: יש מים עכשיו, המסלול מעולה!">
       ${fieldReportChips(l)}
     </div>
-    <button type="button" id="checkinReportProblemBtn" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:12px;text-decoration:underline;cursor:pointer;">נתקלתם בבעיה באפליקציה? דווחו לנו</button>`;
+    <button type="button" id="checkinReportProblemBtn" style="display:block;margin:16px auto 4px;background:none;border:none;color:var(--text-muted);font-size:13.5px;text-decoration:underline;cursor:pointer;">נתקלתם בבעיה באפליקציה? דווחו לנו</button>`;
   $("checkinReportProblemBtn").onclick = ()=>{
     closeSheet("checkinSheet","checkinScrim");
     navigate("#/help");
@@ -4034,6 +4407,10 @@ async function grantConquestAndBonuses(l){
     }
   };
 
+  // אתגר השבוע: אותו מנגנון-בונוס הקיים, עם מפתח-שבוע כ-source_id - כך שהפרס ניתן
+  // פעם אחת בשבוע לכל היותר, גם אם כובשים כמה מקומות שעונים על האתגר.
+  const weekly = currentWeeklyChallenge();
+  if(weekly.match(l)) await grantBonus("weekly_challenge", currentWeekKey(), WEEKLY_CHALLENGE_XP, "אתגר השבוע הושלם!");
   if(prevConquests.length===0) await grantBonus("first_destination", "", 10, "יעד ראשון!");
   const hadRegionBefore = prevConquests.some(c=> lmById[c.landmark_id] && lmById[c.landmark_id].region===l.region);
   if(!hadRegionBefore) await grantBonus("new_region", l.region, 5, "אזור חדש!");
@@ -4135,31 +4512,37 @@ async function confirmCheckin(l){
     // utility functions שכבר משמשים את הפרופיל - לא לוגיקה נפרדת).
     const lvlProgress = getCurrentLevelProgress(newTotalXP);
     const levelField = {
-      levelLabel: lvlProgress.level.icon+" רמה "+(lvlProgress.index+1)+" — "+lvlProgress.level.name,
+      levelLabel: stampGlyph(levelGlyphName(lvlProgress.index),15)+" רמה "+(lvlProgress.index+1)+" — "+lvlProgress.level.name,
       current: lvlProgress.xpIntoLevel, total: lvlProgress.xpForLevel,
       pct: getLevelProgressPercentage(newTotalXP), isMax: lvlProgress.isMax,
-      hint: lvlProgress.isMax ? "🎉 הגעתם לרמה הגבוהה ביותר!" : "עוד "+getXPToNextLevel(newTotalXP).toLocaleString()+" נקודות לרמה הבאה",
+      hint: lvlProgress.isMax ? stampGlyph("trophy",13)+" הגעתם לרמה הגבוהה ביותר!" : "עוד "+getXPToNextLevel(newTotalXP).toLocaleString()+" נקודות לרמה הבאה",
     };
     const steps = [{
       photoUrl: photoUrl || landmarkPhotos[l.id] || null,
-      title: "🏆 עוד מקום נכבש!",
+      title: "עוד מקום נכבש!",
       subtitle: l.name,
-      tag: tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label,
+      tag: tierDotHtml(tierForDb(l.difficulty))+tierForDb(l.difficulty).label,
       xp: grant.baseXP,
       sub: bonusLines.length ? bonusLines.join(" · ") : null,
       totalLine: grant.bonuses.length ? "סה\"כ +"+grant.totalGranted.toLocaleString()+" נקודות" : null,
       region: regionInfo,
       progress: levelField,
       confetti: true,
+      haptic: "success",
     }];
-    newBadges.forEach(b=> steps.push({ emoji:"🏅", title:"תג חדש נפתח — "+b.icon+" "+b.label, confetti:false }));
+    newBadges.forEach(b=> steps.push({
+      stampId: b.id, metal: badgeMetal(b.id),
+      title: "חותמת חדשה", subtitle: b.label,
+      confetti: false, haptic: "milestone",
+    }));
     if(leveledUpTo){
       steps.push({
-        emoji: leveledUpTo.icon,
-        title: "🎉 עליתם רמה!",
+        levelIndex: newLevelIndex,
+        title: "עליתם רמה!",
         subtitle: "רמה "+(newLevelIndex+1),
-        tag: leveledUpTo.icon+" "+leveledUpTo.name,
+        tag: leveledUpTo.name,
         confetti: true,
+        haptic: "milestone",
       });
     }
     // Next Adventure - הצעת המשך מיידית מהיעד שזה עתה נכבש, לא מהמיקום החי (עובד גם ב-demo mode)
@@ -4184,7 +4567,7 @@ async function confirmCheckin(l){
     if(nextStep){
       const np = nextStep.place;
       steps.push({
-        emoji:"🌳",
+        icon:"compass",
         title: nextStep.title,
         sub: nextStep.sub,
         actions: [
@@ -4205,6 +4588,77 @@ async function confirmCheckin(l){
     toast("שגיאה בשמירת הצ'ק-אין: "+(err.message||err));
   }finally{
     if(btn){ btn.disabled=false; btn.textContent="אשר צ'ק-אין"; }
+  }
+}
+
+// תמונה+ביקורת אחרי כיבוש (לא רק בזמן ה-checkin עצמו) - אותו רכיב-תמונה/עיבוד בדיוק כמו
+// ב-startCheckin (input+FileReader+canvas-resize ל-320px/jpeg 0.7), רק שכאן זו עריכה ל-
+// שורת visits קיימת (update) ולא יצירה חדשה (insert) - אין GPS/נקודות/חגיגה, זו רק
+// מטא-דאטה. reviewSheet נפתח מ-openDetail כשיש visitedEntry.
+let activeReviewPhoto = null, reviewTargetLandmark = null, reviewTargetVisit = null;
+function openReviewSheet(l, visitedEntry){
+  reviewTargetLandmark = l; reviewTargetVisit = visitedEntry; activeReviewPhoto = null;
+  $("reviewSheetTitle").textContent = l.name;
+  $("reviewNoteText").value = visitedEntry.note || "";
+  const drop = $("reviewPhotoDrop"), preview = $("reviewPhotoPreview");
+  if(visitedEntry.photo_url){
+    preview.src = visitedEntry.photo_url; preview.classList.remove("hidden");
+    drop.innerHTML = uiIcon("camera",17)+" החליפו תמונה"; drop.classList.remove("hidden");
+  } else {
+    preview.classList.add("hidden");
+    drop.innerHTML = uiIcon("camera",17)+" הוסיפו תמונה מהמקום"; drop.classList.remove("hidden");
+  }
+  $("saveReviewBtn").disabled = false; $("saveReviewBtn").textContent = "שמירה";
+  openSheet("reviewSheet","reviewScrim");
+  drop.onclick = ()=> $("reviewPhotoInput").click();
+  $("reviewPhotoInput").value = "";
+  $("reviewPhotoInput").onchange = e=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW=320, scale=Math.min(1,maxW/img.width);
+        const c = document.createElement("canvas");
+        c.width = img.width*scale; c.height = img.height*scale;
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        c.toBlob(blob=>{
+          activeReviewPhoto = { blob, dataUrl: c.toDataURL("image/jpeg",0.7) };
+          preview.src = activeReviewPhoto.dataUrl;
+          preview.classList.remove("hidden");
+          drop.innerHTML = uiIcon("camera",17)+" החליפו תמונה";
+        }, "image/jpeg", 0.7);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+}
+async function saveReview(){
+  const l = reviewTargetLandmark, visitedEntry = reviewTargetVisit;
+  if(!l || !visitedEntry) return;
+  const btn = $("saveReviewBtn"); btn.disabled = true; btn.textContent = "שומר...";
+  try{
+    let photoUrl = visitedEntry.photo_url || null;
+    if(activeReviewPhoto){
+      const path = `${session.user.id}/${l.id}-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, activeReviewPhoto.blob, { contentType:"image/jpeg" });
+      if(upErr) throw upErr;
+      photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
+    }
+    const note = ($("reviewNoteText").value || "").trim().slice(0,300) || null;
+    const { error } = await supabase.from("visits").update({ photo_url: photoUrl, note }).eq("id", visitedEntry.id);
+    if(error) throw error;
+    visitedEntry.photo_url = photoUrl; visitedEntry.note = note;
+    if(photoUrl) landmarkPhotos[l.id] = photoUrl;
+    closeSheet("reviewSheet","reviewScrim");
+    toast("הביקורת נשמרה, תודה!");
+    renderProfile(); renderFeed();
+  }catch(err){
+    console.error(err);
+    toast("שגיאה בשמירת הביקורת: "+(err.message||err));
+  }finally{
+    btn.disabled = false; btn.textContent = "שמירה";
   }
 }
 
@@ -4246,6 +4700,11 @@ function checkNewBadges(){
   const now = unlockedBadges();
   const newOnes = now.filter(b=>!prevBadgeSet.has(b.id));
   prevBadgeSet = new Set(now.map(b=>b.id));
+  // מסומנות כ"חדשות" עד הפעם הראשונה שמסך-החותמות מצייר אותן (renderAchievementsPanel
+  // מנקה את הסט), כדי שאנימציית ההטבעה תרוץ כשרואים אותן - לא בזמן שהמסך סגור.
+  newOnes.forEach(b=> freshStamps.add(b.id));
+  // התאריך מגיע מה-DB רק בטעינה הבאה; בינתיים מציגים את הזמן האמיתי של עכשיו
+  newOnes.forEach(b=>{ if(!myBadgeDates[b.id]) myBadgeDates[b.id] = new Date().toISOString(); });
   return newOnes;
 }
 function isoWeekKey(d){
@@ -4281,6 +4740,13 @@ async function loadMyConquestsAndBonuses(){
     if(error) throw error;
     myBonusGrants = data || [];
   }catch(err){ myBonusGrants = []; }
+  // תאריכי-הזכייה בחותמות. הנעילה עצמה מחושבת תמיד מ-myVisits (unlockedBadges), אז אם
+  // הטבלה חסרה החותמות עדיין נכונות - רק בלי תאריך ובלי "הושגו לאחרונה".
+  try{
+    const { data, error } = await supabase.from("user_badges").select("badge_id,unlocked_at").eq("user_id", session.user.id);
+    if(error) throw error;
+    myBadgeDates = Object.fromEntries((data||[]).map(r=>[r.badge_id, r.unlocked_at]));
+  }catch(err){ myBadgeDates = {}; }
 }
 function totalXP(){
   return myConquests.reduce((s,c)=>s+(c.xp_awarded||0),0) + myBonusGrants.reduce((s,b)=>s+(b.xp_awarded||0),0);
@@ -4374,11 +4840,15 @@ function drawPersonalMap(canvas){
 // Gamification Overhaul, Phase 6 - שם אבן-הדרך הנוכחית באזור, לפי 25/50/75/100% (מפרש
 // נפרד מ-3 דרגות-התג הקיימות ב-BADGES, שם 25/60/100 - כדי לא לבלבל בין "תג שנפתח" לבין
 // "תווית-התקדמות בפרופיל", ראו plan). null אם עוד לא הגיעו ל-25%.
+// אותה שפת-חותמות בדיוק כמו region tier badges (regionTierBadges) - גליף+צבע-דרגה,
+// לא אימוג'י. שני הצרכנים (שורת התקדמות-אזור ושורת-בונוס בחגיגת ה-Check-in) מציגים
+// HTML, אז מותר להטביע כאן span צבוע במקום טקסט בלבד.
 function regionMilestoneLabel(pct, r){
-  if(pct>=100) return "🏆 אלוף "+REGION_THE[r];
-  if(pct>=75) return "🥇 מומחה "+REGION_THE[r];
-  if(pct>=50) return "🥈 חוקר "+REGION_THE[r];
-  if(pct>=25) return "🥉 מגלה "+REGION_THE[r];
+  const metalIcon = m=>'<span class="milestone-ic" style="color:var(--metal-'+m+')">'+stampGlyph("seal",13)+'</span>';
+  if(pct>=100) return uiIcon("trophy",13)+" אלוף "+REGION_THE[r];
+  if(pct>=75) return metalIcon("gold")+" מומחה "+REGION_THE[r];
+  if(pct>=50) return metalIcon("silver")+" חוקר "+REGION_THE[r];
+  if(pct>=25) return metalIcon("bronze")+" מגלה "+REGION_THE[r];
   return null;
 }
 function renderRegionProgress(){
@@ -4407,9 +4877,9 @@ function renderPlaceListSheet(title, list, subtitle){
     if(visitedIds.has(l.id)){
       const photoUrl = landmarkPhotos[l.id];
       const thumb = photoUrl ? `<img src="${photoUrl}" loading="lazy" decoding="async" alt="${l.name}">` : catIconSvg(cat.icon,20);
-      return `<div class="region-place-row visited" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
+      return `<div class="region-place-row visited" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${tierDotHtml(tierForDb(l.difficulty))}${tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
     }
-    return `<div class="region-place-row locked"><div class="thumb mystery">?</div><div class="info"><div class="name">מקום שעוד לא גילית</div><div class="sub">${tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
+    return `<div class="region-place-row locked"><div class="thumb mystery">?</div><div class="info"><div class="name">מקום שעוד לא גילית</div><div class="sub">${tierDotHtml(tierForDb(l.difficulty))}${tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
   }).join("");
   $("regionSheetBody").querySelectorAll("[data-goto]").forEach(elm=>{
     const go = ()=>{ closeSheet("regionSheet","regionScrim"); goToDestination(elm.dataset.goto); };
@@ -4442,7 +4912,7 @@ function renderCollections(){
       ? "הושלם!"
       : (r.done===0 ? `${r.total} מקומות באוסף` : `נשאר${r.left===1?"" : "ו"} <b>${r.left===1?"מקום אחד":r.left+" מקומות"}</b> להשלמה`);
     return `<div class="collection-card${r.left===0?" done":""}" data-id="${r.c.id}" role="button" tabindex="0">
-      <div class="collection-icon">${r.c.icon}</div>
+      <div class="collection-icon">${collectionIconHtml(r.c, 22)}</div>
       <div class="collection-body">
         <div class="collection-title">${r.c.label}</div>
         <div class="collection-left">${left}</div>
@@ -4498,7 +4968,9 @@ function openCollectionSheet(id){
   const { done, total } = collectionProgress(c);
   track("collection_progressed", { collection: id, done, total });
   const subtitle = (c.description||"")+"  ·  "+done+"/"+total+" הושלמו";
-  renderPlaceListSheet(c.icon+" "+c.label, collectionLandmarks(c), subtitle);
+  // הכותרת מוצגת כ-textContent (לא innerHTML) - כמו openRegionSheet, בלי אייקון בכותרת
+  // עצמה; האייקון כבר מופיע על כרטיס האוסף שהוביל לכאן.
+  renderPlaceListSheet(c.label, collectionLandmarks(c), subtitle);
 }
 async function generateShareCard(){
   const W=1080, H=1600;
@@ -4549,7 +5021,7 @@ async function shareMyMap(){
   }catch(err){
     if(err.name!=="AbortError"){ console.error(err); toast("לא הצלחנו להכין את התמונה לשיתוף"); }
   }finally{
-    if(btn){ btn.disabled=false; btn.textContent="📤 שתף את המפה שלי"; }
+    if(btn){ btn.disabled=false; btn.textContent="שתף את המפה שלי"; }
   }
 }
 
@@ -4584,13 +5056,13 @@ function wishlistContextLines(l){
   const lines = [];
   if(userLoc){
     const km = haversine(userLoc.lat,userLoc.lon,l.lat,l.lon);
-    lines.push("📍 כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך");
+    lines.push(uiIcon("region",13)+" כ-"+estimateDriveMinutes(km)+" דק' נסיעה ממך");
   }
   const friendCount = wishlistFriendVisits[l.id] || 0;
   if(friendCount>0){
-    lines.push("👥 "+friendCount+" "+(friendCount===1?"חבר/ה ביקר/ה":"חברים ביקרו")+" כאן");
+    lines.push(uiIcon("family",13)+" "+friendCount+" "+(friendCount===1?"חבר/ה ביקר/ה":"חברים ביקרו")+" כאן");
   } else if(l.season && l.season===currentSeasonKey()){
-    lines.push("🌸 עונה מומלצת לביקור עכשיו");
+    lines.push(uiIcon("leaf",13)+" עונה מומלצת לביקור עכשיו");
   }
   return lines.slice(0,2);
 }
@@ -4739,7 +5211,7 @@ function renderSearchResults(query){
     el.innerHTML = '<div class="empty-state">לא מצאנו יעדים תואמים.</div>';
     return;
   }
-  el.innerHTML = results.map(l=> searchMiniCardHtml(l, REGIONS[l.region]+" · "+tierForDb(l.difficulty).emoji+" "+tierForDb(l.difficulty).label)).join("");
+  el.innerHTML = results.map(l=> searchMiniCardHtml(l, REGIONS[l.region]+" · "+tierDotHtml(tierForDb(l.difficulty))+tierForDb(l.difficulty).label)).join("");
   el.querySelectorAll(".mini-card").forEach(card=> card.onclick = ()=>{
     addRecentSearch(query);
     closeSheet("searchSheet","searchScrim");
@@ -4766,15 +5238,17 @@ function renderProfile(){
   const progress = getCurrentLevelProgress(xp);
   const level = progress.level;
   $("avatarLetter").innerHTML = myProfile.avatar_url ? `<img src="${myProfile.avatar_url}" alt="">` : (myProfile.name.trim().charAt(0) || "א");
-  $("avatarLevelBadge").textContent = level.icon;
+  $("avatarLevelBadge").innerHTML = stampGlyph(levelGlyphName(progress.index), 14);
   $("profName").firstChild.textContent = myProfile.name;
-  $("profSub").innerHTML = `<span class="level-chip">${level.icon} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
+  $("profSub").innerHTML = `<span class="level-chip">${stampGlyph(levelGlyphName(progress.index),14)} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
   const levelPct = getLevelProgressPercentage(xp);
   $("progNum").firstChild.textContent = progress.next ? progress.xpIntoLevel.toLocaleString() : xp.toLocaleString();
   $("progNum").querySelector("span").textContent = progress.next ? "/ "+progress.xpForLevel.toLocaleString()+" נקודות" : "נקודות · רמה מקסימלית";
   $("progPct").textContent = levelPct+"%";
   $("progBar").style.width = levelPct+"%";
-  $("levelHint").textContent = progress.next ? `${progress.next.icon} עוד ${getXPToNextLevel(xp).toLocaleString()} נקודות לרמת "${progress.next.name}"` : "🎉 הגעתם לרמה הגבוהה ביותר!";
+  $("levelHint").innerHTML = progress.next
+    ? `${stampGlyph(levelGlyphName(progress.index+1),14)} עוד ${getXPToNextLevel(xp).toLocaleString()} נקודות לרמת "${progress.next.name}"`
+    : `${stampGlyph("trophy",14)} הגעתם לרמה הגבוהה ביותר!`;
   // Gamification Overhaul, Phase 6 - "NEXT LEVEL CTA": מצביע לאותו openTodaySheet() הקיים
   // (המלצה מבוססת בטיחות/העדפות, לא "הכי הרבה XP") - לא מנוע-המלצות חדש. לא מוצג ברמה
   // מקסימלית (אין "רמה הבאה" למצוא-לקראתה).
@@ -4811,7 +5285,7 @@ function renderProfile(){
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
         const l = lmById[v.landmark_id]; if(!l) return "";
         const cat = CATEGORIES[l.category];
-        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : catIconSvg(cat.icon,26);
+        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : photoFallbackHtml(l,30);
         return placeCardHtml(l, {
           thumb,
           metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
@@ -4950,8 +5424,8 @@ async function renderFriends(){
       return `<div class="friend-row" data-id="${f.friendshipId}" data-user="${f.userId}">
         <div class="avatar">${avatarInner(name,avatars[f.userId])}</div>
         <div class="friend-name">${name}</div>
-        <button class="icon-btn" data-act="report" aria-label="דיווח על משתמש" title="דיווח">🚩</button>
-        <button class="icon-btn" data-act="block" aria-label="חסימת משתמש" title="חסום">🚫</button>
+        <button class="icon-btn" data-act="report" aria-label="דיווח על משתמש" title="דיווח">${stampGlyph("flag",16)}</button>
+        <button class="icon-btn" data-act="block" aria-label="חסימת משתמש" title="חסום">${uiIcon("block",16)}</button>
         <button class="icon-btn" data-act="remove" aria-label="הסרת חבר">✕</button>
       </div>`;
     }).join("");
@@ -5108,7 +5582,7 @@ async function refreshPushRow(){
     toggle.checked = false;
     toggle.disabled = true;
     statusEl.textContent = isIosDevice()
-      ? "ב-iPhone: הקישו שיתוף ⬆️ ואז \"הוסף למסך הבית\", ומשם אפשר להפעיל התראות."
+      ? "ב-iPhone: הקישו על כפתור השיתוף ואז \"הוסף למסך הבית\", ומשם אפשר להפעיל התראות."
       : "הדפדפן הזה לא תומך בהתראות מחוץ לאפליקציה.";
     return;
   }
@@ -5199,8 +5673,8 @@ function renderPrivacySection(){
   document.querySelectorAll("#travelRegionChips .chip").forEach(c=> c.classList.toggle("active", c.dataset.region===region));
   const until = myTravelStatus.travel_until ? new Date(myTravelStatus.travel_until) : null;
   const active = until && until.getTime()>Date.now();
-  $("travelStatusText").textContent = active
-    ? `📍 משותף כרגע (${REGIONS[region]||region}) עד ${until.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}`
+  $("travelStatusText").innerHTML = active
+    ? `${uiIcon("region",13)} משותף כרגע (${REGIONS[region]||region}) עד ${until.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}`
     : "השיתוף פעיל, אבל עדיין לא סימנתם שאתם מטיילים היום.";
 }
 async function setSharingEnabled(enabled){
@@ -5235,7 +5709,7 @@ async function renderFriendsTravelBanner(){
     if(error) throw error;
     if(!data || !data.length){ box.classList.add("hidden"); return; }
     const names = data.map(r=> `${escapeHtml(r.profiles?.name||"מטייל/ת")} (${REGIONS[r.region]||r.region})`).join(", ");
-    box.innerHTML = `👀 ${data.length===1?"חבר/ה אחד/ת מטייל/ת":data.length+" מהחברים שלכם מטיילים"} היום: ${names}`;
+    box.innerHTML = `${uiIcon("eye",14)} ${data.length===1?"חבר/ה אחד/ת מטייל/ת":data.length+" מהחברים שלכם מטיילים"} היום: ${names}`;
     box.classList.remove("hidden");
   }catch(err){ box.classList.add("hidden"); }
 }
@@ -5247,10 +5721,11 @@ function renderLbSummary(rows){
   if(myIndex<0 || rows.length<2){ el.classList.add("hidden"); return; }
   el.classList.remove("hidden");
   const rank = myIndex+1, total = rows.length;
+  const metalIcon = m=>'<span class="milestone-ic" style="color:var(--metal-'+m+')">'+stampGlyph("seal",17)+'</span>';
   let headline;
-  if(myIndex===0) headline = `🥇 את/ה במקום הראשון מתוך ${total}!`;
+  if(myIndex===0) headline = `${metalIcon("gold")} את/ה במקום הראשון מתוך ${total}!`;
   else {
-    const medal = myIndex===1?"🥈":myIndex===2?"🥉":"📍";
+    const medal = myIndex===1?metalIcon("silver"):myIndex===2?metalIcon("bronze"):uiIcon("region",16);
     headline = `${medal} את/ה במקום ${rank} מתוך ${total}`;
   }
   let sub = "";
@@ -5310,7 +5785,7 @@ async function renderBoard(){
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
         <div class="lb-avatar" style="background:${stringColor(r.name)}">${avatarInner(r.name,r.avatarUrl)}</div>
         <div class="lb-name">${safeName}${isMe?'<small>הדירוג שלך</small>':''}</div>
-        <div class="lb-mini-stats"><span>🏆${r.destCount}</span><span>🗺️${r.regionCount}</span></div>
+        <div class="lb-mini-stats"><span>${uiIcon("trophy",12)}<bdi dir="ltr">${r.destCount}</bdi></span><span>${uiIcon("region",12)}<bdi dir="ltr">${r.regionCount}</bdi></span></div>
         <div class="lb-pts">${r.val.toLocaleString()}</div></div>`;
     }).join("");
     if(friendsEmptyBanner) $("emptyFriendsCta").onclick = ()=> $("inviteBtn").click();
@@ -5339,7 +5814,7 @@ function feedCardHtml(row){
   const visited = myVisits.some(v=>v.landmark_id===l.id);
   const bg = row.photo_url ? `background-image:url('${row.photo_url}')` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%))`;
   return `<div class="feed-card">
-    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${avatarInner(name,avatarUrl)}</div>
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:13.5px;">${avatarInner(name,avatarUrl)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
     <div class="feed-photo" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
     ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
@@ -5385,9 +5860,9 @@ function badgeFeedCardHtml(row){
   const badge = BADGES.find(b=>b.id===row.badge_id);
   if(!badge) return "";
   return `<div class="feed-card badge-feed-card">
-    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:12px;">${avatarInner(name,avatarUrl)}</div>
+    <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:13.5px;">${avatarInner(name,avatarUrl)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.unlocked_at)} · פתח/ה תג חדש</div></div></div>
-    <div class="badge-feed-body"><span class="badge-feed-icon">${badge.icon}</span><span class="badge-feed-label">${badge.label}</span></div>
+    <div class="badge-feed-body"><span class="badge-feed-icon${badgeMetal(badge.id)?" metal-"+badgeMetal(badge.id):""}">${stampGlyph(badgeGlyphName(badge.id),22)}</span><span class="badge-feed-label">${badge.label}</span></div>
   </div>`;
 }
 async function renderFeed(){
@@ -5488,7 +5963,7 @@ async function renderGroupPanel(){
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
         <div class="lb-avatar" style="background:${stringColor(r.name)}">${avatarInner(r.name,r.avatarUrl)}</div>
         <div class="lb-name">${r.name}${isMe?'<small>אתה/את</small>':''}</div>
-        <div class="lb-mini-stats"><span>🔥${r.streak}</span><span>🏅${r.badgeCount}</span></div>
+        <div class="lb-mini-stats"><span>${uiIcon("flame",12)}<bdi dir="ltr">${r.streak}</bdi></span><span>${stampGlyph("medal",12)}<bdi dir="ltr">${r.badgeCount}</bdi></span></div>
         <div class="lb-pts">${r.xp.toLocaleString()}</div></div>`;
     }).join("") : '<div class="empty-state">אין עדיין נתונים.</div>';
 
@@ -5512,14 +5987,14 @@ async function renderGroupPanel(){
       const pct = Math.round(chProgress/chosenChallenge.target*100);
       $("groupChallengeCard").innerHTML = `<div class="pchallenge-card">
         <div class="pchallenge-head">
-          <div class="pchallenge-icon" style="background:${chosenChallenge.color}">${chosenChallenge.icon}</div>
+          <div class="pchallenge-icon" style="background:${chosenChallenge.color}">${stampGlyph(chosenChallenge.icon,20)}</div>
           <div><div class="pchallenge-title">${chosenChallenge.title}</div><div class="pchallenge-reward">יחד כקבוצה</div></div>
         </div>
         <div class="pchallenge-progress-row"><span>${chProgress} / ${chosenChallenge.target} הושלמו</span><span>${pct}%</span></div>
         <div class="bar"><i style="width:${pct}%;background:${chosenChallenge.color}"></i></div>
       </div>`;
     } else {
-      $("groupChallengeCard").innerHTML = '<div class="empty-state">🎉 הקבוצה השלימה את כל האתגרים הזמינים!</div>';
+      $("groupChallengeCard").innerHTML = emptyStateHtml({ icon: uiIcon("trophy",26), title: "הקבוצה השלימה את כל האתגרים הזמינים!" });
     }
 
     $("groupHero").innerHTML = `<div class="group-hero">
@@ -5543,9 +6018,17 @@ async function renderGroupPanel(){
     }).join("") : emptyStateHtml({ icon: uiIcon("flame",26), title: "עוד לא קרה כלום כאן",
         sub: "הכיבוש הראשון של הקבוצה מחכה לכם." });
 
+    // אותה שפת-חותמות של המסך האישי, רק שה"הושגה" כאן היא "מישהו בקבוצה השיג"
+    // והכתובית סופרת כמה חברים - לא תאריך.
     $("groupBadgeGrid").innerHTML = BADGES.map(b=>{
       const count = memberIds.filter(id=> b.current(byMember[id])>=b.target(byMember[id])).length;
-      return `<div class="badge${count>0?" unlocked":""}"><div class="circ">${b.icon}</div><div class="lbl">${b.label}</div><div class="badge-progress">${count}/${memberIds.length}</div></div>`;
+      const metal = badgeMetal(b.id);
+      return `<div class="stamp${count>0?" is-earned":""}${metal?" metal-"+metal:""}" role="listitem"
+        aria-label="${b.label} — ${count} מתוך ${memberIds.length} חברים">
+        <div class="stamp-disc"><div class="stamp-face">${stampGlyph(badgeGlyphName(b.id), 26)}</div></div>
+        <div class="stamp-label">${b.label}</div>
+        <div class="stamp-progress"><bdi dir="ltr">${count} / ${memberIds.length}</bdi></div>
+      </div>`;
     }).join("");
 
     renderVoteBox();
@@ -5600,15 +6083,15 @@ function renderPersonalChallenges(){
     const done = current>=ch.target;
     if(done && !seen.has(ch.id)){
       seen.add(ch.id);
-      setTimeout(()=>toast("🏅 השלמת אתגר: "+ch.title+"!"), 400);
+      setTimeout(()=>toast(uiIcon("trophy",15)+" השלמת אתגר: "+ch.title+"!"), 400);
     }
     const pct = Math.round(current/ch.target*100);
     return `<div class="pchallenge-card${done?" done":""}">
       <div class="pchallenge-head">
-        <div class="pchallenge-icon" style="background:${ch.color}">${ch.icon}</div>
-        <div><div class="pchallenge-title">${ch.title}</div><div class="pchallenge-reward">🎁 ${ch.reward}</div></div>
+        <div class="pchallenge-icon" style="background:${ch.color}">${stampGlyph(ch.icon,20)}</div>
+        <div><div class="pchallenge-title">${ch.title}</div><div class="pchallenge-reward">${uiIcon("gift",13)} ${ch.reward}</div></div>
       </div>
-      <div class="pchallenge-progress-row"><span>${current} / ${ch.target} הושלמו</span><span>${done?"הושלם! 🎉":pct+"%"}</span></div>
+      <div class="pchallenge-progress-row"><span>${current} / ${ch.target} הושלמו</span><span>${done?uiIcon("check",13)+" הושלם!":pct+"%"}</span></div>
       <div class="bar"><i style="width:${pct}%;background:${ch.color}"></i></div>
       ${done ? "" : `<button class="pchallenge-cta" data-ch="${ch.id}">הצג את ${remaining.length} היעדים שנותרו</button>`}
     </div>`;

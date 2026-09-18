@@ -34,11 +34,15 @@
   --color-accent:#9E6F2E; --color-accent-light:#FBEAD1;
   --color-background:var(--bg); --color-surface:var(--surface); --color-text:var(--text); --color-text-secondary:var(--text-muted); --color-border:var(--border);
   /* משטח "מורם" אמיתי (sheets/בקרות צפות/popovers) - נבדל מ--bg-elevated שהוא מילוי שקוע-עדין */
-  --color-surface-elevated:#FFFFFF; --color-success:#3E8A5A; --color-warning:#C96F4A;
+  --color-surface-elevated:#FFFFFF; --color-success:#3E8A5A; --color-warning:#C96F4A; --color-warning-light:#F8E5DC;
   --accent:var(--color-primary); --accent-strong:var(--color-primary-dark); --accent-ink:var(--color-primary-ink); --accent-light:var(--color-primary-light);
   --teal:var(--color-secondary); --teal-ink:var(--color-secondary-ink);
   --success:#3E8A5A; --warn:#C96F4A; --danger:#B3432E; --shadow:rgba(24,39,32,0.12);
   --sand:#E8C98D; --terracotta:#C96F4A;
+  /* דרגות-מתכת לחותמות אזוריות (ברונזה/כסף/זהב) - אחיד בין stamp/badge-feed/celebrate/
+     region-milestone, לא הועתק כערך-hex ל-4 מקומות נפרדים. אותו ערך בהיר/כהה - צבעי
+     מדליה, לא חלק ממערכת bg/text שמתהפכת במצב כהה. */
+  --metal-bronze:#A9713B; --metal-silver:#7E8891; --metal-gold:#B8902F;
   --map-land:#EEE9DA; --map-land-2:#E3DCC6; --map-outline:#C9BF9E; --map-water:#8FC0CE; --sheet-scrim:rgba(20,26,22,0.45);
   --cat-nature:var(--color-primary);--cat-mountains:#8C5A3C;--cat-water:var(--color-secondary);--cat-heritage:var(--terracotta);
   --cat-archaeology:#B08A3E;--cat-viewpoints:#D9AE5E;--cat-religious:#7A6A9C;--cat-parks:#3E8B6B;
@@ -51,8 +55,11 @@
   --journey-bg:#173F36;
   /* Spacing scale - 4/8/12/16/24/32. כל ערך-ריווח חדש נלקח מכאן, לא מספרים שרירותיים */
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
-  /* Typography scale - Display / H1 / H2 / H3 / Body / Caption */
-  --font-display:28px; --font-h1:22px; --font-h2:17px; --font-h3:14.5px; --font-body:14px; --font-caption:12px;
+  /* Typography scale - Display / H1 / H2 / H3 / Body / Caption.
+     Mobile-first sizes: this is a phone app, and a desktop-density scale (body 14 / caption 12)
+     is what made the whole product read as cramped. Floors: body >=15, secondary >=13.5,
+     place names >=18, section headings >=21. Nothing in the app should go below --font-caption. */
+  --font-display:30px; --font-h1:23px; --font-h2:19px; --font-h3:16px; --font-body:15.5px; --font-caption:13.5px;
   --leading-tight:1.25; --leading-normal:1.6;
 }
 @media (prefers-color-scheme: dark){
@@ -62,7 +69,7 @@
     --color-secondary:#4D9EA6; --color-secondary-light:#1D3436; --color-secondary-ink:#0B2027;
     --color-accent:#B08447; --color-accent-light:#3A2E1C;
     --color-background:var(--bg); --color-surface:var(--surface); --color-text:var(--text); --color-text-secondary:var(--text-muted); --color-border:var(--border);
-    --color-surface-elevated:#2E3832; --color-success:#5FB37E; --color-warning:#E3906A;
+    --color-surface-elevated:#2E3832; --color-success:#5FB37E; --color-warning:#E3906A; --color-warning-light:#3A2419;
     --accent:var(--color-primary); --accent-strong:var(--color-primary-dark); --accent-ink:var(--color-primary-ink); --accent-light:var(--color-primary-light);
     --teal:var(--color-secondary); --teal-ink:var(--color-secondary-ink);
     --success:#5FB37E; --warn:#E3906A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.45);
@@ -82,7 +89,7 @@
   --color-secondary:#4D9EA6; --color-secondary-light:#1D3436; --color-secondary-ink:#0B2027;
   --color-accent:#B08447; --color-accent-light:#3A2E1C;
   --color-background:var(--bg); --color-surface:var(--surface); --color-text:var(--text); --color-text-secondary:var(--text-muted); --color-border:var(--border);
-  --color-surface-elevated:#2E3832; --color-success:#5FB37E; --color-warning:#E3906A;
+  --color-surface-elevated:#2E3832; --color-success:#5FB37E; --color-warning:#E3906A; --color-warning-light:#3A2419;
   --accent:var(--color-primary); --accent-strong:var(--color-primary-dark); --accent-ink:var(--color-primary-ink); --accent-light:var(--color-primary-light);
   --teal:var(--color-secondary); --teal-ink:var(--color-secondary-ink);
   --success:#5FB37E; --warn:#E3906A; --danger:#E28A6C; --shadow:rgba(0,0,0,0.45);
@@ -100,6 +107,14 @@
 .topo-texture{position:relative;}
 .topo-texture::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.05;background-repeat:repeat;background-size:220px 220px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cpath d='M0 40 Q55 8 110 40 T220 40' stroke='%23176B5B' fill='none' stroke-width='1.5'/%3E%3Cpath d='M0 100 Q55 68 110 100 T220 100' stroke='%23176B5B' fill='none' stroke-width='1.5'/%3E%3Cpath d='M0 160 Q55 128 110 160 T220 160' stroke='%23176B5B' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");}
 .topo-texture > *{position:relative;z-index:1;}
+/* Placeholder אחיד לכל כרטיס שאין לו תמונה. מחליף את "ריבוע צבע שטוח + אייקון" שהיה
+   בשימוש בכל סוגי הכרטיסים: גרדיאנט בצבע-הקטגוריה, קווי-גובה טופוגרפיים ואייקון-הקטגוריה.
+   הצבע מגיע כ---ph-color מה-call site, כך שיש רכיב אחד ולא חמישה גרדיאנטים מוטבעים. */
+.photo-fallback{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:linear-gradient(145deg, var(--ph-color,#5A7D6A), color-mix(in srgb, var(--ph-color,#5A7D6A) 52%, #10201A 48%));}
+.photo-fallback::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;background-repeat:repeat;background-size:170px 170px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cpath d='M0 30 Q42 6 85 30 T170 30' stroke='%23ffffff' fill='none' stroke-width='1.4'/%3E%3Cpath d='M0 75 Q42 51 85 75 T170 75' stroke='%23ffffff' fill='none' stroke-width='1.4'/%3E%3Cpath d='M0 120 Q42 96 85 120 T170 120' stroke='%23ffffff' fill='none' stroke-width='1.4'/%3E%3C/svg%3E");}
+.photo-fallback svg{position:relative;z-index:1;color:#fff;opacity:.92;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));}
 /* overflow:hidden כאן הוא רשת-ביטחון נוספת (לא הפתרון עצמו - זה .app-shell{position:fixed}
    למטה): גם אם מכשיר כלשהו עדיין יחשב איזשהו ילד גדול-מדי, הדף כולו לעולם לא יוכל לגלול -
    .app-shell מנהל את כל הגלילה הפנימית שלו בעצמו (overflow:hidden + כל view גולל בתוך עצמו). */
@@ -116,8 +131,8 @@ h3{font-size:var(--font-h3);}
 /* כותרת של מסך-על (ניהול/אודות/תנאים/עזרה) - אותו גודל h1 עם מרווחים של מסך מלא */
 .overlay-title{font-size:var(--font-h1);margin:var(--space-2) 0 var(--space-4);}
 /* כפתור קומפקטי - במקום font-size/padding מוטבעים על כל כפתור משני */
-.btn-sm{flex:none;padding:var(--space-2) var(--space-4);font-size:13px;}
-.waitlist-emoji{font-size:40px;line-height:1;}
+.btn-sm{flex:none;padding:var(--space-2) var(--space-4);font-size:14.5px;}
+.waitlist-icon{width:64px;height:64px;margin:0 auto var(--space-3);border-radius:50%;background:var(--color-primary-light);color:var(--color-primary);display:flex;align-items:center;justify-content:center;}
 button{font-family:inherit;}
 ::selection{background:var(--accent);color:var(--accent-ink);}
 /* position:fixed;inset:0 (לא height:100dvh+position:relative) - אותו תיקון-שורש שכבר הוכח
@@ -146,7 +161,7 @@ button{font-family:inherit;}
   width:44px;height:44px;border:none;background:var(--bg-elevated);color:var(--text);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .auth-head{margin:var(--space-5) 0 var(--space-2);}
 .auth-head h1{font-size:var(--font-display);margin:0 0 var(--space-2);}
-.auth-head p{margin:0;color:var(--text-muted);font-size:14px;line-height:1.55;}
+.auth-head p{margin:0;color:var(--text-muted);font-size:15.5px;line-height:1.55;}
 
 /* Welcome (§1) */
 .welcome-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-2);}
@@ -154,40 +169,40 @@ button{font-family:inherit;}
 .welcome-art svg{width:100%;height:auto;display:block;}
 .welcome-mark{width:60px;height:60px;margin-top:calc(var(--space-5) * -1 - 6px);}
 .welcome-title{font-size:var(--font-display);margin:var(--space-2) 0 0;}
-.welcome-tagline{margin:0;font-size:15px;font-weight:700;color:var(--color-primary);}
-.welcome-sub{margin:var(--space-1) 0 0;color:var(--text-muted);font-size:13.5px;line-height:1.6;max-width:300px;}
+.welcome-tagline{margin:0;font-size:16px;font-weight:700;color:var(--color-primary);}
+.welcome-sub{margin:var(--space-1) 0 0;color:var(--text-muted);font-size:15px;line-height:1.6;max-width:300px;}
 /* ה-CTA יושב בתחתית - אזור האגודל (§11) */
 .auth-bottom{flex:none;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);}
-.auth-switch{margin:0;text-align:center;font-size:13.5px;color:var(--text-muted);}
+.auth-switch{margin:0;text-align:center;font-size:15px;color:var(--text-muted);}
 .auth-switch-bottom{margin-top:auto;padding-top:var(--space-4);}
 .auth-link{border:none;background:none;padding:0;font:inherit;font-weight:800;color:var(--color-primary);cursor:pointer;text-decoration:underline;}
-.auth-guest{border:none;background:none;color:var(--text-muted);font-size:13px;padding:var(--space-3);cursor:pointer;font-family:inherit;}
+.auth-guest{border:none;background:none;color:var(--text-muted);font-size:14.5px;padding:var(--space-3);cursor:pointer;font-family:inherit;}
 
 .auth-tabs{display:flex;gap:var(--space-2);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-1);}
-.auth-tabs button{flex:1;border:none;background:transparent;padding:var(--space-3);border-radius:var(--radius-sm);font-weight:700;font-size:13.5px;color:var(--text-muted);cursor:pointer;}
+.auth-tabs button{flex:1;border:none;background:transparent;padding:var(--space-3);border-radius:var(--radius-sm);font-weight:700;font-size:15px;color:var(--text-muted);cursor:pointer;}
 .auth-tabs button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow);}
 .auth-form{display:flex;flex-direction:column;gap:var(--space-3);}
 /* שדות גדולים ונוחים למגע (§5): 52px */
-.auth-form .text-input{height:52px;font-size:15px;padding:0 var(--space-4);}
+.auth-form .text-input{height:52px;font-size:16px;padding:0 var(--space-4);}
 .auth-form .text-input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-light);}
 .text-input.invalid{border-color:var(--danger);}
 .input-wrap{position:relative;display:flex;}
 .input-wrap .text-input{flex:1;padding-inline-end:48px;}
 .input-eye{position:absolute;inset-inline-end:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;background:none;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;}
 /* שגיאת-שדה: טקסט + אייקון, לא צבע בלבד (§13) */
-.field-err{display:none;align-items:center;gap:5px;color:var(--danger);font-size:12.5px;margin-top:var(--space-1);}
+.field-err{display:none;align-items:center;gap:5px;color:var(--danger);font-size:14px;margin-top:var(--space-1);}
 .field-err.show{display:flex;}
-.auth-error{background:color-mix(in srgb, var(--danger) 12%, transparent);color:var(--danger);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13px;display:none;line-height:1.5;}
+.auth-error{background:color-mix(in srgb, var(--danger) 12%, transparent);color:var(--danger);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:14.5px;display:none;line-height:1.5;}
 .auth-error.show{display:block;}
-.auth-note{background:var(--color-primary-light);color:var(--color-primary);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13px;display:none;line-height:1.5;}
+.auth-note{background:var(--color-primary-light);color:var(--color-primary);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:14.5px;display:none;line-height:1.5;}
 .auth-note.show{display:block;}
-.auth-skip{text-align:center;font-size:12.5px;color:var(--text-muted);margin-top:2px;}
-.auth-forgot{border:none;background:none;color:var(--text-muted);font-size:13px;text-decoration:underline;cursor:pointer;padding:var(--space-2);margin:0 auto;font-family:inherit;}
+.auth-skip{text-align:center;font-size:14px;color:var(--text-muted);margin-top:2px;}
+.auth-forgot{border:none;background:none;color:var(--text-muted);font-size:14.5px;text-decoration:underline;cursor:pointer;padding:var(--space-2);margin:0 auto;font-family:inherit;}
 .auth-oauth-row{display:flex;flex-direction:column;gap:var(--space-2);}
-.auth-oauth-btn{display:flex;align-items:center;justify-content:center;gap:var(--space-3);width:100%;min-height:52px;border-radius:var(--radius-btn);border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;font-size:14.5px;cursor:pointer;transition:background .15s;font-family:inherit;}
+.auth-oauth-btn{display:flex;align-items:center;justify-content:center;gap:var(--space-3);width:100%;min-height:52px;border-radius:var(--radius-btn);border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;font-size:16px;cursor:pointer;transition:background .15s;font-family:inherit;}
 .auth-oauth-btn:active{background:var(--bg-elevated);}
 .auth-oauth-btn svg{flex:none;width:19px;height:19px;}
-.auth-divider{display:flex;align-items:center;gap:var(--space-3);color:var(--text-muted);font-size:12.5px;margin:var(--space-1) 0;}
+.auth-divider{display:flex;align-items:center;gap:var(--space-3);color:var(--text-muted);font-size:14px;margin:var(--space-1) 0;}
 .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--border);}
 /* loading state - מונע לחיצה כפולה (§5) */
 .btn.is-loading{pointer-events:none;opacity:.75;}
@@ -201,6 +216,32 @@ button{font-family:inherit;}
   .auth-view{flex:0 0 420px;max-width:420px;justify-content:center;}
   #authViewWelcome .welcome-art{display:none;}
 }
+
+/* ---------- מסכי-על במסך מלא (onboarding / admin / notifications / about / terms /
+   privacy / help / edit-profile) ---------- */
+/* באג-אמת שדווח: שלוש המחלקות האלה מופיעות ב-media query שמהפוך אותן ל-position:absolute
+   בדסקטופ (יחד עם .auth-screen/.celebrate-overlay/.loading-screen וכו') אבל בלי כלל-בסיס
+   משלהן במובייל - כלומר עד עכשיו הן נפתחו כ-<div> רגיל בתוך זרימת המסמך, בלי position,
+   רקע או z-index, עם המפה/מסך-הבית עדיין גלויים ולחיצים מתחתיהן. אותו דפוס בדיוק כמו
+   .auth-screen, שכן כבר מוגן נכון. */
+.onboarding-screen,.admin-screen,.full-overlay{position:fixed;inset:0;z-index:1200;background:var(--bg);
+  display:flex;flex-direction:column;overflow-y:auto;
+  padding:calc(env(safe-area-inset-top) + var(--space-5)) var(--space-5) calc(env(safe-area-inset-bottom) + var(--space-5));}
+
+/* onboarding: ה-JS (updateOnboardingStep) כבר מחליף active נכון בין השקופיות והנקודות -
+   רק הציור עצמו היה חסר, אז כל שלוש השקופיות הוצגו זו מתחת לזו בבת אחת. */
+#onboardingSlides{flex:1;position:relative;min-height:0;}
+.onboarding-slide{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  gap:var(--space-3);height:100%;padding:0 var(--space-2);}
+.onboarding-slide.active{display:flex;}
+.onboarding-art{width:min(240px,72%);margin:0 auto;}
+.onboarding-art svg{width:100%;height:auto;display:block;}
+.onboarding-slide h2{margin:0;font-size:var(--font-h1);}
+.onboarding-slide p{margin:0;color:var(--text-muted);font-size:var(--font-body);line-height:1.6;max-width:280px;}
+.onboarding-dots{display:flex;justify-content:center;gap:6px;margin:var(--space-4) 0;flex:none;}
+.onboarding-dots .dot{width:8px;height:8px;border-radius:999px;background:var(--border);transition:width .2s,background .2s;}
+.onboarding-dots .dot.active{width:20px;background:var(--color-primary);}
+#onboardingNext{flex:none;}
 
 /* ---------- Header ---------- */
 /* גריד 3-עמודות כדי שהלוגו יתמרכז באמת ביחס לכל הכותרת, לא רק ביחס לתוכן שלצידו - הצד השני
@@ -222,9 +263,9 @@ button{font-family:inherit;}
 .nav-logo{width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex:none;}
 .nav-logo img{width:100%;height:100%;object-fit:contain;display:block;}
 #notifBellBtn{margin-left:8px;}
-.stat-pill{display:flex;align-items:center;gap:var(--space-2);color:var(--text-muted);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums;}
+.stat-pill{display:flex;align-items:center;gap:var(--space-2);color:var(--text-muted);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;}
 .stat-pill b{color:var(--color-accent);font-weight:700;}
-.stat-pill .flame{color:var(--terracotta);font-size:12px;}
+.stat-pill .flame{display:flex;align-items:center;gap:3px;color:var(--terracotta);font-size:13.5px;}
 
 .view{display:none;flex:1;min-height:0;flex-direction:column;}
 .view.active{display:flex;}
@@ -233,27 +274,47 @@ button{font-family:inherit;}
 .map-wrap{position:relative;flex:1;min-height:0;background:var(--map-water);overflow:hidden;}
 .map-wrap .leaflet-container{position:absolute;inset:0;font-family:"Heebo",system-ui,sans-serif;background:#DDE6E3;}
 .map-top-bar{position:absolute;left:0;right:0;top:0;z-index:1000;padding:calc(env(safe-area-inset-top) + var(--space-3)) var(--space-3) 0;display:flex;flex-direction:column;gap:var(--space-2);}
-#discoveryPct{margin:var(--space-2) 0 0;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-light);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:999px;}
+#discoveryPct{margin:var(--space-2) 0 0;font-size:13.5px;font-weight:700;color:var(--accent);background:var(--accent-light);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:999px;}
 .map-search-row{display:flex;gap:var(--space-2);align-items:center;}
 /* בקרות-מפה משניות: עיגול שקט באותו משקל ויזואלי זו לזו, נמוך משמעותית משורת-החיפוש */
 .map-fab{flex:none;width:44px;height:44px;border:none;border-radius:50%;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:transform .12s;}
 .map-fab:active{transform:scale(.94);}
-.map-fab .fab-count{position:absolute;top:-2px;inset-inline-end:-2px;min-width:18px;height:18px;padding:0 var(--space-1);border-radius:999px;background:var(--color-primary);color:var(--color-primary-ink);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--color-surface-elevated);}
-.map-search-pill{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2);background:var(--color-surface-elevated);border:none;border-radius:999px;padding:0 var(--space-4);height:48px;box-shadow:var(--shadow-elevated);font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:transform .12s;}
+.map-fab .fab-count{position:absolute;top:-2px;inset-inline-end:-2px;min-width:18px;height:18px;padding:0 var(--space-1);border-radius:999px;background:var(--color-primary);color:var(--color-primary-ink);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--color-surface-elevated);}
+.map-search-pill{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2);background:var(--color-surface-elevated);border:none;border-radius:999px;padding:0 var(--space-4);height:48px;box-shadow:var(--shadow-elevated);font-size:15.5px;font-weight:600;color:var(--text);cursor:pointer;transition:transform .12s;}
 .map-search-pill:active{transform:scale(.98);}
 .map-search-pill svg{color:var(--color-primary);}
 .map-search-pill svg{flex:none;color:var(--text-muted);}
 .map-search-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.quick-chip-row{display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:1px;scrollbar-width:none;}
+/* שורת-סינון אופקית: "בולטת" (bleed) עד לקצה ההורה שלה כדי שהצ'יפ האחרון יוכל
+   לגלול לגמרי מתחת לריווח, ולא יישאר תקוע צמוד לשפת המסך בלי לאותת שיש עוד. --chip-gutter
+   הוא הריווח של ההורה בכל הקשר (מוגדר מחדש ב-.home-head למטה, כי שם הריווח שונה
+   מזה של map-top-bar) - כך שאותה מחלקה עובדת נכון בשני ההקשרים בלי לשכפל כלל. */
+.quick-chip-row{display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:1px;scrollbar-width:none;
+  --chip-gutter:var(--space-3);
+  margin-inline:calc(var(--chip-gutter) * -1);
+  padding-inline:var(--chip-gutter);
+  scroll-padding-inline:var(--chip-gutter);
+  touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
 .quick-chip-row::-webkit-scrollbar{display:none;}
-.quick-chip{flex:none;padding:var(--space-2) var(--space-3);font-size:12.5px;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);}
+.home-head .quick-chip-row{--chip-gutter:var(--space-4);}
+/* מסכת-דהייה בקצוות שמאותתת "יש עוד לגלול" - לא קבועה: JS (wireScrollFade) מוסיף
+   no-fade-left/no-fade-right כשבאמת הגענו לקצה, כדי שהצ'יפ הראשון/אחרון לא ייראה
+   כאילו הוא חתוך כשאין בכלל לאן לגלול עוד. */
+.scroll-fade{mask-image:linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  -webkit-mask-image:linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent);}
+.scroll-fade.no-fade-left{mask-image:linear-gradient(to right, #000, #000 calc(100% - 20px), transparent);
+  -webkit-mask-image:linear-gradient(to right, #000, #000 calc(100% - 20px), transparent);}
+.scroll-fade.no-fade-right{mask-image:linear-gradient(to right, transparent, #000 20px, #000);
+  -webkit-mask-image:linear-gradient(to right, transparent, #000 20px, #000);}
+.scroll-fade.no-fade-left.no-fade-right{mask-image:none;-webkit-mask-image:none;}
+.quick-chip{flex:none;padding:var(--space-2) var(--space-3);font-size:14px;background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);}
 .quick-chip.active{box-shadow:none;}
 /* כפתורי-המפה יושבים בפינות התחתונות, ובדיוק שם מופיע גם הפס התחתון של המפה -
    קרוסלת-הגילוי או כרטיס-התצוגה, שניהם ברוחב מלא ומעליהם ב-z-index. --map-ctl-bottom
    מורם מ-syncMapControlsOffset() לגובה האמיתי של מה שמוצג כרגע, כדי שהכפתורים לא
    ייקברו מתחתיו. בלי זה לחיצה על "המיקום שלי" נחתה על כרטיס-יעד ולא על הכפתור. */
 .map-controls{position:absolute;left:var(--space-3);bottom:var(--map-ctl-bottom, var(--space-5));transition:bottom .2s cubic-bezier(.2,.8,.3,1);display:flex;flex-direction:column;gap:1px;z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);overflow:hidden;box-shadow:var(--shadow-elevated);}
-.map-controls button{width:44px;height:44px;border:none;background:transparent;color:var(--text);font-size:19px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
+.map-controls button{width:44px;height:44px;border:none;background:transparent;color:var(--text);font-size:20px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
 .map-controls button:active{background:var(--bg-elevated);}
 .map-controls button+button{border-top:1px solid var(--border);}
 .inline-locate-hint{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--teal);vertical-align:-5px;}
@@ -262,19 +323,19 @@ button{font-family:inherit;}
 /* נקודת-מיקום ישנה: בלי פעימה, כדי שלא תשדר "חי" בזמן שהיא לא */
 .user-loc-dot.stale{animation:none;}
 .loc-actions{display:flex;gap:var(--space-2);flex-wrap:wrap;margin-top:var(--space-2);}
-.loc-diag{margin:var(--space-2) 0 0;padding:var(--space-3);background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-input);font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;direction:ltr;text-align:left;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text);max-height:240px;overflow:auto;}
-.loc-denied{margin-top:var(--space-2);padding:var(--space-3);background:var(--color-warning-light, var(--bg-elevated));border:1px solid var(--border);border-radius:var(--radius-input);font-size:12.5px;line-height:1.65;color:var(--text);}
+.loc-diag{margin:var(--space-2) 0 0;padding:var(--space-3);background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-input);font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;direction:ltr;text-align:left;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text);max-height:240px;overflow:auto;}
+.loc-denied{margin-top:var(--space-2);padding:var(--space-3);background:var(--color-warning-light, var(--bg-elevated));border:1px solid var(--border);border-radius:var(--radius-input);font-size:14px;line-height:1.65;color:var(--text);}
 .loc-denied ol{margin:var(--space-2) 0 0;padding-inline-start:18px;}
 /* מצב סימון-מיקום ידני: פס הוראות בראש המפה, מעל שאר שכבות-העל שלה */
-.manual-loc-bar{position:absolute;left:var(--space-3);right:var(--space-3);top:calc(env(safe-area-inset-top) + 96px);z-index:1060;background:var(--text);color:var(--bg);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:var(--space-2) var(--space-3);display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:12.5px;font-weight:700;}
+.manual-loc-bar{position:absolute;left:var(--space-3);right:var(--space-3);top:calc(env(safe-area-inset-top) + 96px);z-index:1060;background:var(--text);color:var(--bg);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:var(--space-2) var(--space-3);display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:14px;font-weight:700;}
 .manual-loc-bar button{background:none;border:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;padding:0;flex:none;}
 .map-wrap.picking-location{cursor:crosshair;}
 /* בועה חד-פעמית שמצביעה על כפתור-הכוונת. יושבת על אותו --map-ctl-bottom כמו הכפתור
    עצמו, כדי שתעלה ותרד יחד איתו מעל הפס התחתון של המפה. */
 .locate-hint{position:absolute;right:calc(var(--space-3) + 52px);bottom:calc(var(--map-ctl-bottom, var(--space-5)) + 4px);z-index:1060;display:flex;align-items:stretch;background:var(--text);color:var(--bg);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);max-width:60vw;transition:bottom .2s cubic-bezier(.2,.8,.3,1);}
 .locate-hint::after{content:"";position:absolute;inset-inline-start:-5px;top:50%;margin-top:-5px;width:10px;height:10px;background:var(--text);transform:rotate(45deg);border-radius:2px;}
-.locate-hint-body{background:none;border:none;color:inherit;font:inherit;font-size:12.5px;font-weight:700;padding:var(--space-2) var(--space-3);cursor:pointer;text-align:start;}
-.locate-hint-close{background:none;border:none;color:inherit;opacity:.7;font-size:12px;padding:0 var(--space-2) 0 var(--space-3);cursor:pointer;}
+.locate-hint-body{background:none;border:none;color:inherit;font:inherit;font-size:14px;font-weight:700;padding:var(--space-2) var(--space-3);cursor:pointer;text-align:start;}
+.locate-hint-close{background:none;border:none;color:inherit;opacity:.7;font-size:13.5px;padding:0 var(--space-2) 0 var(--space-3);cursor:pointer;}
 /* פעימה עדינה על נקודת-המיקום, כדי שהעין תמצא אותה מיד על מפה עמוסה.
    רשת-הביטחון של prefers-reduced-motion בהמשך הקובץ מנטרלת אותה אוטומטית. */
 .user-loc-dot{animation:userLocPulse 2.2s ease-in-out infinite;}
@@ -284,21 +345,21 @@ button{font-family:inherit;}
 /* Gamification Overhaul, Phase 4 - מקרא-קושי קומפקטי: כפתור נוסף בתוך .map-controls הקיים
    (אותו סגנון-כפתור-מוערם, לא רכיב-צף חדש), פותח popover קטן שנפתח מעליו. טקסט+צבע (לא
    צבע-בלבד) לכל שורה - a11y. */
-.diff-legend{position:absolute;left:var(--space-3);bottom:calc(var(--map-ctl-bottom, var(--space-5)) + 130px);z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:var(--space-3) var(--space-4);font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:var(--space-2);white-space:nowrap;}
+.diff-legend{position:absolute;left:var(--space-3);bottom:calc(var(--map-ctl-bottom, var(--space-5)) + 130px);z-index:1000;background:var(--color-surface-elevated);border-radius:var(--radius-input);box-shadow:var(--shadow-elevated);padding:var(--space-3) var(--space-4);font-size:14px;font-weight:600;display:flex;flex-direction:column;gap:var(--space-2);white-space:nowrap;}
 .diff-legend-row{display:flex;align-items:center;gap:var(--space-2);}
-.legend-title{font-size:11px;font-weight:800;color:var(--text-muted);letter-spacing:.03em;}
+.legend-title{font-size:13px;font-weight:800;color:var(--text-muted);letter-spacing:.03em;}
 .legend-title-gap{margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--border);}
 .legend-pts{min-width:30px;font-weight:800;color:var(--color-accent);direction:ltr;font-variant-numeric:tabular-nums;}
-.legend-hint{color:var(--text-muted);font-weight:500;font-size:11px;}
-.dest-preview{position:absolute;left:var(--space-3);right:var(--space-3);bottom:var(--space-3);z-index:1050;background:var(--color-surface-elevated);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;height:92px;transform:translateY(140%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.3,1), visibility 0s linear .28s;cursor:pointer;}
+.legend-hint{color:var(--text-muted);font-weight:500;font-size:13px;}
+.dest-preview{position:absolute;left:var(--space-3);right:var(--space-3);bottom:var(--space-3);z-index:1050;background:var(--color-surface-elevated);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);display:flex;overflow:hidden;min-height:104px;transform:translateY(140%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.3,1), visibility 0s linear .28s;cursor:pointer;}
 .dest-preview.open{transform:translateY(0);visibility:visible;transition-delay:0s;}
 .dest-preview-hero{width:92px;flex:none;position:relative;overflow:hidden;}
 .dest-preview-hero > div{width:100%;height:100%;}
 .dest-preview-hero img{width:100%;height:100%;object-fit:cover;display:block;}
 .dest-preview-body{flex:1;min-width:0;padding:var(--space-3) var(--space-4);display:flex;flex-direction:column;justify-content:center;}
 .dest-preview-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);}
-.dest-preview-top h3{margin:0;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.dest-preview-wish,.dest-preview-nav{border:none;background:var(--bg-elevated);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;cursor:pointer;color:var(--text-muted);transition:color .15s,background .15s;}
+.dest-preview-top h3{margin:0;font-size:var(--font-h2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dest-preview-wish,.dest-preview-nav{border:none;background:var(--bg-elevated);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;cursor:pointer;color:var(--text-muted);transition:color .15s,background .15s;}
 .dest-preview-wish.active{color:var(--danger);background:color-mix(in srgb, var(--danger) 12%, transparent);}
 .dest-preview-wish.active .ui-ic{fill:currentColor;opacity:1;}
 .btn.is-wished{color:var(--danger);border-color:color-mix(in srgb, var(--danger) 45%, transparent);}
@@ -311,19 +372,26 @@ button{font-family:inherit;}
    באג-אמת שדווח: פינים שנופלים ברצועה התחתונה (מתחת לכותרת "מקומות באזור המוצג") לא נלחצו. */
 .discovery-section{position:absolute;left:0;right:0;bottom:12px;z-index:1040;pointer-events:none;}
 .discovery-section.hidden{display:none;}
-.discovery-heading{margin:0 var(--space-3) var(--space-2);font-size:12.5px;font-weight:700;color:var(--text-muted);}
+/* כותרת-הקרוסלה היא הידית לפתיחת הרשימה המלאה, ולכן כפתור אמיתי באזור-לחיצה תקני */
+.discovery-heading{margin:0 var(--space-3) var(--space-2);display:inline-flex;align-items:center;gap:var(--space-2);
+  min-height:44px;padding:0 var(--space-3);border:none;border-radius:999px;pointer-events:auto;cursor:pointer;
+  background:var(--color-surface-elevated);box-shadow:var(--shadow-elevated);
+  font-family:inherit;font-size:14px;font-weight:700;color:var(--text);}
+.discovery-heading svg{flex:none;color:var(--text-muted);}
+.discovery-heading:active{transform:scale(.98);}
 .discovery-carousel{display:flex;gap:var(--space-3);overflow-x:auto;padding:0 var(--space-3);scroll-snap-type:x proximity;scrollbar-width:none;pointer-events:auto;}
 .discovery-carousel::-webkit-scrollbar{display:none;}
-.discovery-empty{margin:0 var(--space-3);padding:var(--space-4) var(--space-4);background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);color:var(--text-muted);font-size:12.5px;text-align:center;}
-.discovery-card{flex:none;width:150px;background:var(--color-surface-elevated);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);overflow:hidden;cursor:pointer;scroll-snap-align:start;transition:transform .12s;}
+.discovery-empty{margin:0 var(--space-3);padding:var(--space-4) var(--space-4);background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);color:var(--text-muted);font-size:14px;text-align:center;}
+.discovery-card{flex:none;width:176px;background:var(--color-surface-elevated);border-radius:var(--radius-card);box-shadow:var(--shadow-elevated);overflow:hidden;cursor:pointer;scroll-snap-align:start;transition:transform .12s;}
 .discovery-card:active{transform:scale(.96);}
-.discovery-card-thumb{height:84px;position:relative;}
-.discovery-card-pts{position:absolute;top:6px;inset-inline-start:6px;background:var(--color-accent);color:#fff;font-size:11px;font-weight:800;padding:2px var(--space-2);border-radius:999px;direction:ltr;font-variant-numeric:tabular-nums;}
+.discovery-card-thumb{height:104px;position:relative;}
+/* תג-נקודות תמיד ב-inline-end, בכל סוגי הכרטיסים (ראו .next-goal-photo .pts) */
+.discovery-card-pts{position:absolute;top:6px;inset-inline-end:6px;background:var(--color-accent);color:#fff;font-size:13px;font-weight:800;padding:2px var(--space-2);border-radius:999px;font-variant-numeric:tabular-nums;}
 .discovery-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .discovery-card-thumb > div{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
-.discovery-card-facts{font-size:11px;color:var(--text-muted);padding:2px var(--space-2) var(--space-2);display:flex;align-items:center;gap:var(--space-1);white-space:nowrap;overflow:hidden;}
+.discovery-card-facts{font-size:13px;color:var(--text-muted);padding:2px var(--space-2) var(--space-2);display:flex;align-items:center;gap:var(--space-1);white-space:nowrap;overflow:hidden;}
 .discovery-card-facts .dot-sep{width:2.5px;height:2.5px;border-radius:50%;background:currentColor;opacity:.5;margin:0 2px;flex:none;}
-.discovery-card-name{font-size:12.5px;font-weight:700;padding:var(--space-2) var(--space-2) 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.discovery-card-name{font-size:14px;font-weight:700;padding:var(--space-2) var(--space-2) 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dest-preview-facts{font-size:var(--font-caption);color:var(--text-muted);margin-top:var(--space-1);display:flex;align-items:center;flex-wrap:wrap;gap:2px var(--space-2);}
 .map-side-panel{display:none;}
 .side-panel-head{padding:0 0 var(--space-3);}
@@ -350,12 +418,17 @@ button{font-family:inherit;}
 .lm-pin-wrap:hover .lm-pin.selected{transform:rotate(-45deg) scale(1.3);}
 .lm-pin .lm-pin-icon{transform:rotate(45deg);color:#fff;display:flex;}
 .fog-region{transition:fill-opacity .8s ease;pointer-events:none;}
-.lm-pin .check{transform:rotate(45deg);color:#fff;font-size:12px;font-weight:900;line-height:1;}
-.lm-pin-star{position:absolute;top:-9px;right:-7px;color:var(--sand);text-shadow:0 1px 2px rgba(0,0,0,.5);z-index:2;font-size:13px;}
-.lm-pin-label{margin-top:1px;white-space:nowrap;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.94);color:#202622;padding:2px var(--space-2);border-radius:var(--radius-sm);box-shadow:0 1px 3px rgba(0,0,0,.22);pointer-events:none;}
+.lm-pin .check{transform:rotate(45deg);color:#fff;font-size:13.5px;font-weight:900;line-height:1;}
+.lm-pin-star{position:absolute;top:-9px;right:-7px;color:var(--sand);text-shadow:0 1px 2px rgba(0,0,0,.5);z-index:2;font-size:14.5px;}
+/* מוסתרות כברירת מחדל ומופיעות רק בזום קרוב (ראו syncPinLabels) - אחרת הן נערמות
+   זו על זו ומסתירות את הסיכות. הסיכה הנבחרת/שזה עתה נכבשה מסומנת תמיד. */
+.lm-pin-label{display:none;margin-top:1px;white-space:nowrap;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.94);color:#202622;padding:2px var(--space-2);border-radius:var(--radius-sm);box-shadow:0 1px 3px rgba(0,0,0,.22);pointer-events:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+.map-wrap.labels-on .lm-pin-label,
+.lm-pin.selected ~ .lm-pin-label,
+.lm-pin.pulse ~ .lm-pin-label{display:block;}
 .marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background-color:color-mix(in srgb, var(--accent) 30%, transparent);}
 .marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background-color:var(--accent-strong);color:#fff;font-weight:800;font-family:"Heebo";}
-.leaflet-control-attribution{font-size:9.5px;}
+.leaflet-control-attribution{font-size:11.5px;}
 
 /* position:fixed (לא absolute) בבסיס - .app-shell גובהו 100dvh, ויחידת-viewport-דינמית
    ידועה כגורמת לפעמים ל-containing-block לא-עקבי עבור position:absolute במכשירים ניידים
@@ -393,25 +466,30 @@ button{font-family:inherit;}
 .detail-scrim.soft{background:color-mix(in srgb, var(--sheet-scrim) 40%, transparent);}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-4) var(--space-3);flex:none;}
 .sheet-head h2{margin:0;font-size:var(--font-h1);}
-.wizard-sub{margin:-var(--space-1) var(--space-4) var(--space-3);font-size:13px;color:var(--text-muted);}
-.sheet-close{border:none;background:var(--bg-elevated);color:var(--text-muted);width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;}
+/* -var(--x) הוא תחביר CSS לא חוקי (צריך calc(var(--x) * -1)) - הדפדפן זרק את כל
+   ה-margin בגלל זה, כולל הריווח האופקי, והטקסט נדבק לשפת המסך. */
+.wizard-sub{margin:calc(var(--space-1) * -1) var(--space-4) var(--space-3);font-size:var(--font-body);color:var(--text-muted);}
+.sheet-close{border:none;background:var(--bg-elevated);color:var(--text-muted);width:44px;height:44px;border-radius:50%;font-size:17px;cursor:pointer;}
 .sheet-body{overflow-y:auto;padding:0 var(--space-4) var(--space-4);}
 .filter-group{margin-bottom:24px;}
-.filter-group h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-family:"Heebo";font-weight:700;margin:0 0 var(--space-3);}
+.filter-group h3{font-size:13.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-family:"Heebo";font-weight:700;margin:0 0 var(--space-3);}
 .chip-row{display:flex;flex-wrap:wrap;gap:var(--space-2);}
-.chip{border:1px solid transparent;background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:var(--space-2) var(--space-4);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:var(--space-2);transition:background .12s,border-color .12s,color .12s,transform .12s;}
+.chip{border:1px solid transparent;background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:var(--space-2) var(--space-4);font-size:14.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:var(--space-2);transition:background .12s,border-color .12s,color .12s,transform .12s;}
 .chip:active{transform:scale(.94);}
 .chip .sw{width:8px;height:8px;border-radius:50%;flex:none;}
+/* אותה נקודת-צבע כמו .sw, לשימוש בתוך טקסט מוטבע (לא בתוך chip flex) - למשל
+   "קושי: קל" בכרטיס מקום. inline-block+vertical-align כדי שתתיישר עם שורת הטקסט. */
+.tier-dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-bottom:2px;margin-inline-end:2px;}
 .chip.active{background:var(--color-primary-light);border-color:var(--color-primary);color:var(--color-primary);}
 .chip.active.teal{background:var(--color-secondary-light);border-color:var(--color-secondary);color:var(--color-secondary);}
 .sheet-actions{display:flex;gap:var(--space-3);padding:0 var(--space-4) var(--space-4);border-top:1px solid var(--border);margin-top:4px;padding-top:14px;}
 .range-row{display:flex;align-items:center;gap:var(--space-3);}
 .range-row input[type=range]{flex:1;accent-color:var(--accent);}
-.range-val{font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;min-width:64px;text-align:left;color:var(--text-muted);}
+.range-val{font-weight:700;font-variant-numeric:tabular-nums;font-size:14.5px;min-width:64px;text-align:left;color:var(--text-muted);}
 
 /* היררכיית כפתורים: Primary (מלא) > Secondary (טינט) > Outline (מסגרת) > Ghost (שקוף) > Danger.
    רק ל-Primary יש משקל ויזואלי מלא, כדי שיהיה CTA ראשי אחד ברור בכל אזור. */
-.btn{border:none;border-radius:var(--radius-btn);padding:var(--space-3) var(--space-4);font-weight:600;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--space-2);flex:1;transition:transform .15s,opacity .15s,background .15s;}
+.btn{border:none;border-radius:var(--radius-btn);padding:var(--space-3) var(--space-4);font-weight:600;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--space-2);flex:1;transition:transform .15s,opacity .15s,background .15s;}
 .btn-primary{background:var(--color-primary);color:var(--color-primary-ink);}
 .btn-primary:active{transform:scale(.98);background:var(--color-primary-dark);}
 .btn-secondary{background:var(--color-primary-light);color:var(--color-primary);}
@@ -431,61 +509,78 @@ button{font-family:inherit;}
 .profile-title-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);}
 .settings-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) 2px;}
 .faq-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:var(--space-3) var(--space-4);margin-bottom:8px;}
-.faq-item summary{font-weight:600;font-size:13.5px;cursor:pointer;list-style:none;}
+.faq-item summary{font-weight:600;font-size:15px;cursor:pointer;list-style:none;}
 .faq-item summary::-webkit-details-marker{display:none;}
 .faq-item summary::before{content:"+";display:inline-block;width:16px;color:var(--accent);font-weight:800;}
 .faq-item[open] summary::before{content:"–";}
-.faq-item p{margin:var(--space-3) 0 0 var(--space-5);color:var(--text-muted);font-size:13px;line-height:1.6;}
+.faq-item p{margin:var(--space-3) 0 0 var(--space-5);color:var(--text-muted);font-size:14.5px;line-height:1.6;}
 .settings-row .seg{max-width:220px;}
 
 .lm-hero{height:172px;border-radius:var(--radius-card);position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:var(--space-4);flex:none;}
 .lm-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .lm-hero.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.4), transparent 55%);}
-.lm-hero svg{position:absolute;opacity:.5;width:110px;height:110px;left:-14px;top:-16px;}
-.lm-hero .badge-count{position:relative;z-index:1;background:rgba(0,0,0,.32);color:#fff;font-size:12px;font-weight:700;padding:var(--space-1) var(--space-3);border-radius:999px;backdrop-filter:blur(2px);}
-.lm-hero .lm-photo-credit{position:absolute;z-index:1;left:8px;bottom:6px;font-size:9px;color:rgba(255,255,255,.75);background:rgba(0,0,0,.28);padding:2px var(--space-2);border-radius:6px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cat-tag{display:inline-flex;align-items:center;gap:var(--space-1);color:#fff;font-size:11px;font-weight:700;padding:var(--space-1) var(--space-2);border-radius:999px;}
+/* ‎> svg‎ בכוונה: האייקון של .photo-fallback מקונן בתוכו וממורכז בעצמו, והכלל הזה
+   (פינה, 110px, חצי-שקוף) נועד רק ל-svg שיושב ישירות בגיבוי הישן */
+.lm-hero > svg{position:absolute;opacity:.5;width:110px;height:110px;left:-14px;top:-16px;}
+.lm-hero .photo-fallback{position:absolute;inset:0;}
+.lm-hero .badge-count{position:relative;z-index:1;background:rgba(0,0,0,.32);color:#fff;font-size:13.5px;font-weight:700;padding:var(--space-1) var(--space-3);border-radius:999px;backdrop-filter:blur(2px);}
+.lm-hero .lm-photo-credit{position:absolute;z-index:1;left:8px;bottom:6px;font-size:11px;color:rgba(255,255,255,.75);background:rgba(0,0,0,.28);padding:2px var(--space-2);border-radius:6px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cat-tag{display:inline-flex;align-items:center;gap:var(--space-1);color:#fff;font-size:13px;font-weight:700;padding:var(--space-1) var(--space-2);border-radius:999px;}
 .lm-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);margin-top:12px;}
 .lm-title-row h2{margin:0;font-size:var(--font-h1);}
-.lm-region{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
-.lm-from-you{color:var(--teal);background:color-mix(in srgb, var(--teal) 14%, transparent);display:inline-block;font-size:12px;font-weight:600;padding:var(--space-1) var(--space-2);border-radius:20px;margin-top:8px;}
-.lm-desc{color:var(--text-muted);font-size:14.5px;line-height:1.65;margin:var(--space-3) 0;}
+.lm-region{color:var(--text-muted);font-size:14px;margin-top:2px;}
+.lm-from-you{color:var(--teal);background:color-mix(in srgb, var(--teal) 14%, transparent);display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;padding:var(--space-1) var(--space-2);border-radius:20px;margin-top:8px;}
+.lm-desc{color:var(--text-muted);font-size:16px;line-height:1.65;margin:var(--space-3) 0;}
 .lm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);margin:var(--space-4) 0;}
 .lm-stat{background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-2);text-align:center;}
-.lm-stat .v{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;}
-.lm-stat .l{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+.lm-stat .v{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;}
+.lm-stat .l{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
 .amenity-row{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:0 0 var(--space-4);}
-.amenity-chip{background:var(--bg-elevated);border:1px solid var(--border);border-radius:999px;padding:var(--space-1) var(--space-3);font-size:12px;font-weight:600;color:var(--text);}
-.lm-important-head{font-size:13.5px;font-weight:700;color:var(--text);margin:var(--space-4) 0 var(--space-2);}
-.lm-official-link{display:block;margin-top:10px;font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;}
+.amenity-chip{background:var(--bg-elevated);border:1px solid var(--border);border-radius:999px;padding:var(--space-1) var(--space-3);font-size:13.5px;font-weight:600;color:var(--text);
+  display:inline-flex;align-items:center;gap:5px;}
+.amenity-chip .ui-ic{flex:none;color:var(--color-primary);}
+.lm-important-head{font-size:15px;font-weight:700;color:var(--text);margin:var(--space-4) 0 var(--space-2);display:flex;align-items:center;gap:5px;}
+.lm-official-link{display:block;margin-top:10px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;}
 .lm-official-link:active{opacity:.7;}
-.lm-actions{display:flex;gap:var(--space-3);margin-top:6px;}
+.lm-review-link{display:flex;align-items:center;gap:5px;margin-top:8px;padding:0;background:none;border:none;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;}
+.lm-review-link:active{opacity:.7;}
+/* שורת-פעולות אחת שלא נשברת: שני כפתורי-הטקסט מתחלקים ברוחב שנשאר אחרי כפתורי
+   האייקון (44px קבוע כל אחד), והתווית לא עוברת שורה גם כשהיא ארוכה ("ברשימת המשאלות") */
+/* הפעולה הראשית נשארת בהישג אגודל בלי קשר לאורך התיאור: נדבקת לתחתית אזור-הגלילה
+   של ה-sheet, עם רקע מלא כדי שהתוכן לא ייראה "מבצבץ" מתחתיה. */
+.detail-cta{position:sticky;bottom:0;z-index:3;margin:var(--space-3) 0 0;
+  padding:var(--space-3) 0 calc(env(safe-area-inset-bottom) + var(--space-2));
+  background:linear-gradient(to top, var(--surface) 72%, transparent);}
+.lm-actions{display:flex;gap:var(--space-2);margin-top:6px;align-items:stretch;}
+.lm-actions .icon-btn{flex:none;}
+.lm-actions .btn{flex:1 1 0;min-width:0;white-space:nowrap;padding-inline:var(--space-3);}
 
-.checkin-status{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-elevated);border-radius:12px;padding:var(--space-3);margin:var(--space-3) 0;font-size:13.5px;color:var(--text-muted);}
+.checkin-status{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-elevated);border-radius:12px;padding:var(--space-3);margin:var(--space-3) 0;font-size:15px;color:var(--text-muted);}
 .field-reports{background:var(--bg-elevated);border-radius:12px;padding:var(--space-3) var(--space-3);margin:0 0 var(--space-4);}
-.field-reports-title{font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;}
-.field-report-row{display:flex;justify-content:space-between;gap:var(--space-3);font-size:13px;padding:var(--space-1) 0;color:var(--text);}
-.field-report-time{color:var(--text-muted);font-size:11.5px;flex:none;}
+.field-reports-title{font-size:13.5px;font-weight:700;color:var(--text-muted);margin-bottom:6px;}
+.field-report-row{display:flex;justify-content:space-between;gap:var(--space-3);font-size:14.5px;padding:var(--space-1) 0;color:var(--text);}
+.field-report-time{color:var(--text-muted);font-size:13px;flex:none;}
 .field-report-row.stale .field-report-time{color:var(--warn);}
-.report-chip-row .chip{font-size:12px;padding:var(--space-2) var(--space-3);}
-.checkin-status .ic{flex:none;font-size:18px;}
+.report-chip-row .chip{font-size:13.5px;padding:var(--space-2) var(--space-3);}
+.checkin-status .ic{flex:none;display:flex;}
+.checkin-status .ic .ui-ic{width:19px;height:19px;}
 .checkin-status.ok{color:var(--success);}
 .checkin-status.bad{color:var(--danger);}
-.checkin-extras-divider{text-align:center;color:var(--text-muted);font-size:12px;margin:var(--space-4) 0 var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--border);}
-.photo-drop{border:1.5px dashed var(--border);border-radius:var(--radius-card);padding:var(--space-5) var(--space-3);text-align:center;color:var(--text-muted);cursor:pointer;margin:var(--space-3) 0;font-size:13.5px;}
+.checkin-extras-divider{text-align:center;color:var(--text-muted);font-size:13.5px;margin:var(--space-4) 0 var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--border);}
+.photo-drop{border:1.5px dashed var(--border);border-radius:var(--radius-card);padding:var(--space-5) var(--space-3);text-align:center;color:var(--text-muted);cursor:pointer;margin:var(--space-3) 0;font-size:15px;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
 .photo-preview{width:100%;border-radius:var(--radius-card);display:block;margin:var(--space-3) 0;max-height:220px;object-fit:cover;}
 .privacy-card{background:var(--accent-light);border:1px solid transparent;border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:16px;}
 .privacy-head{display:flex;gap:var(--space-3);align-items:flex-start;margin-bottom:14px;}
 .privacy-icon{width:36px;height:36px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;flex:none;color:var(--accent-strong);box-shadow:var(--shadow-card);}
 .privacy-icon svg{width:18px;height:18px;}
-.privacy-desc{margin:0;font-size:12.5px;color:var(--text);opacity:.82;line-height:1.6;}
+.privacy-desc{margin:0;font-size:14px;color:var(--text);opacity:.82;line-height:1.6;}
 /* §17 - השורות בתוך כרטיס-הפרטיות היו כרטיסים לבנים בתוך כרטיס. עכשיו שורות שטוחות
    עם קו-הפרדה: ההיררכיה נוצרת ממרווח, לא מעוד מסגרת. */
-.privacy-toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;font-weight:700;padding:var(--space-3) 0;}
+.privacy-toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;padding:var(--space-3) 0;}
 .privacy-card .privacy-toggle-row{border-top:1px solid color-mix(in srgb, var(--text) 10%, transparent);}
 #travelStatusBox{padding:var(--space-3) 0 0;margin-top:var(--space-1);border-top:1px solid color-mix(in srgb, var(--text) 10%, transparent);}
-.privacy-status{font-size:12px;color:var(--text-muted);text-align:center;margin-top:9px;}
-.friends-travel-banner{background:color-mix(in srgb, var(--teal) 12%, transparent);border:1px solid color-mix(in srgb, var(--teal) 30%, transparent);border-radius:12px;padding:var(--space-3) var(--space-3);margin-top:9px;font-size:12.5px;color:var(--text);line-height:1.5;}
+.privacy-status{font-size:13.5px;color:var(--text-muted);text-align:center;margin-top:9px;}
+.friends-travel-banner{background:color-mix(in srgb, var(--teal) 12%, transparent);border:1px solid color-mix(in srgb, var(--teal) 30%, transparent);border-radius:12px;padding:var(--space-3) var(--space-3);margin-top:9px;font-size:14px;color:var(--text);line-height:1.5;}
 .switch{position:relative;width:38px;height:22px;flex:none;}
 .switch input{opacity:0;width:0;height:0;}
 .switch .track{position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.15s;cursor:pointer;}
@@ -497,103 +592,103 @@ button{font-family:inherit;}
 .section-head h2{font-size:var(--font-h2);margin:0;}
 /* כרטיס-מקום (רכיב משותף אחד - ראו placeCardHtml ב-app.js): התמונה היא האלמנט המרכזי,
    מידע משני מוצג כאייקונים קטנים, והניקוד מופיע כ-pill חם אחד (warm = נקודות/הישגים). */
-.mini-card{display:flex;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-2);margin-bottom:var(--space-2);align-items:center;cursor:pointer;transition:transform .12s,background .12s,box-shadow .12s;box-shadow:var(--shadow-card);}
+.mini-card{display:flex;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-3);align-items:center;cursor:pointer;transition:transform .12s,background .12s,box-shadow .12s;box-shadow:var(--shadow-card);}
 .mini-card:active{transform:scale(.985);background:var(--bg-elevated);}
-.mini-thumb{width:72px;height:72px;border-radius:var(--radius-input);flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mini-thumb{width:88px;height:88px;border-radius:var(--radius-input);flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .mini-thumb img{width:100%;height:100%;object-fit:cover;}
 .mini-thumb svg{width:28px;height:28px;}
 .mini-info{flex:1;min-width:0;}
-.mini-info .name{font-weight:700;font-size:var(--font-h3);line-height:1.35;}
+.mini-info .name{font-weight:700;font-size:var(--font-h2);line-height:1.3;}
 .mini-info .sub{font-size:var(--font-caption);color:var(--text-muted);margin-top:var(--space-1);}
 .place-meta{display:flex;flex-wrap:wrap;gap:2px var(--space-2);margin-top:var(--space-1);font-size:var(--font-caption);color:var(--text-muted);line-height:1.5;}
 .place-meta-item{display:inline-flex;align-items:center;gap:var(--space-1);white-space:nowrap;}
 .ui-ic{flex:none;opacity:.8;}
 /* direction:ltr כדי ש-"+40" לא יתהפך ל-"40+" ב-bidi של RTL */
-.place-pts{align-self:center;flex:none;background:var(--color-accent-light);color:var(--color-accent);font-weight:800;font-size:12.5px;padding:var(--space-1) 9px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;}
+.place-pts{align-self:center;flex:none;background:var(--color-accent-light);color:var(--color-accent);font-weight:800;font-size:14px;padding:var(--space-1) 9px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;}
 .place-pts.done{background:var(--color-primary-light);color:var(--color-primary);display:inline-flex;align-items:center;gap:var(--space-1);}
 .place-pts{transition:transform .15s;}
 .card-side{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);flex:none;}
-.card-wish{border:none;background:transparent;color:var(--text-muted);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s,background .15s,transform .12s;}
+.card-wish{border:none;background:transparent;color:var(--text-muted);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s,background .15s,transform .12s;}
 .card-wish:active{transform:scale(.88);}
 .card-wish.active{color:var(--danger);}
 .card-wish.active .ui-ic{fill:currentColor;opacity:1;}
 .card-wish:disabled{opacity:.5;}
 .mini-card:active .place-pts{transform:scale(.93);}
-.mini-pts{font-weight:800;color:var(--accent-strong);font-size:13.5px;font-variant-numeric:tabular-nums;}
+.mini-pts{font-weight:800;color:var(--accent-strong);font-size:15px;font-variant-numeric:tabular-nums;}
 .friend-row{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-2) var(--space-3);margin-bottom:8px;}
-.friend-row .avatar{width:38px;height:38px;font-size:14px;flex:none;}
-.friend-row .friend-name{font-weight:700;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.friend-row .avatar{width:38px;height:38px;font-size:15.5px;flex:none;}
+.friend-row .friend-name{font-weight:700;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .friend-row .friend-actions{display:flex;gap:var(--space-2);flex:none;}
-.friend-row .friend-actions .btn{flex:none;padding:var(--space-2) var(--space-3);font-size:12px;}
-.friend-row .icon-btn{width:34px;height:34px;flex:none;}
+.friend-row .friend-actions .btn{flex:none;padding:var(--space-2) var(--space-3);font-size:13.5px;}
+.friend-row .icon-btn{width:44px;height:44px;flex:none;}
 .admin-user-row{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-2) var(--space-3);margin-bottom:8px;}
 .admin-user-info{flex:1;min-width:0;}
-.admin-user-name{font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:var(--space-2);}
-.admin-user-sub{font-size:11.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
-.admin-badge{font-size:10px;font-weight:700;padding:1px var(--space-2);border-radius:999px;background:var(--accent-light,var(--bg-elevated));color:var(--accent);}
+.admin-user-name{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:var(--space-2);}
+.admin-user-sub{font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+.admin-badge{font-size:12px;font-weight:700;padding:1px var(--space-2);border-radius:999px;background:var(--accent-light,var(--bg-elevated));color:var(--accent);}
 .admin-badge.suspended{background:#fbe8e3;color:#b3432e;}
-.friends-empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:var(--space-4) var(--space-3);}
+.friends-empty{font-size:14px;color:var(--text-muted);text-align:center;padding:var(--space-4) var(--space-3);}
 .notif-row{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-3);margin-bottom:8px;cursor:pointer;transition:background .12s;}
 .notif-row.unread{background:var(--accent-light);border-color:transparent;}
-.notif-row .notif-icon{width:36px;height:36px;border-radius:50%;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;}
-.notif-row .notif-text{flex:1;min-width:0;font-size:13px;line-height:1.4;}
-.notif-row .notif-time{font-size:11px;color:var(--text-muted);margin-top:2px;}
-.wiz-relaxed-note{background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);font-size:12px;color:var(--text-muted);margin-bottom:12px;}
-.wiz-result-card .mini-info .sub{font-size:11.5px;}
-.wiz-match-tag{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:2px;}
-.wiz-match-pct{font-size:11px;color:var(--text-muted);margin-top:3px;}
-.wishlist-context{font-size:11px;color:var(--text-muted);margin-top:2px;}
-.wiz-intro-greet{margin:0 0 var(--space-3);font-size:15px;font-weight:700;}
+.notif-row .notif-icon{width:36px;height:36px;border-radius:50%;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;flex:none;font-size:17px;}
+.notif-row .notif-text{flex:1;min-width:0;font-size:14.5px;line-height:1.4;}
+.notif-row .notif-time{font-size:13px;color:var(--text-muted);margin-top:2px;}
+.wiz-relaxed-note{background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);font-size:13.5px;color:var(--text-muted);margin-bottom:12px;}
+.wiz-result-card .mini-info .sub{font-size:13px;}
+.wiz-match-tag{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:2px;display:flex;align-items:center;gap:4px;}
+.wiz-match-pct{font-size:13px;color:var(--text-muted);margin-top:3px;}
+.wishlist-context{font-size:13px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px;}
+.wiz-intro-greet{margin:0 0 var(--space-3);font-size:16px;font-weight:700;}
 .wiz-intro-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:14px;}
 .wiz-intro-hero{width:100%;height:130px;border-radius:12px;overflow:hidden;margin-bottom:10px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#fff;}
 .wiz-intro-hero svg{width:34px;height:34px;}
-.wiz-intro-name{font-size:16px;font-weight:700;margin-bottom:4px;}
-.wiz-intro-sub{font-size:12.5px;color:var(--text-muted);margin-bottom:8px;}
-.wiz-intro-why{background:none;border:none;padding:0;color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;}
-.wiz-intro-reason{margin-top:8px;font-size:12px;color:var(--text-muted);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);}
+.wiz-intro-name{font-size:17px;font-weight:700;margin-bottom:4px;}
+.wiz-intro-sub{font-size:14px;color:var(--text-muted);margin-bottom:8px;}
+.wiz-intro-why{background:none;border:none;padding:0;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;}
+.wiz-intro-reason{margin-top:8px;font-size:13.5px;color:var(--text-muted);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);}
 .wiz-intro-actions{display:flex;gap:var(--space-2);}
 .wiz-intro-actions .btn{flex:1;}
 /* מצב-ריק (§12): אייקון עדין בעיגול, כותרת קצרה, משפט מעודד ו-CTA אחד */
-.empty-state{text-align:center;color:var(--text-muted);padding:var(--space-6) var(--space-4);font-size:13.5px;}
-.empty-state .empty-cta{display:inline-flex;margin-top:var(--space-4);padding:var(--space-3) var(--space-5);font-size:13px;flex:none;}
+.empty-state{text-align:center;color:var(--text-muted);padding:var(--space-6) var(--space-4);font-size:15px;}
+.empty-state .empty-cta{display:inline-flex;margin-top:var(--space-4);padding:var(--space-3) var(--space-5);font-size:14.5px;flex:none;}
 .empty-state .big{font-size:32px;margin-bottom:var(--space-2);}
 .empty-icon{width:56px;height:56px;margin:0 auto var(--space-3);border-radius:50%;background:var(--color-primary-light);color:var(--color-primary);display:flex;align-items:center;justify-content:center;}
 .empty-icon .ui-ic{opacity:1;}
 .empty-title{font-family:"Suez One","Heebo",serif;font-size:var(--font-h2);color:var(--text);line-height:var(--leading-tight);}
-.empty-sub{font-size:13px;color:var(--text-muted);margin-top:var(--space-2);line-height:1.55;max-width:260px;margin-inline:auto;}
+.empty-sub{font-size:14.5px;color:var(--text-muted);margin-top:var(--space-2);line-height:1.55;max-width:260px;margin-inline:auto;}
 
 /* מסך ההזמנה (§24): הזמנה למסע, לא אישור טכני */
 .invite-hero{text-align:center;padding:var(--space-2) 0 var(--space-5);}
 .invite-mark{width:64px;height:64px;margin:0 auto var(--space-3);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-card);}
 .invite-mark img{width:100%;height:100%;object-fit:contain;display:block;}
 .invite-title{font-size:var(--font-h1);margin:0 0 var(--space-2);}
-.invite-sub{color:var(--text-muted);font-size:13.5px;line-height:1.6;margin:0 auto var(--space-4);max-width:280px;}
+.invite-sub{color:var(--text-muted);font-size:15px;line-height:1.6;margin:0 auto var(--space-4);max-width:280px;}
 .invite-preview{display:flex;flex-direction:column;gap:var(--space-2);background:var(--bg-elevated);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);text-align:start;}
-.invite-preview-item{display:flex;align-items:center;gap:var(--space-2);font-size:13px;color:var(--text);}
+.invite-preview-item{display:flex;align-items:center;gap:var(--space-2);font-size:14.5px;color:var(--text);}
 .invite-preview-item b{font-variant-numeric:tabular-nums;}
 .invite-preview-item .ui-ic{color:var(--color-primary);opacity:1;}
-.invite-action-note{font-size:12px;color:var(--text-muted);margin:var(--space-3) 0 0;}
-.guest-gate{text-align:center;color:var(--text-muted);padding:60px var(--space-5);font-size:14px;}
+.invite-action-note{font-size:13.5px;color:var(--text-muted);margin:var(--space-3) 0 0;}
+.guest-gate{text-align:center;color:var(--text-muted);padding:60px var(--space-5);font-size:15.5px;}
 .guest-gate .big{font-size:38px;margin-bottom:10px;}
 .guest-gate p{margin:0 0 var(--space-4);}
 .guest-gate .btn{display:inline-flex;padding:var(--space-3) var(--space-5);}
 .welcome-banner{background:var(--teal-gradient);color:#fff;border-radius:var(--radius-card);padding:var(--space-5);margin:var(--space-4) 0;text-align:center;}
-.welcome-banner .big{font-size:34px;margin-bottom:6px;}
-.welcome-banner p{margin:0 0 var(--space-4);font-size:13.5px;line-height:1.6;opacity:.95;}
+.welcome-banner .big{margin-bottom:6px;display:flex;justify-content:center;}
+.welcome-banner p{margin:0 0 var(--space-4);font-size:15px;line-height:1.6;opacity:.95;}
 .welcome-banner .btn{display:inline-flex;background:#fff;color:var(--teal-gradient-to);padding:var(--space-3) var(--space-5);}
 
-.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex:none;font-family:"Suez One";position:relative;overflow:hidden;}
+.avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(155deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:23px;flex:none;font-family:"Suez One";position:relative;overflow:hidden;}
 .avatar img{width:100%;height:100%;object-fit:cover;}
 .avatar #avatarLetter,.avatar #editAvatarLetter{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
-.avatar-level-badge{position:absolute;bottom:-3px;left:-3px;width:24px;height:24px;border-radius:50%;background:var(--surface);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;}
-.profile-name{font-size:18px;font-weight:800;}
-.profile-name button{border:none;background:none;color:var(--text-muted);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0;margin-inline-start:6px;}
-.profile-sub{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
+.avatar-level-badge{position:absolute;bottom:-3px;left:-3px;width:24px;height:24px;border-radius:50%;background:var(--surface);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;color:var(--color-primary);}
+.profile-name{font-size:19px;font-weight:800;}
+.profile-name button{border:none;background:none;color:var(--text-muted);font-size:13px;cursor:pointer;text-decoration:underline;padding:0;margin-inline-start:6px;}
+.profile-sub{color:var(--text-muted);font-size:14px;margin-top:2px;}
 .progress-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:var(--space-1) var(--space-3);margin-bottom:9px;}
-.progress-top .n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent-strong);}
-.progress-top .n span{font-size:13px;color:var(--text-muted);font-weight:600;}
-.level-hint{font-size:12px;color:var(--text-muted);margin-top:9px;}
-.level-chip{display:inline-flex;align-items:center;gap:var(--space-1);background:var(--bg-elevated);border-radius:999px;padding:2px var(--space-2);font-weight:700;font-size:11.5px;color:var(--text);}
+.progress-top .n{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent-strong);}
+.progress-top .n span{font-size:14.5px;color:var(--text-muted);font-weight:600;}
+.level-hint{font-size:13.5px;color:var(--text-muted);margin-top:9px;}
+.level-chip{display:inline-flex;align-items:center;gap:var(--space-1);background:var(--bg-elevated);border-radius:999px;padding:2px var(--space-2);font-weight:700;font-size:13px;color:var(--text);}
 .bar{height:8px;border-radius:99px;background:var(--bg-elevated);overflow:hidden;}
 .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--accent));border-radius:99px;transition:width .4s cubic-bezier(.3,.8,.4,1);}
 .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);margin:var(--space-4) 0;}
@@ -601,11 +696,11 @@ button{font-family:inherit;}
 .stat-grid-4{grid-template-columns:repeat(4,1fr);}
 .stat-grid-5{grid-template-columns:repeat(5,1fr);gap:var(--space-1);}
 .stat-grid-5 .stat-box{padding:var(--space-2) 2px;}
-.stat-grid-5 .stat-box .v{font-size:15px;}
-.stat-grid-5 .stat-box .l{font-size:9.5px;}
+.stat-grid-5 .stat-box .v{font-size:16px;}
+.stat-grid-5 .stat-box .l{font-size:11.5px;}
 .stat-grid-4 .stat-box{padding:var(--space-3) var(--space-1);}
-.stat-grid-4 .stat-box .v{font-size:16px;}
-.stat-grid-4 .stat-box .l{font-size:9.5px;}
+.stat-grid-4 .stat-box .v{font-size:17px;}
+.stat-grid-4 .stat-box .l{font-size:11.5px;}
 
 .journey-hero{background:var(--journey-bg);color:#fff;border-radius:var(--radius-card);padding:var(--space-5);margin:var(--space-4) 0;}
 .journey-head{display:flex;align-items:center;gap:var(--space-4);}
@@ -626,16 +721,16 @@ button{font-family:inherit;}
 .trip-mode{position:fixed;inset:0;z-index:1240;background:var(--journey-bg);color:#fff;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + var(--space-4)) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));}
 .trip-top{display:flex;align-items:center;justify-content:space-between;flex:none;}
 .trip-kicker{font-size:var(--font-caption);font-weight:800;color:rgba(255,255,255,.65);letter-spacing:.04em;}
-.trip-close{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:999px;padding:var(--space-2) var(--space-4);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.trip-close{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:999px;padding:var(--space-2) var(--space-4);font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;}
 .trip-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-2);}
 .trip-name{font-family:"Suez One","Heebo",serif;font-size:30px;line-height:1.2;}
 .trip-elapsed{font-size:var(--font-body);color:rgba(255,255,255,.7);}
 .trip-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);flex:none;}
-.trip-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);min-height:96px;border:none;border-radius:var(--radius-card);background:rgba(255,255,255,.12);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s;}
+.trip-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);min-height:96px;border:none;border-radius:var(--radius-card);background:rgba(255,255,255,.12);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s;}
 .trip-action:active{transform:scale(.97);}
 .trip-action-primary{background:var(--color-primary);grid-column:1 / -1;}
 .trip-action .ui-ic{opacity:1;}
-.trip-resume{position:fixed;left:var(--space-4);right:var(--space-4);bottom:calc(88px + env(safe-area-inset-bottom));z-index:1060;background:var(--journey-bg);color:#fff;border:none;border-radius:999px;padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-elevated);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
+.trip-resume{position:fixed;left:var(--space-4);right:var(--space-4);bottom:calc(88px + env(safe-area-inset-bottom));z-index:1060;background:var(--journey-bg);color:#fff;border:none;border-radius:999px;padding:var(--space-3) var(--space-4);font-size:15px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-elevated);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
 
 /* אתגר מבוסס-זמן (§9) - דחיפות אמיתית, בלי להפוך את המסך למשחק */
 .challenge-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);box-shadow:var(--shadow-card);}
@@ -644,20 +739,20 @@ button{font-family:inherit;}
 .challenge-strip-days{font-size:var(--font-caption);font-weight:700;color:var(--color-accent);}
 .challenge-strip.done .challenge-strip-days{color:var(--color-primary);}
 .challenge-strip-sub{font-size:var(--font-caption);color:var(--text-muted);margin:2px 0 var(--space-2);}
-.challenge-strip-foot{display:flex;justify-content:flex-end;font-size:11px;font-weight:800;color:var(--text-muted);margin-top:var(--space-1);}
+.challenge-strip-foot{display:flex;justify-content:flex-end;font-size:13px;font-weight:800;color:var(--text-muted);margin-top:var(--space-1);}
 /* מתכנן סופ״ש (§12) */
 .weekend-idea{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
 .weekend-idea:active{transform:scale(.99);}
 .weekend-idea-ic{width:38px;height:38px;border-radius:50%;background:var(--color-secondary-light);color:var(--color-secondary);display:flex;align-items:center;justify-content:center;flex:none;}
 .weekend-idea-ic .ui-ic{opacity:1;}
 .weekend-idea-body{flex:1;min-width:0;display:flex;flex-direction:column;}
-.weekend-idea-kind{font-size:11px;font-weight:800;color:var(--color-secondary);}
+.weekend-idea-kind{font-size:13px;font-weight:800;color:var(--color-secondary);}
 .weekend-idea-name{font-weight:700;font-size:var(--font-h3);}
 
 /* אוספים (§8): כרטיס עם התקדמות אמיתית, כדי שהמשתמש יחשוב "נשארו לי 3" */
 .collection-card{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
 .collection-card:active{transform:scale(.99);}
-.collection-icon{width:46px;height:46px;border-radius:var(--radius-input);background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;}
+.collection-icon{width:46px;height:46px;border-radius:var(--radius-input);background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;color:var(--color-primary);flex:none;}
 .collection-card.done .collection-icon{background:var(--color-primary-light);}
 .collection-body{flex:1;min-width:0;}
 .collection-title{font-weight:700;font-size:var(--font-h3);}
@@ -669,38 +764,75 @@ button{font-family:inherit;}
 .collection-count{font-size:var(--font-caption);font-weight:800;color:var(--text-muted);font-variant-numeric:tabular-nums;direction:ltr;flex:none;}
 
 /* ---------- Home (§1) ---------- */
-.home-hero{background:var(--journey-bg);color:#fff;border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-4) 0 var(--space-2);}
+/* אתגר השבוע - משימה אחת, התקדמות אמיתית, פרס, וזמן שנותר. לא כרטיס-לבן-בתוך-לבן:
+   רקע ירוק-בהיר שמבדיל אותו מכרטיסי-המקומות בלי להוסיף עוד סוג-כרטיס למערכת. */
+.weekly-chal{background:var(--color-primary-light);border-radius:var(--radius-card);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+.weekly-chal.is-done{background:color-mix(in srgb, var(--success) 14%, transparent);}
+.weekly-chal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);}
+.weekly-chal-task{font-size:var(--font-h3);font-weight:700;line-height:1.35;}
+.weekly-chal-left{flex:none;font-size:var(--font-caption);font-weight:700;color:var(--text-muted);white-space:nowrap;}
+.weekly-chal-progress{display:flex;align-items:center;gap:var(--space-3);}
+/* הרקע הירקרק של הכרטיס קרוב מדי ל---bg-elevated של הפס, אז המסלול הריק נעלם */
+.weekly-chal-progress .bar{flex:1;background:color-mix(in srgb, var(--color-primary) 16%, #fff);}
+.weekly-chal-count{font-size:var(--font-caption);font-weight:800;color:var(--color-primary);font-variant-numeric:tabular-nums;}
+.weekly-chal-reward{font-size:var(--font-caption);color:var(--text-muted);line-height:1.5;}
+.weekly-chal-reward b{color:var(--color-accent);}
+.weekly-chal .btn{align-self:flex-start;}
+/* כותרת מסך הבית - הדבר הראשון שנראה: ברכה שקטה, שאלה אחת גדולה, וכניסה לחיפוש */
+.home-head{padding:var(--space-5) 0 var(--space-2);}
+.home-head-greet{font-size:var(--font-body);font-weight:600;color:var(--text-muted);}
+.home-head-title{font-family:"Suez One","Heebo",serif;font-size:var(--font-display);line-height:1.15;margin:var(--space-1) 0 var(--space-4);}
+.home-search{display:flex;align-items:center;gap:var(--space-3);width:100%;min-height:52px;padding:0 var(--space-4);
+  background:var(--surface);border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow-card);
+  font-family:inherit;font-size:var(--font-body);font-weight:600;color:var(--text-muted);cursor:pointer;text-align:start;transition:transform .12s,box-shadow .15s;}
+.home-search:active{transform:scale(.99);}
+.home-search svg{flex:none;color:var(--color-primary);}
+.home-head .quick-chip-row{margin-top:var(--space-3);}
+.home-head .quick-chip{box-shadow:none;background:var(--surface);border:1px solid var(--border);}
+.home-hero{background:var(--journey-bg);color:#fff;border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-5) 0 var(--space-2);}
 .home-hero-top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);}
 .home-greet{font-family:"Suez One","Heebo",serif;font-size:var(--font-h1);line-height:var(--leading-tight);}
 .home-hero-sub{font-size:var(--font-caption);color:rgba(255,255,255,.72);margin-top:var(--space-1);line-height:1.5;}
 .home-ring{width:76px;height:76px;flex:none;}
 .home-hero .ring-track{stroke:rgba(255,255,255,.18);}
 .home-hero .ring-fill{stroke:var(--sand);}
-.home-hero .ring-center{color:#fff;font-size:18px;}
+.home-hero .ring-center{color:#fff;font-size:19px;}
 /* כרטיס "היעד הבא" - הפעולה הראשית של המסך, ולכן הוא הכבד ביותר ויזואלית */
 .next-goal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-card);}
-.next-goal-photo{height:150px;position:relative;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
-.next-goal-photo .match{position:absolute;top:var(--space-3);inset-inline-start:var(--space-3);background:var(--color-primary);color:#fff;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;}
-.next-goal-photo .pts{position:absolute;top:var(--space-3);inset-inline-end:var(--space-3);background:var(--color-accent);color:#fff;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;direction:ltr;}
+/* יחס 4:3 (לא גובה קבוע) - זה ה-hero של מסך הבית, והצילום הוא מה שאמור למכור את היעד.
+   max-height שומר שגם במסכים צרים מאוד הכרטיס לא ייקח את כל המסך. */
+.next-goal-photo{aspect-ratio:4/3;max-height:52vh;position:relative;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+/* גרדיאנט תחתון - מה שמאפשר לשם המקום לשבת על הצילום ולהישאר קריא על כל תמונה */
+.next-goal-photo::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to top, rgba(12,20,16,.78) 0%, rgba(12,20,16,.35) 26%, rgba(12,20,16,0) 52%);}
+.next-goal-overlay{position:absolute;z-index:2;inset-inline:0;bottom:0;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-1);}
+.next-goal-overlay .next-goal-name{color:#fff;font-size:var(--font-display);line-height:1.15;text-shadow:0 1px 8px rgba(0,0,0,.35);}
+.next-goal-overlay .place-meta{color:rgba(255,255,255,.92);margin-top:0;}
+.next-goal-overlay .place-meta-item{color:inherit;}
+.next-goal-photo .match{position:absolute;top:var(--space-3);inset-inline-start:var(--space-3);background:var(--color-primary);color:#fff;font-size:13.5px;font-weight:800;padding:4px 10px;border-radius:999px;}
+/* בלי direction:ltr על הקופסה: inset-inline-end נפתר לפי הכיווניות של האלמנט עצמו, כך
+   ש-ltr היה מצמיד את תג-הנקודות לאותו צד כמו תג-ההתאמה ומכסה אותו. "+20" נקרא נכון גם
+   ב-RTL (ה-"+" הוא European Terminator ונצמד לספרות), אז אין צורך בכפייה. */
+.next-goal-photo .pts{position:absolute;top:var(--space-3);inset-inline-end:var(--space-3);background:var(--color-accent);color:#fff;font-size:13.5px;font-weight:800;padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums;}
 .next-goal-body{padding:var(--space-4);}
 .next-goal-name{font-family:"Suez One","Heebo",serif;font-size:var(--font-h2);}
 .next-goal-why{margin:var(--space-3) 0 0;padding:var(--space-3);background:var(--color-primary-light);border-radius:var(--radius-input);}
 .next-goal-why-title{font-size:var(--font-caption);font-weight:800;color:var(--color-primary);margin-bottom:var(--space-2);}
-.why-row{display:flex;align-items:flex-start;gap:var(--space-2);font-size:13px;color:var(--text);line-height:1.5;}
+.why-row{display:flex;align-items:flex-start;gap:var(--space-2);font-size:14.5px;color:var(--text);line-height:1.5;}
 .why-row+.why-row{margin-top:var(--space-1);}
 .why-row .ui-ic{color:var(--color-primary);opacity:1;margin-top:2px;}
 .next-goal-actions{display:flex;gap:var(--space-2);margin-top:var(--space-4);}
-.next-goal-actions .btn{font-size:14px;}
+.next-goal-actions .btn{font-size:15.5px;}
 /* גילוי יומי - קומפקטי יותר, כדי שלא יתחרה ביעד הבא */
 .daily-card{display:flex;gap:var(--space-3);align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);}
 .daily-thumb{width:76px;height:76px;border-radius:var(--radius-input);flex:none;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
 .daily-body{flex:1;min-width:0;}
-.daily-kicker{font-size:11px;font-weight:800;color:var(--color-secondary);}
+.daily-kicker{font-size:13px;font-weight:800;color:var(--color-secondary);}
 .daily-name{font-weight:700;font-size:var(--font-h3);margin-top:2px;}
 /* "כמעט שם" - open loop (§10) */
 .almost-card{display:flex;align-items:center;gap:var(--space-3);background:var(--color-accent-light);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-top:var(--space-2);cursor:pointer;}
 .almost-card .ui-ic{color:var(--color-accent);opacity:1;flex:none;}
-.almost-text{flex:1;min-width:0;font-size:13px;line-height:1.45;color:var(--text);}
+.almost-text{flex:1;min-width:0;font-size:14.5px;line-height:1.45;color:var(--text);}
 .almost-text b{font-weight:800;}
 
 /* Hero metric של "ישראל שלי" - טבעת-התקדמות + נתון ראשי, במקום שורת-טקסט קטנה */
@@ -710,58 +842,86 @@ button{font-family:inherit;}
 .progress-ring circle{fill:none;stroke-width:7;stroke-linecap:round;}
 .ring-track{stroke:var(--bg-elevated);}
 .ring-fill{stroke:var(--color-primary);stroke-dasharray:213.6;stroke-dashoffset:213.6;transition:stroke-dashoffset .7s cubic-bezier(.3,.8,.4,1);}
-.ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Suez One","Heebo",serif;font-size:20px;color:var(--color-primary);font-variant-numeric:tabular-nums;}
+.ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Suez One","Heebo",serif;font-size:21px;color:var(--color-primary);font-variant-numeric:tabular-nums;}
 .israel-hero-copy{min-width:0;}
 .israel-hero-title{font-family:"Suez One","Heebo",serif;font-size:var(--font-h1);line-height:var(--leading-tight);}
 .israel-hero-sub{font-size:var(--font-caption);color:var(--text-muted);margin-top:var(--space-1);line-height:1.5;}
 .region-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-bottom:8px;cursor:pointer;}
 .region-row-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
-.region-row-head .name{font-weight:700;font-size:13.5px;}
-.region-row-head .count{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
-.region-row-nudge{font-size:11px;color:var(--text-muted);margin-top:6px;}
-.region-row-milestone{font-size:11.5px;font-weight:700;color:var(--accent);margin-top:6px;}
-.region-sheet-subtitle{font-size:13px;color:var(--text-muted);margin:0 0 var(--space-3);}
+.region-row-head .name{font-weight:700;font-size:15px;}
+.region-row-head .count{font-size:13.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.region-row-nudge{font-size:13px;color:var(--text-muted);margin-top:6px;}
+.region-row-milestone{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--accent);margin-top:6px;}
+.milestone-ic{display:inline-flex;flex:none;}
+.region-sheet-subtitle{font-size:14.5px;color:var(--text-muted);margin:0 0 var(--space-3);}
 .region-place-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-1);border-bottom:1px solid var(--border);}
 .region-place-row:last-child{border-bottom:none;}
 .region-place-row .thumb{width:44px;height:44px;border-radius:12px;overflow:hidden;flex:none;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);}
 .region-place-row .thumb img{width:100%;height:100%;object-fit:cover;}
-.region-place-row .thumb.mystery{font-size:18px;font-weight:800;color:var(--text-muted);}
-.region-place-row .info .name{font-weight:700;font-size:13.5px;}
-.region-place-row .info .sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+.region-place-row .thumb.mystery{font-size:19px;font-weight:800;color:var(--text-muted);}
+.region-place-row .info .name{font-weight:700;font-size:15px;}
+.region-place-row .info .sub{font-size:13px;color:var(--text-muted);margin-top:2px;}
 .region-place-row.visited{cursor:pointer;}
 .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3) var(--space-2);text-align:center;}
-.stat-box .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;}
-.stat-box .l{font-size:10.5px;color:var(--text-muted);margin-top:3px;}
-.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin:var(--space-3) 0 var(--space-2);}
-.badge{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);text-align:center;}
-.badge .circ{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:23px;background:var(--bg-elevated);border:1.5px solid var(--border);filter:grayscale(1);opacity:.42;transition:transform .2s ease,box-shadow .2s ease;}
-/* פריט-אוסף שנפתח: צבע מלא + הילה/הגבהה עדינה (לא מסגרת מקווקוות "תווית") */
-.badge.unlocked .circ{background:radial-gradient(circle at 32% 26%,var(--color-accent-light),var(--surface) 74%);border:1.5px solid color-mix(in srgb, var(--color-accent) 45%, transparent);box-shadow:0 0 0 5px color-mix(in srgb, var(--color-accent) 12%, transparent),var(--shadow-card);filter:none;opacity:1;}
-.badge.unlocked:nth-child(4n+1) .circ{transform:rotate(-6deg);}
-.badge.unlocked:nth-child(4n+2) .circ{transform:rotate(4deg);}
-.badge.unlocked:nth-child(4n+3) .circ{transform:rotate(-3deg);}
-.badge.unlocked:nth-child(4n+4) .circ{transform:rotate(5deg);}
+.stat-box .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
+.stat-box .l{font-size:12.5px;color:var(--text-muted);margin-top:3px;}
+/* ============ חותמות מסע ============ */
+/* מחליף את גריד-התגים האחיד. שלושה מצבים חזותיים על אותו רכיב: נעולה (קו מתאר, צבע
+   מופחת), בדרך (טבעת התקדמות), הושגה (צבע מלא + תאריך). "חדשה" מוסיפה הטבעה חד-פעמית. */
+.stamp-section{margin:var(--space-4) 0 var(--space-5);}
+.stamp-section-head{font-size:var(--font-caption);font-weight:800;letter-spacing:.04em;color:var(--text-muted);margin-bottom:var(--space-3);}
+.stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4) var(--space-3);}
+/* הקרובות להשלמה גדולות יותר ובשורה של שלוש - הן הדבר שהמשתמש יכול לעשות עכשיו */
+.stamp-section.is-close .stamp-grid{grid-template-columns:repeat(3,1fr);}
+.stamp-section.is-close .stamp-disc{width:76px;height:76px;}
+.stamp{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);text-align:center;min-width:0;}
+.stamp-disc{position:relative;width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;}
+.stamp-face{position:absolute;inset:5px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:1.5px dashed color-mix(in srgb, var(--text-muted) 45%, transparent);color:var(--text-muted);opacity:.62;background:var(--bg-elevated);}
+.stamp-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+.stamp-ring-fill{fill:none;stroke:var(--color-primary);stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:163.4;transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.3,1);}
+.stamp-lock{position:absolute;bottom:-1px;inset-inline-end:-1px;width:18px;height:18px;border-radius:50%;
+  background:var(--bg-elevated);border:1.5px solid var(--border);color:var(--text-muted);opacity:.7;
+  display:flex;align-items:center;justify-content:center;}
+/* הושגה: חותמת דיו מלאה - קו רציף, צבע מלא, והטיה קלה כדי שתיראה מוטבעת ולא מודפסת */
+.stamp.is-earned .stamp-face{border-style:solid;border-width:2px;border-color:var(--color-accent);
+  color:var(--color-accent);opacity:1;background:var(--color-accent-light);transform:rotate(-4deg);}
+.stamp.is-earned:nth-child(2n) .stamp-face{transform:rotate(3deg);}
+.stamp.is-earned:nth-child(3n) .stamp-face{transform:rotate(-6deg);}
+.stamp.is-earned.metal-bronze .stamp-face{border-color:var(--metal-bronze);color:var(--metal-bronze);background:color-mix(in srgb,var(--metal-bronze) 14%,transparent);}
+.stamp.is-earned.metal-silver .stamp-face{border-color:var(--metal-silver);color:var(--metal-silver);background:color-mix(in srgb,var(--metal-silver) 14%,transparent);}
+.stamp.is-earned.metal-gold .stamp-face{border-color:var(--metal-gold);color:var(--metal-gold);background:color-mix(in srgb,var(--metal-gold) 16%,transparent);}
+/* שתי שורות שמורות לתווית בכל תא, כדי ששמות ארוכים ("כובש אזור ראשון") לא יזיזו את
+   המונה של שאר התאים בשורה ויהפכו את הרשת למדורגת */
+.stamp-label{font-size:var(--font-caption);font-weight:600;color:var(--text-muted);line-height:1.3;
+  min-height:calc(var(--font-caption) * 1.3 * 2);display:flex;align-items:center;justify-content:center;}
+.stamp.is-earned .stamp-label{color:var(--text);font-weight:700;}
+.stamp-progress,.stamp-date{font-size:12px;font-weight:700;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.stamp.is-earned .stamp-date{color:var(--color-accent);}
 @media (prefers-reduced-motion: no-preference){
-  .badge.unlocked .circ{animation:stampReveal .5s ease-out;}
+  .stamp.is-fresh .stamp-face{animation:stampPress .55s cubic-bezier(.2,1.4,.4,1);}
 }
-@keyframes stampReveal{0%{opacity:0;filter:grayscale(1) brightness(1.3);}100%{opacity:1;filter:none;}}
-.badge .lbl{font-size:10px;color:var(--text-muted);font-weight:600;line-height:1.3;}
-.badge-progress{font-size:9.5px;color:var(--accent-strong);font-weight:700;font-variant-numeric:tabular-nums;}
-.badge.unlocked .lbl{color:var(--text);}
+@keyframes stampPress{
+  0%{transform:scale(1.9) rotate(-14deg);opacity:0;}
+  55%{transform:scale(.94) rotate(-4deg);opacity:1;}
+  100%{transform:scale(1) rotate(-4deg);opacity:1;}
+}
 .tab-row{display:flex;gap:var(--space-2);background:var(--bg-elevated);border-radius:12px;padding:var(--space-1);margin:var(--space-4) 0 var(--space-1);}
-.tab-row button{flex:1;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-weight:700;font-size:12.5px;color:var(--text-muted);cursor:pointer;}
+.tab-row button{flex:1;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-weight:700;font-size:14px;color:var(--text-muted);cursor:pointer;}
 .tab-row button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow);}
 
 .board-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);}
 .group-bar{display:flex;gap:var(--space-2);margin:0 0 var(--space-4);align-items:center;}
 .group-bar select{-webkit-appearance:none;appearance:none;}
 .seg{display:flex;background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-1);flex:1;}
-.seg button{flex:1;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
+.seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
+.seg button svg{flex:none;}
 .seg button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-card);}
 /* גרסה קומפקטית - לבקרות משניות/הקשריות (למשל: סינון-תקופה ליד כותרת-סקשן), כדי שלא
    ייראו כמו עוד שורת-ניווט ראשית מתחת לטאבים העיקריים */
 .seg-compact{flex:none;padding:2px;width:auto;}
-.seg-compact button{flex:none;padding:var(--space-1) var(--space-3);font-size:11px;}
+.seg-compact button{flex:none;padding:var(--space-1) var(--space-3);font-size:13px;}
 .lb-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-2);border-radius:var(--radius-input);}
 .skel{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--border) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:skelShimmer 1.4s ease-in-out infinite;border-radius:8px;flex:none;}
 .skel-circle{border-radius:50%;}
@@ -770,76 +930,82 @@ button{font-family:inherit;}
 @keyframes skelShimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 @media (prefers-reduced-motion: reduce){ .skel{animation:none;} }
 .lb-row.me{background:var(--bg-elevated);border:1.5px solid var(--accent);}
-.lb-rank{width:22px;text-align:center;font-weight:800;color:var(--text-muted);font-size:13px;font-variant-numeric:tabular-nums;flex:none;}
+.lb-rank{width:22px;text-align:center;font-weight:800;color:var(--text-muted);font-size:14.5px;font-variant-numeric:tabular-nums;flex:none;}
 .lb-rank.top1{color:#C9A227;}
 .lb-rank.top2{color:#9AA0A6;}
 .lb-rank.top3{color:#B0713A;}
-.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13.5px;flex:none;font-family:"Suez One";transition:width .15s,height .15s;overflow:hidden;}
+.lb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex:none;font-family:"Suez One";transition:width .15s,height .15s;overflow:hidden;}
 .lb-avatar img{width:100%;height:100%;object-fit:cover;}
-.lb-row:has(.lb-rank.top1) .lb-avatar,.lb-row:has(.lb-rank.top2) .lb-avatar,.lb-row:has(.lb-rank.top3) .lb-avatar{width:45px;height:45px;font-size:16px;}
+.lb-row:has(.lb-rank.top1) .lb-avatar,.lb-row:has(.lb-rank.top2) .lb-avatar,.lb-row:has(.lb-rank.top3) .lb-avatar{width:45px;height:45px;font-size:17px;}
 .lb-row:has(.lb-rank.top1) .lb-avatar{box-shadow:0 0 0 2px var(--sand);}
-.lb-name{flex:1;font-weight:700;font-size:14px;}
-.lb-name small{display:block;font-weight:500;font-size:11px;color:var(--text-muted);}
-.lb-pts{font-weight:800;font-variant-numeric:tabular-nums;font-size:14px;}
+.lb-name{flex:1;font-weight:700;font-size:15.5px;}
+.lb-name small{display:block;font-weight:500;font-size:13px;color:var(--text-muted);}
+.lb-pts{font-weight:800;font-variant-numeric:tabular-nums;font-size:15.5px;}
 .lb-summary{background:var(--teal-gradient);color:#fff;border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:14px;text-align:center;}
-.lb-summary-head{font-family:"Suez One";font-size:19px;}
-.lb-summary-sub{font-size:12.5px;opacity:.85;margin-top:3px;}
-.lb-summary-cta{margin-top:12px;background:#fff;color:var(--teal-gradient-to);display:inline-flex;padding:var(--space-2) var(--space-4);font-size:13px;}
-.lb-mini-stats{display:flex;gap:var(--space-2);flex:none;font-size:11.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.lb-summary-head{font-family:"Suez One";font-size:20px;}
+.lb-summary-sub{font-size:14px;opacity:.85;margin-top:3px;}
+.lb-summary-cta{margin-top:12px;background:#fff;color:var(--teal-gradient-to);display:inline-flex;padding:var(--space-2) var(--space-4);font-size:14.5px;}
+.lb-mini-stats{display:flex;gap:var(--space-2);flex:none;font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.lb-mini-stats span{display:inline-flex;align-items:center;gap:3px;}
+.lb-mini-stats .ui-ic,.lb-mini-stats .stamp-ic{flex:none;}
 /* §11 - "המסע שלנו": פנים, התקדמות משותפת ויעד הבא, במקום עוד dashboard */
 .group-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-2);box-shadow:var(--shadow-card);}
 .face-pile{display:flex;align-items:center;margin-bottom:var(--space-3);}
-.face-pile .face{width:38px;height:38px;border-radius:50%;border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;font-family:"Suez One";overflow:hidden;flex:none;}
+.face-pile .face{width:38px;height:38px;border-radius:50%;border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15.5px;font-family:"Suez One";overflow:hidden;flex:none;}
 .face-pile .face+.face{margin-inline-start:-12px;}
 .face-pile .face img{width:100%;height:100%;object-fit:cover;}
-.face-pile .face.more{background:var(--bg-elevated);color:var(--text-muted);font-size:12px;}
+.face-pile .face.more{background:var(--bg-elevated);color:var(--text-muted);font-size:13.5px;}
 .group-hero-title{font-family:"Suez One","Heebo",serif;font-size:var(--font-h2);line-height:var(--leading-tight);}
 .group-hero-sub{font-size:var(--font-caption);color:var(--text-muted);margin-top:var(--space-1);}
-.group-hero-next{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border);font-size:13px;color:var(--text);}
+.group-hero-next{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border);font-size:14.5px;color:var(--text);}
 .group-hero-next .ui-ic{color:var(--color-primary);opacity:1;flex:none;}
 .activity-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-1);}
 .activity-row+.activity-row{border-top:1px solid var(--border);}
-.activity-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12.5px;font-family:"Suez One";flex:none;overflow:hidden;}
+.activity-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;font-family:"Suez One";flex:none;overflow:hidden;}
 .activity-avatar img{width:100%;height:100%;object-fit:cover;}
-.activity-text{flex:1;min-width:0;font-size:13px;line-height:1.45;}
+.activity-text{flex:1;min-width:0;font-size:14.5px;line-height:1.45;}
 .activity-text b{font-weight:700;}
-.activity-time{font-size:11px;color:var(--text-muted);flex:none;}
-.vote-row{display:flex;justify-content:space-between;align-items:center;padding:var(--space-2) var(--space-3);background:var(--bg-elevated);border-radius:var(--radius-input);margin-bottom:6px;font-size:13.5px;font-weight:600;}
+.activity-time{font-size:13px;color:var(--text-muted);flex:none;}
+.vote-row{display:flex;justify-content:space-between;align-items:center;padding:var(--space-2) var(--space-3);background:var(--bg-elevated);border-radius:var(--radius-input);margin-bottom:6px;font-size:15px;font-weight:600;}
 .vote-row.mine{border:1.5px solid var(--accent);}
-.vote-count{color:var(--text-muted);font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;}
+.vote-count{color:var(--text-muted);font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums;}
 .vote-picker{margin-top:10px;}
-.vote-option{display:block;width:100%;text-align:right;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);margin-top:6px;font-size:13px;cursor:pointer;}
+.vote-option{display:block;width:100%;text-align:right;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);margin-top:6px;font-size:14.5px;cursor:pointer;}
 .vote-option:hover{background:var(--bg-elevated);}
 
 .challenge-card{background:var(--teal-gradient);color:#fff;border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-4) 0;}
-.challenge-card h3{margin:0 0 var(--space-1);font-size:15px;}
-.challenge-card p{margin:0 0 var(--space-3);font-size:12.5px;opacity:.85;}
+.challenge-card h3{margin:0 0 var(--space-1);font-size:16px;}
+.challenge-card p{margin:0 0 var(--space-3);font-size:14px;opacity:.85;}
 .challenge-card .bar{background:rgba(255,255,255,.22);}
 .challenge-card .bar>i{background:#fff;}
 .pchallenge-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:12px;}
 .pchallenge-head{display:flex;align-items:center;gap:var(--space-3);margin-bottom:10px;}
-.pchallenge-icon{width:38px;height:38px;border-radius:var(--radius-input);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;color:#fff;}
-.pchallenge-title{font-weight:800;font-size:14.5px;}
-.pchallenge-reward{font-size:11.5px;color:var(--text-muted);margin-top:1px;}
-.pchallenge-progress-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--text-muted);margin:var(--space-2) 0 var(--space-1);font-variant-numeric:tabular-nums;}
-.pchallenge-cta{margin-top:var(--space-3);width:100%;background:transparent;border:none;border-top:1px solid var(--border);border-radius:0;padding:var(--space-3) 0 0;font-size:12.5px;font-weight:700;color:var(--color-primary);cursor:pointer;text-align:center;}
+.pchallenge-icon{width:38px;height:38px;border-radius:var(--radius-input);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none;color:#fff;}
+.pchallenge-title{font-weight:800;font-size:16px;}
+.pchallenge-reward{font-size:13px;color:var(--text-muted);margin-top:1px;}
+.pchallenge-progress-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:var(--text-muted);margin:var(--space-2) 0 var(--space-1);font-variant-numeric:tabular-nums;}
+.pchallenge-cta{margin-top:var(--space-3);width:100%;background:transparent;border:none;border-top:1px solid var(--border);border-radius:0;padding:var(--space-3) 0 0;font-size:14px;font-weight:700;color:var(--color-primary);cursor:pointer;text-align:center;}
 .pchallenge-card.done{border-color:var(--success);}
 .feed-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);margin-bottom:14px;overflow:hidden;}
 .feed-head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) 0;}
-.feed-name{font-weight:700;font-size:13.5px;}
-.feed-time{font-size:11.5px;color:var(--text-muted);}
+.feed-name{font-weight:700;font-size:15px;}
+.feed-time{font-size:13px;color:var(--text-muted);}
 .feed-photo{height:190px;margin:var(--space-3) 0 0;display:flex;align-items:center;justify-content:center;position:relative;background-size:cover;background-position:center;}
 .feed-photo svg{width:52px;height:52px;opacity:.55;}
 .badge-feed-body{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) var(--space-4);}
-.badge-feed-icon{font-size:28px;line-height:1;flex:none;}
-.badge-feed-label{font-weight:700;font-size:13.5px;}
-.feed-photo .lm-label{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.4);color:#fff;font-size:11.5px;font-weight:700;padding:var(--space-1) var(--space-2);border-radius:999px;}
+.badge-feed-icon{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  background:var(--color-accent-light);color:var(--color-accent);}
+.badge-feed-icon.metal-bronze{background:color-mix(in srgb,var(--metal-bronze) 14%,transparent);color:var(--metal-bronze);}
+.badge-feed-icon.metal-silver{background:color-mix(in srgb,var(--metal-silver) 14%,transparent);color:var(--metal-silver);}
+.badge-feed-icon.metal-gold{background:color-mix(in srgb,var(--metal-gold) 16%,transparent);color:var(--metal-gold);}
+.badge-feed-label{font-weight:700;font-size:15px;}
+.feed-photo .lm-label{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.4);color:#fff;font-size:13px;font-weight:700;padding:var(--space-1) var(--space-2);border-radius:999px;}
 .feed-actions{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-3) var(--space-3);}
-.like-btn{border:none;background:none;display:flex;align-items:center;gap:var(--space-1);color:var(--text-muted);font-size:13px;font-weight:700;cursor:pointer;padding:0;}
+.like-btn{border:none;background:none;display:flex;align-items:center;gap:var(--space-1);color:var(--text-muted);font-size:14.5px;font-weight:700;cursor:pointer;padding:0;}
 .like-btn.liked{color:var(--danger);}
 .like-btn svg{width:18px;height:18px;}
-.feed-note{padding:0 var(--space-3);margin:var(--space-3) 0 0;font-size:13px;color:var(--text-muted);font-style:italic;}
-.feed-wish-btn{margin-inline-start:auto;border:1px solid var(--border);background:var(--bg-elevated);border-radius:999px;padding:var(--space-2) var(--space-3);font-size:12px;font-weight:700;color:var(--text);cursor:pointer;}
+.feed-note{padding:0 var(--space-3);margin:var(--space-3) 0 0;font-size:14.5px;color:var(--text-muted);font-style:italic;}
+.feed-wish-btn{margin-inline-start:auto;border:1px solid var(--border);background:var(--bg-elevated);border-radius:999px;padding:var(--space-2) var(--space-3);font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;}
 .feed-wish-btn.active{background:color-mix(in srgb, var(--danger) 12%, transparent);border-color:var(--danger);color:var(--danger);}
 
 /* שכבות-העל של המפה יושבות ב-1000..1050 (כפתורים, קרוסלת-גילוי, כרטיס-תצוגה), בעוד
@@ -848,43 +1014,78 @@ button{font-family:inherit;}
    מתחת לקרוסלה ובלתי-נראית לחלוטין: גם ההצלחות וגם השגיאות. הסקאלה כאן: מפה 1000-1050,
    צפים 1060, scrim/sheet 1100-1101, auth 1200, trip 1240, celebrate 1250, update 1300,
    toast 1350 (אחרון - הוא חולף ותמיד צריך להיראות). */
-.toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:1350;background:var(--text);color:var(--bg);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:var(--space-3);transform:translateY(20px);opacity:0;pointer-events:none;transition:.22s;box-shadow:0 8px 24px var(--shadow);}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:1350;background:var(--text);color:var(--bg);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:15px;font-weight:600;display:flex;align-items:center;gap:var(--space-3);transform:translateY(20px);opacity:0;pointer-events:none;transition:.22s;box-shadow:0 8px 24px var(--shadow);}
 .install-banner{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:1060;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-4) var(--space-4);box-shadow:var(--shadow-elevated);}
-.install-banner p{margin:0 0 var(--space-3);font-size:13px;color:var(--text);line-height:1.5;}
+.install-banner p{margin:0 0 var(--space-3);font-size:14.5px;color:var(--text);line-height:1.5;}
 .install-banner-actions{display:flex;gap:var(--space-2);}
-.install-banner-actions .btn{flex:1;padding:var(--space-2) var(--space-3);font-size:13px;}
+.install-banner-actions .btn{flex:1;padding:var(--space-2) var(--space-3);font-size:14.5px;}
 .toast.show{transform:translateY(0);opacity:1;}
-.update-banner{position:fixed;left:16px;right:16px;top:66px;z-index:1300;background:var(--accent);color:var(--accent-ink);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);box-shadow:0 8px 24px var(--shadow);}
-.update-banner button{background:var(--accent-ink);color:var(--accent);border:none;border-radius:8px;padding:var(--space-2) var(--space-4);font-size:12.5px;font-weight:800;cursor:pointer;flex:none;}
+.update-banner{position:fixed;left:16px;right:16px;top:66px;z-index:1300;background:var(--accent);color:var(--accent-ink);border-radius:var(--radius-input);padding:var(--space-3) var(--space-4);font-size:14.5px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);box-shadow:0 8px 24px var(--shadow);}
+.update-banner button{background:var(--accent-ink);color:var(--accent);border:none;border-radius:8px;padding:var(--space-2) var(--space-4);font-size:14px;font-weight:800;cursor:pointer;flex:none;}
 .celebrate-overlay{position:fixed;inset:0;z-index:1250;background:var(--sheet-scrim);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
 .celebrate-overlay.show{opacity:1;pointer-events:auto;}
 .celebrate-card{background:var(--color-surface-elevated);border-radius:var(--radius-sheet);padding:var(--space-6) var(--space-6);text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.35);max-width:280px;transform:scale(.85);opacity:0;transition:transform .32s cubic-bezier(.2,1.4,.4,1),opacity .25s;}
 .celebrate-overlay.show .celebrate-card{transform:scale(1);opacity:1;}
-.celebrate-emoji{font-size:44px;line-height:1;margin-bottom:6px;}
+/* "היעד הבא" בסיום הצ'ק-אין: אותו מבנה-עיגול כמו חותמת/רמה, בצבע ניטרלי (טיל) כי זו
+   לא הטבעת-הישג אלא הזמנה להמשיך לדרך. */
+.celebrate-icon{width:104px;height:104px;margin:0 auto var(--space-3);position:relative;}
+.celebrate-icon .stamp-face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:2.5px solid var(--teal);color:var(--teal);background:color-mix(in srgb,var(--teal) 14%,transparent);}
+/* רגע ההטבעה: אותה חותמת מהאוסף, בגודל כפול, נחתמת פנימה */
+.celebrate-stamp{width:104px;height:104px;margin:0 auto var(--space-3);position:relative;}
+.celebrate-stamp .stamp-face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:2.5px solid var(--color-accent);color:var(--color-accent);background:var(--color-accent-light);transform:rotate(-5deg);}
+.celebrate-stamp.metal-bronze .stamp-face{border-color:var(--metal-bronze);color:var(--metal-bronze);background:color-mix(in srgb,var(--metal-bronze) 14%,transparent);}
+.celebrate-stamp.metal-silver .stamp-face{border-color:var(--metal-silver);color:var(--metal-silver);background:color-mix(in srgb,var(--metal-silver) 14%,transparent);}
+.celebrate-stamp.metal-gold .stamp-face{border-color:var(--metal-gold);color:var(--metal-gold);background:color-mix(in srgb,var(--metal-gold) 16%,transparent);}
+@media (prefers-reduced-motion: no-preference){
+  .celebrate-stamp .stamp-face{animation:stampPressBig .6s cubic-bezier(.2,1.5,.4,1);}
+}
+@keyframes stampPressBig{
+  0%{transform:scale(2.3) rotate(-16deg);opacity:0;}
+  45%{transform:scale(.92) rotate(-5deg);opacity:1;}
+  70%{transform:scale(1.04) rotate(-5deg);}
+  100%{transform:scale(1) rotate(-5deg);}
+}
+/* עליית-רמה: אותה מכניקה כמו celebrate-stamp, בירוק-המותג במקום כתום-ההישגים - זו
+   התקדמות במסע, לא פריט שנוסף לאוסף, אז היא לא מתחזה לחותמת. בלי הטיה - רמה היא
+   סדר ולא "הוטבעה", ולכן נשארת ישרה. */
+.celebrate-level{width:104px;height:104px;margin:0 auto var(--space-3);position:relative;}
+.celebrate-level .stamp-face{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:2.5px solid var(--color-primary);color:var(--color-primary);background:var(--color-primary-light);}
+@media (prefers-reduced-motion: no-preference){
+  .celebrate-level .stamp-face{animation:levelRise .55s cubic-bezier(.2,1.3,.4,1);}
+}
+@keyframes levelRise{
+  0%{transform:translateY(18px) scale(.7);opacity:0;}
+  100%{transform:translateY(0) scale(1);opacity:1;}
+}
+:root[data-motion="reduce"] .celebrate-level .stamp-face{animation:none;}
 .celebrate-hero{width:100%;height:120px;border-radius:var(--radius-card);overflow:hidden;margin-bottom:12px;}
 .celebrate-hero img{width:100%;height:100%;object-fit:cover;display:block;}
 .celebrate-card h2{font-size:var(--font-h1);margin:0 0 var(--space-1);}
-.celebrate-subtitle{font-size:16.5px;font-weight:800;margin:0 0 var(--space-2);}
-.celebrate-tag{font-size:13px;font-weight:700;color:var(--text);background:var(--bg-elevated);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:999px;margin-bottom:10px;}
+.celebrate-subtitle{font-size:18px;font-weight:800;margin:0 0 var(--space-2);}
+.celebrate-tag{font-size:14.5px;font-weight:700;color:var(--text);background:var(--bg-elevated);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:999px;margin-bottom:10px;}
 .celebrate-xp{font-family:"Suez One";font-size:30px;color:var(--accent-strong);font-variant-numeric:tabular-nums;}
-.celebrate-bonus{font-size:12.5px;color:var(--text-muted);margin-top:6px;}
-.celebrate-total{font-size:13px;font-weight:800;color:var(--accent-strong);margin-top:4px;}
-.celebrate-region{font-size:12.5px;font-weight:700;color:var(--accent);background:var(--accent-light);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:999px;margin-top:10px;}
+.celebrate-bonus{font-size:14px;color:var(--text-muted);margin-top:6px;}
+.celebrate-total{font-size:14.5px;font-weight:800;color:var(--accent-strong);margin-top:4px;}
+.celebrate-region{font-size:14px;font-weight:700;color:var(--accent);background:var(--accent-light);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:999px;margin-top:10px;}
 .celebrate-progress{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);text-align:right;}
-.celebrate-progress-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:700;margin-bottom:6px;}
+.celebrate-progress-top{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700;margin-bottom:6px;}
 .celebrate-progress-top .lvl{color:var(--text);}
 .celebrate-progress-top .num{color:var(--text-muted);font-variant-numeric:tabular-nums;}
-.celebrate-progress-hint{font-size:12px;color:var(--text-muted);margin-top:6px;text-align:center;}
+.celebrate-progress-hint{font-size:13.5px;color:var(--text-muted);margin-top:6px;text-align:center;}
 .celebrate-actions{display:flex;gap:var(--space-2);margin-top:16px;}
-.celebrate-actions .btn{padding:var(--space-3) var(--space-4);font-size:13px;}
-.celebrate-tap-hint{font-size:11.5px;color:var(--text-muted);margin-top:14px;}
+.celebrate-actions .btn{padding:var(--space-3) var(--space-4);font-size:14.5px;}
+.celebrate-tap-hint{font-size:13px;color:var(--text-muted);margin-top:14px;}
 @media (prefers-reduced-motion: reduce){ .celebrate-card{transition:opacity .2s;} .wish-pop{animation:none;} .lm-pin.pulse{animation:none;} }
 /* App Essentials Phase 0F, Round 3 - כפיית הפחתת-אנימציות ידנית (data-motion="reduce"), בנוסף
    ל-prefers-reduced-motion של המכשיר. חייב סלקטור עם ספציפיות גבוהה יותר מ-@media (no-preference)
    של stampReveal כדי לדרוס אותו גם כש-OS לא מוגדר reduce אבל המשתמש כפה את זה ידנית באפליקציה. */
-:root[data-motion="reduce"] .badge.unlocked .circ{animation:none;}
+:root[data-motion="reduce"] .stamp.is-fresh .stamp-face{animation:none;}
 :root[data-motion="reduce"] .skel{animation:none;}
 :root[data-motion="reduce"] .celebrate-card{transition:opacity .2s;}
+:root[data-motion="reduce"] .celebrate-stamp .stamp-face{animation:none;}
 :root[data-motion="reduce"] .wish-pop{animation:none;}
 :root[data-motion="reduce"] .lm-pin.pulse{animation:none;}
 /* רשת-ביטחון גורפת: כל אנימציה/מעבר חדש שייווסף בעתיד מכובד אוטומטית ע"י ההגדרה הזו
@@ -899,7 +1100,7 @@ button{font-family:inherit;}
 .wish-pop{animation:wishPop .38s ease;}
 @keyframes wishPop{0%{transform:scale(1);}35%{transform:scale(1.18);}100%{transform:scale(1);}}
 :root[data-theme="dark"] .toast,@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toast{background:var(--accent);color:var(--accent-ink);}}
-.offline-banner{background:var(--warn);color:var(--accent-ink);text-align:center;font-size:12px;font-weight:700;padding:var(--space-2);display:none;flex:none;}
+.offline-banner{background:var(--warn);color:var(--accent-ink);text-align:center;font-size:13.5px;font-weight:700;padding:var(--space-2);display:none;flex:none;}
 .offline-banner.show{display:block;}
 /* בלי position:sticky בכוונה (לא position:static/ברירת-מחדל): .app-shell לא גולל בעצמו
    (overflow:hidden, גובה קבוע 100dvh) - כל view גולל בתוך עצמו בנפרד. כלומר אין שום "קונטיינר-
@@ -918,7 +1119,7 @@ button{font-family:inherit;}
 .nav-btn.active::before{opacity:1;transform:scale(1);}
 .nav-btn.active svg{transform:translateY(-1px) scale(1.08);}
 .nav-btn:active svg{transform:scale(.9);}
-.nav-btn span{font-size:10.5px;font-weight:700;}
+.nav-btn span{font-size:12.5px;font-weight:700;}
 .nav-btn .unread-dot{position:absolute;z-index:2;top:6px;inset-inline-end:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--terracotta);border:1.5px solid var(--surface);display:none;}
 .nav-btn .unread-dot.show{display:block;}
 .icon-btn .unread-dot{position:absolute;top:6px;inset-inline-end:6px;width:8px;height:8px;border-radius:50%;background:var(--terracotta);border:1.5px solid var(--surface);display:none;}
@@ -933,7 +1134,7 @@ svg{overflow:visible;}
 /* נשמע לקורא מסך אך אינו נראה. clip-path ולא display:none, שאחרת הקורא מדלג עליו */
 .sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;}
 /* מוסתר עד שמקישים Tab - אז הוא קופץ ומאפשר לדלג על הכותרת בכל מסך */
-.skip-link{position:absolute;inset-inline-start:8px;top:-100px;z-index:2000;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:var(--radius-input);font-weight:700;font-size:14px;text-decoration:none;transition:top .15s;}
+.skip-link{position:absolute;inset-inline-start:8px;top:-100px;z-index:2000;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:var(--radius-input);font-weight:700;font-size:15.5px;text-decoration:none;transition:top .15s;}
 .skip-link:focus{top:8px;}
 /* מסך פעיל מקבל פוקוס בניווט; בלי זה קורא-המסך נשאר על המסך הקודם */
 .view:focus{outline:none;}
@@ -941,9 +1142,18 @@ svg{overflow:visible;}
 /* מספרים עם "+" או "✓" מובילים - כדי ש-bidi של RTL לא יזיז את הסימן לסוף */
 .ltr{direction:ltr;display:inline-block;}
 input[type=file]{display:none;}
-.field-label{font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;}
-.text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:14px;color:var(--text);font-family:inherit;}
-.loading-screen{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:var(--space-3);}
+.field-label{font-size:13.5px;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;}
+/* כותרת-קבוצה עם אייקון אחד לקטגוריה (לא אימוג'י על כל ערך בתוכה) - האייקון הוא
+   מה שמסמן "זו שורת החניה", הערכים עצמם טקסט נקי. */
+.report-group{margin-top:10px;}
+.report-group-title{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:6px;}
+.report-group .report-chip-row{margin-top:0;}
+.text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:15.5px;color:var(--text);font-family:inherit;}
+.loading-screen{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;align-items:stretch;justify-content:flex-start;flex-direction:column;}
+.boot-skeleton{width:100%;max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top) + var(--space-6)) var(--space-4) 0;}
+/* על ה-bg הרגיל (לא על משטח לבן) הניגודיות של .skel נמוכה מדי כדי לקרוא כשלד */
+.boot-skeleton .skel{background:linear-gradient(90deg,var(--bg-elevated) 25%,color-mix(in srgb, var(--border) 80%, var(--text) 20%) 50%,var(--bg-elevated) 75%);background-size:200% 100%;}
+.boot-chips{display:flex;gap:var(--space-2);margin-top:var(--space-3);}
 .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
@@ -955,7 +1165,24 @@ input[type=file]{display:none;}
 <div class="sr-only" id="srAlert" role="alert" aria-live="assertive" aria-atomic="true"></div>
 <div class="app-shell" id="appShell">
 
-  <div class="loading-screen" id="loadingScreen"><div class="spinner"></div><div class="t-caption">טוען...</div></div>
+  <!-- שלד של מסך הבית, לא ספינר על מסך ריק: המשתמש רואה מיד את הצורה שהתוכן ייצוק
+       לתוכה, וההופעה שלו מרגישה כמו מילוי ולא כמו קפיצה ממסך אחר. aria-busy + טקסט
+       לקורא-מסך, כי צורה בלבד לא אומרת כלום למי שלא רואה אותה. -->
+  <div class="loading-screen" id="loadingScreen" role="status" aria-busy="true" aria-live="polite">
+    <span class="sr-only">טוען את המקומות…</span>
+    <div class="boot-skeleton" aria-hidden="true">
+      <div class="skel skel-line" style="width:38%;height:14px;"></div>
+      <div class="skel skel-line" style="width:64%;height:26px;margin-top:10px;"></div>
+      <div class="skel skel-block" style="height:52px;border-radius:999px;margin-top:18px;"></div>
+      <div class="boot-chips">
+        <div class="skel skel-block" style="width:74px;height:36px;border-radius:999px;"></div>
+        <div class="skel skel-block" style="width:96px;height:36px;border-radius:999px;"></div>
+        <div class="skel skel-block" style="width:64px;height:36px;border-radius:999px;"></div>
+      </div>
+      <div class="skel skel-line" style="width:32%;height:18px;margin-top:26px;"></div>
+      <div class="skel skel-block" style="aspect-ratio:4/3;border-radius:var(--radius-card);margin-top:12px;"></div>
+    </div>
+  </div>
 
   <div class="onboarding-screen hidden" id="onboardingScreen">
     <button class="sheet-close" id="onboardingSkip" style="position:absolute;top:16px;left:16px;" aria-label="דלג">✕</button>
@@ -1117,14 +1344,14 @@ input[type=file]{display:none;}
   <div class="full-overlay hidden" id="termsScreen">
     <button class="sheet-close" id="termsCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <h1 class="overlay-title">תנאי שימוש</h1>
-    <div class="wiz-relaxed-note" style="margin-bottom:16px;">📝 טיוטה — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
+    <div class="wiz-relaxed-note" style="margin-bottom:16px;"><b>טיוטה</b> — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
     <p class="t-body">השימוש באפליקציית מגלים כפוף לתנאים כלליים: השירות מוצע כפי שהוא ("as-is"), התוכן נועד למטרות מידע והשראה לטיולים ואינו תחליף לבדיקת תנאי שטח/מזג אוויר/הנחיות רשמיות בזמן אמת, והמשתמשים אחראים לשימוש נכון ובטוח באפליקציה במהלך טיולים בפועל. תנאי שימוש מלאים ומחייבים יפורסמו בהמשך.</p>
   </div>
 
   <div class="full-overlay hidden" id="privacyPolicyScreen">
     <button class="sheet-close" id="privacyPolicyCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <h1 class="overlay-title">מדיניות פרטיות</h1>
-    <div class="wiz-relaxed-note" style="margin-bottom:16px;">📝 טיוטה — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
+    <div class="wiz-relaxed-note" style="margin-bottom:16px;"><b>טיוטה</b> — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
     <p class="t-body">מגלים שומרת מידע הדרוש להפעלת השירות בלבד — פרטי חשבון, ביקורים ותמונות שהעליתם, רשימת משאלות, וקשרי חברים/קבוצות. אנחנו לא חושפים מיקום חי בזמן אמת, ואתם שולטים במי רואה את הפעילות שלכם דרך הגדרות → פרטיות. אפשר למחוק את החשבון ואת כל המידע האישי הנלווה בכל עת. מדיניות פרטיות מלאה ומחייבת תפורסם בהמשך.</p>
   </div>
 
@@ -1259,7 +1486,7 @@ input[type=file]{display:none;}
     <!-- רשימת המתנה (מנגנון קיים - registration gating) -->
     <form class="auth-form auth-view hidden" id="waitlistView">
       <div class="auth-head" style="text-align:center;">
-        <div class="waitlist-emoji">🎒</div>
+        <div class="waitlist-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/></svg></div>
         <h1 id="waitlistTitle"></h1>
         <p id="waitlistSub" style="white-space:pre-line;"></p>
       </div>
@@ -1286,7 +1513,7 @@ input[type=file]{display:none;}
       </button>
       <div class="stat-pill hidden" id="headerPoints">
         <span><b id="pointsVal">0</b> נקודות</span>
-        <span class="flame hidden">🔥<span id="streakVal">0</span></span>
+        <span class="flame hidden"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 3.5c3.5 3.5 5.5 6 5.5 9.2a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4.2.4 1.2 1 1.9 1.9 2.1-.3-2.5.3-4.7 1.8-7.1Z"/></svg><span id="streakVal">0</span></span>
       </div>
       <button class="btn btn-primary btn-sm hidden" id="headerLoginBtn">התחברות</button>
     </div>
@@ -1298,6 +1525,31 @@ input[type=file]{display:none;}
        (מנוע ההמלצות, אחוז הגילוי, אזורים, פיד חברים) לכדי לולאה: איפה אני → מה הבא → יאללה. -->
   <div class="view active hidden" id="view-home" role="region" aria-label="בית" tabindex="-1">
     <div class="scroll-area">
+      <!-- פתיחת המסך היא כוונה, לא סטטיסטיקה: ברכה, שאלה אחת, וחיפוש. כרטיס ההתקדמות
+           ("המסע שלך בישראל") יורד מתחת להמלצה - הוא תשובה ל"איפה אני", לא ל"מה עכשיו". -->
+      <div class="home-head">
+        <div class="home-head-greet" id="homeHeadGreet">בוקר טוב</div>
+        <h1 class="home-head-title">לאן מגלים היום?</h1>
+        <button class="home-search" id="homeSearchBtn">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span>חיפוש מקום, אזור או מסלול</span>
+        </button>
+        <div class="quick-chip-row scroll-fade" id="homeQuickChips">
+          <button class="chip quick-chip" data-quick="near">לידי</button>
+          <button class="chip quick-chip" data-quick="family">עם ילדים</button>
+          <button class="chip quick-chip teal" data-quick="water">מים</button>
+          <button class="chip quick-chip teal" data-quick="easy">קל</button>
+          <button class="chip quick-chip teal" data-quick="short">עד שעה</button>
+          <button class="chip quick-chip" data-quick="accessible">מתאים לעגלות</button>
+        </div>
+      </div>
+
+      <div class="section-head"><h2>היעד הבא שלך</h2></div>
+      <div id="homeNextGoal"></div>
+
+      <div class="section-head" id="homeWeeklyChallengeHead"><h2>אתגר השבוע</h2></div>
+      <div id="homeWeeklyChallenge"></div>
+
       <div class="home-hero">
         <div class="home-hero-top">
           <div>
@@ -1313,9 +1565,6 @@ input[type=file]{display:none;}
           </div>
         </div>
       </div>
-
-      <div class="section-head"><h2>היעד הבא שלך</h2></div>
-      <div id="homeNextGoal"></div>
 
       <div class="section-head" id="homeDailyHead"><h2>הגילוי היומי</h2></div>
       <div id="homeDaily"></div>
@@ -1347,7 +1596,7 @@ input[type=file]{display:none;}
             <span class="fab-count hidden" id="filterCountBadge"></span>
           </div>
         </div>
-        <div class="quick-chip-row" id="quickChipRow">
+        <div class="quick-chip-row scroll-fade" id="quickChipRow">
           <button class="chip quick-chip" data-quick="near">לידי</button>
           <button class="chip quick-chip" data-quick="family">עם ילדים</button>
           <button class="chip quick-chip teal" data-quick="water">מים</button>
@@ -1388,9 +1637,14 @@ input[type=file]{display:none;}
           </div>
         </div>
       </div>
+      <!-- הקרוסלה היא מצב ה"הצצה" של רשימת היעדים: הכותרת היא כפתור שפותח את אותה
+           רשימה כ-sheet נגרר (mapListSheet), וסגירתו מחזירה את המיקוד למפה. -->
       <div class="discovery-section" id="discoverySection">
-        <h3 class="discovery-heading">מקומות באזור המוצג במפה</h3>
-        <div class="discovery-carousel" id="discoveryCarousel"></div>
+        <button class="discovery-heading" id="openMapList" aria-haspopup="dialog">
+          <span id="discoveryHeadingText">מקומות באזור המוצג במפה</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="discovery-carousel scroll-fade" id="discoveryCarousel"></div>
       </div>
     </div>
     <div class="map-side-panel" id="mapSidePanel"></div>
@@ -1458,7 +1712,7 @@ input[type=file]{display:none;}
           <div class="section-head"><h2>אתגר קבוצתי</h2></div>
           <div id="groupChallengeCard"></div>
           <div class="section-head"><h2>תגי הקבוצה</h2></div>
-          <div class="badge-grid" id="groupBadgeGrid"></div>
+          <div class="stamp-grid" id="groupBadgeGrid" role="list"></div>
           <div class="section-head"><h2>הצבעה על היעד הבא</h2></div>
           <div id="groupVoteBox"></div>
           <div class="section-head"><h2>פעילות אחרונה בקבוצה</h2></div>
@@ -1482,7 +1736,7 @@ input[type=file]{display:none;}
         <div class="section-head" style="margin-top:4px;"><h2>תגים</h2></div>
         <div class="badge-grid" id="badgeGrid"></div>
         <div class="section-head"><h2>אוספים</h2></div>
-        <div class="badge-grid" id="collectionGrid"></div>
+        <div id="collectionGrid"></div>
       </div>
       </div>
     </div>
@@ -1519,8 +1773,8 @@ input[type=file]{display:none;}
         </div>
       </div>
       <div class="welcome-banner hidden" id="welcomeBanner">
-        <div class="big">🗺️</div>
-        <p>ישראל מחכה שתגלו אותה 🗺️<br>צאו לטיול הראשון שלכם והתחילו לפתוח את המפה.</p>
+        <div class="big"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4 6.3 9 5l6 2 5-1.7v13.4L15 20l-6-2-5 1.7V6.3Z"/><path d="M9 5v13M15 7v13"/></svg></div>
+        <p>ישראל מחכה שתגלו אותה<br>צאו לטיול הראשון שלכם והתחילו לפתוח את המפה.</p>
         <button class="btn btn-primary" id="welcomeFindBtn">מצא לי מקום ראשון</button>
       </div>
       <div id="progressSection">
@@ -1616,13 +1870,7 @@ input[type=file]{display:none;}
         <button class="chip teal" data-id="half">חצי יום</button>
         <button class="chip teal" data-id="full">יום מלא</button>
       </div></div>
-      <div class="filter-group"><h3>מתאים לי היום</h3><div class="chip-row" id="amenityChips">
-        <button class="chip" data-id="family">👪 מתאים למשפחות</button>
-        <button class="chip" data-id="dog">🐕 אפשר עם כלב</button>
-        <button class="chip" data-id="water">💧 יש מים</button>
-        <button class="chip" data-id="accessible">♿ נגיש</button>
-        <button class="chip" data-id="free">🆓 חינם</button>
-      </div></div>
+      <div class="filter-group"><h3>מתאים לי היום</h3><div class="chip-row" id="amenityChips"></div></div>
       <div class="filter-group"><h3>עונה מומלצת</h3><div class="chip-row" id="seasonChips">
         <button class="chip" data-id="spring">אביב</button>
         <button class="chip" data-id="summer">קיץ</button>
@@ -1634,6 +1882,13 @@ input[type=file]{display:none;}
       <button class="btn btn-ghost" id="clearFilters">איפוס</button>
       <button class="btn btn-primary" id="applyFilters">הצג יעדים</button>
     </div>
+  </div>
+
+  <div class="detail-scrim" id="mapListScrim"></div>
+  <div class="sheet snap-sheet snap-mid" id="mapListSheet" role="dialog" aria-label="יעדים באזור המוצג במפה">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="mapListTitle">יעדים באזור</h2><button class="sheet-close" id="closeMapList" aria-label="סגור">✕</button></div>
+    <div class="sheet-body" id="mapListBody"></div>
   </div>
 
   <div class="detail-scrim" id="detailScrim"></div>
@@ -1652,7 +1907,7 @@ input[type=file]{display:none;}
       <div id="wizForm">
         <div class="filter-group">
           <h3>מיקום</h3>
-          <div class="checkin-status" id="wizLocStatus"><span class="ic">📡</span> לחצו כדי לאתר את המיקום שלכם</div>
+          <div class="checkin-status" id="wizLocStatus"><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15 9-1.6 4.4L9 15l1.6-4.4L15 9Z"/></svg></span> לחצו כדי לאתר את המיקום שלכם</div>
           <button class="btn btn-outline btn-block" id="wizLocateBtn" style="margin-top:8px;">אתר את המיקום שלי</button>
         </div>
         <div class="filter-group"><h3>כמה זמן יש לך</h3><div class="chip-row" id="wizDuration">
@@ -1714,9 +1969,9 @@ input[type=file]{display:none;}
       <div class="settings-row">
         <span>ערכת נושא</span>
         <div class="seg" id="themeSeg">
-          <button type="button" data-theme="light">☀️ בהיר</button>
-          <button type="button" data-theme="dark">🌙 כהה</button>
-          <button type="button" data-theme="system">📱 מערכת</button>
+          <button type="button" data-theme="light"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18"/></svg> בהיר</button>
+          <button type="button" data-theme="dark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10Z"/></svg> כהה</button>
+          <button type="button" data-theme="system"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="7" y="3.5" width="10" height="17" rx="2"/><path d="M10.5 17.5h3"/></svg> מערכת</button>
         </div>
       </div>
       <div class="privacy-toggle-row">
@@ -1758,7 +2013,12 @@ input[type=file]{display:none;}
         <span>התראות למכשיר הזה</span>
         <label class="switch"><input type="checkbox" id="pushToggle" aria-label="התראות למכשיר הזה"><span class="track"></span></label>
       </div>
-      <p id="pushStatusText" style="font-size:12px;color:var(--text-muted);margin:-2px 0 12px;"></p>
+      <p id="pushStatusText" style="font-size:13.5px;color:var(--text-muted);margin:-2px 0 12px;"></p>
+      <div class="privacy-toggle-row" id="hapticsToggleRow">
+        <span>רטט ומשוב מישושי</span>
+        <label class="switch"><input type="checkbox" id="hapticsToggle" aria-label="רטט ומשוב מישושי"><span class="track"></span></label>
+      </div>
+      <p id="hapticsStatusText" style="font-size:13.5px;color:var(--text-muted);margin:-2px 0 12px;">רטט קצר בצ׳ק-אין מוצלח, בתג חדש ובעליית רמה.</p>
       <div class="section-head"><h2>פרטיות</h2></div>
       <div class="settings-row" style="align-items:flex-start;flex-direction:column;gap:8px;">
         <span>מי רואה את הפעילות שלי (צ'ק-אינים, תמונות, תגים)</span>
@@ -1798,7 +2058,7 @@ input[type=file]{display:none;}
       <div class="section-head"><h2>אפליקציה</h2></div>
       <div class="settings-row hidden" id="installAppRow" style="flex-direction:column;align-items:flex-start;gap:8px;">
         <span class="t-caption">התקינו את מגלים למסך הבית לגישה מהירה, כמו אפליקציה רגילה.</span>
-        <button type="button" class="btn btn-outline btn-block" id="settingsInstallBtn">📲 הוסף למסך הבית</button>
+        <button type="button" class="btn btn-outline btn-block" id="settingsInstallBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="7" y="3.5" width="10" height="17" rx="2"/><path d="M10.5 17.5h3M12 7.5v5M9.5 10l2.5 2.5L14.5 10"/></svg> הוסף למסך הבית</button>
       </div>
       <div class="section-head"><h2>תמיכה</h2></div>
       <button class="btn btn-outline btn-block" id="settingsHelpBtn">עזרה ומשוב</button>
@@ -1818,6 +2078,20 @@ input[type=file]{display:none;}
     <div class="sheet-head"><h2 id="checkinSheetTitle">צ'ק-אין</h2><button class="sheet-close" id="closeCheckinSheet" aria-label="סגור">✕</button></div>
     <div class="sheet-body">
       <div id="checkinFlow"></div>
+    </div>
+  </div>
+
+  <div class="scrim" id="reviewScrim"></div>
+  <div class="sheet" id="reviewSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="reviewSheetTitle">תמונה וביקורת</h2><button class="sheet-close" id="closeReviewSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body">
+      <div class="photo-drop" id="reviewPhotoDrop"></div>
+      <input type="file" accept="image/*" capture="environment" id="reviewPhotoInput" aria-label="בחירת תמונה">
+      <img class="photo-preview hidden" id="reviewPhotoPreview">
+      <label class="field-label" for="reviewNoteText">הביקורת שלכם (אופציונלי)</label>
+      <textarea class="text-input" id="reviewNoteText" rows="4" maxlength="300" placeholder="איך היה? מה כדאי לדעת לפני שמגיעים?" style="resize:vertical;"></textarea>
+      <button type="button" class="btn btn-primary btn-block" id="saveReviewBtn" style="margin-top:var(--space-3);">שמירה</button>
     </div>
   </div>
 
@@ -1852,7 +2126,7 @@ input[type=file]{display:none;}
   <div class="toast" id="toast"></div>
 
   <div class="update-banner hidden" id="updateBanner">
-    <span>🔄 גרסה חדשה זמינה</span>
+    <span style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5"/><path d="M17 3.5v3.5h-3.5M7 20.5V17h3.5"/></svg> גרסה חדשה זמינה</span>
     <button id="updateBannerBtn" type="button">רענון</button>
   </div>
 
@@ -1872,6 +2146,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260916a1"></script>
+<script type="module" src="./app.js?v=20260918a1"></script>
 </body>
 </html>
