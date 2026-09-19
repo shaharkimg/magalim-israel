@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260919a1";
+const APP_VERSION = "20260919b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4252,26 +4252,63 @@ async function renderPhotoGallery(id){
     box.innerHTML = `<div class="photo-gallery">
       <div class="photo-gallery-title">${uiIcon("camera",13)} תמונות מהמטיילים (${photos.length})</div>
       <div class="photo-gallery-strip">` +
-      photos.map(p=>`<button type="button" class="photo-gallery-thumb" data-src="${p.photo_url}"><img src="${p.photo_url}" loading="lazy" alt=""></button>`).join("") +
+      photos.map((p,i)=>`<button type="button" class="photo-gallery-thumb" data-idx="${i}"><img src="${p.photo_url}" loading="lazy" alt=""></button>`).join("") +
       `</div></div>`;
     box.querySelectorAll(".photo-gallery-thumb").forEach(btn=>{
-      btn.onclick = ()=> openPhotoLightbox(btn.dataset.src);
+      btn.onclick = ()=> openPhotoLightbox(photos.map(p=>p.photo_url), Number(btn.dataset.idx));
     });
   }catch(err){
     box.innerHTML = "";
   }
 }
-function openPhotoLightbox(src){
-  $("photoLightboxImg").src = src;
+// לייטבוקס עם דפדוף - נבנה כי בהתחלה הוצגה רק התמונה שנלחצה, בלי אפשרות לעבור לשאר
+// תמונות-הגלריה. galleryPhotos/galleryIndex הם ה-state של הדפדוף הנוכחי; חצי הניווט
+// וההחלקה-באצבע (swipe) עובדים על אותו state, וה-RTL מטופל דרך inset-inline-start/end
+// ב-CSS (לא hardcoded left/right) - כפתור prev תמיד בצד ה"התחלה" (ימין ב-RTL).
+let galleryPhotos = [], galleryIndex = 0;
+function openPhotoLightbox(photos, idx){
+  galleryPhotos = photos; galleryIndex = idx;
+  updateLightboxImage();
   $("photoLightbox").classList.remove("hidden");
   requestAnimationFrame(()=> $("photoLightbox").classList.add("show"));
+}
+function updateLightboxImage(){
+  $("photoLightboxImg").src = galleryPhotos[galleryIndex];
+  const multi = galleryPhotos.length > 1;
+  $("photoLightboxPrev").classList.toggle("hidden", !multi);
+  $("photoLightboxNext").classList.toggle("hidden", !multi);
+  $("photoLightboxCounter").textContent = multi ? (galleryIndex+1)+" / "+galleryPhotos.length : "";
+}
+function lightboxGo(delta){
+  if(galleryPhotos.length < 2) return;
+  galleryIndex = (galleryIndex + delta + galleryPhotos.length) % galleryPhotos.length;
+  updateLightboxImage();
 }
 function closePhotoLightbox(){
   $("photoLightbox").classList.remove("show");
   setTimeout(()=> $("photoLightbox").classList.add("hidden"), 200);
 }
 $("photoLightboxClose").onclick = closePhotoLightbox;
+$("photoLightboxPrev").onclick = e=>{ e.stopPropagation(); lightboxGo(-1); };
+$("photoLightboxNext").onclick = e=>{ e.stopPropagation(); lightboxGo(1); };
 $("photoLightbox").onclick = e=>{ if(e.target.id==="photoLightbox") closePhotoLightbox(); };
+document.addEventListener("keydown", e=>{
+  if(!$("photoLightbox").classList.contains("show")) return;
+  if(e.key==="ArrowLeft") lightboxGo(1);
+  else if(e.key==="ArrowRight") lightboxGo(-1);
+});
+(function wireLightboxSwipe(){
+  let startX = null;
+  const img = $("photoLightboxImg");
+  img.addEventListener("touchstart", e=>{ startX = e.touches[0].clientX; }, {passive:true});
+  img.addEventListener("touchend", e=>{
+    if(startX==null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    startX = null;
+    if(Math.abs(dx) < 40) return;
+    lightboxGo(dx < 0 ? 1 : -1);
+  }, {passive:true});
+})();
 
 // אייקון אחד לכל קטגוריה (לא לכל ערך בתוכה) - בדיוק כמו amenityChips. קודם היו אימוג'ים
 // על כל ערך שגם שימשו בפועל כתחליף-לכותרת-הקבוצה (המשתמש היה מזהה "זו שורת החניה"
