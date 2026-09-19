@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260919b1";
+const APP_VERSION = "20260919c1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4237,6 +4237,16 @@ function openDetail(id){
   renderPhotoGallery(id);
 }
 
+// כל תמונה חדשה מצטרפת כשורה נפרדת בטבלת landmark_photos, ולא רק דורסת את photo_url
+// היחיד על visits (שם יש unique(user_id,landmark_id) - למשתמש יש לכל היותר שורת-visit
+// אחת ליעד, אז שם תמונה שנייה הייתה נעלמת). נכשל בשקט - לא מפיל את זרימת ה-checkin/
+// review העיקרית אם ההוספה לגלריה נכשלת.
+async function addLandmarkPhoto(landmarkId, photoUrl){
+  try{
+    const { error } = await supabase.from("landmark_photos").insert({ landmark_id:landmarkId, user_id:session.user.id, photo_url:photoUrl });
+    if(error) console.warn("הוספת תמונה לגלריה נכשלה:", error.message||error);
+  }catch(err){ console.warn("הוספת תמונה לגלריה נכשלה:", err.message||err); }
+}
 // גלריית תמונות-קהילה ליעד - כל תמונה שמשתמש משתף (בצ'ק-אין או בעריכת ביקורת בדיעבד)
 // מצטרפת לכאן, לא רק הופכת ל-hero הבודד של landmarkPhotos. אותו דפוס כמו
 // renderFieldReports - נכשל בשקט (יעד בלי תמונות הוא מצב תקין, לא שגיאה).
@@ -4563,6 +4573,7 @@ async function confirmCheckin(l){
     }
     if(error) throw error;
     myVisits.push(data);
+    if(photoUrl) addLandmarkPhoto(l.id, photoUrl);
     if(activeTrip && activeTrip.landmarkId===l.id) endTrip(true);
     track("checkin_completed", { landmark_id: l.id });
     submitFieldReport(l.id);
@@ -4717,21 +4728,24 @@ async function saveReview(){
   const btn = $("saveReviewBtn"); btn.disabled = true; btn.textContent = "שומר...";
   try{
     let photoUrl = visitedEntry.photo_url || null;
+    let isNewPhoto = false;
     if(activeReviewPhoto){
       const path = `${session.user.id}/${l.id}-${Date.now()}.jpg`;
       const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, activeReviewPhoto.blob, { contentType:"image/jpeg" });
       if(upErr) throw upErr;
       photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
+      isNewPhoto = true;
     }
     const note = ($("reviewNoteText").value || "").trim().slice(0,300) || null;
     const { error } = await supabase.from("visits").update({ photo_url: photoUrl, note }).eq("id", visitedEntry.id);
     if(error) throw error;
     visitedEntry.photo_url = photoUrl; visitedEntry.note = note;
     if(photoUrl) landmarkPhotos[l.id] = photoUrl;
+    if(isNewPhoto) await addLandmarkPhoto(l.id, photoUrl);
     closeSheet("reviewSheet","reviewScrim");
     toast("הביקורת נשמרה, תודה!");
     renderProfile(); renderFeed();
-    if(photoUrl) renderPhotoGallery(l.id);
+    if(isNewPhoto) renderPhotoGallery(l.id);
   }catch(err){
     console.error(err);
     toast("שגיאה בשמירת הביקורת: "+(err.message||err));
@@ -4763,6 +4777,7 @@ async function flushPendingQueue(){
         ({ error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:grant.totalGranted }));
       }
       if(error) throw error;
+      if(photoUrl) addLandmarkPhoto(item.landmarkId, photoUrl);
       myVisits = myVisits.filter(v=>!(v.pending && v.landmark_id===item.landmarkId));
       toast("סונכרן צ'ק-אין: "+(l?l.name:item.landmarkId));
     }catch(err){ remaining.push(item); }
