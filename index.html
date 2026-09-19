@@ -553,6 +553,17 @@ button{font-family:inherit;}
 .lm-actions .icon-btn{flex:none;}
 .lm-actions .btn{flex:1 1 0;min-width:0;white-space:nowrap;padding-inline:var(--space-3);}
 
+.photo-gallery{margin:0 0 var(--space-4);}
+.photo-gallery-title{font-size:13.5px;font-weight:700;color:var(--text-muted);margin-bottom:8px;}
+.photo-gallery-strip{display:flex;gap:var(--space-2);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.photo-gallery-strip::-webkit-scrollbar{display:none;}
+.photo-gallery-thumb{flex:none;width:84px;height:84px;border-radius:var(--radius-card);overflow:hidden;padding:0;border:none;background:var(--bg-elevated);cursor:pointer;}
+.photo-gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-lightbox{position:fixed;inset:0;z-index:1260;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.photo-lightbox.show{opacity:1;pointer-events:auto;}
+.photo-lightbox img{max-width:92%;max-height:82%;border-radius:var(--radius-card);object-fit:contain;}
+.photo-lightbox-close{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:16px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+@media (min-width:520px){ .photo-lightbox{position:absolute;} }
 .checkin-status{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-elevated);border-radius:12px;padding:var(--space-3);margin:var(--space-3) 0;font-size:15px;color:var(--text-muted);}
 .field-reports{background:var(--bg-elevated);border-radius:12px;padding:var(--space-3) var(--space-3);margin:0 0 var(--space-4);}
 .field-reports-title{font-size:13.5px;font-weight:700;color:var(--text-muted);margin-bottom:6px;}
@@ -2139,11 +2150,16 @@ input[type=file]{display:none;}
   <div class="celebrate-overlay hidden" id="celebrateOverlay">
     <div class="celebrate-card" id="celebrateCard"></div>
   </div>
+
+  <div class="photo-lightbox hidden" id="photoLightbox">
+    <button type="button" class="photo-lightbox-close" id="photoLightboxClose" aria-label="סגור">✕</button>
+    <img id="photoLightboxImg" alt="">
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260918b1"></script>
+<script type="module" src="./app.js?v=20260919a1"></script>
 </body>
 </html>

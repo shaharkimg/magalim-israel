@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260918b1";
+const APP_VERSION = "20260919a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4008,6 +4008,7 @@ function closeSheet(sheetId, scrimId){
 }
 document.addEventListener("keydown", e=>{
   if(e.key!=="Escape") return;
+  if($("photoLightbox").classList.contains("show")){ closePhotoLightbox(); return; }
   const top = openSheetStack[openSheetStack.length-1];
   if(!top) return;
   if(top.onEscape) top.onEscape();
@@ -4170,6 +4171,7 @@ function openDetail(id){
     <div class="lm-important-head" data-stage="full">${uiIcon("warning",15)} חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
+    <div id="photoGalleryBox" data-stage="full"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
@@ -4232,7 +4234,44 @@ function openDetail(id){
   openSheet("detailSheet","detailScrim");
   track("destination_viewed", { landmark_id: id, points: pointsForLandmark(l) });
   renderFieldReports(id, l);
+  renderPhotoGallery(id);
 }
+
+// גלריית תמונות-קהילה ליעד - כל תמונה שמשתמש משתף (בצ'ק-אין או בעריכת ביקורת בדיעבד)
+// מצטרפת לכאן, לא רק הופכת ל-hero הבודד של landmarkPhotos. אותו דפוס כמו
+// renderFieldReports - נכשל בשקט (יעד בלי תמונות הוא מצב תקין, לא שגיאה).
+async function renderPhotoGallery(id){
+  const box = $("photoGalleryBox");
+  if(!box) return;
+  try{
+    const { data, error } = await supabase.rpc("get_landmark_photo_gallery", { p_landmark_id:id, p_limit:24 });
+    if(error) throw error;
+    if(!box.isConnected) return;
+    const photos = (data||[]).filter(r=>r.photo_url);
+    if(!photos.length){ box.innerHTML = ""; return; }
+    box.innerHTML = `<div class="photo-gallery">
+      <div class="photo-gallery-title">${uiIcon("camera",13)} תמונות מהמטיילים (${photos.length})</div>
+      <div class="photo-gallery-strip">` +
+      photos.map(p=>`<button type="button" class="photo-gallery-thumb" data-src="${p.photo_url}"><img src="${p.photo_url}" loading="lazy" alt=""></button>`).join("") +
+      `</div></div>`;
+    box.querySelectorAll(".photo-gallery-thumb").forEach(btn=>{
+      btn.onclick = ()=> openPhotoLightbox(btn.dataset.src);
+    });
+  }catch(err){
+    box.innerHTML = "";
+  }
+}
+function openPhotoLightbox(src){
+  $("photoLightboxImg").src = src;
+  $("photoLightbox").classList.remove("hidden");
+  requestAnimationFrame(()=> $("photoLightbox").classList.add("show"));
+}
+function closePhotoLightbox(){
+  $("photoLightbox").classList.remove("show");
+  setTimeout(()=> $("photoLightbox").classList.add("hidden"), 200);
+}
+$("photoLightboxClose").onclick = closePhotoLightbox;
+$("photoLightbox").onclick = e=>{ if(e.target.id==="photoLightbox") closePhotoLightbox(); };
 
 // אייקון אחד לכל קטגוריה (לא לכל ערך בתוכה) - בדיוק כמו amenityChips. קודם היו אימוג'ים
 // על כל ערך שגם שימשו בפועל כתחליף-לכותרת-הקבוצה (המשתמש היה מזהה "זו שורת החניה"
@@ -4655,6 +4694,7 @@ async function saveReview(){
     closeSheet("reviewSheet","reviewScrim");
     toast("הביקורת נשמרה, תודה!");
     renderProfile(); renderFeed();
+    if(photoUrl) renderPhotoGallery(l.id);
   }catch(err){
     console.error(err);
     toast("שגיאה בשמירת הביקורת: "+(err.message||err));
