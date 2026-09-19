@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260919c2";
+const APP_VERSION = "20260919d1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4171,7 +4171,7 @@ function openDetail(id){
     <div class="lm-important-head" data-stage="full">${uiIcon("warning",15)} חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
-    <div id="photoGalleryBox" data-stage="full"></div>
+    <div id="photoGalleryBox" data-stage="mid"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
