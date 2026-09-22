@@ -778,7 +778,7 @@ function $(id){ return document.getElementById(id); }
 // זו אפליקציית עמוד-אחד: החלפת מסך או הודעת שגיאה מחליפות DOM בלי טעינת עמוד,
 // וקורא מסך לא מבחין בזה בכלל. הזרקת טקסט לאזור aria-live היא הדרך היחידה
 // לספר למשתמש עיוור שמשהו קרה.
-const VIEW_TITLES = { home:"בית", map:"מפה", saved:"מקומות שמורים", board:"המסע שלנו", profile:"פרופיל" };
+const VIEW_TITLES = { home:"בית", map:"מפה", board:"המסע שלנו", profile:"פרופיל" };
 let announceTimer = null;
 function announce(message, urgent){
   const el = $(urgent ? "srAlert" : "srAnnouncer");
@@ -1869,7 +1869,7 @@ function switchView(view, opts){
   // "feed" הוא בקשה מפורשת לטאב מסוים - היא גוברת על האיפוס
   let explicitBoardTab = null;
   if(view==="feed"){ view = "board"; explicitBoardTab = "feed"; }
-  if(!["home","map","saved","board","profile"].includes(view)) view = "home";
+  if(!["home","map","board","profile"].includes(view)) view = "home";
   const changed = view !== currentView;
   // ה-GPS נכבה ביציאה מהמפה בכל מקרה, גם ב-keepState: אין לו צרכן מחוץ למפה, והוא
   // מרוקן סוללה ברקע. ההעדפה נשמרת, כך שהוא חוזר מעצמו בכניסה הבאה.
@@ -1908,7 +1908,6 @@ function switchView(view, opts){
   if(view==="board") switchBoardTab(boardTab);
   if(view==="profile") renderProfile();
   if(view==="home") renderHome();
-  if(view==="saved") renderSaved();
   if(changed) resetViewScroll(view);
   if(changed){
     focusView(view);
@@ -2107,7 +2106,7 @@ async function bootUserData(){
     myProfile = null; myVisits = []; myWishlist = []; followingSet = new Set(); myGroups = []; activeGroupId = null;
     myConquests = []; myBonusGrants = [];
     if(!activeTrip){ activeTrip = loadActiveTrip(); if(activeTrip) minimiseTrip(); }
-    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    refreshHeader(); renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     return;
   }
   try{
@@ -2119,7 +2118,7 @@ async function bootUserData(){
     await handleInviteLinks();
     updateGroupBarVisibility();
     refreshHeader();
-    renderMap(); renderProfile(); renderHome(); renderSaved(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
+    renderMap(); renderProfile(); renderHome(); renderBoard(); renderFeed(); renderGroupPanel(); renderFriendsTravelBanner();
     // Gamification Overhaul, Phase 5 - אם המשתמש נכנס דרך deep-link ישיר ל-#/destination/<id>
     // (openDetail כבר רץ פעם אחת ב-bootPublic, לפני ש-myVisits/myConquests נטענו), מרעננים
     // אותו עכשיו כדי שמצב-נכבש/XP יוצג נכון - אותו דפוס-race בדיוק כמו ה-refresh הקיים
@@ -4119,12 +4118,12 @@ async function toggleWishlist(id){
     toast("הוסר מהשמורים", { label:"ביטול", onClick: async ()=>{
       const stillPending = !!pendingWishlistRemovals[id];
       if(stillPending){ clearTimeout(pendingWishlistRemovals[id]); delete pendingWishlistRemovals[id]; }
-      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); }
+      if(!myWishlist.includes(id)){ myWishlist.push(id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); }
       if(!stillPending){
         // ה-timer כבר ירה וה-DELETE כבר בוצע בפועל - הביטול חייב להכניס את השורה מחדש,
         // לא רק לשחזר state מקומי (אחרת המסך יראה "שמור" בזמן שב-DB זה כבר נמחק).
         const { error } = await supabase.from("wishlist").insert({ user_id:session.user.id, landmark_id:id });
-        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); renderSaved(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
+        if(error){ myWishlist = myWishlist.filter(x=>x!==id); renderMap(); renderProfile(); refreshOpenDetailIfShowing(id); toast("לא הצלחנו לבטל. נסה שוב."); }
       }
     }});
   } else if(pendingWishlistRemovals[id]){
@@ -5020,42 +5019,6 @@ function renderCollections(){
     elm.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
   });
 }
-/* ============ SAVED (§15) ============ */
-// "שמורים" קיבל טאב ניווט משלו במקום להיות טאב שלישי בתוך הפרופיל. אותה רשימה, אותה
-// לוגיקה (myWishlist + wishlistContextLines) - רק מקום אחד ברור להגיע אליו.
-function renderSaved(){
-  const listEl = $("savedList"); if(!listEl) return;
-  const subEl = $("savedSub");
-  if(!session){
-    subEl.textContent = "";
-    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "שמרו מקומות לפעם הבאה",
-      sub: "התחברו כדי לשמור יעדים שתרצו להגיע אליהם.", ctaId:"savedGuestCta", ctaLabel:"התחברות / הרשמה" });
-    const cta=$("savedGuestCta"); if(cta) cta.onclick = ()=> openAuthSheet("שמרו את הטיול הראשון שלכם");
-    return;
-  }
-  if(!myWishlist.length){
-    subEl.textContent = "";
-    listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "עוד לא שמרתם מקומות",
-      sub: "סמנו בלב כל מקום שתרצו להגיע אליו, והוא יחכה לכם כאן.", ctaId:"savedEmptyCta", ctaLabel:"גלו מקומות" });
-    const cta=$("savedEmptyCta"); if(cta) cta.onclick = ()=> navigate("#/home");
-    return;
-  }
-  loadWishlistFriendVisits();
-  subEl.textContent = myWishlist.length+" מקומות מחכים לכם";
-  const sorted = userLoc
-    ? myWishlist.slice().sort((a,b)=>{
-        const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
-        return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
-      })
-    : myWishlist;
-  listEl.innerHTML = sorted.map(id=>{
-    const l = lmById[id]; if(!l) return "";
-    const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
-    return placeCardHtml(l, { extra: ctx });
-  }).join("");
-  listEl.querySelectorAll(".mini-card").forEach(elm=> elm.onclick = ()=> goToDestination(elm.dataset.id));
-  wireMiniCardKeydown(listEl);
-}
 function openCollectionSheet(id){
   const c = COLLECTIONS.find(x=>x.id===id); if(!c) return;
   const { done, total } = collectionProgress(c);
@@ -5141,7 +5104,7 @@ function loadWishlistFriendVisits(){
       const counts = {};
       data.forEach(v=>{ counts[v.landmark_id] = (counts[v.landmark_id]||0)+1; });
       wishlistFriendVisits = counts;
-      renderSaved();   // רשימת השמורים עברה למסך משלה - שם צריכות להופיע שורות "חברים ביקרו כאן"
+      if(profileListTab==="saved") renderProfile();   // רשימת "שמורים" בפרופיל צריכה להציג שורות "חברים ביקרו כאן"
     });
   });
 }
@@ -5384,6 +5347,25 @@ function renderProfile(){
           metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
           points: v.points_awarded, done: true,
         });
+      }).join("");
+    }
+  } else if(profileListTab==="saved"){
+    if(!myWishlist.length){
+      listEl.innerHTML = emptyStateHtml({ icon: uiIcon("heart",26), title: "עוד לא שמרתם מקומות",
+        sub: "סמנו בלב כל מקום שתרצו להגיע אליו, והוא יחכה לכם כאן.", ctaId:"savedEmptyCta", ctaLabel:"גלו מקומות" });
+      $("savedEmptyCta").onclick = ()=> navigate("#/home");
+    } else {
+      loadWishlistFriendVisits();
+      const sorted = userLoc
+        ? myWishlist.slice().sort((a,b)=>{
+            const la=lmById[a], lb=lmById[b]; if(!la||!lb) return 0;
+            return haversine(userLoc.lat,userLoc.lon,la.lat,la.lon) - haversine(userLoc.lat,userLoc.lon,lb.lat,lb.lon);
+          })
+        : myWishlist;
+      listEl.innerHTML = sorted.map(id=>{
+        const l = lmById[id]; if(!l) return "";
+        const ctx = wishlistContextLines(l).map(t=>`<div class="wishlist-context">${t}</div>`).join("");
+        return placeCardHtml(l, { extra: ctx });
       }).join("");
     }
   } else {

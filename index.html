@@ -1665,14 +1665,6 @@ input[type=file]{display:none;}
     <div class="map-side-panel" id="mapSidePanel"></div>
   </div>
 
-  <div class="view" id="view-saved" role="region" aria-label="מקומות שמורים" tabindex="-1">
-    <div class="scroll-area">
-      <h1>שמורים</h1>
-      <p class="t-caption" id="savedSub" style="margin:0 0 var(--space-3);">המקומות שסימנתם לפעם הבאה</p>
-      <div id="savedList"></div>
-    </div>
-  </div>
-
   <div class="view" id="view-board" role="region" aria-label="המסע שלנו" tabindex="-1">
     <div class="scroll-area">
       <div class="guest-gate hidden" id="boardGuestGate">
@@ -1809,6 +1801,12 @@ input[type=file]{display:none;}
         </div>
       </div>
       <div class="personal-map-wrap"><canvas id="profileMapCanvas" width="340" height="400"></canvas></div>
+      <div class="tab-row">
+        <button class="active" data-list="visited">כבשתי</button>
+        <button data-list="saved">שמורים</button>
+        <button data-list="history">היסטוריה</button>
+      </div>
+      <div id="profList"></div>
       <div class="stat-grid stat-grid-5">
         <div class="stat-box"><div class="v" id="statPlaces">0</div><div class="l">מקומות</div></div>
         <div class="stat-box"><div class="v" id="statRegions">0/6</div><div class="l">אזורים</div></div>
@@ -1819,11 +1817,6 @@ input[type=file]{display:none;}
       <button class="btn btn-outline btn-block" id="shareMapBtn" style="margin:var(--space-3) 0 var(--space-1);">שתף את המפה שלי</button>
       <div id="regionProgressList"></div>
       </div>
-      <div class="tab-row">
-        <button class="active" data-list="visited">כבשתי</button>
-        <button data-list="history">היסטוריה</button>
-      </div>
-      <div id="profList"></div>
       <div class="section-head"><h2>חברים</h2><span class="hidden t-caption" id="inviteQuotaText"></span></div>
       <div id="friendRequestsBox"></div>
       <div id="friendsListBox"></div>
@@ -1854,7 +1847,6 @@ input[type=file]{display:none;}
   <nav class="bottom-nav hidden" id="bottomNav" aria-label="ניווט ראשי">
     <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>בית</span></button>
     <button class="nav-btn" data-view="map"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>מפה</span></button>
-    <button class="nav-btn" data-view="saved"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 19.5S4.5 14.8 4.5 9.9A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7.5 1.9c0 4.9-7.5 9.6-7.5 9.6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>שמורים</span></button>
     <button class="nav-btn" data-view="board"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 21V10M12 21V3M19 21v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>המסע שלנו</span></button>
     <button class="nav-btn" data-view="profile"><span class="unread-dot" id="navUnreadDot"></span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.6-3.6 4.6-5.4 7.5-5.4S17.9 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>פרופיל</span></button>
   </nav>
