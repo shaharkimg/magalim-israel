@@ -26,7 +26,6 @@ globalThis.closePreview = () => calls.push('closePreview');
 globalThis.switchBoardTab = t => calls.push('board:' + t);
 globalThis.renderProfile = () => calls.push('renderProfile');
 globalThis.renderHome = () => calls.push('renderHome');
-globalThis.renderSaved = () => calls.push('renderSaved');
 globalThis.renderMap = () => {};
 // a blind user is told the screen changed by focus moving and by the live region
 globalThis.focusView = v => calls.push('focus:' + v);
@@ -72,9 +71,9 @@ switchView('home'); calls.length = 0; switchView('feed');
 check('#/feed still lands on the feed tab', calls.includes('board:feed'), calls.filter(c => c.startsWith('board')).join(','));
 
 console.log('\n4. scroll returns to the top of the new view');
-switchView('home'); scrolled.length = 0; switchView('saved');
-check('scrolled the target view to top', scrolled.includes('view-saved'), scrolled.join(','));
-scrolled.length = 0; switchView('saved');
+switchView('home'); scrolled.length = 0; switchView('board');
+check('scrolled the target view to top', scrolled.includes('view-board'), scrolled.join(','));
+scrolled.length = 0; switchView('board');
 check('no scroll reset when re-entering the same view', scrolled.length === 0);
 
 console.log('\n5. the map reopens framed on the whole country');
@@ -102,10 +101,10 @@ switchView('home'); switchView('board', { keepState: true });
 check('keepState preserves the sub-tab', calls.includes('board:achievements'), calls.filter(c => c.startsWith('board')).join(','));
 
 console.log('\n8. a screen reader is told the screen changed');
-switchView('home'); calls.length = 0; switchView('saved');
-check('focus moves to the new screen', calls.includes('focus:saved'));
-check('and the screen names itself', calls.includes('announce:מקומות שמורים'));
-calls.length = 0; switchView('saved');
+switchView('home'); calls.length = 0; switchView('board');
+check('focus moves to the new screen', calls.includes('focus:board'));
+check('and the screen names itself', calls.includes('announce:המסע שלנו'));
+calls.length = 0; switchView('board');
 check('switching to the screen already shown stays quiet',
   !calls.some(c => c.startsWith('announce:')));
 

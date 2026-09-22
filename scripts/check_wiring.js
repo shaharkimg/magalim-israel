@@ -21,7 +21,7 @@ const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 // renderers each screen depends on. If you add a view, add its renderer here.
 const CRITICAL = [
   'switchView', 'applyRoute', 'navigate',
-  'renderHome', 'renderMap', 'renderSaved', 'renderProfile', 'renderBoard',
+  'renderHome', 'renderMap', 'renderProfile', 'renderBoard',
   'renderFeed', 'renderGroupPanel', 'renderFriendsTravelBanner', 'refreshHeader',
   'renderCollections', 'renderPersonalChallenges', 'renderRegionProgress',
   'recommendDestination', 'scoreLandmarkFor', 'travelProfile', 'recommendationSeed',
