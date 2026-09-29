@@ -27,6 +27,7 @@ globalThis.switchBoardTab = t => calls.push('board:' + t);
 globalThis.renderProfile = () => calls.push('renderProfile');
 globalThis.renderHome = () => calls.push('renderHome');
 globalThis.renderMap = () => {};
+globalThis.track = () => {};
 // a blind user is told the screen changed by focus moving and by the live region
 globalThis.focusView = v => calls.push('focus:' + v);
 globalThis.announce = m => calls.push('announce:' + m);

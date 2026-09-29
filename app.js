@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260919d1";
+const APP_VERSION = "20260929h1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -628,7 +628,7 @@ function photoFallbackHtml(l, size){
 function placeCardHtml(l, opts){
   opts = opts || {};
   const thumb = opts.thumb || (opts.photo
-    ? '<img src="'+opts.photo+'" loading="lazy" decoding="async" alt="'+l.name+'">'
+    ? '<img src="'+safeUrl(opts.photo)+'" loading="lazy" decoding="async" alt="'+escapeHtml(l.name)+'">'
     : photoFallbackHtml(l, 30));
   const meta = opts.metaHtml != null ? opts.metaHtml : placeMetaHtml(l, opts);
   const pts = opts.points == null ? pointsForLandmark(l) : opts.points;
@@ -723,6 +723,15 @@ const PENDING_KEY = "magalim-pending-checkins-v1";
 // unhandledrejection נכתבים ל-client_errors (fire-and-forget, לא חוסם כלום). דה-דופ לפי
 // חתימת-שגיאה בתוך sessionStorage כדי לא להציף בלולאת-שגיאות חוזרת, מוגבל ל-20 דיווחים
 // לסשן. אם הטבלה עוד לא קיימת (migration טרם רצה) - נכשל בשקט כרגיל כל טבלה חדשה בשיחה הזו.
+// כתובות עם קוד הזמנה (#/invite/<code>) או מזהה משתמש/קבוצה (?ref=, ?group=) לא נכנסות ללוגים:
+// משאירים רק הנתיב ושם המסך.
+function sanitizeUrlForLog(u){
+  try{
+    const x = new URL(u || location.href, location.href);
+    const route = (x.hash||"").replace(/^#\/?/, "").split("/")[0] || "";
+    return (x.origin + x.pathname + (route ? "#/"+route : "")).slice(0,300);
+  }catch(e){ return ""; }
+}
 let clientErrorCount = 0;
 function reportClientError(message, stack, url){
   if(clientErrorCount>=20) return;
@@ -738,7 +747,7 @@ function reportClientError(message, stack, url){
     user_id: session ? session.user.id : null,
     message: sig,
     stack: stack ? String(stack).slice(0,4000) : null,
-    url: url || location.href,
+    url: sanitizeUrlForLog(url),
   }).then(()=>{}, ()=>{});
 }
 window.addEventListener("error", e=>{
@@ -1351,7 +1360,7 @@ function celebrate(steps){
     // stampId מרנדר את החותמת עצמה נחתמת - אותו רכיב בדיוק שמופיע באוסף החותמות,
     // כדי שהרגע שבו זוכים בה נראה כמו הפריט שנוסף לאוסף ולא כמו אייקון אחר לגמרי.
     const hero = s.photoUrl
-      ? `<div class="celebrate-hero"><img src="${s.photoUrl}" alt=""></div>`
+      ? `<div class="celebrate-hero"><img src="${safeUrl(s.photoUrl)}" alt=""></div>`
       : s.stampId
         ? `<div class="celebrate-stamp${s.metal?" metal-"+s.metal:""}"><div class="stamp-face">${stampGlyph(badgeGlyphName(s.stampId), 44)}</div></div>`
         : s.levelIndex!=null
@@ -1705,9 +1714,21 @@ $("authForm").addEventListener("submit", async (e)=>{
   }
 });
 
+// מנתקים את המכשיר מהמשתמש בשרת לפני היציאה, אחרת הוא ימשיך לקבל את ההתראות שלו גם אחרי
+// שהתנתק (מכשיר משותף). המנוי בדפדפן נשמר, ו-syncPushSubscription יקשר אותו מחדש בכניסה הבאה.
+async function detachPushFromAccount(){
+  // best effort ומוגבל בזמן: navigator.serviceWorker.ready לא מסתיים כשאין service worker, ורשת
+  // חלשה יכולה לתקוע את הבקשה - התנתקות לעולם לא מחכה להם יותר משתי שניות
+  const work = (async ()=>{
+    const sub = await getExistingPushSubscription();
+    if(sub) await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+  })().catch(()=>{});
+  await Promise.race([work, new Promise(r=>setTimeout(r, 2000))]);
+}
 $("signOutBtn").onclick = async ()=>{
   try{ localStorage.removeItem(GUEST_CHOICE_KEY); }catch(e){}
   namePromptShown = false;
+  await detachPushFromAccount();
   await supabase.auth.signOut();
   maybeShowWelcome();
 };
@@ -1884,6 +1905,7 @@ function switchView(view, opts){
     // navigate("#/map") - איפוס כאן היה מוחק לו את התוכן לפני שהמפה בכלל מצטיירת.
   }
   if(explicitBoardTab) boardTab = explicitBoardTab;
+  if(changed && view==="map") track("map_opened");
   currentView = view;
   document.querySelectorAll(".nav-btn").forEach(b=>{
     const on = b.dataset.view===view;
@@ -2040,19 +2062,71 @@ function applyRoute(){
 }
 
 /* ============ BOOT / DATA LOAD ============ */
+// עותק מקומי של רשימת היעדים (שינוי איטי, ~1MB): מאפשר לאפליקציה לעלות ולהראות מפה גם
+// בטיול בלי קליטה. נשמר בהצלחה אחרי כל טעינה מלאה; כל כשל אחסון (מכסה מלאה / מצב פרטי) מתעלמים.
+const LANDMARKS_CACHE_KEY = "magalim-landmarks-cache-v1";
+function cacheLandmarks(rows){
+  // ~1MB: לא כותבים בכל עלייה (רק כשהמספר השתנה או עברו 12 שעות) ולא על הנתיב הקריטי של הטעינה
+  const META = LANDMARKS_CACHE_KEY+"-meta";
+  try{
+    const meta = JSON.parse(localStorage.getItem(META)||"null");
+    if(meta && meta.count===rows.length && Date.now()-meta.at < 12*3600*1000) return;
+  }catch(e){}
+  setTimeout(()=>{
+    try{
+      localStorage.setItem(LANDMARKS_CACHE_KEY, JSON.stringify({ at:Date.now(), rows }));
+      localStorage.setItem(META, JSON.stringify({ at:Date.now(), count:rows.length }));
+    }catch(e){}
+  }, 3000);
+}
+function readCachedLandmarks(){
+  try{
+    const c = JSON.parse(localStorage.getItem(LANDMARKS_CACHE_KEY)||"null");
+    return c && Array.isArray(c.rows) && c.rows.length ? c.rows : null;
+  }catch(e){ return null; }
+}
+function trackMapLoadFailure(err){
+  reportClientError("landmarks_load_failed: "+String((err && err.message) || err).slice(0,180), null, location.href);
+}
+// מסך כשל-טעינה עם ניסיון חוזר - במקום מסך ריק / טעינה אינסופית
+function showBootError(err){
+  const el = $("loadingScreen");
+  el.classList.remove("hidden");
+  el.setAttribute("aria-busy","false");
+  const offline = navigator.onLine === false;
+  el.innerHTML = `<div style="margin:auto;padding:32px 24px;text-align:center;max-width:340px;">
+    <div style="font-size:44px;margin-bottom:8px;" aria-hidden="true">${offline?"📡":"🧭"}</div>
+    <h2 style="margin:0 0 8px;font-size:20px;">${offline?"אין כרגע חיבור לאינטרנט":"לא הצלחנו לטעון את המקומות"}</h2>
+    <p style="margin:0 0 20px;color:var(--text-muted);line-height:1.5;">${escapeHtml(friendlyError(err, "בדקו את החיבור ונסו שוב."))}</p>
+    <button class="btn btn-primary btn-block" id="bootRetryBtn" type="button">נסו שוב</button>
+  </div>`;
+  $("bootRetryBtn").onclick = ()=> location.reload();
+}
 let booted = false, publicBootPromise = null;
 async function bootPublic(){
-  track("session_started", {});
+  let returning = false;
+  try{ returning = Number(localStorage.getItem("magalim-visit-count")||"0") > 0; }catch(e){}
+  track("session_started", { returning });
   try{
     // .select() לבד נחתך אוטומטית ב-1000 שורות ע"י PostgREST - יש לדפדף במפורש כדי לקבל
     // את כל היעדים גם אחרי שחצינו את ה-1000 (התגלה בפועל כשמספר היעדים עבר 1000).
-    const lms = [];
-    const PAGE = 1000;
-    for(let from=0; ; from+=PAGE){
-      const { data: page, error: lmErr } = await supabase.from("landmarks").select("*").order("name").range(from, from+PAGE-1);
-      if(lmErr) throw lmErr;
-      lms.push(...page);
-      if(page.length < PAGE) break;
+    let lms = [];
+    try{
+      const PAGE = 1000;
+      for(let from=0; ; from+=PAGE){
+        const { data: page, error: lmErr } = await supabase.from("landmarks").select("*").order("name").range(from, from+PAGE-1);
+        if(lmErr) throw lmErr;
+        lms.push(...page);
+        if(page.length < PAGE) break;
+      }
+      cacheLandmarks(lms);
+    }catch(fetchErr){
+      // אין רשת / השרת לא זמין: מציגים את רשימת המקומות שנשמרה בפעם האחרונה במקום מסך ריק
+      const cached = readCachedLandmarks();
+      if(!cached) throw fetchErr;
+      lms = cached;
+      trackMapLoadFailure(fetchErr);
+      setTimeout(()=>toast("אין חיבור — מוצגים המקומות שנשמרו במכשיר"), 1200);
     }
     LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, baseVisits:l.base_visits,
       familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null,
@@ -2096,8 +2170,8 @@ async function bootPublic(){
     setTimeout(maybeShowInstallBanner, 8000);
   }catch(err){
     console.error(err);
-    toast("שגיאה בטעינת הנתונים: "+(err.message||err));
-    $("loadingScreen").classList.add("hidden");
+    trackMapLoadFailure(err);
+    showBootError(err);
   }
 }
 async function bootUserData(){
@@ -2132,7 +2206,7 @@ async function bootUserData(){
     }
   }catch(err){
     console.error(err);
-    toast("שגיאה בטעינת הנתונים האישיים: "+(err.message||err));
+    toast("לא הצלחנו לטעון את הנתונים האישיים. "+friendlyError(err, "נסו לרענן את העמוד."), { label:"נסו שוב", onClick:()=>bootUserData() });
   }
 }
 
@@ -2266,18 +2340,26 @@ async function deleteActiveGroup(){
 async function createGroup(){
   const name = prompt("איך לקרוא לקבוצה?");
   if(!name || !name.trim()) return;
-  const { data, error } = await supabase.from("groups").insert({ name:name.trim(), created_by:session.user.id }).select().single();
-  if(error){ toast("שגיאה ביצירת הקבוצה"); return; }
-  let { error: joinErr } = await supabase.from("group_members").insert({ group_id:data.id, user_id:session.user.id, role:"owner" });
-  if(joinErr && /role/i.test(joinErr.message||"")){
-    ({ error: joinErr } = await supabase.from("group_members").insert({ group_id:data.id, user_id:session.user.id }));
+  // היצירה וההצטרפות כבעלים קורות אטומית בשרת (RPC), ורק שם: לא ניתן עוד להוסיף את עצמך ישירות
+  // ל-group_members (היה מאפשר להצטרף לכל קבוצה, וגם עם role=owner)
+  try{
+    const { data: res, error } = await supabase.rpc("create_group", { p_name: name.trim().slice(0,60) });
+    if(error) throw error;
+    if(!res || !res.ok){
+      const msgs = { invalid_name:"שם הקבוצה חייב להכיל 1 עד 60 תווים", rate_limited:"יצרתם הרבה קבוצות בזמן קצר. נסו שוב מאוחר יותר.", too_many_groups:"הגעתם למספר הקבוצות המקסימלי", account_unavailable:"החשבון שלך אינו פעיל כרגע" };
+      toast(msgs[res && res.error] || "לא הצלחנו ליצור את הקבוצה");
+      return;
+    }
+    const g = res.group;
+    myGroups.push({ id:g.id, name:g.name, createdBy:session.user.id });
+    activeGroupId = g.id;
+    populateGroupSelect(); updateGroupBarVisibility();
+    toast('הקבוצה "'+escapeHtml(g.name)+'" נוצרה!');
+    renderGroupPanel();
+  }catch(err){
+    console.error(err);
+    toast("לא הצלחנו ליצור את הקבוצה. "+friendlyError(err, "נסו שוב."));
   }
-  if(joinErr){ toast("שגיאה בהצטרפות לקבוצה"); return; }
-  myGroups.push({ id:data.id, name:data.name, createdBy:session.user.id });
-  activeGroupId = data.id;
-  populateGroupSelect(); updateGroupBarVisibility();
-  toast('הקבוצה "'+escapeHtml(data.name)+'" נוצרה!');
-  renderGroupPanel();
 }
 // כשסבב OAuth נכשל, הספק ו-Supabase מחזירים את הסיבה בכתובת עצמה - לפעמים ב-query
 // ולפעמים ב-hash - והאפליקציה פשוט התעלמה ממנה ועלתה כרגיל. מבחוץ זה נראה כמו
@@ -2322,32 +2404,28 @@ async function handleInviteLinks(){
 async function joinGroupFromLink(groupId){
   const already = myGroups.some(g=>g.id===groupId);
   if(already) return;
-  let g = null;
-  const { data: preview, error: rpcErr } = await supabase.rpc("get_group_preview", { gid: groupId });
-  if(!rpcErr && preview && preview[0]) g = preview[0];
-  else {
-    const { data: legacy } = await supabase.from("groups").select("id,name").eq("id", groupId).maybeSingle();
-    g = legacy || null;
+  if(!/^[0-9a-f-]{36}$/i.test(String(groupId||""))) return;   // מזהה לא תקין - לא שולחים לשרת
+  try{
+    const { data: res, error } = await supabase.rpc("join_group", { p_group_id: groupId });
+    if(error) throw error;
+    if(!res || !res.ok){
+      if(res && res.error==="group_full") toast("הקבוצה מלאה");
+      else if(res && res.error==="rate_limited") toast("נסו שוב בעוד כמה דקות");
+      else if(res && res.error==="account_unavailable") toast("החשבון שלך אינו פעיל כרגע");
+      return;
+    }
+    const g = res.group;
+    if(!myGroups.some(x=>x.id===g.id)) myGroups.push({ id:g.id, name:g.name });
+    activeGroupId = g.id;
+    populateGroupSelect();
+    toast('הצטרפת לקבוצה "'+escapeHtml(g.name)+'"!');
+  }catch(err){
+    console.warn("join group failed", err);
+    toast("לא הצלחנו להצטרף לקבוצה. "+friendlyError(err, "נסו שוב."));
   }
-  if(!g) return;
-  let { error } = await supabase.from("group_members").insert({ group_id:groupId, user_id:session.user.id, role:"member" });
-  if(error && /role/i.test(error.message||"")){
-    ({ error } = await supabase.from("group_members").insert({ group_id:groupId, user_id:session.user.id }));
-  }
-  if(error) return;
-  myGroups.push({ id:g.id, name:g.name });
-  activeGroupId = g.id;
-  populateGroupSelect();
-  toast('הצטרפת לקבוצה "'+escapeHtml(g.name)+'"!');
 }
 
 /* ============ INVITE CODES (Phase 5) ============ */
-function generateInviteCode(){
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // בלי 0/O/1/I כדי למנוע בלבול בהעתקה ידנית
-  let code = "";
-  for(let i=0;i<8;i++) code += alphabet[Math.floor(Math.random()*alphabet.length)];
-  return code;
-}
 async function getInviteQuota(){
   const [{ data: settings }, { data: profile }, { count }] = await Promise.all([
     supabase.from("app_settings").select("default_invites_per_user").eq("id",1).maybeSingle(),
@@ -2359,32 +2437,24 @@ async function getInviteQuota(){
   return { limit, used, remaining: Math.max(0, limit-used) };
 }
 async function getOrCreateInvite(type, circleId){
-  let q = supabase.from("invites").select("code,expires_at,max_uses,uses").eq("created_by", session.user.id).eq("invite_type", type).eq("is_active", true);
-  q = type==="circle" ? q.eq("circle_id", circleId) : q.is("circle_id", null);
-  const { data: existing, error: selErr } = await q.order("created_at",{ascending:false}).limit(1);
-  if(selErr) throw selErr;
-  const row = existing && existing[0];
-  const stillValid = row && (!row.expires_at || new Date(row.expires_at) > new Date()) && (row.max_uses==null || row.uses < row.max_uses);
-  if(stillValid) return row.code;
-  let quota = null;
-  try{ quota = await getInviteQuota(); }catch(err){ quota = null; }
-  if(quota && quota.remaining<=0){
-    const quotaErr = new Error("נוצלו כל ההזמנות שלך לשלב הבטא.");
-    quotaErr.code = "quota_exceeded";
-    throw quotaErr;
-  }
-  for(let attempt=0; attempt<5; attempt++){
-    const code = generateInviteCode();
-    const { data, error } = await supabase.from("invites").insert({ code, created_by:session.user.id, invite_type:type, circle_id: type==="circle"?circleId:null }).select("code").single();
-    if(!error) return data.code;
-    if(error.code !== "23505") throw error;
-  }
-  throw new Error("לא ניתן ליצור קישור הזמנה כרגע");
+  // הקוד, המכסה והבדיקה שהמשתמש חבר במעגל נאכפים בשרת (create_invite)
+  const { data: res, error } = await supabase.rpc("create_invite", { p_type:type, p_circle_id: type==="circle" ? circleId : null });
+  if(error) throw error;
+  if(res && res.ok) return res.code;
+  const e = new Error(res && res.error==="quota_exceeded" ? "נוצלו כל ההזמנות שלך לשלב הבטא."
+    : res && res.error==="rate_limited" ? "יצרתם הרבה הזמנות בזמן קצר. נסו שוב מאוחר יותר."
+    : res && res.error==="account_unavailable" ? "החשבון שלך אינו פעיל כרגע."
+    : "לא ניתן ליצור קישור הזמנה כרגע");
+  e.code = res && res.error;
+  throw e;
 }
 function inviteErrorMessage(code){
   if(code==="invite_expired") return "קישור ההזמנה הזה כבר לא בתוקף.";
   if(code==="invite_maxed") return "קישור ההזמנה הזה כבר נוצל במלואו.";
   if(code==="own_invite") return "זו ההזמנה שלך :)";
+  if(code==="rate_limited") return "ניסיתם יותר מדי פעמים. נסו שוב בעוד כמה דקות.";
+  if(code==="group_full") return "הקבוצה מלאה.";
+  if(code==="account_unavailable") return "החשבון שלך אינו פעיל כרגע.";
   return "קישור ההזמנה לא נמצא או שאינו תקין.";
 }
 async function handleInviteCode(code){
@@ -2457,6 +2527,8 @@ const ADMIN_STAT_LABELS = {
 const EVENT_STAT_LABELS = {
   signup_completed:"הרשמות", checkin_completed:"צ'ק-אינים (אירוע)", search_used:"חיפושים",
   share_used:"שיתופים", install_prompt_accepted:"התקנות PWA",
+  map_opened:"פתיחות מפה", destination_viewed:"צפיות ביעד", navigation_started:"התחלות ניווט",
+  checkin_failed:"צ'ק-אין שנכשלו", badge_unlocked:"תגים שנפתחו",
 };
 async function renderAdminDashboard(){
   const statsEl = $("adminStats");
@@ -2871,7 +2943,7 @@ function weekendIdeas(){
 function landmarkPhotoStyle(l){
   const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
   const cat = CATEGORIES[l.category];
-  return url ? `background-image:url('${url}')`
+  return cssUrlValue(url) ? `background-image:${cssUrlValue(url)}`
              : `background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`;
 }
 function whyRowsHtml(reasons){
@@ -2939,7 +3011,9 @@ function weekStart(d){
 function currentWeekKey(){
   const s = weekStart(new Date());
   const yearStart = new Date(s.getFullYear(), 0, 1);
-  const week = Math.floor((s - weekStart(yearStart)) / 604800000) + 1;
+  // Math.round ולא floor: שבוע שחוצה מעבר לשעון קיץ קצר בשעה, ו-floor היה מחזיר את מספר
+  // השבוע הקודם (שני שבועות שונים עם אותו מפתח => בונוס השבועי לא ניתן בשבוע השני).
+  const week = Math.round((s - weekStart(yearStart)) / 604800000) + 1;
   return s.getFullYear() + "-W" + String(week).padStart(2, "0");
 }
 function currentWeeklyChallenge(){
@@ -3095,7 +3169,7 @@ function renderWizIntro(){
   introEl.innerHTML = `
     <p class="wiz-intro-greet">לאן ממשיכים?</p>
     <div class="wiz-intro-card">
-      <div class="wiz-intro-hero" style="${photoUrl?`background-image:url('${photoUrl}')`:`background:${cat.color}`}">${photoUrl?"":catIconSvg(cat.icon,32)}</div>
+      <div class="wiz-intro-hero" style="${cssUrlValue(photoUrl)?`background-image:${cssUrlValue(photoUrl)}`:`background:${cat.color}`}">${cssUrlValue(photoUrl)?"":catIconSvg(cat.icon,32)}</div>
       <div class="wiz-intro-body">
         <div class="wiz-intro-name">${l.name}</div>
         <div class="wiz-intro-sub">${rec.reason}</div>
@@ -3221,7 +3295,7 @@ function initLeafletMap(){
   // מעל markerPane (600) ו-overlayPane (400), מתחת ל-popupPane (700). נוצר מיד עם
   // המפה, לפני כל שכבה, כדי ש-renderUserLocation לעולם לא יבקש pane שעוד לא קיים.
   leafletMap.createPane(USER_LOC_PANE).style.zIndex = 655;
-  clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false });
+  clusterGroup = L.markerClusterGroup({ maxClusterRadius:55, spiderfyOnMaxZoom:true, showCoverageOnHover:false, removeOutsideVisibleBounds:true });
   leafletMap.addLayer(clusterGroup);
   leafletMap.on("click", (e)=>{
     if(pickingLocation){ setManualLocation(e.latlng.lat, e.latlng.lng); return; }
@@ -3256,7 +3330,7 @@ function openPreview(id){
   const wished = myWishlist.includes(id);
   const photoUrl = landmarkPhotos[id];
   $("destPreviewHero").innerHTML = photoUrl
-    ? '<img src="'+photoUrl+'" alt="'+l.name+'">'
+    ? '<img src="'+safeUrl(photoUrl)+'" alt="'+escapeHtml(l.name)+'">'
     : photoFallbackHtml(l, 34);
   $("destPreviewName").textContent = l.name;
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
@@ -3279,34 +3353,58 @@ function closePreview(){
   $("destPreview").classList.remove("open");
   renderMap();
 }
+// ~1,500 יעדים: בנייה מחדש של כל הסמנים בכל renderMap (פתיחת תצוגה מקדימה, לייק, פילטר) היא
+// מה שתקע טלפונים. עכשיו: (1) Set במקום some/includes לכל יעד, (2) סמן וסיגנטורה מוחזקים
+// במטמון - סמן שלא השתנה לא נבנה מחדש, (3) כשהרשימה המסוננת זהה רק סמנים ששינו מצב מקבלים
+// אייקון חדש, וכשהיא השתנתה מוסיפים את כולם בבת-אחת (addLayers), (4) addLayers סינכרוני
+// (בלי chunkedLoading: הוא מוסיף באופן אסינכרוני ולא מתבטל ב-clearLayers, ומשאיר סמנים ישנים).
+const markerCache = new Map();   // landmark id -> { marker, sig }
+let renderedMarkerIds = "";
+function landmarkPinIcon(l, visited, wished, selected, justIn){
+  const cat = CATEGORIES[l.category];
+  // Gamification Overhaul, Phase 4 - צבע-הפין לפי קושי (לא קטגוריה), האייקון הפנימי נשאר
+  // קטגוריה ללא שינוי - דרישה מפורשת ("לעולם לא להחליף אייקון/קטגוריה"). ראו legend חדש
+  // ב-map-controls להסבר-נגיש (טקסט+צבע, לא צבע-בלבד).
+  return L.divIcon({
+    className: "lm-divicon",
+    html: '<div class="lm-pin-wrap">'
+      + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'">'
+      + (wished?'<span class="lm-pin-star">★</span>':"")
+      + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
+      + '</div><div class="lm-pin-label">'+escapeHtml(l.name)+'</div></div>',
+    iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
+  });
+}
 function renderMap(){
   if(!leafletMap) return;
-  clusterGroup.clearLayers();
   const list = filteredLandmarks();
   updateFilterBadge(list);
   if(previewId && !list.some(l=>l.id===previewId)){ previewId = null; $("destPreview").classList.remove("open"); }
+  const visitedSet = new Set(myVisits.map(v=>v.landmark_id));
+  const wishedSet = new Set(myWishlist);
+  const markers = [];
   list.forEach(l=>{
-    const visited = myVisits.some(v=>v.landmark_id===l.id);
-    const wished = myWishlist.includes(l.id);
-    const selected = l.id===previewId;
-    const justIn = l.id===justCheckedInId;
-    const cat = CATEGORIES[l.category];
-    // Gamification Overhaul, Phase 4 - צבע-הפין לפי קושי (לא קטגוריה), האייקון הפנימי נשאר
-    // קטגוריה ללא שינוי - דרישה מפורשת ("לעולם לא להחליף אייקון/קטגוריה"). ראו legend חדש
-    // ב-map-controls להסבר-נגיש (טקסט+צבע, לא צבע-בלבד).
-    const icon = L.divIcon({
-      className: "lm-divicon",
-      html: '<div class="lm-pin-wrap">'
-        + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'">'
-        + (wished?'<span class="lm-pin-star">★</span>':"")
-        + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
-        + '</div><div class="lm-pin-label">'+l.name+'</div></div>',
-      iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
-    });
-    const marker = L.marker([l.lat,l.lon], { icon, riseOnHover:true });
-    marker.on("click", (e)=>{ L.DomEvent.stopPropagation(e); openPreview(l.id); });
-    clusterGroup.addLayer(marker);
+    const visited = visitedSet.has(l.id), wished = wishedSet.has(l.id);
+    const selected = l.id===previewId, justIn = l.id===justCheckedInId;
+    const sig = (visited?1:0)+""+(wished?1:0)+(selected?1:0)+(justIn?1:0);
+    let entry = markerCache.get(l.id);
+    if(!entry){
+      const marker = L.marker([l.lat,l.lon], { icon: landmarkPinIcon(l, visited, wished, selected, justIn), riseOnHover:true });
+      marker.on("click", (e)=>{ L.DomEvent.stopPropagation(e); openPreview(l.id); });
+      entry = { marker, sig };
+      markerCache.set(l.id, entry);
+    } else if(entry.sig !== sig){
+      entry.marker.setIcon(landmarkPinIcon(l, visited, wished, selected, justIn));
+      entry.sig = sig;
+    }
+    markers.push(entry.marker);
   });
+  const ids = list.map(l=>l.id).join("|");
+  if(ids !== renderedMarkerIds){
+    clusterGroup.clearLayers();
+    clusterGroup.addLayers(markers);
+    renderedMarkerIds = ids;
+  }
   renderUserLocation();
   renderFogOfWar();
   renderDiscoveryCarousel();
@@ -3382,7 +3480,7 @@ function fillDiscoveryCarousel(){
     const cat = CATEGORIES[l.category];
     const photoUrl = landmarkPhotos[l.id];
     const thumb = photoUrl
-      ? '<img src="'+photoUrl+'" loading="lazy" decoding="async" alt="'+l.name+'">'
+      ? '<img src="'+safeUrl(photoUrl)+'" loading="lazy" decoding="async" alt="'+escapeHtml(l.name)+'">'
       : photoFallbackHtml(l, 26);
     const tier = tierForDb(l.difficulty);
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
@@ -3415,7 +3513,7 @@ function renderMapSidePanel(){
     const panelConquest = myConquests.find(c=>c.landmark_id===l.id);
     panel.innerHTML = `
       <div class="lm-hero${photoUrl?" has-photo":""}" style="height:150px;${photoUrl?"":`background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`}">
-        ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}">` : catIconSvg(cat.icon,90).replace('<svg ','<svg style="color:#fff" ')}
+        ${photoUrl ? `<img src="${safeUrl(photoUrl)}" alt="${escapeHtml(l.name)}">` : catIconSvg(cat.icon,90).replace('<svg ','<svg style="color:#fff" ')}
       </div>
       <div class="lm-title-row"><div><h2>${l.name}</h2>
         <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
@@ -3798,7 +3896,7 @@ function wireStaticUI(){
         c.getContext("2d").drawImage(img,0,0,c.width,c.height);
         c.toBlob(blob=>{
           editAvatarPhoto = { blob, dataUrl: c.toDataURL("image/jpeg",0.85) };
-          $("editAvatarPreview").innerHTML = `<img src="${editAvatarPhoto.dataUrl}" alt="תמונת פרופיל">`;
+          $("editAvatarPreview").innerHTML = `<img src="${safeUrl(editAvatarPhoto.dataUrl)}" alt="תמונת פרופיל">`;
         }, "image/jpeg", 0.85);
       };
       img.src = ev.target.result;
@@ -3858,8 +3956,9 @@ function wireStaticUI(){
       const code = await getOrCreateInvite("friend", null);
       url = `${location.origin}${location.pathname}#/invite/${code}`;
     }catch(err){
-      if(err.code==="quota_exceeded"){ toast(err.message); return; }
-      url = `${location.origin}${location.pathname}?ref=${session.user.id}`;
+      // בלי נפילה לקישור ?ref=<user id> הישן: הוא חושף מזהה משתמש בכתובת שמשותפת הלאה
+      toast(err.code ? err.message : "לא הצלחנו ליצור קישור הזמנה. "+friendlyError(err, "נסו שוב."));
+      return;
     }
     shareLink(url, "מגלים", "בוא/י תצטרף/י אליי לכבוש יעדים בישראל באפליקציית מגלים את ישראל!");
   };
@@ -3875,8 +3974,8 @@ function wireStaticUI(){
       const code = await getOrCreateInvite("circle", activeGroupId);
       url = `${location.origin}${location.pathname}#/invite/${code}`;
     }catch(err){
-      if(err.code==="quota_exceeded"){ toast(err.message); return; }
-      url = `${location.origin}${location.pathname}?group=${activeGroupId}`;
+      toast(err.code ? err.message : "לא הצלחנו ליצור קישור הזמנה. "+friendlyError(err, "נסו שוב."));
+      return;
     }
     shareLink(url, "מגלים", `הצטרפ/י לקבוצה "${g?g.name:''}" באפליקציית מגלים!`);
   };
@@ -4085,7 +4184,7 @@ function setSheetSnap(sheetEl, name){
 })();
 
 /* ============ LANDMARK DETAIL & CHECK-IN ============ */
-let activeCheckinPhoto = null, demoMode = false;
+let activeCheckinPhoto = null;
 let reportState = { water:null, crowding:null, parking:null };
 const SEASON_LABEL = { spring:"אביב", summer:"קיץ", autumn:"סתיו", winter:"חורף" };
 // אייקון+טקסט (לא אימוג'י) לכל "חשוב לדעת" - אותם UI_ICON_PATHS שכבר משמשים בשאר
@@ -4152,7 +4251,7 @@ function openDetail(id){
   const photoUrl = landmarkPhotos[id];
   $("detailBody").innerHTML = `
     <div class="lm-hero${photoUrl?" has-photo":""}">
-      ${photoUrl ? `<img src="${photoUrl}" alt="${l.name}" loading="eager">` : photoFallbackHtml(l, 84)}
+      ${photoUrl ? `<img src="${safeUrl(photoUrl)}" alt="${escapeHtml(l.name)}" loading="eager">` : photoFallbackHtml(l, 84)}
       <span class="badge-count">${totalVisits.toLocaleString()} כובשים</span>
       ${photoUrl && photoUrl===l.stockPhotoUrl && l.stockPhotoCredit ? `<span class="lm-photo-credit">${escapeHtml(l.stockPhotoCredit)}</span>` : ""}
     </div>
@@ -4261,7 +4360,7 @@ async function renderPhotoGallery(id){
     box.innerHTML = `<div class="photo-gallery">
       <div class="photo-gallery-title">${uiIcon("camera",13)} תמונות מהמטיילים (${photos.length})</div>
       <div class="photo-gallery-strip">` +
-      photos.map((p,i)=>`<button type="button" class="photo-gallery-thumb" data-idx="${i}"><img src="${p.photo_url}" loading="lazy" alt=""></button>`).join("") +
+      photos.map((p,i)=>`<button type="button" class="photo-gallery-thumb" data-idx="${i}"><img src="${safeUrl(p.photo_url)}" loading="lazy" alt=""></button>`).join("") +
       `</div></div>`;
     box.querySelectorAll(".photo-gallery-thumb").forEach(btn=>{
       btn.onclick = ()=> openPhotoLightbox(photos.map(p=>p.photo_url), Number(btn.dataset.idx));
@@ -4333,7 +4432,7 @@ async function renderFieldReports(id, l){
   const box = $("fieldReportsBox");
   if(!box) return;
   try{
-    const { data, error } = await supabase.from("field_reports").select("water_level,crowding,parking,created_at").eq("landmark_id", id).order("created_at",{ascending:false}).limit(30);
+    const { data, error } = await supabase.rpc("get_landmark_field_reports", { p_landmark_id: id });
     if(error) throw error;
     if(!box.isConnected) return;
     const latest = {};
@@ -4435,99 +4534,85 @@ function startCheckin(l){
 }
 function runGpsCheck(l){
   const statusEl = $("gpsStatus"), photoStep = $("photoStep");
-  if(demoMode){
-    statusEl.className="checkin-status ok";
-    statusEl.innerHTML = '<span class="ic">✓</span> מצב הדגמה פעיל — דילוג על בדיקת המרחק בפועל';
-    photoStep.classList.remove("hidden"); return;
-  }
-  if(!navigator.geolocation){ statusEl.className="checkin-status bad"; statusEl.innerHTML='<span class="ic">✕</span> המכשיר לא תומך באיתור מיקום'; return; }
+  checkinFix = null;
+  const fail = (msg)=>{
+    statusEl.className="checkin-status bad";
+    statusEl.innerHTML = '<span class="ic">✕</span> '+escapeHtml(msg)+' <button type="button" class="btn btn-outline btn-sm" id="gpsRetryBtn" style="margin-inline-start:8px;">נסו שוב</button>';
+    photoStep.classList.add("hidden");
+    const retry = $("gpsRetryBtn");
+    if(retry) retry.onclick = ()=>{
+      statusEl.className="checkin-status"; statusEl.innerHTML='<span class="ic">'+uiIcon("compass",19)+'</span> מאתר מיקום GPS...';
+      runGpsCheck(l);
+    };
+  };
+  if(!navigator.geolocation){ fail("המכשיר לא תומך באיתור מיקום"); return; }
   locateUser(pos=>{
     const d = haversine(pos.coords.latitude,pos.coords.longitude,l.lat,l.lon)*1000;
+    const acc = pos.coords.accuracy;
+    if(acc!=null && acc>1500){ fail("דיוק המיקום נמוך מדי ("+Math.round(acc)+" מטר). צאו לשטח פתוח ונסו שוב."); return; }
     if(d<=1500){
+      checkinFix = { landmarkId:l.id, lat:pos.coords.latitude, lon:pos.coords.longitude, accuracy: acc!=null ? acc : null };
       statusEl.className="checkin-status ok";
       statusEl.innerHTML = '<span class="ic">✓</span> אומת! את/ה במרחק '+Math.round(d)+' מטר מהיעד';
       photoStep.classList.remove("hidden");
     } else {
-      statusEl.className="checkin-status bad";
-      statusEl.innerHTML = '<span class="ic">✕</span> את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 1.5 ק"מ כדי לבצע צ׳ק-אין';
-      photoStep.classList.add("hidden");
+      fail('את/ה במרחק '+(d/1000).toFixed(1)+' ק"מ מהיעד — יש להגיע עד 1.5 ק"מ כדי לבצע צ׳ק-אין');
     }
   }, err=>{
-    statusEl.className="checkin-status bad";
-    statusEl.innerHTML = '<span class="ic">✕</span> ' + escapeHtml(geoErrorMessage(err));
+    fail(geoErrorMessage(err));
   }, { preciseOnly:true });
 }
 
-// Gamification Overhaul, Phase 2 - מענק XP אטומי ואידמפוטנטי: בסיס-כיבוש-ראשון דרך
-// landmark_conquests (PK על user_id+landmark_id - insert-on-conflict-do-nothing ברמת ה-DB,
-// לא רק דגל-בזיכרון, כך שדאבל-קליק/רענון/race לא יכולים להעניק פעמיים) + כל בונוסי-החד-פעם
-// דרך xp_bonus_grants (unique על user_id+bonus_type+source_id). נצרך גם מ-confirmCheckin
-// (אונליין) וגם מ-flushPendingQueue (סנכרון-אופליין) - לוגיקה אחת בלבד, לא משוכפלת.
-// מחזיר {baseXP, bonuses:[{type,label,xp}], totalGranted, isFirstConquest} - כל השדות
-// מבוססים על מה שבאמת נכנס ל-DB (data.length אחרי upsert-ignoreDuplicates), לא ניחוש.
-async function grantConquestAndBonuses(l){
-  const conquestXp = pointsForLandmark(l);
-  const result = { baseXP:0, bonuses:[], totalGranted:0, isFirstConquest:false };
-  const { data: conquestRows, error: cErr } = await supabase.from("landmark_conquests")
-    .upsert({ user_id:session.user.id, landmark_id:l.id, xp_awarded:conquestXp, difficulty_at_conquest:l.difficulty },
-      { onConflict:"user_id,landmark_id", ignoreDuplicates:true })
-    .select();
-  if(cErr){ console.warn("landmark_conquests לא זמינה עדיין (יתכן שה-migration טרם רץ):", cErr.message||cErr); return result; }
-  if(!conquestRows || !conquestRows.length) return result; // ביקור חוזר - 0 XP, לא בונוסים
-  result.isFirstConquest = true;
-  result.baseXP = conquestXp;
-  result.totalGranted = conquestXp;
-  const prevConquests = myConquests.slice();
-  myConquests.push(conquestRows[0]);
-
-  const grantBonus = async (bonusType, sourceId, xp, label)=>{
-    const { data, error } = await supabase.from("xp_bonus_grants")
-      .upsert({ user_id:session.user.id, bonus_type:bonusType, source_id:sourceId||"", xp_awarded:xp },
-        { onConflict:"user_id,bonus_type,source_id", ignoreDuplicates:true })
-      .select();
-    if(error){ console.warn("xp_bonus_grants לא זמינה עדיין:", error.message||error); return; }
-    if(data && data.length){
-      myBonusGrants.push(data[0]);
-      result.bonuses.push({ type:bonusType, label, xp });
-      result.totalGranted += xp;
-    }
+// הניקוד נקבע בשרת בלבד (RPC checkin_landmark ב-supabase/migrations_hardening_1_rpcs.sql):
+// אימות קרבה, כיבוש-ראשון אידמפוטנטי (PK על user+landmark), בונוסים חד-פעמיים והגבלת קצב.
+// הלקוח רק שולח היכן הוא נמצא ומציג את מה שהשרת החליט - הוא לעולם לא כותב נקודות בעצמו.
+const CHECKIN_ERRORS = {
+  too_far: "לא הצלחנו לאמת שאת/ה קרוב/ה מספיק ליעד. התקרבו ונסו שוב.",
+  no_location: "לא הצלחנו לאמת את המיקום שלך. הפעילו GPS ונסו שוב.",
+  poor_accuracy: "דיוק המיקום נמוך מדי. צאו לשטח פתוח ונסו שוב.",
+  rate_limited: "ביצעתם הרבה צ׳ק-אינים בזמן קצר. נסו שוב בעוד כמה דקות.",
+  impossible_travel: "לא הצלחנו לאמת את הצ׳ק-אין הזה — הוא רחוק מדי מהצ׳ק-אין הקודם שלכם.",
+  invalid_photo: "לא הצלחנו לשמור את התמונה. נסו שוב.",
+  account_unavailable: "החשבון שלך אינו פעיל כרגע.",
+  landmark_not_found: "היעד לא נמצא.",
+  not_authenticated: "פג תוקף ההתחברות. התחברו מחדש.",
+};
+// שגיאות שאין טעם לנסות שוב אוטומטית (צ'ק-אין אופליין שנדחה בשרת נמחק מהתור)
+const CHECKIN_PERMANENT_ERRORS = new Set(["too_far","no_location","poor_accuracy","impossible_travel","invalid_photo","account_unavailable","landmark_not_found"]);
+function checkinErrorMessage(code){ return CHECKIN_ERRORS[code] || "לא הצלחנו לאמת את הצ'ק-אין. נסו שוב."; }
+const BONUS_LABELS = {
+  weekly_challenge: "אתגר השבוע הושלם!", first_destination: "יעד ראשון!", new_region: "אזור חדש!", new_category: "קטגוריה חדשה!",
+};
+function bonusLabel(b, l){
+  if(BONUS_LABELS[b.type]) return BONUS_LABELS[b.type];
+  const m = /^region_(\d+)$/.exec(b.type);
+  if(m) return regionMilestoneLabel(Number(m[1]), l.region)+"!";
+  if(b.type==="collection_complete"){
+    const col = COLLECTIONS.find(c=>c.id===b.id);
+    return "אוסף הושלם: "+(col?col.label:"")+"!";
+  }
+  return "בונוס!";
+}
+// ממיר את תשובת ה-RPC לצורה שהחגיגה משתמשת בה
+function checkinGrantFromResult(data, l){
+  return {
+    baseXP: Number(data.base_xp)||0,
+    bonuses: (data.bonuses||[]).map(b=>({ type:b.type, xp:Number(b.xp)||0, label:bonusLabel(b, l) })),
+    totalGranted: Number(data.total_granted)||0,
+    isFirstConquest: !!data.first_conquest,
   };
-
-  // אתגר השבוע: אותו מנגנון-בונוס הקיים, עם מפתח-שבוע כ-source_id - כך שהפרס ניתן
-  // פעם אחת בשבוע לכל היותר, גם אם כובשים כמה מקומות שעונים על האתגר.
-  const weekly = currentWeeklyChallenge();
-  if(weekly.match(l)) await grantBonus("weekly_challenge", currentWeekKey(), WEEKLY_CHALLENGE_XP, "אתגר השבוע הושלם!");
-  if(prevConquests.length===0) await grantBonus("first_destination", "", 10, "יעד ראשון!");
-  const hadRegionBefore = prevConquests.some(c=> lmById[c.landmark_id] && lmById[c.landmark_id].region===l.region);
-  if(!hadRegionBefore) await grantBonus("new_region", l.region, 5, "אזור חדש!");
-  const hadCatBefore = prevConquests.some(c=> lmById[c.landmark_id] && lmById[c.landmark_id].category===l.category);
-  if(!hadCatBefore) await grantBonus("new_category", l.category, 5, "קטגוריה חדשה!");
-
-  // אבני-דרך אזוריות - 25/50/75/100%, מבוסס יעדים-ייחודיים-שנכבשו (landmark_conquests), לא
-  // visits (שיכולים לכלול ביקורים חוזרים) - תומך גם בקפיצה מעל כמה ספים בבת-אחת באזור קטן.
-  const regionTotal = regionCount(l.region);
-  if(regionTotal){
-    const beforeCount = prevConquests.filter(c=> lmById[c.landmark_id] && lmById[c.landmark_id].region===l.region).length;
-    const afterCount = beforeCount+1;
-    const milestones = [[0.25,"region_25",10],[0.5,"region_50",20],[0.75,"region_75",30],[1,"region_100",50]];
-    for(const [pct,type,xp] of milestones){
-      if(beforeCount/regionTotal<pct && afterCount/regionTotal>=pct){
-        // אותו שם-אבן-דרך בדיוק כמו ב"המסע שלי" (regionMilestoneLabel) - לא ניסוח נפרד לחגיגה
-        await grantBonus(type, l.region, xp, regionMilestoneLabel(Math.round(pct*100), l.region)+"!");
-      }
-    }
-  }
-
-  // השלמת-אוסף - כל אוסף שהיעד הזה חבר בו ושעכשיו הושלם לראשונה (reuse COLLECTIONS/collectionLandmarks הקיימים)
-  const conqueredIds = new Set(myConquests.map(c=>c.landmark_id));
-  for(const col of COLLECTIONS){
-    if(!col.filter(l)) continue;
-    const members = collectionLandmarks(col);
-    if(members.length && members.every(m=>conqueredIds.has(m.id))){
-      await grantBonus("collection_complete", col.id, 20, "אוסף הושלם: "+col.label+"!");
-    }
-  }
-  return result;
+}
+// מיקום שאומת בבדיקת ה-GPS של הצ'ק-אין הנוכחי, נשלח לשרת בעת האישור (השרת מאמת מחדש בעצמו)
+let checkinFix = null;
+let checkinInFlight = false;
+function loadPendingQueue(){
+  try{
+    const q = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
+    return Array.isArray(q) ? q : [];
+  }catch(e){ return []; }
+}
+function savePendingQueue(q){
+  try{ localStorage.setItem(PENDING_KEY, JSON.stringify(q)); return true; }catch(e){ return false; }
 }
 async function submitFieldReport(landmarkId){
   if(!reportState.water && !reportState.crowding && !reportState.parking) return;
@@ -4541,40 +4626,57 @@ async function submitFieldReport(landmarkId){
 }
 
 async function confirmCheckin(l){
+  if(checkinInFlight) return;   // דאבל-קליק / לחיצות חוזרות בזמן שהבקשה בדרך
+  const fix = checkinFix && checkinFix.landmarkId===l.id ? checkinFix : null;
+  if(!fix){ toast("עדיין לא אימתנו את המיקום שלך. נסו שוב בעוד רגע."); return; }
   const prevTotalXP = totalXP();
   const optimisticXp = pointsForLandmark(l);
   const note = ($("checkinNote")?.value || "").trim().slice(0,120) || null;
   if(!navigator.onLine){
-    // אופליין - אין גישה ל-DB כדי להריץ את מנגנון-הדה-דופ האמיתי, אז שומרים בתור עם הערכה
-    // אופטימית בלבד (בסיס-קושי, בלי בונוסים) לתצוגה מקומית; המענק האמיתי (כולל בונוסים)
-    // מתבצע ב-flushPendingQueue כשמתחברים מחדש - שם totalXP() מתעדכן לערך הנכון.
-    const pending = { landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, note, ts:new Date().toISOString() };
-    const queue = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
-    queue.push(pending); localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
+    // אופליין - אין גישה לשרת, אז שומרים בתור (יחד עם המיקום שאומת) ומציגים הערכה אופטימית
+    // בלבד; הניקוד האמיתי נקבע בשרת ב-flushPendingQueue כשהחיבור חוזר.
+    const queue = loadPendingQueue();
+    if(queue.some(q=>q.landmarkId===l.id && q.uid===session.user.id)){ toast("הצ'ק-אין הזה כבר ממתין לסנכרון"); closeSheet("checkinSheet","checkinScrim"); return; }
+    const pending = { uid:session.user.id, landmarkId:l.id, dataUrl:activeCheckinPhoto?activeCheckinPhoto.dataUrl:null, note, ts:new Date().toISOString(),
+      lat:fix.lat, lon:fix.lon, accuracy:fix.accuracy };
+    queue.push(pending);
+    if(!savePendingQueue(queue)){
+      // אחסון מלא (לרוב בגלל התמונה) - שומרים בלי התמונה כדי לא לאבד את הצ'ק-אין עצמו
+      pending.dataUrl = null; savePendingQueue(queue) || toast("לא הצלחנו לשמור את הצ'ק-אין במכשיר");
+    }
     myVisits.push({ landmark_id:l.id, visited_at:pending.ts, photo_url:pending.dataUrl, points_awarded:optimisticXp, note, pending:true });
     refreshHeader(); closeSheet("checkinSheet","checkinScrim");
     toast("נשמר במצב אופליין — יסונכרן כשהחיבור יחזור");
     renderMap(); renderProfile(); return;
   }
+  checkinInFlight = true;
   const btn = $("confirmCheckin"); if(btn){ btn.disabled=true; btn.textContent="שומר..."; }
   try{
     let photoUrl = null;
     if(activeCheckinPhoto){
       const path = `${session.user.id}/${l.id}-${Date.now()}.jpg`;
       const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, activeCheckinPhoto.blob, { contentType:"image/jpeg" });
-      if(upErr) throw upErr;
-      photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
+      if(upErr){ console.warn("photo upload failed", upErr); toast("התמונה לא הועלתה, אבל הצ'ק-אין ימשיך"); }
+      else photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
     }
-    const grant = await grantConquestAndBonuses(l);
-    let { data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:grant.totalGranted, note }).select().single();
-    if(error && /note/i.test(error.message||"")){
-      ({ data, error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:l.id, photo_url:photoUrl, points_awarded:grant.totalGranted }).select().single());
-    }
+    const { data: res, error } = await supabase.rpc("checkin_landmark", {
+      p_landmark_id: l.id, p_lat: fix.lat, p_lon: fix.lon, p_accuracy: fix.accuracy,
+      p_photo_url: photoUrl, p_note: note,
+    });
     if(error) throw error;
-    myVisits.push(data);
-    if(photoUrl) addLandmarkPhoto(l.id, photoUrl);
+    if(!res || !res.ok){
+      const code = res && res.error;
+      track("checkin_failed", { landmark_id:l.id, reason:code||"unknown" });
+      toast(checkinErrorMessage(code));
+      if(code==="not_authenticated") openAuthSheet("התחברו מחדש כדי להמשיך");
+      return;
+    }
+    const grant = checkinGrantFromResult(res, l);
+    if(res.visit && !myVisits.some(v=>v.id===res.visit.id)) myVisits.push(res.visit);
+    await loadMyConquestsAndBonuses();   // מקור-האמת של ה-XP הוא מה שהשרת שמר
+    if(photoUrl) landmarkPhotos[l.id] = photoUrl;
     if(activeTrip && activeTrip.landmarkId===l.id) endTrip(true);
-    track("checkin_completed", { landmark_id: l.id });
+    track("checkin_completed", { landmark_id: l.id, first: grant.isFirstConquest, points: grant.totalGranted });
     submitFieldReport(l.id);
     refreshHeader(); closeSheet("checkinSheet","checkinScrim");
     if(!grant.isFirstConquest){
@@ -4584,6 +4686,7 @@ async function confirmCheckin(l){
       return;
     }
     const newBadges = checkNewBadges();
+    newBadges.forEach(b=> track("badge_unlocked", { badge_id: b.id }));
     if(newBadges.length){
       supabase.from("user_badges").insert(newBadges.map(b=>({ user_id:session.user.id, badge_id:b.id }))).then(()=>{});
     }
@@ -4672,8 +4775,10 @@ async function confirmCheckin(l){
     renderProfile(); renderBoard(); renderFeed();
   }catch(err){
     console.error(err);
-    toast("שגיאה בשמירת הצ'ק-אין: "+(err.message||err));
+    track("checkin_failed", { landmark_id:l.id, reason:"network" });
+    toast("לא הצלחנו לשמור את הצ'ק-אין. "+friendlyError(err, "נסו שוב בעוד רגע."));
   }finally{
+    checkinInFlight = false;
     if(btn){ btn.disabled=false; btn.textContent="אשר צ'ק-אין"; }
   }
 }
@@ -4747,43 +4852,76 @@ async function saveReview(){
     if(isNewPhoto) renderPhotoGallery(l.id);
   }catch(err){
     console.error(err);
-    toast("שגיאה בשמירת הביקורת: "+(err.message||err));
+    toast("לא הצלחנו לשמור את הביקורת. "+friendlyError(err, "נסו שוב."));
   }finally{
     btn.disabled = false; btn.textContent = "שמירה";
   }
 }
 
+let flushingQueue = false;
+const queueKey = i=> [i.uid||"", i.landmarkId, i.ts||""].join("|");
 async function flushPendingQueue(){
-  const queue = JSON.parse(localStorage.getItem(PENDING_KEY)||"[]");
-  if(!queue.length || !navigator.onLine || !session) return;
-  const remaining = [];
-  for(const item of queue){
-    try{
-      const l = lmById[item.landmarkId];
-      let photoUrl = null;
-      if(item.dataUrl){
-        const blob = await (await fetch(item.dataUrl)).blob();
-        const path = `${session.user.id}/${item.landmarkId}-${Date.now()}.jpg`;
-        const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, blob, { contentType:"image/jpeg" });
-        if(!upErr) photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
-      }
-      // מענק-XP אמיתי מתבצע כאן, לא בזמן ההוספה-לתור (ראו grantConquestAndBonuses) - כך
-      // שדה-דופ/בונוסים מחושבים נכון מול המצב האמיתי בזמן הסנכרון. l חסר = היעד נמחק בין
-      // הצ'ק-אין האופליין לסנכרון (edge case) - נרשם עם 0 נקודות בלי קריסה.
-      const grant = l ? await grantConquestAndBonuses(l) : { totalGranted:0 };
-      let { error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:grant.totalGranted, note:item.note||null });
-      if(error && /note/i.test(error.message||"")){
-        ({ error } = await supabase.from("visits").insert({ user_id:session.user.id, landmark_id:item.landmarkId, photo_url:photoUrl, points_awarded:grant.totalGranted }));
-      }
-      if(error) throw error;
-      if(photoUrl) addLandmarkPhoto(item.landmarkId, photoUrl);
-      myVisits = myVisits.filter(v=>!(v.pending && v.landmark_id===item.landmarkId));
-      toast("סונכרן צ'ק-אין: "+(l?l.name:item.landmarkId));
-    }catch(err){ remaining.push(item); }
+  if(flushingQueue) return;   // online + boot יכולים לקרוא במקביל; שרת אידמפוטנטי, אבל אין סיבה להכפיל עבודה
+  const startQueue = loadPendingQueue();
+  if(!startQueue.length || !navigator.onLine || !session) return;
+  flushingQueue = true;
+  // התור נשמר במכשיר; במכשיר משותף לא מסנכרנים צ'ק-אין של משתמש אחר בשם המשתמש המחובר עכשיו
+  const mine = startQueue.filter(i=> !i.uid || i.uid===session.user.id);
+  const handled = new Set();      // פריטים שסונכרנו או נדחו סופית - רק אותם מסירים מהתור
+  const updated = new Map();      // פריטים שנשארים עם מונה ניסיונות מעודכן
+  let dropped = 0, synced = 0;
+  try{
+    for(const item of mine){
+      try{
+        const l = lmById[item.landmarkId];
+        if(!l || typeof item.lat!=="number" || typeof item.lon!=="number"){
+          // פריט מגרסה ישנה (נשמר בלי מיקום מאומת) / יעד שנמחק - השרת לא יכול לאמת אותו
+          dropped++; handled.add(queueKey(item));
+          if(l) toast("צ'ק-אין אופליין ישן ב"+escapeHtml(l.name)+" לא נשמר כי אין בו מיקום מאומת");
+          continue;
+        }
+        let photoUrl = null;
+        if(item.dataUrl){
+          try{
+            const blob = await (await fetch(item.dataUrl)).blob();
+            const path = `${session.user.id}/${item.landmarkId}-${Date.now()}.jpg`;
+            const { error: upErr } = await supabase.storage.from("checkin-photos").upload(path, blob, { contentType:"image/jpeg" });
+            if(upErr) throw upErr;
+            photoUrl = supabase.storage.from("checkin-photos").getPublicUrl(path).data.publicUrl;
+          }catch(e){
+            // כשל זמני בהעלאה: מנסים את כל הפריט שוב בסנכרון הבא (עד 3 פעמים), ורק אז בלי התמונה
+            const tries = (item.photoTries||0)+1;
+            if(tries<3){ updated.set(queueKey(item), Object.assign({}, item, { photoTries:tries })); continue; }
+          }
+        }
+        const { data: res, error } = await supabase.rpc("checkin_landmark", {
+          p_landmark_id:item.landmarkId, p_lat:item.lat, p_lon:item.lon, p_accuracy:item.accuracy ?? null,
+          p_photo_url:photoUrl, p_note:item.note||null, p_client_ts:item.ts||null,
+        });
+        if(error) throw error;
+        if(!res || !res.ok){
+          if(res && CHECKIN_PERMANENT_ERRORS.has(res.error)){
+            dropped++; handled.add(queueKey(item));
+            track("checkin_failed", { landmark_id:item.landmarkId, reason:res.error, offline:true });
+            toast("צ'ק-אין אופליין ב"+escapeHtml(l.name)+" לא אושר: "+checkinErrorMessage(res.error));
+          }
+          continue;   // rate_limited / not_authenticated - נשאר בתור לפעם הבאה
+        }
+        synced++; handled.add(queueKey(item));
+        myVisits = myVisits.filter(v=>!(v.pending && v.landmark_id===item.landmarkId));
+        toast("סונכרן צ'ק-אין: "+escapeHtml(l.name));
+      }catch(err){ /* נשאר בתור */ }
+    }
+  } finally {
+    // קוראים את התור מחדש: צ'ק-אין שנשמר אופליין בזמן הסנכרון לא ייעלם
+    savePendingQueue(loadPendingQueue().filter(i=> !handled.has(queueKey(i))).map(i=> updated.get(queueKey(i)) || i));
+    flushingQueue = false;
   }
-  localStorage.setItem(PENDING_KEY, JSON.stringify(remaining));
-  await loadMyVisits(); loadVisitCounts().then(renderMap);
-  refreshHeader(); renderProfile(); renderBoard(); renderFeed();
+  if(synced || dropped){
+    await loadMyVisits().catch(()=>{}); await loadMyConquestsAndBonuses();
+    loadVisitCounts().then(renderMap);
+    refreshHeader(); renderProfile(); renderBoard(); renderFeed();
+  }
 }
 
 /* ============ BADGES / STREAK ============ */
@@ -4822,23 +4960,19 @@ function computeStreak(){ return streakFromVisits(myVisits); }
 let myConquests = [];   // שורות landmark_conquests של המשתמש הנוכחי
 let myBonusGrants = []; // שורות xp_bonus_grants של המשתמש הנוכחי
 async function loadMyConquestsAndBonuses(){
-  try{
-    const { data, error } = await supabase.from("landmark_conquests").select("*").eq("user_id", session.user.id);
-    if(error) throw error;
-    myConquests = data || [];
-  }catch(err){ myConquests = []; }
-  try{
-    const { data, error } = await supabase.from("xp_bonus_grants").select("*").eq("user_id", session.user.id);
-    if(error) throw error;
-    myBonusGrants = data || [];
-  }catch(err){ myBonusGrants = []; }
-  // תאריכי-הזכייה בחותמות. הנעילה עצמה מחושבת תמיד מ-myVisits (unlockedBadges), אז אם
-  // הטבלה חסרה החותמות עדיין נכונות - רק בלי תאריך ובלי "הושגו לאחרונה".
-  try{
-    const { data, error } = await supabase.from("user_badges").select("badge_id,unlocked_at").eq("user_id", session.user.id);
-    if(error) throw error;
-    myBadgeDates = Object.fromEntries((data||[]).map(r=>[r.badge_id, r.unlocked_at]));
-  }catch(err){ myBadgeDates = {}; }
+  // כשל טעינה (רשת חלשה / טוקן שפג) משאיר את המצב הקודם במקום לאפס אותו: XP שמוצג כ-0
+  // אחרי צ'ק-אין מוצלח גרוע מנתון שלא התעדכן. האיפוס מתבצע רק בהתנתקות (bootUserData).
+  const uid = session.user.id;
+  const [conq, bon, badges] = await Promise.all([
+    supabase.from("landmark_conquests").select("*").eq("user_id", uid).then(r=>r, e=>({ error:e })),
+    supabase.from("xp_bonus_grants").select("*").eq("user_id", uid).then(r=>r, e=>({ error:e })),
+    // תאריכי-הזכייה בחותמות. הנעילה עצמה מחושבת תמיד מ-myVisits (unlockedBadges), אז אם
+    // הטבלה חסרה החותמות עדיין נכונות - רק בלי תאריך ובלי "הושגו לאחרונה".
+    supabase.from("user_badges").select("badge_id,unlocked_at").eq("user_id", uid).then(r=>r, e=>({ error:e })),
+  ]);
+  if(!conq.error) myConquests = conq.data || [];
+  if(!bon.error) myBonusGrants = bon.data || [];
+  if(!badges.error) myBadgeDates = Object.fromEntries((badges.data||[]).map(r=>[r.badge_id, r.unlocked_at]));
 }
 function totalXP(){
   return myConquests.reduce((s,c)=>s+(c.xp_awarded||0),0) + myBonusGrants.reduce((s,b)=>s+(b.xp_awarded||0),0);
@@ -4968,7 +5102,7 @@ function renderPlaceListSheet(title, list, subtitle){
     const cat = CATEGORIES[l.category];
     if(visitedIds.has(l.id)){
       const photoUrl = landmarkPhotos[l.id];
-      const thumb = photoUrl ? `<img src="${photoUrl}" loading="lazy" decoding="async" alt="${l.name}">` : catIconSvg(cat.icon,20);
+      const thumb = photoUrl ? `<img src="${safeUrl(photoUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(l.name)}">` : catIconSvg(cat.icon,20);
       return `<div class="region-place-row visited" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}"><div class="thumb">${thumb}</div><div class="info"><div class="name">${l.name}</div><div class="sub">${tierDotHtml(tierForDb(l.difficulty))}${tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
     }
     return `<div class="region-place-row locked"><div class="thumb mystery">?</div><div class="info"><div class="name">מקום שעוד לא גילית</div><div class="sub">${tierDotHtml(tierForDb(l.difficulty))}${tierForDb(l.difficulty).label} · ${cat.label}</div></div></div>`;
@@ -5152,8 +5286,8 @@ function openEditProfile(){
   editPrefs.interests = editPrefs.interests || [];
   editPrefs.amenities = editPrefs.amenities || [];
   $("editNameInput").value = myProfile.name || "";
-  if(myProfile.avatar_url) $("editAvatarPreview").innerHTML = `<img src="${myProfile.avatar_url}" alt="תמונת פרופיל">`;
-  else $("editAvatarPreview").innerHTML = `<span id="editAvatarLetter">${(myProfile.name||"א").trim().charAt(0)}</span>`;
+  if(safeUrl(myProfile.avatar_url)) $("editAvatarPreview").innerHTML = `<img src="${safeUrl(myProfile.avatar_url)}" alt="תמונת פרופיל">`;
+  else $("editAvatarPreview").innerHTML = `<span id="editAvatarLetter">${escapeHtml((myProfile.name||"א").trim().charAt(0))}</span>`;
   ["prefCompany","prefInterests","prefAmenities"].forEach(id=>{
     const key = id==="prefCompany" ? "company" : id==="prefInterests" ? "interests" : "amenities";
     document.querySelectorAll("#"+id+" .chip").forEach(c=> c.classList.toggle("active", editPrefs[key].includes(c.dataset.id)));
@@ -5293,7 +5427,7 @@ function renderProfile(){
   const xp = totalXP();
   const progress = getCurrentLevelProgress(xp);
   const level = progress.level;
-  $("avatarLetter").innerHTML = myProfile.avatar_url ? `<img src="${myProfile.avatar_url}" alt="">` : (myProfile.name.trim().charAt(0) || "א");
+  $("avatarLetter").innerHTML = safeUrl(myProfile.avatar_url) ? `<img src="${safeUrl(myProfile.avatar_url)}" alt="">` : escapeHtml(myProfile.name.trim().charAt(0) || "א");
   $("avatarLevelBadge").innerHTML = stampGlyph(levelGlyphName(progress.index), 14);
   $("profName").firstChild.textContent = myProfile.name;
   $("profSub").innerHTML = `<span class="level-chip">${stampGlyph(levelGlyphName(progress.index),14)} ${level.name}</span> · ${myVisits.length} יעדים נכבשו`;
@@ -5341,7 +5475,7 @@ function renderProfile(){
       listEl.innerHTML = myVisits.slice().sort((a,b)=>new Date(b.visited_at)-new Date(a.visited_at)).map(v=>{
         const l = lmById[v.landmark_id]; if(!l) return "";
         const cat = CATEGORIES[l.category];
-        const thumb = v.photo_url ? `<img src="${v.photo_url}" loading="lazy" alt="תמונה מהצ'ק-אין ב${l.name}">` : photoFallbackHtml(l,30);
+        const thumb = safeUrl(v.photo_url) ? `<img src="${safeUrl(v.photo_url)}" loading="lazy" alt="תמונה מהצ'ק-אין ב${escapeHtml(l.name)}">` : photoFallbackHtml(l,30);
         return placeCardHtml(l, {
           thumb,
           metaHtml: `<div class="sub">${new Date(v.visited_at).toLocaleDateString('he-IL')}${v.pending?' · ממתין לסנכרון':''}</div>`,
@@ -5875,7 +6009,7 @@ function stringColor(str){
 // האות הראשונה בשם (ההתנהגות הקיימת). ה-img נראה זהה בכל מקום כי .avatar/.lb-avatar כבר
 // מוגדרים ל-overflow:hidden+border-radius:50%.
 function avatarInner(name, avatarUrl){
-  return avatarUrl ? `<img src="${avatarUrl}" alt="">` : ((name||"א").trim().charAt(0)||"א");
+  return safeUrl(avatarUrl) ? `<img src="${safeUrl(avatarUrl)}" alt="">` : escapeHtml((name||"א").trim().charAt(0)||"א");
 }
 
 /* ============ FEED ============ */
@@ -5887,11 +6021,12 @@ function feedCardHtml(row){
   const likedByMe = row.likes.some(x=>x.user_id===session.user.id);
   const wished = myWishlist.includes(l.id);
   const visited = myVisits.some(v=>v.landmark_id===l.id);
-  const bg = row.photo_url ? `background-image:url('${row.photo_url}')` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%))`;
+  const photoCss = cssUrlValue(row.photo_url);
+  const bg = photoCss ? `background-image:${photoCss};` : `background:linear-gradient(135deg,${cat.color},color-mix(in srgb, ${cat.color} 55%, #000 20%));`;
   return `<div class="feed-card">
     <div class="feed-head"><div class="lb-avatar" style="background:${stringColor(name)};width:34px;height:34px;font-size:13.5px;">${avatarInner(name,avatarUrl)}</div>
       <div><div class="feed-name">${name}</div><div class="feed-time">${timeAgo(row.visited_at)} · כבש/ה את ${l.name}</div></div></div>
-    <div class="feed-photo" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}" style="${bg}cursor:pointer;">${row.photo_url?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
+    <div class="feed-photo" data-goto="${l.id}" role="button" tabindex="0" aria-label="${l.name}" style="${bg}cursor:pointer;">${photoCss?"":catIconSvg(cat.icon,52).replace('<svg ','<svg style="color:#fff" ')}<span class="lm-label">${l.name}</span></div>
     ${row.note ? `<div class="feed-note">"${escapeHtml(row.note)}"</div>` : ""}
     <div class="feed-actions">
       <button class="like-btn${likedByMe?" liked":""}" data-id="${row.id}" aria-label="${likedByMe?"בטל לייק":"סמן לייק"}" aria-pressed="${likedByMe}"><svg viewBox="0 0 24 24" fill="${likedByMe?"currentColor":"none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-9.5-9C.7 7.8 2.6 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4c3.6 0 5.5 3.8 3.7 7-2.5 4.6-9.5 9-9.5 9Z"/></svg><span>${row.likes.length}</span></button>
@@ -6037,7 +6172,7 @@ async function renderGroupPanel(){
       const rankClass = i===0?"top1":i===1?"top2":i===2?"top3":"";
       return `<div class="lb-row${isMe?" me":""}"><div class="lb-rank ${rankClass}">${i+1}</div>
         <div class="lb-avatar" style="background:${stringColor(r.name)}">${avatarInner(r.name,r.avatarUrl)}</div>
-        <div class="lb-name">${r.name}${isMe?'<small>אתה/את</small>':''}</div>
+        <div class="lb-name">${escapeHtml(r.name)}${isMe?'<small>אתה/את</small>':''}</div>
         <div class="lb-mini-stats"><span>${uiIcon("flame",12)}<bdi dir="ltr">${r.streak}</bdi></span><span>${stampGlyph("medal",12)}<bdi dir="ltr">${r.badgeCount}</bdi></span></div>
         <div class="lb-pts">${r.xp.toLocaleString()}</div></div>`;
     }).join("") : '<div class="empty-state">אין עדיין נתונים.</div>';
@@ -6211,6 +6346,34 @@ function escapeHtml(str){
     .replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;")
     .replace(/'/g,"&#39;");
+}
+// כתובות תמונה מגיעות ממשתמשים אחרים (צ'ק-אין, גלריה, אווטאר) ומוזרקות ל-src / ל-CSS. בלי
+// בדיקה, ערך כמו  x" onerror="...  שנכתב ל-DB הופך ל-XSS מאוחסן אצל כל מי שרואה אותו.
+// safeUrl: לשימוש בתוך מאפיין HTML (מחזיר מחרוזת מוגנת או "").
+// cssUrlValue: לשימוש בתוך style="" (url('...') עם קידוד מלא של תווים מסוכנים, או "").
+const SAFE_URL_RE = /^(https:\/\/|blob:|data:image\/(?:png|jpe?g|webp|gif);base64,)/i;
+// כתובת תקינה של האפליקציה לעולם לא מכילה רווחים, מרכאות או סוגריים משולשים - כל אחד מהם הוא סימן
+// לניסיון פריצה מתוך מאפיין, ולכן הכתובת נפסלת כולה במקום "לנקות" אותה.
+const UNSAFE_URL_CHARS = /[\s"'<>\\`]/;
+function safeUrl(u){
+  if(u===null || u===undefined) return "";
+  const raw = String(u).trim();
+  return SAFE_URL_RE.test(raw) && !UNSAFE_URL_CHARS.test(raw) ? escapeHtml(raw) : "";
+}
+function cssUrlValue(u){
+  if(u===null || u===undefined) return "";
+  const raw = String(u).trim();
+  if(!SAFE_URL_RE.test(raw) || UNSAFE_URL_CHARS.test(raw)) return "";
+  return "url('" + raw.replace(/[\s"'()\\<>&;]/g, c=>"%"+c.charCodeAt(0).toString(16).toUpperCase().padStart(2,"0")) + "')";
+}
+// הודעת שגיאה ידידותית: לעולם לא מציגים למשתמש הודעת API גולמית / stack / undefined.
+function friendlyError(err, fallback){
+  fallback = fallback || "משהו השתבש. נסו שוב.";
+  if(typeof navigator !== "undefined" && navigator.onLine === false) return "אין כרגע חיבור לאינטרנט";
+  const msg = String((err && (err.message || err.error_description)) || err || "");
+  if(/Failed to fetch|NetworkError|Load failed|network|timeout|timed out|AbortError/i.test(msg)) return "אין חיבור יציב לשרת. בדקו את הרשת ונסו שוב.";
+  if(/JWT|not authenticated|not_authenticated|expired/i.test(msg)) return "פג תוקף ההתחברות. התחברו מחדש.";
+  return fallback;
 }
 async function renderChallenge(){
   try{

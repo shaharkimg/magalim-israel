@@ -31,6 +31,9 @@ npx serve .
 ה-Site URL לכתובת האמיתית של האתר (`https://megalim-israel.co.il`), אחרת קישורי אימות מייל
 יפנו לכתובת שגויה.
 
+**פריסת מיגרציות אבטחה:** `supabase/migrations_hardening_1_rpcs.sql` → פריסת האפליקציה →
+`supabase/migrations_hardening_2_lockdown.sql`. חובה לפי הסדר הזה — ראו המסמך למעלה.
+
 ### מעבר דומיין
 
 הדומיין הרשמי הוא `megalim-israel.co.il`. בריפו הוא מופיע ב-`SITE_HOST` שב-`app.js`
@@ -62,13 +65,25 @@ Supabase ← Authentication ← URL Configuration — Site URL ו-Redirect URLs.
 node scripts/check_version.js   # שהגרסה זהה ב-app.js, index.html ו-sw.js
 node scripts/check_wiring.js    # שפונקציות קריטיות לא נותקו מקוראיהן
 node scripts/check_twa.js       # שאריזת האנדרואיד עקבית עם האפליקציה
+node scripts/check_security.js  # אין כתיבת ניקוד ישירה מהלקוח, אין XSS בתבניות, אין סודות בריפו
 node scripts/check_live.js      # שהאתר הפרוס תקין (דורש רשת)
 node scripts/test_geolocation.js scripts/test_view_reset.js \
      scripts/test_recommendation.js scripts/test_auth_views.js scripts/test_oauth_error.js
+node scripts/test_client_safety.js  # ניקוי כתובות/טקסט, הודעות שגיאה, תור אופליין
 node scripts/test_map_controls.js   # דורש Playwright; בלעדיו מדלג בהודעה ברורה
+node scripts/test_app_smoke.js      # דפדפן אמיתי מול Supabase מדומה; דורש Playwright + leaflet (ראו בראש הקובץ)
+
+# מסד הנתונים: משחזר את כל ה-migrations על Postgres נקי ומריץ ~100 בדיקות הרשאות/ניקוד/כפילויות
+PGHOST=localhost PGUSER=postgres bash supabase/tests/run.sh
+PGHOST=localhost PGUSER=postgres node scripts/test_xp_parity.js   # נוסחאות הניקוד זהות בלקוח ובשרת
 ```
 
 ## אבטחה
+
+**הניקוד והצ'ק-אין נקבעים בשרת בלבד.** הלקוח שולח מיקום ל-`checkin_landmark` (RPC) והשרת מאמת קרבה,
+מונע כפילויות והונאות (טלפורטציה, קצב) ומחשב את הנקודות. אין כתיבה ישירה ל-`visits` /
+`landmark_conquests` / `xp_bonus_grants`. פרטים, סדר פריסה, rollback ורשימת פעולות ידניות:
+[`docs/PRODUCTION-READINESS.md`](docs/PRODUCTION-READINESS.md).
 
 `config.js` מכיל את ה-`anon key` הציבורי בלבד — הוא בטוח לחשיפה כי כל הגישה למידע מוגנת ע"י כללי
 Row Level Security שמוגדרים ב-`schema.sql`. אין בשום קובץ את ה-`service_role key`.
