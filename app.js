@@ -2346,7 +2346,7 @@ async function createGroup(){
     const { data: res, error } = await supabase.rpc("create_group", { p_name: name.trim().slice(0,60) });
     if(error) throw error;
     if(!res || !res.ok){
-      const msgs = { invalid_name:"שם הקבוצה חייב להכיל 1 עד 60 תווים", rate_limited:"יצרתם הרבה קבוצות בזמן קצר. נסו שוב מאוחר יותר.", too_many_groups:"הגעתם למספר הקבוצות המקסימלי" };
+      const msgs = { invalid_name:"שם הקבוצה חייב להכיל 1 עד 60 תווים", rate_limited:"יצרתם הרבה קבוצות בזמן קצר. נסו שוב מאוחר יותר.", too_many_groups:"הגעתם למספר הקבוצות המקסימלי", account_unavailable:"החשבון שלך אינו פעיל כרגע" };
       toast(msgs[res && res.error] || "לא הצלחנו ליצור את הקבוצה");
       return;
     }
@@ -2411,6 +2411,7 @@ async function joinGroupFromLink(groupId){
     if(!res || !res.ok){
       if(res && res.error==="group_full") toast("הקבוצה מלאה");
       else if(res && res.error==="rate_limited") toast("נסו שוב בעוד כמה דקות");
+      else if(res && res.error==="account_unavailable") toast("החשבון שלך אינו פעיל כרגע");
       return;
     }
     const g = res.group;
@@ -2442,6 +2443,7 @@ async function getOrCreateInvite(type, circleId){
   if(res && res.ok) return res.code;
   const e = new Error(res && res.error==="quota_exceeded" ? "נוצלו כל ההזמנות שלך לשלב הבטא."
     : res && res.error==="rate_limited" ? "יצרתם הרבה הזמנות בזמן קצר. נסו שוב מאוחר יותר."
+    : res && res.error==="account_unavailable" ? "החשבון שלך אינו פעיל כרגע."
     : "לא ניתן ליצור קישור הזמנה כרגע");
   e.code = res && res.error;
   throw e;
@@ -2452,6 +2454,7 @@ function inviteErrorMessage(code){
   if(code==="own_invite") return "זו ההזמנה שלך :)";
   if(code==="rate_limited") return "ניסיתם יותר מדי פעמים. נסו שוב בעוד כמה דקות.";
   if(code==="group_full") return "הקבוצה מלאה.";
+  if(code==="account_unavailable") return "החשבון שלך אינו פעיל כרגע.";
   return "קישור ההזמנה לא נמצא או שאינו תקין.";
 }
 async function handleInviteCode(code){

@@ -145,6 +145,21 @@ select (:'r'::jsonb#>>'{group,id}') as gid4 \gset
 select public.create_invite('circle', :'gid4') as r \gset
 select tt.ok(:'r'::jsonb->>'error' = 'quota_exceeded', 'invite quota enforced on the server');
 
+-- ---------- suspended accounts cannot act socially or earn points ----------
+reset role;
+update public.profiles set account_status = 'suspended' where id = 'dddddddd-0000-0000-0000-000000000004';
+set role authenticated;
+select tt.as_user('dddddddd-0000-0000-0000-000000000004');
+select tt.ok(public.create_group('x')->>'error' = 'account_unavailable', 'suspended account cannot create groups');
+select tt.ok(public.join_group(:'gid')->>'error' = 'account_unavailable', 'suspended account cannot join groups');
+select tt.ok(public.create_invite('friend')->>'error' = 'account_unavailable', 'suspended account cannot create invites');
+select tt.ok(public.redeem_invite(:'code')->>'error' = 'account_unavailable', 'suspended account cannot redeem invites');
+select tt.ok(public.checkin_landmark('masada', 31.3157, 35.3529, 10)->>'error' = 'account_unavailable', 'suspended account cannot check in');
+reset role;
+update public.profiles set account_status = 'active' where id = 'dddddddd-0000-0000-0000-000000000004';
+set role authenticated;
+select tt.as_user('aaaaaaaa-0000-0000-0000-000000000001');
+
 -- ---------- privileges that must never be client-writable ----------
 select tt.ok(tt.fails($$update public.profiles set is_admin = true where id = auth.uid()$$) is not null
              or (select is_admin from public.profiles where id = auth.uid()) = false, 'cannot make yourself admin');

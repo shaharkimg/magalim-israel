@@ -574,6 +574,19 @@ $$;
 revoke execute on function public.checkin_landmark(text, double precision, double precision, double precision, text, text, timestamptz) from public, anon;
 grant execute on function public.checkin_landmark(text, double precision, double precision, double precision, text, text, timestamptz) to authenticated;
 
+-- חשבון מושעה / חסום (profiles.account_status) לא מבצע פעולות כתיבה חברתיות דרך ה-RPC-ים
+create or replace function public.current_user_active()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select account_status = 'active' from public.profiles where id = auth.uid()), false);
+$$;
+revoke execute on function public.current_user_active() from public, anon;
+grant execute on function public.current_user_active() to authenticated;
+
 -- ============ קבוצות: יצירה והצטרפות דרך השרת ============
 create or replace function public.create_group(p_name text)
 returns jsonb
@@ -588,6 +601,9 @@ declare
 begin
   if uid is null then
     return jsonb_build_object('ok', false, 'error', 'not_authenticated');
+  end if;
+  if not public.current_user_active() then
+    return jsonb_build_object('ok', false, 'error', 'account_unavailable');
   end if;
   if char_length(clean) < 1 or char_length(clean) > 60 then
     return jsonb_build_object('ok', false, 'error', 'invalid_name');
@@ -620,6 +636,9 @@ declare
 begin
   if uid is null then
     return jsonb_build_object('ok', false, 'error', 'not_authenticated');
+  end if;
+  if not public.current_user_active() then
+    return jsonb_build_object('ok', false, 'error', 'account_unavailable');
   end if;
   if not public.rl_hit('group:join:' || uid, 20, interval '1 hour') then
     return jsonb_build_object('ok', false, 'error', 'rate_limited');
@@ -685,6 +704,9 @@ begin
   if p_type not in ('friend', 'circle') or (p_type = 'circle' and p_circle_id is null)
      or (p_type = 'friend' and p_circle_id is not null) then
     return jsonb_build_object('ok', false, 'error', 'invalid_request');
+  end if;
+  if not public.current_user_active() then
+    return jsonb_build_object('ok', false, 'error', 'account_unavailable');
   end if;
   if not public.rl_hit('invite:create:' || uid, 20, interval '1 hour') then
     return jsonb_build_object('ok', false, 'error', 'rate_limited');
