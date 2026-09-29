@@ -2,3 +2,7 @@
 *.log
 node_modules/
 data/osm_places.json
+.env
+.env.*
+*.keystore
+*.jks

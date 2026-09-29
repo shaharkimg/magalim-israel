@@ -46,6 +46,9 @@ jobs:
       - name: אריזת TWA עקבית
         run: node scripts/check_twa.js
 
+      - name: אבטחה (אין כתיבה ישירה לניקוד, XSS, סודות)
+        run: node scripts/check_security.js
+
       - name: נגישות לקורא מסך
         run: node scripts/check_a11y.js
 
@@ -56,15 +59,46 @@ jobs:
           node scripts/test_recommendation.js
           node scripts/test_auth_views.js
           node scripts/test_oauth_error.js
+          node scripts/test_client_safety.js
 
       # פקדי המפה נבדקים ב-hit-testing בדפדפן אמיתי - קריאת CSS לא תופסת את הבאג הזה
-      - name: התקנת Playwright
+      - name: התקנת Playwright וספריות המפה
         run: |
-          npm install --no-save playwright
+          npm install --no-save playwright leaflet@1.9.4 leaflet.markercluster@1.5.3 canvas-confetti@1.9.3
           npx playwright install --with-deps chromium
 
       - name: פקדי המפה לחיצים
         run: node scripts/test_map_controls.js
+
+      # דפדפן אמיתי מול Supabase מדומה: עלייה עם 1,500 יעדים, XSS, צ'ק-אין דרך השרת, כשל טעינה
+      - name: בדיקת עשן מקצה-לקצה
+        run: node scripts/test_app_smoke.js
+
+  database:
+    name: בדיקות מסד הנתונים (RLS, צ'ק-אין, הרשאות)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # משחזר את כל ה-migrations האמיתיים על Postgres נקי ומריץ את בדיקות ההרשאות/ניקוד
+      - name: migrations + בדיקות SQL
+        run: bash supabase/tests/run.sh
+      - name: התאמת נוסחאות ניקוד בין הלקוח לשרת
+        run: node scripts/test_xp_parity.js
 
   live:
     name: בדיקת האתר החי

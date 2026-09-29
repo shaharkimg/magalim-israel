@@ -25,6 +25,8 @@ const CRITICAL = [
   'renderFeed', 'renderGroupPanel', 'renderFriendsTravelBanner', 'refreshHeader',
   'renderCollections', 'renderPersonalChallenges', 'renderRegionProgress',
   'recommendDestination', 'scoreLandmarkFor', 'travelProfile', 'recommendationSeed',
+  'confirmCheckin', 'flushPendingQueue', 'checkinGrantFromResult', 'runGpsCheck', 'safeUrl', 'cssUrlValue', 'friendlyError',
+  'showBootError', 'cacheLandmarks', 'readCachedLandmarks', 'landmarkPinIcon', 'detachPushFromAccount',
   'pointsForLandmark', 'effortClassFor', 'placeCardHtml', 'emptyStateHtml', 'uiIcon',
   'monthlyChallenge', 'weekendIdeas', 'nextGoalCardHtml', 'landmarkPhotoStyle',
   'goToDestination', 'openDetail', 'openTodaySheet', 'openSheet', 'closeSheet',
