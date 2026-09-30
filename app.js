@@ -771,6 +771,16 @@ function getAnalyticsSessionId(){
   }
   return sid;
 }
+// מזהה אנונימי אקראי למכשיר (לא קשור למשתמש) - כדי לספור מבקרים ייחודיים גם בלי הרשמה.
+function getVisitorId(){
+  let vid = null;
+  try{ vid = localStorage.getItem("magalim-visitor-id"); }catch(e){}
+  if(!vid){
+    vid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random().toString(36).slice(2));
+    try{ localStorage.setItem("magalim-visitor-id", vid); }catch(e){}
+  }
+  return vid;
+}
 function track(eventName, payload){
   supabase.from("analytics_events").insert({
     user_id: session ? session.user.id : null,
@@ -2106,7 +2116,7 @@ let booted = false, publicBootPromise = null;
 async function bootPublic(){
   let returning = false;
   try{ returning = Number(localStorage.getItem("magalim-visit-count")||"0") > 0; }catch(e){}
-  track("session_started", { returning });
+  track("session_started", { returning, visitor_id: getVisitorId() });
   try{
     // .select() לבד נחתך אוטומטית ב-1000 שורות ע"י PostgREST - יש לדפדף במפורש כדי לקבל
     // את כל היעדים גם אחרי שחצינו את ה-1000 (התגלה בפועל כשמספר היעדים עבר 1000).
@@ -2542,7 +2552,21 @@ const EVENT_STAT_LABELS = {
   map_opened:"פתיחות מפה", destination_viewed:"צפיות ביעד", navigation_started:"התחלות ניווט",
   checkin_failed:"צ'ק-אין שנכשלו", badge_unlocked:"תגים שנפתחו",
 };
+const VISITOR_STAT_LABELS = {
+  visitors_today:"מבקרים היום", visitors_7d:"מבקרים (7 ימים)", visitors_30d:"מבקרים (30 יום)",
+  visits_today:"כניסות היום", visits_7d:"כניסות (7 ימים)", visits_30d:"כניסות (30 יום)",
+  guest_visits_7d:"כניסות אורחים (7 ימים)", member_visits_7d:"כניסות רשומים (7 ימים)",
+};
 async function renderAdminDashboard(){
+  const visitorStatsEl = $("adminVisitorStats");
+  const { data: vstats, error: vErr } = await supabase.rpc("get_visitor_stats");
+  if(vErr || !vstats){
+    visitorStatsEl.innerHTML = '<div class="empty-state" style="font-size:14px;">אין עדיין נתוני כניסות (יתכן שהמיגרציה טרם רצה).</div>';
+  } else {
+    visitorStatsEl.innerHTML = Object.entries(VISITOR_STAT_LABELS).map(([key,label])=>
+      `<div class="stat-box"><div class="v">${(vstats[key]??0).toLocaleString()}</div><div class="l">${label}</div></div>`
+    ).join("");
+  }
   const statsEl = $("adminStats");
   statsEl.innerHTML = skeletonRows(3);
   const { data: stats, error: statsErr } = await supabase.rpc("get_admin_stats");
