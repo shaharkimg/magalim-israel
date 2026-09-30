@@ -757,6 +757,26 @@ button{font-family:inherit;}
 .challenge-strip-foot{display:flex;justify-content:flex-end;font-size:13px;font-weight:800;color:var(--text-muted);margin-top:var(--space-1);}
 /* מתכנן סופ״ש (§12) */
 .weekend-idea{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
+.trip-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);box-shadow:var(--shadow-card);}
+.trip-card-top{display:flex;align-items:center;gap:var(--space-3);}
+.trip-avatar{width:40px;height:40px;border-radius:50%;background:var(--color-primary-light);color:var(--color-primary-dark);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none;overflow:hidden;}
+.trip-avatar img{width:100%;height:100%;object-fit:cover;}
+.trip-card-main{flex:1;min-width:0;}
+.trip-card-title{font-weight:700;overflow-wrap:anywhere;}
+.trip-card-sub{font-size:13px;color:var(--text-muted);margin-top:2px;}
+.trip-card-note{margin:8px 0 0;font-size:14.5px;line-height:1.45;overflow-wrap:anywhere;}
+.trip-card-actions{display:flex;align-items:center;gap:var(--space-2);margin-top:10px;flex-wrap:wrap;}
+.trip-card-actions .btn{flex:1 1 auto;}
+.trip-badge{font-size:13px;font-weight:600;color:var(--color-primary-dark);background:var(--color-primary-light);border-radius:999px;padding:5px 12px;}
+.trip-badge.muted{color:var(--text-muted);background:var(--bg-elevated);}
+.trip-link{background:none;border:none;color:var(--text-muted);font-size:12.5px;text-decoration:underline;cursor:pointer;padding:6px 4px;}
+.trip-label{display:block;font-weight:600;margin:14px 0 6px;}
+.trip-box-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;}
+.trip-box-head h3{margin:0;font-size:var(--font-h3,16px);}
+.trip-request{display:flex;align-items:center;gap:var(--space-2);padding:8px 0;border-top:1px solid var(--border);}
+.trip-request .trip-avatar{width:32px;height:32px;font-size:13px;}
+.trip-request-msg{font-size:13px;color:var(--text-muted);overflow-wrap:anywhere;}
+.trip-request .btn{padding:6px 12px;min-height:0;}
 .weekend-idea:active{transform:scale(.99);}
 .weekend-idea-ic{width:38px;height:38px;border-radius:50%;background:var(--color-secondary-light);color:var(--color-secondary);display:flex;align-items:center;justify-content:center;flex:none;}
 .weekend-idea-ic .ui-ic{opacity:1;}
@@ -1584,6 +1604,10 @@ input[type=file]{display:none;}
       <div class="section-head" id="homeDailyHead"><h2>הגילוי היומי</h2></div>
       <div id="homeDaily"></div>
 
+      <div class="section-head" id="homeTripsHead"><h2>מחפשים שותף לטיול</h2>
+        <button class="btn btn-ghost hidden" id="homeTripsManageBtn" type="button">ההצעות שלי</button></div>
+      <div id="homeTrips"></div>
+
       <div id="homeChallenge"></div>
 
       <div class="section-head hidden" id="homeWeekendHead"><h2>מה מגלים בסופ״ש?</h2></div>
@@ -2102,6 +2126,43 @@ input[type=file]{display:none;}
     </div>
   </div>
 
+  <div class="scrim" id="tripPostScrim"></div>
+  <div class="sheet" id="tripPostSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2>מחפשים שותף לטיול</h2><button class="sheet-close" id="closeTripPostSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body">
+      <p class="t-caption" style="margin:0 0 12px;">ההצעה גלויה לכל המשתמשים המחוברים. מוצגים רק השם הפרטי והתמונה שלכם, ואתם מאשרים כל בקשה בעצמכם.</p>
+      <label class="trip-label" for="tripPostLandmark">לאן?</label>
+      <select class="text-input" id="tripPostLandmark"></select>
+      <label class="trip-label" for="tripPostDate">מתי?</label>
+      <input class="text-input" type="date" id="tripPostDate">
+      <div class="trip-label" id="tripPostCountLabel">כמה שותפים מחפשים?</div>
+      <div class="chip-row" id="tripPostCount" role="group" aria-labelledby="tripPostCountLabel"></div>
+      <label class="trip-label" for="tripPostNote">כמה מילים על הטיול (לא חובה)</label>
+      <textarea class="text-input" id="tripPostNote" rows="3" maxlength="200" placeholder="למשל: יוצאים לפני הזריחה, קצב רגוע, עם כלב" style="resize:vertical;"></textarea>
+      <p class="t-caption" style="margin:10px 0 0;">לא כותבים כאן טלפון או כתובת. אחרי אישור נפתחת קבוצה באפליקציה לתיאום.</p>
+      <button class="btn btn-primary btn-block" id="tripPostSubmit" type="button" style="margin-top:14px;">פרסום ההצעה</button>
+    </div>
+  </div>
+
+  <div class="scrim" id="tripJoinScrim"></div>
+  <div class="sheet" id="tripJoinSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="tripJoinTitle">בקשה להצטרף</h2><button class="sheet-close" id="closeTripJoinSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body">
+      <p class="t-caption" id="tripJoinSub" style="margin:0 0 10px;"></p>
+      <textarea class="text-input" id="tripJoinMessage" aria-label="הודעה למפרסם/ת" rows="3" maxlength="200" placeholder="כמה מילים על עצמכם (לא חובה)" style="resize:vertical;"></textarea>
+      <button class="btn btn-primary btn-block" id="tripJoinSubmit" type="button" style="margin-top:14px;">שליחת בקשה</button>
+    </div>
+  </div>
+
+  <div class="scrim" id="tripManageScrim"></div>
+  <div class="sheet" id="tripManageSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2>ההצעות שלי</h2><button class="sheet-close" id="closeTripManageSheet" aria-label="סגור">✕</button></div>
+    <div class="sheet-body" id="tripManageBody"></div>
+  </div>
+
   <div class="scrim" id="reportScrim"></div>
   <div class="sheet" id="reportSheet">
     <div class="sheet-handle"></div>
@@ -2161,6 +2222,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260930a1"></script>
+<script type="module" src="./app.js?v=20260930b1"></script>
 </body>
 </html>

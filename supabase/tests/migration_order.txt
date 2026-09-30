@@ -38,3 +38,4 @@ migrations_visit_review_edit.sql
 migrations_landmark_photo_gallery.sql
 migrations_landmark_photos_table.sql
 migrations_drop_landmarks_points.sql
+migrations_trip_partners.sql

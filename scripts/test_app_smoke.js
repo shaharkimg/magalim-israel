@@ -337,6 +337,46 @@ function baseFake(landmarks, extra) {
       check('no uncaught page errors during sync', errors.length === 0, errors.join(' | '));
       await ctx.close();
     }
+
+    // ---------------------------------------------------------------- 6. trip partners
+    console.log('\n6. trip partner posts: rendered safely, join request goes through the server');
+    {
+      const fake = baseFake(landmarks);
+      const today = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+      fake.rpc.get_trip_posts = [
+        { id: 'p1', landmark_id: 'lm10', trip_date: today, looking_for: 2, spots_left: 2, note: '<img src=x onerror="window.__xss=1">נעלה מוקדם', poster_id: '22222222-2222-2222-2222-222222222222',
+          poster_name: '<b>דנה</b>', poster_avatar: 'javascript:alert(1)', is_mine: false, my_request_status: null },
+        { id: 'p2', landmark_id: 'lm11', trip_date: today, looking_for: 1, spots_left: 1, note: null, poster_id: '33333333-3333-3333-3333-333333333333',
+          poster_name: 'רון', poster_avatar: null, is_mine: true, my_request_status: null },
+      ];
+      const { ctx, page, errors } = await newPage(browser, base, fake, { storageState: seenOnboarding });
+      await page.addInitScript(() => {
+        window.__FAKE.rpc.request_join_trip = args => { window.__joinArgs = (window.__joinArgs || []).concat([args]); return { ok: true, already: false }; };
+      });
+      await page.goto(base + '/#/home', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#homeTrips .trip-card', { timeout: 20000 });
+      const info = await page.evaluate(() => ({
+        cards: document.querySelectorAll('#homeTrips .trip-card').length,
+        injected: !!document.querySelector('#homeTrips .trip-card-note img, #homeTrips .trip-card-title b'),
+        xss: window.__xss === 1,
+        badAvatar: !!document.querySelector('#homeTrips .trip-avatar img'),
+        mineHasJoin: !!document.querySelector('#homeTrips [data-post="p2"] [data-act="join"]'),
+        otherHasJoin: !!document.querySelector('#homeTrips [data-post="p1"] [data-act="join"]'),
+        otherHasReport: !!document.querySelector('#homeTrips [data-post="p1"] [data-act="report"]'),
+      }));
+      check('both posts render', info.cards === 2, String(info.cards));
+      check('HTML in a name/note stays inert text', !info.injected && !info.xss);
+      check('unsafe avatar URL is not rendered', !info.badAvatar);
+      check('your own post has no join button; others\' do, with report/block', !info.mineHasJoin && info.otherHasJoin && info.otherHasReport);
+      await page.click('#homeTrips [data-post="p1"] [data-act="join"]');
+      await page.fill('#tripJoinMessage', 'אשמח להצטרף');
+      await page.click('#tripJoinSubmit');
+      await page.waitForFunction(() => (window.__joinArgs || []).length > 0, null, { timeout: 10000 });
+      const join = await page.evaluate(() => window.__joinArgs);
+      check('join request sends post id and message via rpc', join.length === 1 && join[0].p_post_id === 'p1' && join[0].p_message === 'אשמח להצטרף', JSON.stringify(join));
+      check('no uncaught page errors', errors.length === 0, errors.join(' | '));
+      await ctx.close();
+    }
   } finally {
     await browser.close();
     server.close();

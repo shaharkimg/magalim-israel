@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260930a1";
+const APP_VERSION = "20260930b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3142,6 +3142,7 @@ function renderHome(){
       ${uiIcon("compass",18)}</div>`;
     $("homeAlmostCard").onclick = ()=> navigate("#/map");
   } else almostEl.innerHTML = "";
+  renderHomeTrips();
 }
 
 function wizIntroWhyText(l){
@@ -3769,6 +3770,7 @@ function wireStaticUI(){
   $("closeReviewSheet").onclick = ()=> closeSheet("reviewSheet","reviewScrim");
   $("reviewScrim").onclick = ()=> closeSheet("reviewSheet","reviewScrim");
   $("saveReviewBtn").onclick = ()=> saveReview();
+  wireTripPartners();
   $("closeReportSheet").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportScrim").onclick = ()=> closeSheet("reportSheet","reportScrim");
   $("reportSubmitBtn").onclick = async ()=>{
@@ -4282,6 +4284,7 @@ function openDetail(id){
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
     <div id="photoGalleryBox" data-stage="mid"></div>
+    <div id="tripPartnersBox" data-stage="mid"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <div class="lm-actions">
@@ -4345,6 +4348,7 @@ function openDetail(id){
   track("destination_viewed", { landmark_id: id, points: pointsForLandmark(l) });
   renderFieldReports(id, l);
   renderPhotoGallery(id);
+  renderTripPartnersBox(id);
 }
 
 // כל תמונה חדשה מצטרפת כשורה נפרדת בטבלת landmark_photos, ולא רק דורסת את photo_url
@@ -5677,6 +5681,299 @@ async function renderFriends(){
   }
 }
 
+/* ============ TRIP PARTNERS (חיפוש שותף לטיול) ============ */
+// הצעה = יעד + תאריך אחד. כל משתמש מחובר רואה אותה (שם פרטי + תמונה בלבד, מה-RPC), המפרסם/ת מאשר/ת
+// ידנית, ובאישור נוצרת קבוצה רגילה. כל הכתיבה דרך RPC-ים (ראו migrations_trip_partners.sql).
+const TRIP_ERRORS = {
+  not_authenticated:"צריך להתחבר כדי להמשיך", account_unavailable:"החשבון אינו זמין כרגע",
+  landmark_not_found:"היעד לא נמצא", invalid_date:"בחרו תאריך בין היום לחצי השנה הקרובה",
+  invalid_count:"בחרו בין 1 ל-10 שותפים", note_too_long:"ההערה ארוכה מדי", message_too_long:"ההודעה ארוכה מדי",
+  rate_limited:"יותר מדי פעולות ברצף. נסו שוב מאוחר יותר", too_many_posts:"יש לכם כבר 5 הצעות פעילות",
+  duplicate:"כבר פרסמתם הצעה לאותו יעד ולאותו תאריך", post_unavailable:"ההצעה כבר לא זמינה",
+  own_post:"זו ההצעה שלכם", too_many_requests:"להצעה הזו כבר יש הרבה בקשות", full:"כל המקומות כבר מלאים",
+  not_found:"לא נמצא",
+};
+function tripErrorText(code){ return TRIP_ERRORS[code] || "משהו השתבש. נסו שוב."; }
+function tripDateLabel(d){
+  const dt = new Date(d+"T00:00:00");
+  return dt.toLocaleDateString("he-IL", { weekday:"long", day:"numeric", month:"numeric" });
+}
+function tripTodayIso(offsetDays){
+  const d = new Date(); d.setDate(d.getDate()+(offsetDays||0));
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+async function fetchTripPosts(landmarkId, limit){
+  if(!session) return [];
+  const { data, error } = await supabase.rpc("get_trip_posts", { p_landmark_id: landmarkId||null, p_limit: limit||20 });
+  if(error) throw error;
+  return data||[];
+}
+function tripCardHtml(p, withPlace){
+  const l = lmById[p.landmark_id];
+  const name = escapeHtml(p.poster_name||"מטייל/ת");
+  const av = safeUrl(p.poster_avatar) ? `<img src="${safeUrl(p.poster_avatar)}" alt="">` : escapeHtml((p.poster_name||"?").charAt(0));
+  const spots = p.spots_left===1 ? "מחפש/ת שותף/ה אחד/ת" : "מחפש/ת "+p.spots_left+" שותפים";
+  let action;
+  if(p.is_mine) action = `<span class="trip-badge">ההצעה שלכם</span>`;
+  else if(p.my_request_status==="pending") action = `<span class="trip-badge">הבקשה נשלחה</span><button class="trip-link" data-act="cancel" type="button">ביטול בקשה</button>`;
+  else if(p.my_request_status==="accepted") action = `<span class="trip-badge">אושרתם ✓</span>`;
+  else if(p.my_request_status==="declined") action = `<span class="trip-badge muted">הפעם לא התאפשר</span>`;
+  else action = `<button class="btn btn-primary" data-act="join" type="button">אני רוצה להצטרף</button>`;
+  const more = p.is_mine ? "" : `<button class="trip-link" data-act="report" type="button">דיווח</button><button class="trip-link" data-act="block" type="button">חסימה</button>`;
+  return `<div class="trip-card" data-post="${escapeHtml(p.id)}">
+    <div class="trip-card-top"><div class="trip-avatar">${av}</div>
+      <div class="trip-card-main"><div class="trip-card-title">${name} · ${spots}</div>
+        <div class="trip-card-sub">${withPlace && l ? escapeHtml(l.name)+" · " : ""}${tripDateLabel(p.trip_date)}</div></div></div>
+    ${p.note ? `<p class="trip-card-note">${escapeHtml(p.note)}</p>` : ""}
+    <div class="trip-card-actions">${action}${more}</div></div>`;
+}
+// מחבר את כפתורי הכרטיסים (הצטרפות/ביטול/דיווח/חסימה) בתוך מיכל, ומרענן דרך reload אחרי כל שינוי
+function wireTripCards(container, posts, reload){
+  container.querySelectorAll(".trip-card").forEach(card=>{
+    const p = posts.find(x=>x.id===card.dataset.post);
+    if(!p) return;
+    const on = (act, fn)=>{ const b = card.querySelector(`[data-act="${act}"]`); if(b) b.onclick = fn; };
+    on("join", ()=> openTripJoinSheet(p, reload));
+    on("cancel", async ()=>{
+      const { data, error } = await supabase.rpc("cancel_trip_request", { p_post_id: p.id });
+      if(error || !data || !data.ok){ toast(tripErrorText(data && data.error)); return; }
+      toast("הבקשה בוטלה"); reload();
+    });
+    on("report", ()=>{
+      openReportSheet("דיווח על הצעת טיול", USER_REPORT_REASONS, async (reason, message)=>{
+        const { error } = await supabase.from("user_reports").insert({
+          reporter_id: session.user.id, reported_user_id: p.poster_id, reason,
+          message: ("[הצעת טיול] "+(message||"")).trim(),
+        });
+        if(error) throw error;
+      });
+    });
+    on("block", async ()=>{
+      const ok = await confirmAction({ title:"לחסום את "+(p.poster_name||"המשתמש/ת")+"?",
+        message:"ההצעות שלו/ה יוסתרו מכם וההצעות שלכם יוסתרו ממנו/ה.", confirmLabel:"חסום", destructive:true });
+      if(!ok) return;
+      try{ await blockUser(p.poster_id); toast("המשתמש נחסם"); reload(); }
+      catch(err){ console.error(err); toast("לא הצלחנו לחסום. נסו שוב."); }
+    });
+  });
+}
+async function renderTripPartnersBox(landmarkId){
+  const box = $("tripPartnersBox");
+  if(!box) return;
+  const head = `<div class="trip-box-head"><h3>${uiIcon("family",16)} שותפים לטיול</h3>
+    <button class="btn btn-outline" id="tripBoxPostBtn" type="button">מחפשים שותף</button></div>`;
+  const wirePost = ()=>{
+    const b = $("tripBoxPostBtn");
+    if(b) b.onclick = ()=>{
+      if(!requireAuth("כדי לפרסם הצעה לשותף, צרו חשבון בחינם", ()=>openTripPostSheet(landmarkId))) return;
+      openTripPostSheet(landmarkId);
+    };
+  };
+  if(!session){
+    box.innerHTML = head+`<p class="t-caption" style="margin:0;">רוצים לצאת לכאן עם מישהו? התחברו כדי לראות מי מחפש שותף ליעד הזה.</p>`;
+    wirePost();
+    return;
+  }
+  try{
+    const posts = await fetchTripPosts(landmarkId, 20);
+    if(!box.isConnected) return;
+    box.innerHTML = head + (posts.length
+      ? posts.map(p=>tripCardHtml(p,false)).join("")
+      : `<p class="t-caption" style="margin:0;">עוד אף אחד לא חיפש שותף ליעד הזה. אתם יכולים להיות הראשונים.</p>`);
+    wirePost();
+    wireTripCards(box, posts, ()=> renderTripPartnersBox(landmarkId));
+  }catch(err){
+    box.innerHTML = "";
+  }
+}
+async function renderHomeTrips(){
+  const box = $("homeTrips");
+  if(!box) return;
+  $("homeTripsManageBtn").classList.toggle("hidden", !session);
+  if(!session){
+    box.innerHTML = emptyStateHtml({ icon: uiIcon("family",26), title:"מחפשים שותף לטיול?",
+      sub:"התחברו כדי לראות מי מחפש שותפים ליעדים שאתם אוהבים, או לפרסם טיול משלכם.", ctaId:"homeTripsAuthCta", ctaLabel:"התחברות" });
+    const cta = $("homeTripsAuthCta");
+    if(cta) cta.onclick = ()=> requireAuth("צרו חשבון בחינם כדי למצוא שותפים לטיול", renderHomeTrips);
+    return;
+  }
+  try{
+    const posts = await fetchTripPosts(null, 6);
+    if(!box.isConnected) return;
+    if(!posts.length){
+      box.innerHTML = emptyStateHtml({ icon: uiIcon("family",26), title:"עוד אין הצעות לטיולים משותפים",
+        sub:"רוצים לצאת לטיול עם מישהו? פרסמו הצעה וקבלו בקשות מאנשים שמתאימים לכם.", ctaId:"homeTripsPostCta", ctaLabel:"פרסום הצעה" });
+      $("homeTripsPostCta").onclick = ()=> openTripPostSheet(null);
+      return;
+    }
+    box.innerHTML = posts.map(p=>tripCardHtml(p,true)).join("")
+      + `<button class="btn btn-secondary btn-block" id="homeTripsPostBtn" type="button">+ פרסום הצעה לטיול</button>`;
+    $("homeTripsPostBtn").onclick = ()=> openTripPostSheet(null);
+    wireTripCards(box, posts, renderHomeTrips);
+    box.querySelectorAll(".trip-card-sub").forEach((el,i)=>{
+      el.style.cursor = "pointer";
+      el.onclick = ()=> goToDestination(posts[i].landmark_id);
+    });
+  }catch(err){
+    box.innerHTML = "";
+  }
+}
+
+let tripPostCount = 1, tripPostAfter = null;
+function openTripPostSheet(landmarkId){
+  if(!requireAuth("כדי לפרסם הצעה לשותף, צרו חשבון בחינם", ()=>openTripPostSheet(landmarkId))) return;
+  const sel = $("tripPostLandmark");
+  if(!sel.options.length){
+    sel.innerHTML = [...LANDMARKS].sort((a,b)=>a.name.localeCompare(b.name,"he"))
+      .map(l=>`<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`).join("");
+  }
+  if(landmarkId && lmById[landmarkId]) sel.value = landmarkId;
+  const dateEl = $("tripPostDate");
+  dateEl.min = tripTodayIso(0); dateEl.max = tripTodayIso(180);
+  if(!dateEl.value || dateEl.value<dateEl.min) dateEl.value = tripTodayIso(7);
+  tripPostCount = 1;
+  $("tripPostCount").innerHTML = [1,2,3,4,5].map(n=>`<button type="button" class="chip${n===1?" active":""}" data-n="${n}">${n}</button>`).join("");
+  $("tripPostCount").querySelectorAll(".chip").forEach(c=> c.onclick = ()=>{
+    tripPostCount = Number(c.dataset.n);
+    $("tripPostCount").querySelectorAll(".chip").forEach(x=> x.classList.toggle("active", x===c));
+  });
+  $("tripPostNote").value = "";
+  openSheet("tripPostSheet","tripPostScrim");
+}
+async function submitTripPost(){
+  const btn = $("tripPostSubmit");
+  const date = $("tripPostDate").value;
+  if(!date){ toast("בחרו תאריך"); return; }
+  btn.disabled = true;
+  try{
+    const landmarkId = $("tripPostLandmark").value;
+    const { data, error } = await supabase.rpc("create_trip_post", {
+      p_landmark_id: landmarkId, p_trip_date: date, p_looking_for: tripPostCount, p_note: $("tripPostNote").value.trim() || null,
+    });
+    if(error) throw error;
+    if(!data || !data.ok){ toast(tripErrorText(data && data.error)); return; }
+    track("trip_post_created", { landmark_id: landmarkId });
+    closeSheet("tripPostSheet","tripPostScrim");
+    toast("✓ ההצעה פורסמה. נעדכן כשמישהו יבקש להצטרף");
+    renderHomeTrips(); renderTripPartnersBox(landmarkId);
+  }catch(err){
+    console.error(err);
+    toast(friendlyError(err, "לא הצלחנו לפרסם. נסו שוב."));
+  }finally{
+    btn.disabled = false;
+  }
+}
+let tripJoinState = null;
+function openTripJoinSheet(post, reload){
+  if(!requireAuth("כדי לבקש להצטרף, צרו חשבון בחינם", ()=>openTripJoinSheet(post, reload))) return;
+  tripJoinState = { post, reload };
+  const l = lmById[post.landmark_id];
+  $("tripJoinSub").textContent = (post.poster_name||"המפרסם/ת")+" יראה את הבקשה ויחליט. "+(l?l.name+" · ":"")+tripDateLabel(post.trip_date);
+  $("tripJoinMessage").value = "";
+  openSheet("tripJoinSheet","tripJoinScrim");
+}
+async function submitTripJoin(){
+  if(!tripJoinState) return;
+  const { post, reload } = tripJoinState;
+  const btn = $("tripJoinSubmit"); btn.disabled = true;
+  try{
+    const { data, error } = await supabase.rpc("request_join_trip", { p_post_id: post.id, p_message: $("tripJoinMessage").value.trim() || null });
+    if(error) throw error;
+    if(!data || !data.ok){ toast(tripErrorText(data && data.error)); return; }
+    track("trip_join_requested", { landmark_id: post.landmark_id });
+    closeSheet("tripJoinSheet","tripJoinScrim");
+    toast("✓ הבקשה נשלחה");
+    if(reload) reload();
+  }catch(err){
+    console.error(err);
+    toast(friendlyError(err, "לא הצלחנו לשלוח. נסו שוב."));
+  }finally{
+    btn.disabled = false;
+  }
+}
+async function openTripManageSheet(){
+  if(!requireAuth("התחברו כדי לנהל הצעות לטיול", openTripManageSheet)) return;
+  openSheet("tripManageSheet","tripManageScrim");
+  const body = $("tripManageBody");
+  body.innerHTML = `<p class="t-caption">טוענים…</p>`;
+  try{
+    const { data: posts, error } = await supabase.from("trip_posts")
+      .select("id,landmark_id,trip_date,looking_for,status,group_id")
+      .eq("user_id", session.user.id).in("status", ["open","closed"]).gte("trip_date", tripTodayIso(0)).order("trip_date");
+    if(error) throw error;
+    if(!posts.length){
+      body.innerHTML = emptyStateHtml({ icon: uiIcon("family",26), title:"עוד לא פרסמתם הצעות",
+        sub:"פרסמו הצעה לטיול ספציפי ואנשים יוכלו לבקש להצטרף.", ctaId:"tripManagePostCta", ctaLabel:"פרסום הצעה" });
+      $("tripManagePostCta").onclick = ()=> openTripPostSheet(null);
+      return;
+    }
+    const reqLists = await Promise.all(posts.map(async p=>{
+      const { data } = await supabase.rpc("get_trip_requests", { p_post_id: p.id });
+      return data||[];
+    }));
+    body.innerHTML = posts.map((p,i)=>{
+      const l = lmById[p.landmark_id];
+      const reqs = reqLists[i];
+      const rows = reqs.map(r=>{
+        const av = safeUrl(r.avatar_url) ? `<img src="${safeUrl(r.avatar_url)}" alt="">` : escapeHtml((r.name||"?").charAt(0));
+        const act = r.status==="pending"
+          ? `<button class="btn btn-primary" data-req="${escapeHtml(r.id)}" data-accept="1" type="button">אישור</button><button class="btn btn-ghost" data-req="${escapeHtml(r.id)}" data-accept="0" type="button">דחייה</button>`
+          : `<span class="trip-badge">אושר/ה ✓</span>`;
+        return `<div class="trip-request"><div class="trip-avatar">${av}</div>
+          <div class="trip-card-main"><div class="trip-card-title">${escapeHtml(r.name)}</div>${r.message?`<div class="trip-request-msg">${escapeHtml(r.message)}</div>`:""}</div>${act}</div>`;
+      }).join("");
+      return `<div class="trip-card" data-post="${escapeHtml(p.id)}">
+        <div class="trip-card-title">${l?escapeHtml(l.name):""} · ${tripDateLabel(p.trip_date)}</div>
+        <div class="trip-card-sub">${p.status==="closed"?"מלא · ":""}מחפשים ${p.looking_for} ${p.looking_for===1?"שותף/ה":"שותפים"}</div>
+        ${rows || `<p class="t-caption" style="margin:8px 0 0;">עוד לא הגיעו בקשות.</p>`}
+        <div class="trip-card-actions">
+          ${p.group_id?`<button class="btn btn-secondary" data-group type="button">לקבוצה</button>`:""}
+          <button class="trip-link" data-cancel-post type="button">ביטול ההצעה</button></div></div>`;
+    }).join("");
+    body.querySelectorAll("[data-req]").forEach(b=> b.onclick = async ()=>{
+      b.disabled = true;
+      const { data, error: rpcErr } = await supabase.rpc("respond_trip_request", { p_request_id: b.dataset.req, p_accept: b.dataset.accept==="1" });
+      if(rpcErr || !data || !data.ok){ toast(tripErrorText(data && data.error)); b.disabled = false; return; }
+      if(data.status==="accepted"){
+        toast("✓ אושר/ה. נפתחה קבוצה לתיאום");
+        await loadMyGroups(); renderGroupPanel();
+      }
+      openTripManageSheet(); renderHomeTrips();
+    });
+    body.querySelectorAll(".trip-card").forEach(card=>{
+      const cancel = card.querySelector("[data-cancel-post]");
+      if(cancel) cancel.onclick = async ()=>{
+        const ok = await confirmAction({ title:"לבטל את ההצעה?", message:"הבקשות הממתינות יבוטלו וההצעה תוסר מהרשימה.", confirmLabel:"ביטול ההצעה", cancelLabel:"חזרה", destructive:true });
+        if(!ok) return;
+        const { data } = await supabase.rpc("cancel_trip_post", { p_post_id: card.dataset.post });
+        if(!data || !data.ok){ toast(tripErrorText(data && data.error)); return; }
+        toast("ההצעה בוטלה"); openTripManageSheet(); renderHomeTrips();
+      };
+      const g = card.querySelector("[data-group]");
+      if(g) g.onclick = ()=>{
+        const post = posts.find(x=>x.id===card.dataset.post);
+        if(post && post.group_id) activeGroupId = post.group_id;
+        closeSheet("tripManageSheet","tripManageScrim");
+        navigate("#/board"); switchBoardTab("group");
+      };
+    });
+  }catch(err){
+    console.error(err);
+    body.innerHTML = `<p class="t-caption">${escapeHtml(friendlyError(err, "לא הצלחנו לטעון את ההצעות."))}</p>`;
+  }
+}
+function wireTripPartners(){
+  $("closeTripPostSheet").onclick = ()=> closeSheet("tripPostSheet","tripPostScrim");
+  $("tripPostScrim").onclick = ()=> closeSheet("tripPostSheet","tripPostScrim");
+  $("tripPostSubmit").onclick = submitTripPost;
+  $("closeTripJoinSheet").onclick = ()=> closeSheet("tripJoinSheet","tripJoinScrim");
+  $("tripJoinScrim").onclick = ()=> closeSheet("tripJoinSheet","tripJoinScrim");
+  $("tripJoinSubmit").onclick = submitTripJoin;
+  $("closeTripManageSheet").onclick = ()=> closeSheet("tripManageSheet","tripManageScrim");
+  $("tripManageScrim").onclick = ()=> closeSheet("tripManageSheet","tripManageScrim");
+  $("homeTripsManageBtn").onclick = openTripManageSheet;
+}
+
 /* ============ NOTIFICATIONS (Phase 9) ============ */
 async function getNotifications(){
   const { data, error } = await supabase.from("notifications").select("*").order("created_at",{ascending:false}).limit(30);
@@ -5695,6 +5992,7 @@ function notificationIcon(type){
   if(type==="friend_request") return uiIcon("family",18);
   if(type==="friend_accepted") return uiIcon("check",18);
   if(type==="circle_joined") return uiIcon("family",18);
+  if(type==="trip_request" || type==="trip_accepted") return uiIcon("family",18);
   if(type==="friend_checkin") return uiIcon("trophy",18);
   if(type==="group_checkin") return uiIcon("trophy",18);
   return uiIcon("flame",18);
@@ -5830,6 +6128,8 @@ function notificationText(n){
   if(n.type==="friend_request") return `${fromName} שלח/ה לך בקשת חברות`;
   if(n.type==="friend_accepted") return `${fromName} אישר/ה את בקשת החברות שלך`;
   if(n.type==="circle_joined") return `${joinerName} הצטרפ/ה למעגל "${circleName}"`;
+  if(n.type==="trip_request") return `${fromName} ביקש/ה להצטרף לטיול שלך${landmarkName?" — "+landmarkName:""}`;
+  if(n.type==="trip_accepted") return `הבקשה שלך להצטרף לטיול${landmarkName?" ל"+landmarkName:""} אושרה. נפתחה קבוצה לתיאום`;
   // הנקודות מגיעות ב-payload רק מהתראות שנוצרו אחרי migrations_group_checkin_notifications -
   // התראות ישנות יותר פשוט לא יציגו אותן, בלי "undefined" ובלי לשבור את השורה.
   const pointsSuffix = Number.isFinite(p.points) && p.points > 0 ? ` · +${p.points} נקודות` : "";
@@ -5842,6 +6142,13 @@ function goToNotificationContext(n){
   if(n.type==="friend_request" || n.type==="friend_accepted"){
     navigate("#/profile");
     setTimeout(()=> $("friendRequestsBox")?.scrollIntoView({behavior:"smooth",block:"center"}), 250);
+  } else if(n.type==="trip_request"){
+    navigate("#/home");   // מסך ההתראות הוא overlay מעל ה-sheets; יוצאים ממנו לפני הפתיחה
+    setTimeout(openTripManageSheet, 250);
+  } else if(n.type==="trip_accepted"){
+    loadMyGroups().then(()=>{ if(p.circle_id) activeGroupId = p.circle_id; renderGroupPanel(); });
+    navigate("#/board");
+    switchBoardTab("group");
   } else if(n.type==="circle_joined" && p.circle_id){
     navigate("#/board");
     switchBoardTab("group");
