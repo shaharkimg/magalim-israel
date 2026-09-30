@@ -6041,6 +6041,7 @@ function notificationIcon(type){
   if(type==="friend_request") return uiIcon("family",18);
   if(type==="friend_accepted") return uiIcon("check",18);
   if(type==="circle_joined") return uiIcon("family",18);
+  if(type==="new_user") return uiIcon("family",18);
   if(type==="trip_request" || type==="trip_accepted") return uiIcon("family",18);
   if(type==="friend_checkin") return uiIcon("trophy",18);
   if(type==="group_checkin") return uiIcon("trophy",18);
@@ -6176,6 +6177,7 @@ function notificationText(n){
   const landmarkName = escapeHtml(p.landmark_name||"");
   if(n.type==="friend_request") return `${fromName} שלח/ה לך בקשת חברות`;
   if(n.type==="friend_accepted") return `${fromName} אישר/ה את בקשת החברות שלך`;
+  if(n.type==="new_user") return `משתמש חדש נרשם: ${escapeHtml(p.new_user_name||"מטייל/ת חדש/ה")}`;
   if(n.type==="circle_joined") return `${joinerName} הצטרפ/ה למעגל "${circleName}"`;
   if(n.type==="trip_request") return `${fromName} ביקש/ה להצטרף לטיול שלך${landmarkName?" — "+landmarkName:""}`;
   if(n.type==="trip_accepted") return `הבקשה שלך להצטרף לטיול${landmarkName?" ל"+landmarkName:""} אושרה. נפתחה קבוצה לתיאום`;
@@ -6191,6 +6193,8 @@ function goToNotificationContext(n){
   if(n.type==="friend_request" || n.type==="friend_accepted"){
     navigate("#/profile");
     setTimeout(()=> $("friendRequestsBox")?.scrollIntoView({behavior:"smooth",block:"center"}), 250);
+  } else if(n.type==="new_user"){
+    navigate("#/admin");
   } else if(n.type==="trip_request"){
     navigate("#/home");   // מסך ההתראות הוא overlay מעל ה-sheets; יוצאים ממנו לפני הפתיחה
     setTimeout(openTripManageSheet, 250);
