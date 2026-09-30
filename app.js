@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260930c4";
+const APP_VERSION = "20260930c5";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -2044,7 +2044,8 @@ function applyRoute(){
     return;
   }
   if(hash==="#/admin"){
-    switchView("map");
+    // בלי switchView("map"): לוח הניהול הוא overlay מלא, ומעבר למפה מריץ עבודה מיותרת
+    // ומציג אותה לרגע ברענון. הפתיחה כבר התחילה מוקדם ב-bootPublic() - openAdmin() לא כפול.
     openAdmin();
     return;
   }
@@ -2117,6 +2118,9 @@ async function bootPublic(){
   let returning = false;
   try{ returning = Number(localStorage.getItem("magalim-visit-count")||"0") > 0; }catch(e){}
   track("session_started", { returning, visitor_id: getVisitorId() });
+  // רענון על לוח הניהול: לא מחכים לטעינת כל היעדים - הלוח לא תלוי בהם, והוא מכסה את מסך
+  // הטעינה. מי שאינו מנהל מועבר למפה (navigate לא מריץ applyRoute לפני booted).
+  if(location.hash==="#/admin") openAdmin();
   try{
     // .select() לבד נחתך אוטומטית ב-1000 שורות ע"י PostgREST - יש לדפדף במפורש כדי לקבל
     // את כל היעדים גם אחרי שחצינו את ה-1000 (התגלה בפועל כשמספר היעדים עבר 1000).
@@ -2515,7 +2519,16 @@ function openInvitePreview(code, data){
 }
 
 /* ============ ADMIN DASHBOARD (Phase 7) ============ */
-async function openAdmin(){
+let adminOpenPromise = null;
+function openAdmin(){
+  // ברענון ישיר של #/admin הפתיחה מתחילה כבר ב-bootPublic() (לפני שהיעדים נטענו) וגם
+  // מ-applyRoute() בסופו - שתי הקריאות חולקות את אותה פתיחה במקום לרנדר פעמיים.
+  if(adminOpenPromise) return adminOpenPromise;
+  if(!$("adminScreen").classList.contains("hidden")) return Promise.resolve();   // כבר פתוח
+  adminOpenPromise = openAdminImpl().finally(()=>{ adminOpenPromise = null; });
+  return adminOpenPromise;
+}
+async function openAdminImpl(){
   // ברענון ישיר של #/admin, applyRoute() רץ מתוך bootPublic() לפני ש-session ו-myProfile נטענו -
   // בלי ההמתנה הזו מנהל אמיתי נזרק למפה עם "אין הרשאה". מחכים לשחזור ה-session ולפרופיל.
   if(!session || !myProfile){
