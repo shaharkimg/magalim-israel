@@ -28,10 +28,12 @@ const FORBIDDEN_WRITES = [
   ['group_members (insert)', /from\(\s*["']group_members["']\s*\)\s*\.\s*(insert|upsert|update)\b/],
   ['groups (insert/update)', /from\(\s*["']groups["']\s*\)\s*\.\s*(insert|upsert|update)\b/],
   ['invites (insert/update)', /from\(\s*["']invites["']\s*\)\s*\.\s*(insert|upsert|update)\b/],
+  ['trip_posts (write)', /from\(\s*["']trip_posts["']\s*\)\s*\.\s*(insert|upsert|update|delete)\b/],
+  ['trip_requests (write)', /from\(\s*["']trip_requests["']\s*\)\s*\.\s*(insert|upsert|update|delete)\b/],
   ['visits.update of points', /from\(\s*["']visits["']\s*\)\s*\.\s*update\(\s*\{[^}]*points_awarded/],
 ];
 for (const [name, re] of FORBIDDEN_WRITES) check(`no direct ${name}`, !re.test(app), re.test(app) ? 'found in app.js' : '');
-for (const rpc of ['checkin_landmark', 'create_group', 'join_group', 'create_invite', 'redeem_invite']) {
+for (const rpc of ['checkin_landmark', 'create_group', 'join_group', 'create_invite', 'redeem_invite', 'create_trip_post', 'request_join_trip', 'respond_trip_request']) {
   check(`app.js calls rpc ${rpc}`, new RegExp(`rpc\\(\\s*["']${rpc}["']`).test(app));
 }
 

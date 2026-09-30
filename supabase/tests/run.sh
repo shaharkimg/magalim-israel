@@ -34,4 +34,6 @@ echo "== phase B: lockdown"
 $P -1 -f migrations_hardening_2_lockdown.sql >/dev/null
 $P -1 -f migrations_hardening_2_lockdown.sql >/dev/null   # must be re-runnable
 run_test tests/test_hardening_b.sql
+echo "== trip partners"
+run_test tests/test_trip_partners.sql
 echo "SQL tests finished"
