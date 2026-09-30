@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260929h1";
+const APP_VERSION = "20260930a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -2506,6 +2506,18 @@ function openInvitePreview(code, data){
 
 /* ============ ADMIN DASHBOARD (Phase 7) ============ */
 async function openAdmin(){
+  // ברענון ישיר של #/admin, applyRoute() רץ מתוך bootPublic() לפני ש-session ו-myProfile נטענו -
+  // בלי ההמתנה הזו מנהל אמיתי נזרק למפה עם "אין הרשאה". מחכים לשחזור ה-session ולפרופיל.
+  if(!session || !myProfile){
+    try{
+      const { data } = await supabase.auth.getSession();
+      if(data && data.session){
+        if(!session) session = data.session;
+        if(!myProfile) await loadMyProfile();
+      }
+    }catch(e){ console.error(e); }
+    if(location.hash!=="#/admin") return;   // המשתמש ניווט הלאה בזמן ההמתנה
+  }
   if(!session || !myProfile || !myProfile.is_admin){
     toast("אין לך הרשאה לצפות בעמוד הזה.");
     navigate("#/map", false);
