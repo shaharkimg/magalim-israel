@@ -374,6 +374,35 @@ function baseFake(landmarks, extra) {
       await page.waitForFunction(() => (window.__joinArgs || []).length > 0, null, { timeout: 10000 });
       const join = await page.evaluate(() => window.__joinArgs);
       check('join request sends post id and message via rpc', join.length === 1 && join[0].p_post_id === 'p1' && join[0].p_message === 'אשמח להצטרף', JSON.stringify(join));
+      // post form: searchable destination picker (no scrolling a 1,500-item list)
+      await page.addInitScript(() => {
+        window.__FAKE.rpc.create_trip_post = args => { window.__postArgs = (window.__postArgs || []).concat([args]); return { ok: true, id: 'new' }; };
+      });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#homeTripsPostBtn', { timeout: 20000 });
+      await page.click('#homeTripsPostBtn');
+      await page.waitForSelector('#tripPostSheet.open');
+      await page.click('#tripPostSubmit');
+      const noPick = await page.evaluate(() => (window.__postArgs || []).length);
+      check('cannot publish without choosing a destination', noPick === 0);
+      await page.fill('#tripPostSearch', 'יעד 777');
+      await page.waitForSelector('#tripPostResults .trip-result');
+      const hits = await page.$$eval('#tripPostResults .trip-result', els => els.map(e => e.dataset.id));
+      check('search finds destinations by name', hits.includes('lm777'), JSON.stringify(hits));
+      await page.click('#tripPostResults .trip-result[data-id="lm777"]');
+      const picked = await page.evaluate(() => document.getElementById('tripPostPickedName').textContent);
+      check('chosen destination is shown', /יעד 777/.test(picked), picked);
+      await page.click('#tripPostSubmit');
+      await page.waitForFunction(() => (window.__postArgs || []).length > 0, null, { timeout: 10000 });
+      const posted = await page.evaluate(() => window.__postArgs[0]);
+      check('post is created for the chosen destination', posted.p_landmark_id === 'lm777', JSON.stringify(posted));
+      // map: every destination card has a "look for a partner" action that opens the form prefilled
+      await page.evaluate(() => { location.hash = '#/destination/lm5'; });
+      await page.waitForSelector('#tripBoxPostBtn', { timeout: 10000 });
+      await page.evaluate(() => { location.hash = '#/map'; });
+      await page.waitForSelector('#destPreviewTrip', { state: 'attached' });
+      const tripBtn = await page.evaluate(() => { const b = document.getElementById('destPreviewTrip'); return !!b && b.getAttribute('aria-label').length > 0; });
+      check('map destination card has a trip-partner button', tripBtn);
       check('no uncaught page errors', errors.length === 0, errors.join(' | '));
       await ctx.close();
     }
