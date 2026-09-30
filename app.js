@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260930b1";
+const APP_VERSION = "20260930c1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3352,6 +3352,7 @@ function openPreview(id){
     + '<span class="place-meta-item">'+uiIcon("difficulty",13)+previewTier.label+'</span>'
     + (l.duration ? '<span class="place-meta-item">'+uiIcon("duration",13)+l.duration+'</span>' : "")
     + '<span class="place-pts">+'+previewTier.xp+'</span>';
+  $("destPreviewTrip").innerHTML = uiIcon("family",17);
   $("destPreviewWish").innerHTML = uiIcon("heart",17);
   $("destPreviewWish").classList.toggle("active", !!wished);
   wireWazeButton($("destPreviewNav"), l);
@@ -3625,7 +3626,11 @@ function wireStaticUI(){
   $("clearFilters").onclick=()=>{ filters=defaultFilters(); syncFilterUI(); syncQuickChips(); renderMap(); };
   $("applyFilters").onclick=()=>{ renderMap(); closeSheet("filterSheet","filterScrim"); syncFilterUI(); syncQuickChips(); };
   $("destPreview").onclick = ()=> previewId && goToDestination(previewId);
-  $("destPreview").onkeydown = e=>{ if((e.key==="Enter"||e.key===" ") && previewId){ e.preventDefault(); goToDestination(previewId); } };
+  $("destPreview").onkeydown = e=>{ if((e.key==="Enter"||e.key===" ") && previewId && e.target===$("destPreview")){ e.preventDefault(); goToDestination(previewId); } };
+  $("destPreviewTrip").onclick = (e)=>{
+    e.stopPropagation();
+    if(previewId) openTripPostSheet(previewId);
+  };
   $("destPreviewWish").onclick = (e)=>{
     e.stopPropagation();
     if(!previewId) return;
@@ -5819,15 +5824,32 @@ async function renderHomeTrips(){
   }
 }
 
-let tripPostCount = 1, tripPostAfter = null;
+let tripPostCount = 1, tripPostLandmarkId = null;
+function setTripPostLandmark(id){
+  tripPostLandmarkId = id && lmById[id] ? id : null;
+  const l = tripPostLandmarkId ? lmById[tripPostLandmarkId] : null;
+  $("tripPostPicked").classList.toggle("hidden", !l);
+  $("tripPostSearchBox").classList.toggle("hidden", !!l);
+  if(l){
+    $("tripPostPickedName").textContent = l.name+" · "+(REGIONS[l.region]||"");
+  } else {
+    $("tripPostSearch").value = ""; $("tripPostResults").innerHTML = "";
+    setTimeout(()=> $("tripPostSearch").focus(), 60);
+  }
+}
+function renderTripPostResults(){
+  const q = $("tripPostSearch").value;
+  const box = $("tripPostResults");
+  if(!q.trim()){ box.innerHTML = ""; return; }
+  const list = searchLandmarks(q).slice(0,8);
+  box.innerHTML = list.length
+    ? list.map(l=>`<button type="button" class="trip-result" role="option" data-id="${escapeHtml(l.id)}">${escapeHtml(l.name)}<small>${escapeHtml(REGIONS[l.region]||"")} · ${escapeHtml((CATEGORIES[l.category]||{}).label||"")}</small></button>`).join("")
+    : `<p class="t-caption" style="margin:6px 0 0;">לא נמצא יעד כזה. נסו שם אחר או אזור.</p>`;
+  box.querySelectorAll(".trip-result").forEach(b=> b.onclick = ()=> setTripPostLandmark(b.dataset.id));
+}
 function openTripPostSheet(landmarkId){
   if(!requireAuth("כדי לפרסם הצעה לשותף, צרו חשבון בחינם", ()=>openTripPostSheet(landmarkId))) return;
-  const sel = $("tripPostLandmark");
-  if(!sel.options.length){
-    sel.innerHTML = [...LANDMARKS].sort((a,b)=>a.name.localeCompare(b.name,"he"))
-      .map(l=>`<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`).join("");
-  }
-  if(landmarkId && lmById[landmarkId]) sel.value = landmarkId;
+  setTripPostLandmark(landmarkId);
   const dateEl = $("tripPostDate");
   dateEl.min = tripTodayIso(0); dateEl.max = tripTodayIso(180);
   if(!dateEl.value || dateEl.value<dateEl.min) dateEl.value = tripTodayIso(7);
@@ -5843,10 +5865,11 @@ function openTripPostSheet(landmarkId){
 async function submitTripPost(){
   const btn = $("tripPostSubmit");
   const date = $("tripPostDate").value;
+  if(!tripPostLandmarkId){ toast("בחרו יעד"); return; }
   if(!date){ toast("בחרו תאריך"); return; }
   btn.disabled = true;
   try{
-    const landmarkId = $("tripPostLandmark").value;
+    const landmarkId = tripPostLandmarkId;
     const { data, error } = await supabase.rpc("create_trip_post", {
       p_landmark_id: landmarkId, p_trip_date: date, p_looking_for: tripPostCount, p_note: $("tripPostNote").value.trim() || null,
     });
@@ -5966,6 +5989,8 @@ function wireTripPartners(){
   $("closeTripPostSheet").onclick = ()=> closeSheet("tripPostSheet","tripPostScrim");
   $("tripPostScrim").onclick = ()=> closeSheet("tripPostSheet","tripPostScrim");
   $("tripPostSubmit").onclick = submitTripPost;
+  $("tripPostSearch").oninput = renderTripPostResults;
+  $("tripPostChange").onclick = ()=> setTripPostLandmark(null);
   $("closeTripJoinSheet").onclick = ()=> closeSheet("tripJoinSheet","tripJoinScrim");
   $("tripJoinScrim").onclick = ()=> closeSheet("tripJoinSheet","tripJoinScrim");
   $("tripJoinSubmit").onclick = submitTripJoin;

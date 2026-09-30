@@ -359,7 +359,7 @@ button{font-family:inherit;}
 .dest-preview-body{flex:1;min-width:0;padding:var(--space-3) var(--space-4);display:flex;flex-direction:column;justify-content:center;}
 .dest-preview-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);}
 .dest-preview-top h3{margin:0;font-size:var(--font-h2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.dest-preview-wish,.dest-preview-nav{border:none;background:var(--bg-elevated);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;cursor:pointer;color:var(--text-muted);transition:color .15s,background .15s;}
+.dest-preview-wish,.dest-preview-nav,.dest-preview-trip{border:none;background:var(--bg-elevated);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;cursor:pointer;color:var(--text-muted);transition:color .15s,background .15s;}
 .dest-preview-wish.active{color:var(--danger);background:color-mix(in srgb, var(--danger) 12%, transparent);}
 .dest-preview-wish.active .ui-ic{fill:currentColor;opacity:1;}
 .btn.is-wished{color:var(--danger);border-color:color-mix(in srgb, var(--danger) 45%, transparent);}
@@ -757,6 +757,12 @@ button{font-family:inherit;}
 .challenge-strip-foot{display:flex;justify-content:flex-end;font-size:13px;font-weight:800;color:var(--text-muted);margin-top:var(--space-1);}
 /* מתכנן סופ״ש (§12) */
 .weekend-idea{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);cursor:pointer;box-shadow:var(--shadow-card);transition:transform .12s;}
+.trip-picked{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);background:var(--color-primary-light);color:var(--color-primary-dark);border-radius:var(--radius-input);padding:10px 14px;font-weight:700;}
+.trip-picked.hidden,#tripPostSearchBox.hidden{display:none;}
+.trip-results{max-height:200px;overflow-y:auto;margin-top:6px;border-radius:var(--radius-input);}
+.trip-result{display:block;width:100%;text-align:start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-input);padding:10px 12px;margin-bottom:6px;cursor:pointer;color:var(--text);font:inherit;}
+.trip-result:active{background:var(--bg-elevated);}
+.trip-result small{display:block;color:var(--text-muted);font-size:12.5px;margin-top:2px;}
 .trip-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);box-shadow:var(--shadow-card);}
 .trip-card-top{display:flex;align-items:center;gap:var(--space-3);}
 .trip-avatar{width:40px;height:40px;border-radius:50%;background:var(--color-primary-light);color:var(--color-primary-dark);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none;overflow:hidden;}
@@ -1671,6 +1677,7 @@ input[type=file]{display:none;}
             </div>
             <div class="dest-preview-actions">
               <button class="dest-preview-nav waze-btn" id="destPreviewNav" aria-label="נווט" title="נווט ב-Waze"></button>
+              <button class="dest-preview-wish" id="destPreviewTrip" aria-label="מחפשים שותף לטיול ליעד הזה" title="מחפשים שותף לטיול"></button>
               <button class="dest-preview-wish" id="destPreviewWish" aria-label="רשימת משאלות"></button>
             </div>
           </div>
@@ -2132,8 +2139,15 @@ input[type=file]{display:none;}
     <div class="sheet-head"><h2>מחפשים שותף לטיול</h2><button class="sheet-close" id="closeTripPostSheet" aria-label="סגור">✕</button></div>
     <div class="sheet-body">
       <p class="t-caption" style="margin:0 0 12px;">ההצעה גלויה לכל המשתמשים המחוברים. מוצגים רק השם הפרטי והתמונה שלכם, ואתם מאשרים כל בקשה בעצמכם.</p>
-      <label class="trip-label" for="tripPostLandmark">לאן?</label>
-      <select class="text-input" id="tripPostLandmark"></select>
+      <div class="trip-label" id="tripPostLandmarkLabel">לאן?</div>
+      <div class="trip-picked hidden" id="tripPostPicked">
+        <span class="trip-picked-name" id="tripPostPickedName"></span>
+        <button class="trip-link" id="tripPostChange" type="button">שינוי</button>
+      </div>
+      <div id="tripPostSearchBox">
+        <input class="text-input" type="search" id="tripPostSearch" aria-labelledby="tripPostLandmarkLabel" autocomplete="off" placeholder="חיפוש יעד לפי שם, אזור או סוג">
+        <div class="trip-results" id="tripPostResults" role="listbox" aria-label="תוצאות חיפוש"></div>
+      </div>
       <label class="trip-label" for="tripPostDate">מתי?</label>
       <input class="text-input" type="date" id="tripPostDate">
       <div class="trip-label" id="tripPostCountLabel">כמה שותפים מחפשים?</div>
@@ -2222,6 +2236,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20260930b1"></script>
+<script type="module" src="./app.js?v=20260930c1"></script>
 </body>
 </html>
