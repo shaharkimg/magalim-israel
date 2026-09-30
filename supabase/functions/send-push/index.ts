@@ -82,6 +82,8 @@ function buildMessage(type: string, p: Record<string, any>) {
   switch (type) {
     case "friend_request":
       return { title: "בקשת חברות חדשה", body: `${p.from_name || "מטייל/ת"} שלח/ה לך בקשת חברות`, url: "/#/profile" };
+    case "new_user":
+      return { title: "משתמש חדש נרשם", body: `${p.new_user_name || "מטייל/ת חדש/ה"} הצטרפ/ה למגלים`, url: "/#/admin" };
     case "friend_accepted":
       return { title: "בקשת החברות אושרה", body: `${p.from_name || "מטייל/ת"} אישר/ה את בקשת החברות שלך`, url: "/#/profile" };
     case "circle_joined":
