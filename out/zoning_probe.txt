@@ -1,29 +1,32 @@
-=== iplan error body ===
-GET 200 2848 https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/Xplan/MapServer?f=json
-ï»¿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> <HTML> <meta http-equiv="Content-Type" content="text/html; charset=utf-8" pageEncoding="utf-8"> <HEAD> <TITLE>ERROR</TITLE> <META NAME="Generator" CONTENT="EditPlus"> <META NAME="Author" CONTENT=""> <META NAME="Keywords" CONTENT=""> <META NAME="Description" CONTENT=""> <!--LINK href="http://www.gov.il/firstgov/CSS/IE/master.css" type="text/css" rel="stylesheet"> <LINK href="http://www.gov.il/firstgov/CSS/IE/boxesNew.css" type=text/css rel=stylesheet > <LINK href="http://www.gov.il/firstgov/CSS/IE/Shoham.css" type="text/css" rel="stylesheet"> <LINK href="http://www.gov.il/firstgov/CSS/IE/GlobalElements.css" type=text/css rel=stylesheet --> </HEAD> <BODY> <Center> <table cellpadding="0" cellspacing="0" border="0" width="80%" height="80%" dir="rtl" bordercolor="green" dir="rtl"> <TR> <TD height="15px"></TD> <TD></TD><TD></TD><TD></TD><TD></TD> </TR> <TR> <TD colspan=3> <img src="http://www.gov.il/firstgov/Images/he/header/new-headerF2.jpg"> </TD> <TD width="30px"> </TD> <TD> </TD> </TR> <TR> <TD height="40px"></TD> <TD></TD><TD></TD><TD></TD><TD></TD> </TR> <TR align=right> <TD></TD> <TD colspan=2> ××××© ××§×¨, ××¤×¢××× ×××ª× ×××¦×¢×ª ××× × × ×ª×××ª ×××©× ×× ×× × ××ª× ×××¦×× ××ª ×××£ ×××××§×©. </TD> <TD></TD> <TD></TD> <TD></TD> </TR> <TR align=right> <TD></TD> <TD colspan=2> × ××ª× ××¤× ××ª ××¦×××ª ××ª×××× ×××××× ×¢× ××××¢× ×× ××¤× ××¤×¨××× ×××××: </TD> <TD></TD> <TD></TD> <TD></TD> </TR> <TR align=right> <TD></TD> <TD colspan=2> </TD> <TD></TD> <TD></TD> <TD></TD> </TR> <TR align=right> <TD></TD> <TD colspan=2> ××××¨ ×××§××¨×× ×: info@tehila.gov.il </TD> <TD></TD> <TD></TD> <TD></TD> </TR> <tr> <td></td> </tr> <TR align=left 
-=== govmap bundles ===
 GET 200 4061 https://www.govmap.gov.il/
-scripts: ["/assets/index-bSKiQjTR.js", "/assets/polyfills-legacy-hBOH0_sg.js", "/assets/index-legacy-CU2U8xql.js", "/assets/manifest-Dyvq5gYI.json", "/assets/vendor-runtime-DmH5GN_L.js", "/assets/vendor-mui-B4VqmBc5.js", "/assets/vendor-cesium-BC7je4XO.js", "/assets/vendor-ol-BdpzH0FR.js"]
 GET 200 12878614 https://www.govmap.gov.il/assets/index-bSKiQjTR.js
-GET 200 82856 https://www.govmap.gov.il/assets/polyfills-legacy-hBOH0_sg.js
-GET 200 13185409 https://www.govmap.gov.il/assets/index-legacy-CU2U8xql.js
-GET 200 396 https://www.govmap.gov.il/assets/manifest-Dyvq5gYI.json
-GET 200 5722 https://www.govmap.gov.il/assets/vendor-runtime-DmH5GN_L.js
-GET 200 978363 https://www.govmap.gov.il/assets/vendor-mui-B4VqmBc5.js
-GET 200 4558330 https://www.govmap.gov.il/assets/vendor-cesium-BC7je4XO.js
-GET 200 566190 https://www.govmap.gov.il/assets/vendor-ol-BdpzH0FR.js
-service-ish urls found: 9
-   http://www.esri.com/wms
-   http://www.opengis.net/wfs
-   https://apis.google.com/js/api.js
-   https://ibasemaps-api.arcgis.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer
-   https://ibasemaps-api.arcgis.com/arcgis/rest/services/Ocean/World_Ocean_Base/MapServer
-   https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer
-   https://maps.googleapis.com/maps/api/streetview
-   https://www.gov.il/he/pages/mapi_support
-   https://www.govmap.gov.il/api
-=== direct api guesses ===
-GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog
-GET 404 0 https://www.govmap.gov.il/api/layers/catalog
-GET 400 25 https://www.govmap.gov.il/api/layers-catalog/layers
-GET 404 160 https://www.govmap.gov.il/api/search-service/layers
+bundle chars: 12878614
+=== api route strings ===
+   /api/geoserver/multi
+=== context around 'layers-catalog' ===
+  ... removing style for layerId=".concat(tr,", styleName=").concat(er),ir),ir}}),setLayerDefaultOpacity=createAsyncThunk("users/setLayerDefaultOpacity",async({layerId:tr,defaultOpacity:er,styleId:rr},sr)=>{const{apiServices:nr}=sr.getState(),ir=urlJoin(nr.baseUrl,"layers-catalog","set-default-opacity");try{return await storeRequest(ir,{method:"POST",body:{layerId:String(tr),defaultOpacity:er,styleId:rr}})}catch(ar){throw logger.error("Error setting default opacity:",ar),ar}}),updateWorkspaceTree=createAsyncThunk("catalo
+  ... efaultOpacity:er,styleId:rr}})}catch(ar){throw logger.error("Error setting default opacity:",ar),ar}}),updateWorkspaceTree=createAsyncThunk("catalog/updateWorkspaceTree",async({action:tr},er)=>{var nr;const{apiServices:rr}=er.getState(),sr=urlJoin(rr.baseUrl,"layers-catalog","update-workspace-tree");try{return await storeRequest(sr,{method:"PUT",body:{action:tr}})}catch(ir){return er.rejectWithValue({status:(nr=ir==null?void 0:ir.response)==null?void 0:nr.status})}}),deleteUserLayerGroup=createAsyncThunk("catalog/d
+  ... )}catch(ir){return er.rejectWithValue({status:(nr=ir==null?void 0:ir.response)==null?void 0:nr.status})}}),deleteUserLayerGroup=createAsyncThunk("catalog/deleteUserLayerGroup",async({groupId:tr},er)=>{const{apiServices:rr}=er.getState(),sr=urlJoin(rr.baseUrl,"layers-catalog","delete-layer-group",tr);return await storeRequest(sr,{method:"DELETE"}),!0});function sanitizeWorkspaceTree(tr){return tr.filter(er=>String(er.key)!=="0-1").map(er=>er.children?{...er,children:sanitizeWorkspaceTree(er.children)}:er)}const cata
+  ... tWithValue:rr})=>{try{const sr=getApiServices$1(er()),nr=buildProjectsUrl(sr,tr.projectId,"rename");return await storeRequest(nr,{method:"PATCH",body:{name:tr.name}}),tr}catch(sr){return rr("Failed to rename project")}}),fetch3dConfiguration=createAsyncThunk("layers-catalog/configuration/3d",async(tr,{getState:er})=>{try{const rr=getApiServices$1(er()),sr=urlJoin(rr.baseUrl,rr.layerCatalogApiUrl,"configuration","3d");return await storeRequest(sr)}catch(rr){return null}}),fetchFlatteningTextures=createAsyncThunk("3d
+  ... ist(tr).map(rr=>CLOUD_STORAGE_PROVIDER_VALUE_MAP[rr.trim().toLowerCase()]).filter(rr=>!!rr);return er.length?er:DEFAULT_AUTO_UPDATE_APPROVED_CLOUD_STORAGE},normalizeBoolean=(tr,er=!1)=>typeof tr=="boolean"?tr:er,fetchMediaFieldsConfiguration=createAsyncThunk("layers-catalog/configuration/mediaFields",async(tr,er)=>{try{const rr=er.getState(),{apiServices:sr}=rr,nr=urlJoin(sr.baseUrl,sr.layerCatalogApiUrl,configurationApiUrl,ConfigurationKeys.mediaFields);return await storeRequest(nr)}catch(rr){return null}}),fetchM
+  ... async(tr,er)=>{try{const rr=er.getState(),{apiServices:sr}=rr,nr=urlJoin(sr.baseUrl,sr.layerCatalogApiUrl,configurationApiUrl,ConfigurationKeys.mediaFields);return await storeRequest(nr)}catch(rr){return null}}),fetchMediaUploadConfiguration=createAsyncThunk("layers-catalog/configuration/mediaUpload",async(tr,er)=>{try{const rr=er.getState(),{apiServices:sr}=rr,nr=urlJoin(sr.baseUrl,sr.layerCatalogApiUrl,configurationApiUrl,ConfigurationKeys.mediaUpload);return await storeRequest(nr)}catch(rr){return null}}),fetchM
+=== land-use layer mentions ===
+=== tile / wmts hosts ===
+   http://www.cbs.gov.il
+   http://www.mod.gov.il
+   https://api.govmap.gov.il
+   https://govmap.gov.il
+   https://govmap.org.il
+   https://ims.gov.il
+   https://mekarkein-online.justice.gov.il
+   https://www.gov.il
+   https://www.govmap.gov.il
+=== try layers api ===
+GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog?lang=he
+   body: {"error":"access denied"}
+GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog?searchText=
+   body: {"error":"access denied"}
+GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog/all
+   body: {"error":"access denied"}
+GET 400 25 https://www.govmap.gov.il/api/layers-catalog/search?text=%D7%99%D7%A2%D7%95%D7%93%D7%99
+   body: {"error":"access denied"}
