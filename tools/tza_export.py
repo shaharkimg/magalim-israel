@@ -105,16 +105,34 @@ def parcel_rings(gush, helka):
     return [[(float(p[0]), float(p[1])) for p in ring] for ring in rings]
 
 
-def aerial(lon0, lat0, lon1, lat1):
-    for attempt in range(3):
-        r = get("https://server.arcgisonline.com/ArcGIS/rest/services/"
-                "World_Imagery/MapServer/export",
-                {"bbox": f"{lon0},{lat0},{lon1},{lat1}", "bboxSR": "4326",
-                 "imageSR": "3857", "size": f"{SIZE},{SIZE}", "format": "png24",
-                 "transparent": "false", "f": "image"})
-        if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
-            return Image.open(io.BytesIO(r.content)).convert("RGB")
-        time.sleep(3 * (attempt + 1))
+def blank(img):
+    """True when the tile server returned its grey 'no data' filler."""
+    import numpy as np
+
+    a = np.asarray(img.convert("RGB").resize((200, 200))).astype(int)
+    spread = a.max(axis=2) - a.min(axis=2)
+    grey = (spread < 12) & (a[..., 0] > 180) & (a[..., 0] < 225)
+    return grey.mean() > 0.5
+
+
+def aerial(lon0, lat0, lon1, lat1, span_m):
+    """Fetch imagery, backing off to coarser levels where none is published."""
+    for target_mpp in (span_m / SIZE, 0.5, 1.0, 2.0):
+        px = max(400, min(SIZE, int(span_m / max(target_mpp, 0.05))))
+        for attempt in range(2):
+            r = get("https://server.arcgisonline.com/ArcGIS/rest/services/"
+                    "World_Imagery/MapServer/export",
+                    {"bbox": f"{lon0},{lat0},{lon1},{lat1}", "bboxSR": "4326",
+                     "imageSR": "3857", "size": f"{px},{px}", "format": "png24",
+                     "transparent": "false", "f": "image"})
+            if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
+                img = Image.open(io.BytesIO(r.content)).convert("RGB")
+                if not blank(img):
+                    log(f"   imagery at {span_m / px:.2f} m/px")
+                    return img.resize((SIZE, SIZE), Image.LANCZOS)
+                log(f"   no imagery published at {span_m / px:.2f} m/px")
+                break
+            time.sleep(3 * (attempt + 1))
     log("export failed; stitching tiles instead")
     return aerial_tiles(lon0, lat0, lon1, lat1)
 
@@ -284,7 +302,7 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
                        "bbox_itm": [minx, miny, maxx, maxy], "size_px": SIZE,
                        "area_m2": area_m2}, fh)
 
-        base = aerial(lon0, lat0, lon1, lat1)
+        base = aerial(lon0, lat0, lon1, lat1, maxx - minx)
         if base is None:
             log("NO BASE IMAGERY")
             continue

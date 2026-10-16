@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install requests pillow pyproj shapely
+      - run: pip install requests pillow pyproj shapely numpy
       - run: python tools/tza_export.py
         continue-on-error: true
         env:
