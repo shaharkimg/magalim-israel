@@ -32,6 +32,7 @@ SIZE = 1500
 XPLAN = ("https://ags.iplan.gov.il/arcgisiplan/rest/services/"
          "PlanningPublic/Xplan/MapServer")
 YEUD_LAYER = 4
+APPROVED = 3010  # station code for an approved (statutory) plan
 
 diag = []
 
@@ -160,12 +161,14 @@ def aerial_tiles(lon0, lat0, lon1, lat1):
     return None
 
 
-def yeud_overlay(minx, miny, maxx, maxy):
-    r = get(XPLAN + "/export",
-            {"bbox": f"{minx},{miny},{maxx},{maxy}", "bboxSR": "2039",
-             "imageSR": "2039", "size": f"{SIZE},{SIZE}", "format": "png32",
-             "transparent": "true", "layers": f"show:{YEUD_LAYER}",
-             "dpi": "96", "f": "image"})
+def yeud_overlay(minx, miny, maxx, maxy, approved_only=True):
+    params = {"bbox": f"{minx},{miny},{maxx},{maxy}", "bboxSR": "2039",
+              "imageSR": "2039", "size": f"{SIZE},{SIZE}", "format": "png32",
+              "transparent": "true", "layers": f"show:{YEUD_LAYER}",
+              "dpi": "96", "f": "image"}
+    if approved_only:
+        params["layerDefs"] = json.dumps({str(YEUD_LAYER): f"station={APPROVED}"})
+    r = get(XPLAN + "/export", params)
     if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
         return Image.open(io.BytesIO(r.content)).convert("RGBA")
     if r is not None:
@@ -186,6 +189,7 @@ def yeud_breakdown(rings, gush, helka):
             "geometry": json.dumps(geom), "geometryType": "esriGeometryPolygon",
             "inSR": "2039", "outSR": "2039",
             "spatialRel": "esriSpatialRelIntersects", "outFields": "*",
+            "where": f"station={APPROVED}",
             "returnGeometry": "true", "f": "geojson"})
         log("POST", r.status_code, len(r.content), "yeud intersect query")
     except Exception as e:  # noqa: BLE001
@@ -306,7 +310,7 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
             comp = base.copy().convert("RGBA")
             comp.alpha_composite(ov)
             comp = stamp(comp.convert("RGB"),
-                         f"Gush {gush} / Helka {helka} - land use (mavat)")
+                         f"Gush {gush} / Helka {helka} - approved land use (mavat)")
             name2 = os.path.join(OUT, f"tza_{gush}_{helka}_yeud.png")
             comp.save(name2)
             log("wrote", name2, os.path.getsize(name2))
