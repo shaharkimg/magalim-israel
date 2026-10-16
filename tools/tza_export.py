@@ -189,7 +189,6 @@ def yeud_breakdown(rings, gush, helka):
             "geometry": json.dumps(geom), "geometryType": "esriGeometryPolygon",
             "inSR": "2039", "outSR": "2039",
             "spatialRel": "esriSpatialRelIntersects", "outFields": "*",
-            "where": f"station={APPROVED}",
             "returnGeometry": "true", "f": "geojson"})
         log("POST", r.status_code, len(r.content), "yeud intersect query")
     except Exception as e:  # noqa: BLE001
@@ -314,13 +313,13 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
         if ov_all is not None:
             ov_all.save(os.path.join(OUT, f"overlay_{gush}_{helka}.png"))
 
-        ov = yeud_overlay(minx, miny, maxx, maxy)
+        ov = ov_all
         if ov is not None:
             ov.putalpha(ov.getchannel("A").point(lambda v: int(v * 0.5)))
             comp = base.copy().convert("RGBA")
             comp.alpha_composite(ov)
             comp = stamp(comp.convert("RGB"),
-                         f"Gush {gush} / Helka {helka} - approved land use (mavat)")
+                         f"Gush {gush} / Helka {helka} - land use (mavat)")
             name2 = os.path.join(OUT, f"tza_{gush}_{helka}_yeud.png")
             comp.save(name2)
             log("wrote", name2, os.path.getsize(name2))
