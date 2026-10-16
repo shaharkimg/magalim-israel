@@ -173,6 +173,62 @@ def yeud_overlay(minx, miny, maxx, maxy):
     return None
 
 
+def yeud_breakdown(rings, gush, helka):
+    """How much of the parcel each land-use designation covers, by plan."""
+    from shapely.geometry import Polygon, shape
+    from shapely.ops import unary_union
+
+    parcel = unary_union([Polygon(r0).buffer(0) for r0 in rings])
+    geom = {"rings": [[[x, y] for x, y in r0] for r0 in rings],
+            "spatialReference": {"wkid": 2039}}
+    try:
+        r = S.post(f"{XPLAN}/{YEUD_LAYER}/query", timeout=120, data={
+            "geometry": json.dumps(geom), "geometryType": "esriGeometryPolygon",
+            "inSR": "2039", "outSR": "2039",
+            "spatialRel": "esriSpatialRelIntersects", "outFields": "*",
+            "returnGeometry": "true", "f": "geojson"})
+        log("POST", r.status_code, len(r.content), "yeud intersect query")
+    except Exception as e:  # noqa: BLE001
+        log("ERR", type(e).__name__, str(e)[:160])
+        return []
+    if r.status_code != 200:
+        log("   body:", r.text[:300])
+        return []
+    try:
+        feats = r.json().get("features", [])
+    except Exception:  # noqa: BLE001
+        log("   body:", r.text[:300])
+        return []
+
+    rows = {}
+    for f in feats:
+        if not f.get("geometry"):
+            continue
+        try:
+            g = shape(f["geometry"]).buffer(0)
+        except Exception:  # noqa: BLE001
+            continue
+        inter = g.intersection(parcel)
+        if inter.is_empty or inter.area < 1:
+            continue
+        p = f.get("properties", {})
+        key = (p.get("pl_number"), p.get("pl_name"), p.get("station_desc"),
+               p.get("mavat_name"))
+        rows[key] = rows.get(key, 0.0) + inter.area
+
+    out = [{"pl_number": k[0], "pl_name": k[1], "status": k[2],
+            "yeud": k[3], "m2": round(v, 1),
+            "dunam": round(v / 1000, 3),
+            "pct_of_parcel": round(100 * v / parcel.area, 1)}
+           for k, v in sorted(rows.items(), key=lambda kv: -kv[1])]
+    log("   breakdown:", json.dumps(out, ensure_ascii=False)[:2500])
+    with open(os.path.join(OUT, f"breakdown_{gush}_{helka}.json"), "w",
+              encoding="utf-8") as fh:
+        json.dump({"parcel_m2": round(parcel.area, 1), "rows": out}, fh,
+                  ensure_ascii=False, indent=1)
+    return out
+
+
 def yeud_records(minx, miny, maxx, maxy):
     r = get(f"{XPLAN}/{YEUD_LAYER}/query",
             {"geometry": f"{minx},{miny},{maxx},{maxy}",
@@ -256,6 +312,11 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
             log("wrote", name2, os.path.getsize(name2))
         else:
             log("no land-use overlay")
+
+        try:
+            yeud_breakdown(rings, gush, helka)
+        except Exception:  # noqa: BLE001
+            log("breakdown failed:", traceback.format_exc()[:900])
 
         recs = yeud_records(minx, miny, maxx, maxy)
         log("land-use records in view:", len(recs))
