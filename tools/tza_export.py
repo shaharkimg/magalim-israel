@@ -1,207 +1,221 @@
-"""Render an aerial (tza) image for an Israeli cadastral parcel.
+"""Render an aerial (tza) image for Israeli cadastral parcels.
 
-Runs on a GitHub Actions runner (which has open internet access) and writes
-out/tza_<gush>_<helka>.png plus out/diag.txt.
+For each parcel in PARCELS ("gush/helka,gush/helka,...") it writes:
+  out/tza_<gush>_<helka>.png        aerial + parcel outline
+  out/tza_<gush>_<helka>_yeud.png   the same, with mavat land-use shaded over it
+  out/zoning_<gush>_<helka>.json    the land-use records the parcel falls in
+
+Sources: parcel geometry from govmap open data (PARCEL_ALL), imagery from Esri
+World Imagery, land-use from the planning administration's Xplan service.
+Runs on a GitHub Actions runner, which has open internet access.
 """
+import io
 import json
 import os
-import io
-import math
+import re
+import ssl
 import traceback
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.poolmanager import PoolManager
 from PIL import Image, ImageDraw
 from pyproj import Transformer
 
-GUSH = int(os.environ.get("GUSH", "2547"))
-HELKA = int(os.environ.get("HELKA", "10"))
-# Fallback centre in ITM (EPSG:2039) if the parcel geometry cannot be fetched.
-FALLBACK_ITM = (float(os.environ.get("ITM_X", "176595")),
-                float(os.environ.get("ITM_Y", "627998")))
-PAD = float(os.environ.get("PAD_M", "260"))  # metres around the parcel
-
 OUT = "out"
 os.makedirs(OUT, exist_ok=True)
+PARCELS = os.environ.get("PARCELS", "2547/10,8561/13")
+PAD = float(os.environ.get("PAD_M", "260"))
+SIZE = 1500
+XPLAN = ("https://ags.iplan.gov.il/arcgisiplan/rest/services/"
+         "PlanningPublic/Xplan/MapServer")
+YEUD_LAYER = 4
+
 diag = []
 
 
 def log(*a):
-    line = " ".join(str(x) for x in a)
-    print(line, flush=True)
-    diag.append(line)
+    s = " ".join(str(x) for x in a)
+    print(s[:3000], flush=True)
+    diag.append(s)
 
+
+class LegacyTLS(HTTPAdapter):
+    """ags.iplan.gov.il still negotiates legacy TLS."""
+
+    def init_poolmanager(self, connections, maxsize, block=False, **kw):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        ctx.minimum_version = ssl.TLSVersion.TLSv1
+        try:
+            ctx.options |= 0x4
+            ctx.set_ciphers("DEFAULT@SECLEVEL=1")
+        except Exception:  # noqa: BLE001
+            pass
+        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize,
+                                       block=block, ssl_context=ctx, **kw)
+
+
+S = requests.Session()
+S.mount("https://", LegacyTLS())
+S.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                "Chrome/124.0.0.0 Safari/537.36",
+                  "Accept": "*/*"})
 
 to_wgs = Transformer.from_crs("EPSG:2039", "EPSG:4326", always_xy=True)
 
-S = requests.Session()
-S.headers.update({
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    "Accept": "*/*",
-})
 
-
-def try_get(url, **kw):
+def get(url, params=None, quiet=False):
     try:
-        r = S.get(url, timeout=45, **kw)
-        log("GET", r.status_code, len(r.content), url[:180])
+        r = S.get(url, params=params, timeout=90)
+        if not quiet:
+            log("GET", r.status_code, len(r.content), r.url[:190])
         return r
     except Exception as e:  # noqa: BLE001
-        log("ERR", type(e).__name__, str(e)[:200], url[:180])
+        log("ERR", type(e).__name__, str(e)[:180], url[:160])
         return None
 
 
-# ---------------------------------------------------------------- parcel geometry
-def parcel_rings_itm():
-    """Return list of rings [[(x,y), ...]] in ITM, or None."""
-    # 1) govmap open data WFS
-    caps = try_get("https://open.govmap.gov.il/geoserver/opendata/wfs"
-                   "?service=WFS&version=2.0.0&request=GetCapabilities")
-    names = []
-    if caps is not None and caps.status_code == 200:
-        import re
-        names = re.findall(r"<Name>([^<]+)</Name>", caps.text)
-        log("WFS layers:", json.dumps(names[:120], ensure_ascii=False))
-        open(os.path.join(OUT, "wfs_capabilities.xml"), "w",
-             encoding="utf-8").write(caps.text[:400000])
-
-    cands = [n for n in names if any(k in n.lower() for k in
-             ("parcel", "helka", "chelka", "cadas", "gush", "block"))]
-    log("parcel-ish layers:", json.dumps(cands, ensure_ascii=False))
-
-    for layer in cands[:8]:
-        for fld_g, fld_h in (("GUSH_NUM", "PARCEL"), ("gush_num", "parcel"),
-                             ("GUSH", "HELKA"), ("gush", "helka"),
-                             ("GUSH_SUFFIX", "PARCEL_NUM"),
-                             ("gush_num", "parcel_num")):
-            cql = f"{fld_g}={GUSH} AND {fld_h}={HELKA}"
-            r = try_get("https://open.govmap.gov.il/geoserver/opendata/wfs",
-                        params={"service": "WFS", "version": "2.0.0",
-                                "request": "GetFeature", "typeNames": layer,
-                                "outputFormat": "application/json",
-                                "srsName": "EPSG:2039", "count": "5",
-                                "CQL_FILTER": cql})
-            if r is None or r.status_code != 200:
-                continue
-            try:
-                j = r.json()
-            except Exception:  # noqa: BLE001
-                continue
-            feats = j.get("features") or []
-            if not feats:
-                continue
-            log("HIT", layer, cql, "features:", len(feats))
-            geom = feats[0]["geometry"]
-            coords = geom["coordinates"]
-            if geom["type"] == "MultiPolygon":
-                rings = [r0 for poly in coords for r0 in poly]
-            else:
-                rings = coords
-            return [[(float(p[0]), float(p[1])) for p in ring] for ring in rings]
-
-    # 2) govmap ArcGIS parcel service (layer ids vary; probe the directory)
-    d = try_get("https://ags.govmap.gov.il/arcgis/rest/services?f=json")
-    if d is not None and d.status_code == 200:
-        open(os.path.join(OUT, "ags_services.json"), "w",
-             encoding="utf-8").write(d.text[:200000])
-        log("ags services:", d.text[:1500])
-    return None
+def parcel_rings(gush, helka):
+    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
+            {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
+             "typeNames": "opendata:PARCEL_ALL",
+             "outputFormat": "application/json", "srsName": "EPSG:2039",
+             "count": "5", "CQL_FILTER": f"GUSH_NUM={gush} AND PARCEL={helka}"})
+    if r is None or r.status_code != 200:
+        return None
+    try:
+        feats = r.json().get("features") or []
+    except Exception:  # noqa: BLE001
+        return None
+    if not feats:
+        log("no parcel found for", gush, helka)
+        return None
+    geom = feats[0]["geometry"]
+    coords = geom["coordinates"]
+    rings = ([r0 for poly in coords for r0 in poly]
+             if geom["type"] == "MultiPolygon" else coords)
+    return [[(float(p[0]), float(p[1])) for p in ring] for ring in rings]
 
 
-rings = None
-try:
-    rings = parcel_rings_itm()
-except Exception:  # noqa: BLE001
-    log("parcel lookup failed:\n" + traceback.format_exc()[:1500])
-
-if rings:
-    xs = [p[0] for r in rings for p in r]
-    ys = [p[1] for r in rings for p in r]
-    minx, maxx, miny, maxy = min(xs), max(xs), min(ys), max(ys)
-    log("parcel bbox ITM:", minx, miny, maxx, maxy,
-        "size_m:", round(maxx - minx), round(maxy - miny))
-else:
-    cx, cy = FALLBACK_ITM
-    minx = maxx = cx
-    miny = maxy = cy
-    log("no parcel geometry; using fallback centre", FALLBACK_ITM)
-
-minx -= PAD
-maxx += PAD
-miny -= PAD
-maxy += PAD
-
-# square the extent so the picture is not distorted
-w = maxx - minx
-h = maxy - miny
-if w > h:
-    c = (miny + maxy) / 2
-    miny, maxy = c - w / 2, c + w / 2
-else:
-    c = (minx + maxx) / 2
-    minx, maxx = c - h / 2, c + h / 2
-
-lon0, lat0 = to_wgs.transform(minx, miny)
-lon1, lat1 = to_wgs.transform(maxx, maxy)
-log("bbox wgs84:", lon0, lat0, lon1, lat1)
-
-SIZE = 1500
-
-
-def fetch_base():
-    # Esri World Imagery, no API key needed
-    url = ("https://server.arcgisonline.com/ArcGIS/rest/services/"
-           "World_Imagery/MapServer/export")
-    r = try_get(url, params={"bbox": f"{lon0},{lat0},{lon1},{lat1}",
-                             "bboxSR": "4326", "imageSR": "3857",
-                             "size": f"{SIZE},{SIZE}", "format": "png24",
-                             "transparent": "false", "f": "image"})
+def aerial(lon0, lat0, lon1, lat1):
+    r = get("https://server.arcgisonline.com/ArcGIS/rest/services/"
+            "World_Imagery/MapServer/export",
+            {"bbox": f"{lon0},{lat0},{lon1},{lat1}", "bboxSR": "4326",
+             "imageSR": "3857", "size": f"{SIZE},{SIZE}", "format": "png24",
+             "transparent": "false", "f": "image"})
     if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
         return Image.open(io.BytesIO(r.content)).convert("RGB")
-    # fallback: govmap orthophoto WMS
-    for base in ("https://open.govmap.gov.il/geoserver/opendata/wms",
-                 "https://ags.govmap.gov.il/arcgis/services/orthophoto/"
-                 "MapServer/WMSServer"):
-        r = try_get(base, params={"service": "WMS", "version": "1.1.1",
-                                  "request": "GetMap",
-                                  "bbox": f"{minx},{miny},{maxx},{maxy}",
-                                  "srs": "EPSG:2039",
-                                  "width": SIZE, "height": SIZE,
-                                  "layers": "orthophoto", "format": "image/png"})
-        if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
-            return Image.open(io.BytesIO(r.content)).convert("RGB")
     return None
 
 
-img = fetch_base()
-if img is None:
-    log("NO BASE IMAGERY")
-    img = Image.new("RGB", (SIZE, SIZE), (32, 32, 32))
+def yeud_overlay(minx, miny, maxx, maxy):
+    r = get(XPLAN + "/export",
+            {"bbox": f"{minx},{miny},{maxx},{maxy}", "bboxSR": "2039",
+             "imageSR": "2039", "size": f"{SIZE},{SIZE}", "format": "png32",
+             "transparent": "true", "layers": f"show:{YEUD_LAYER}",
+             "dpi": "96", "f": "image"})
+    if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
+        return Image.open(io.BytesIO(r.content)).convert("RGBA")
+    if r is not None:
+        log("   yeud export body:", r.text[:300])
+    return None
 
-draw = ImageDraw.Draw(img, "RGBA")
+
+def yeud_records(minx, miny, maxx, maxy):
+    r = get(f"{XPLAN}/{YEUD_LAYER}/query",
+            {"geometry": f"{minx},{miny},{maxx},{maxy}",
+             "geometryType": "esriGeometryEnvelope", "inSR": "2039",
+             "spatialRel": "esriSpatialRelIntersects", "outFields": "*",
+             "returnGeometry": "false", "f": "json"})
+    if r is None or r.status_code != 200:
+        return []
+    try:
+        return r.json().get("features", [])
+    except Exception:  # noqa: BLE001
+        log("   yeud query body:", r.text[:300])
+        return []
 
 
-def to_px(x, y):
-    return ((x - minx) / (maxx - minx) * SIZE,
-            (1 - (y - miny) / (maxy - miny)) * SIZE)
+for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
+    try:
+        gush, helka = [int(x) for x in re.split(r"[/\-]", spec)]
+        log(f"=== gush {gush} helka {helka} ===")
+        rings = parcel_rings(gush, helka)
+        if not rings:
+            continue
+        xs = [p[0] for r0 in rings for p in r0]
+        ys = [p[1] for r0 in rings for p in r0]
+        minx, maxx, miny, maxy = min(xs) - PAD, max(xs) + PAD, min(ys) - PAD, max(ys) + PAD
+        w, h = maxx - minx, maxy - miny
+        if w > h:
+            c = (miny + maxy) / 2
+            miny, maxy = c - w / 2, c + w / 2
+        else:
+            c = (minx + maxx) / 2
+            minx, maxx = c - h / 2, c + h / 2
+        lon0, lat0 = to_wgs.transform(minx, miny)
+        lon1, lat1 = to_wgs.transform(maxx, maxy)
 
+        base = aerial(lon0, lat0, lon1, lat1)
+        if base is None:
+            log("NO BASE IMAGERY")
+            continue
 
-if rings:
-    for ring in rings:
-        pts = [to_px(x, y) for x, y in ring]
-        draw.line(pts + [pts[0]], fill=(255, 215, 0, 255), width=6)
-        draw.polygon(pts, fill=(255, 215, 0, 40))
-else:
-    cx, cy = to_px(*FALLBACK_ITM)
-    draw.line([(cx - 40, cy), (cx + 40, cy)], fill=(255, 215, 0, 255), width=5)
-    draw.line([(cx, cy - 40), (cx, cy + 40)], fill=(255, 215, 0, 255), width=5)
+        def to_px(x, y):
+            return ((x - minx) / (maxx - minx) * SIZE,
+                    (1 - (y - miny) / (maxy - miny)) * SIZE)
 
-label = f"Gush {GUSH} / Helka {HELKA}"
-draw.rectangle([20, 20, 20 + 13 * len(label), 70], fill=(0, 0, 0, 170))
-draw.text((34, 36), label, fill=(255, 255, 255, 255))
+        def stamp(img, label):
+            d = ImageDraw.Draw(img, "RGBA")
+            for ring in rings:
+                pts = [to_px(x, y) for x, y in ring]
+                d.polygon(pts, fill=(255, 215, 0, 35))
+                d.line(pts + [pts[0]], fill=(255, 215, 0, 255), width=6)
+            d.rectangle([20, 20, 20 + 13 * len(label), 70], fill=(0, 0, 0, 170))
+            d.text((34, 36), label, fill=(255, 255, 255, 255))
+            return img
 
-name = os.path.join(OUT, f"tza_{GUSH}_{HELKA}.png")
-img.save(name)
-log("wrote", name, os.path.getsize(name), "bytes")
+        plain = stamp(base.copy(), f"Gush {gush} / Helka {helka}")
+        name = os.path.join(OUT, f"tza_{gush}_{helka}.png")
+        plain.save(name)
+        log("wrote", name, os.path.getsize(name))
+
+        ov = yeud_overlay(minx, miny, maxx, maxy)
+        if ov is not None:
+            ov.putalpha(ov.getchannel("A").point(lambda v: int(v * 0.5)))
+            comp = base.copy().convert("RGBA")
+            comp.alpha_composite(ov)
+            comp = stamp(comp.convert("RGB"),
+                         f"Gush {gush} / Helka {helka} - land use (mavat)")
+            name2 = os.path.join(OUT, f"tza_{gush}_{helka}_yeud.png")
+            comp.save(name2)
+            log("wrote", name2, os.path.getsize(name2))
+        else:
+            log("no land-use overlay")
+
+        recs = yeud_records(minx, miny, maxx, maxy)
+        log("land-use records in view:", len(recs))
+        if recs:
+            keys = list(recs[0]["attributes"].keys())
+            log("   fields:", json.dumps(keys, ensure_ascii=False))
+            seen = []
+            for f in recs:
+                a = f["attributes"]
+                row = {k: a.get(k) for k in keys
+                       if any(t in k.upper() for t in
+                              ("YEUD", "NAME", "PL_", "STATION", "AREA",
+                               "NUMBER", "DESC"))}
+                if row not in seen:
+                    seen.append(row)
+            log("   distinct:", json.dumps(seen[:25], ensure_ascii=False))
+            with open(os.path.join(OUT, f"zoning_{gush}_{helka}.json"), "w",
+                      encoding="utf-8") as fh:
+                json.dump([f["attributes"] for f in recs], fh,
+                          ensure_ascii=False, indent=1)
+    except Exception:  # noqa: BLE001
+        log("FAILED", spec, traceback.format_exc()[:1200])
 
 open(os.path.join(OUT, "diag.txt"), "w", encoding="utf-8").write("\n".join(diag))
