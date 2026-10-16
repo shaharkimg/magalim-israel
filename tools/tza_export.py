@@ -168,11 +168,12 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
             return ((x - minx) / (maxx - minx) * SIZE,
                     (1 - (y - miny) / (maxy - miny)) * SIZE)
 
-        def stamp(img, label):
+        def stamp(img, label, fill=False):
             d = ImageDraw.Draw(img, "RGBA")
             for ring in rings:
                 pts = [to_px(x, y) for x, y in ring]
-                d.polygon(pts, fill=(255, 215, 0, 35))
+                if fill:
+                    d.polygon(pts, fill=(255, 215, 0, 35))
                 d.line(pts + [pts[0]], fill=(255, 215, 0, 255), width=6)
             d.rectangle([20, 20, 20 + 13 * len(label), 70], fill=(0, 0, 0, 170))
             d.text((34, 36), label, fill=(255, 255, 255, 255))
