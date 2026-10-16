@@ -1,32 +1,14 @@
-GET 200 4061 https://www.govmap.gov.il/
-GET 200 12878614 https://www.govmap.gov.il/assets/index-bSKiQjTR.js
-bundle chars: 12878614
-=== api route strings ===
-   /api/geoserver/multi
-=== context around 'layers-catalog' ===
-  ... removing style for layerId=".concat(tr,", styleName=").concat(er),ir),ir}}),setLayerDefaultOpacity=createAsyncThunk("users/setLayerDefaultOpacity",async({layerId:tr,defaultOpacity:er,styleId:rr},sr)=>{const{apiServices:nr}=sr.getState(),ir=urlJoin(nr.baseUrl,"layers-catalog","set-default-opacity");try{return await storeRequest(ir,{method:"POST",body:{layerId:String(tr),defaultOpacity:er,styleId:rr}})}catch(ar){throw logger.error("Error setting default opacity:",ar),ar}}),updateWorkspaceTree=createAsyncThunk("catalo
-  ... efaultOpacity:er,styleId:rr}})}catch(ar){throw logger.error("Error setting default opacity:",ar),ar}}),updateWorkspaceTree=createAsyncThunk("catalog/updateWorkspaceTree",async({action:tr},er)=>{var nr;const{apiServices:rr}=er.getState(),sr=urlJoin(rr.baseUrl,"layers-catalog","update-workspace-tree");try{return await storeRequest(sr,{method:"PUT",body:{action:tr}})}catch(ir){return er.rejectWithValue({status:(nr=ir==null?void 0:ir.response)==null?void 0:nr.status})}}),deleteUserLayerGroup=createAsyncThunk("catalog/d
-  ... )}catch(ir){return er.rejectWithValue({status:(nr=ir==null?void 0:ir.response)==null?void 0:nr.status})}}),deleteUserLayerGroup=createAsyncThunk("catalog/deleteUserLayerGroup",async({groupId:tr},er)=>{const{apiServices:rr}=er.getState(),sr=urlJoin(rr.baseUrl,"layers-catalog","delete-layer-group",tr);return await storeRequest(sr,{method:"DELETE"}),!0});function sanitizeWorkspaceTree(tr){return tr.filter(er=>String(er.key)!=="0-1").map(er=>er.children?{...er,children:sanitizeWorkspaceTree(er.children)}:er)}const cata
-  ... tWithValue:rr})=>{try{const sr=getApiServices$1(er()),nr=buildProjectsUrl(sr,tr.projectId,"rename");return await storeRequest(nr,{method:"PATCH",body:{name:tr.name}}),tr}catch(sr){return rr("Failed to rename project")}}),fetch3dConfiguration=createAsyncThunk("layers-catalog/configuration/3d",async(tr,{getState:er})=>{try{const rr=getApiServices$1(er()),sr=urlJoin(rr.baseUrl,rr.layerCatalogApiUrl,"configuration","3d");return await storeRequest(sr)}catch(rr){return null}}),fetchFlatteningTextures=createAsyncThunk("3d
-  ... ist(tr).map(rr=>CLOUD_STORAGE_PROVIDER_VALUE_MAP[rr.trim().toLowerCase()]).filter(rr=>!!rr);return er.length?er:DEFAULT_AUTO_UPDATE_APPROVED_CLOUD_STORAGE},normalizeBoolean=(tr,er=!1)=>typeof tr=="boolean"?tr:er,fetchMediaFieldsConfiguration=createAsyncThunk("layers-catalog/configuration/mediaFields",async(tr,er)=>{try{const rr=er.getState(),{apiServices:sr}=rr,nr=urlJoin(sr.baseUrl,sr.layerCatalogApiUrl,configurationApiUrl,ConfigurationKeys.mediaFields);return await storeRequest(nr)}catch(rr){return null}}),fetchM
-  ... async(tr,er)=>{try{const rr=er.getState(),{apiServices:sr}=rr,nr=urlJoin(sr.baseUrl,sr.layerCatalogApiUrl,configurationApiUrl,ConfigurationKeys.mediaFields);return await storeRequest(nr)}catch(rr){return null}}),fetchMediaUploadConfiguration=createAsyncThunk("layers-catalog/configuration/mediaUpload",async(tr,er)=>{try{const rr=er.getState(),{apiServices:sr}=rr,nr=urlJoin(sr.baseUrl,sr.layerCatalogApiUrl,configurationApiUrl,ConfigurationKeys.mediaUpload);return await storeRequest(nr)}catch(rr){return null}}),fetchM
-=== land-use layer mentions ===
-=== tile / wmts hosts ===
-   http://www.cbs.gov.il
-   http://www.mod.gov.il
-   https://api.govmap.gov.il
-   https://govmap.gov.il
-   https://govmap.org.il
-   https://ims.gov.il
-   https://mekarkein-online.justice.gov.il
-   https://www.gov.il
-   https://www.govmap.gov.il
-=== try layers api ===
-GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog?lang=he
-   body: {"error":"access denied"}
-GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog?searchText=
-   body: {"error":"access denied"}
-GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog/all
-   body: {"error":"access denied"}
-GET 400 25 https://www.govmap.gov.il/api/layers-catalog/search?text=%D7%99%D7%A2%D7%95%D7%93%D7%99
-   body: {"error":"access denied"}
+GET 403 9 https://www.govmap.gov.il/api/geoserver/wms?service=WMS&version=1.3.0&request=GetCapabilities
+   body: Forbidden
+GET 403 9 https://www.govmap.gov.il/api/geoserver/multi/wms?service=WMS&version=1.3.0&request=GetCapabilities
+   body: Forbidden
+GET 403 9 https://www.govmap.gov.il/api/geoserver/govmap/wms?service=WMS&version=1.3.0&request=GetCapabilities
+   body: Forbidden
+GET 404 1376 https://open.govmap.gov.il/geoserver/wms?service=WMS&version=1.3.0&request=GetCapabilities
+   body: <!DOCTYPE html>
+<html dir="rtl" lang="he-IL" class="no-js">
+    <head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width" />
+    	<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <link rel="preconnect" href="https://fonts.
