@@ -1,0 +1,4 @@
+ERR SSLError HTTPSConnectionPool(host='ags.iplan.gov.il', port=443): Max retries exceeded with url: /arcgis/rest/services?f=json (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] sslv3 alert ha https://ags.iplan.gov.il/arcgis/rest/services
+ERR ConnectionError HTTPSConnectionPool(host='ags.govmap.gov.il', port=443): Max retries exceeded with url: /arcgis/rest/services?f=json (Caused by NewConnectionError("HTTPSConnection(host='ags.govmap.gov.il', port=443): https://ags.govmap.gov.il/arcgis/rest/services
+GET 200 233671 https://open.govmap.gov.il/geoserver/opendata/wms?service=WMS&version=1.3.0&request=GetCapabilities
+WMS layer names: ["WMS", "Nikuz", "nikuz", "PARCEL_ALL", "PARCEL_ALL", "Parcels_ITM", "PARCEL_ITM", "SUB_GUSH_ALL", "SUB_GUSH_ALL", "SUB_GUSH_ALL_ITM", "SUB_GUSH_ALL_ITM", "muni_il", "muni_il", "nechalim1", "nechalim"]
