@@ -310,6 +310,10 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
         plain.save(name)
         log("wrote", name, os.path.getsize(name))
 
+        ov_all = yeud_overlay(minx, miny, maxx, maxy, approved_only=False)
+        if ov_all is not None:
+            ov_all.save(os.path.join(OUT, f"overlay_{gush}_{helka}.png"))
+
         ov = yeud_overlay(minx, miny, maxx, maxy)
         if ov is not None:
             ov.putalpha(ov.getchannel("A").point(lambda v: int(v * 0.5)))
