@@ -11,9 +11,11 @@ Runs on a GitHub Actions runner, which has open internet access.
 """
 import io
 import json
+import math
 import os
 import re
 import ssl
+import time
 import traceback
 
 import requests
@@ -101,13 +103,58 @@ def parcel_rings(gush, helka):
 
 
 def aerial(lon0, lat0, lon1, lat1):
-    r = get("https://server.arcgisonline.com/ArcGIS/rest/services/"
-            "World_Imagery/MapServer/export",
-            {"bbox": f"{lon0},{lat0},{lon1},{lat1}", "bboxSR": "4326",
-             "imageSR": "3857", "size": f"{SIZE},{SIZE}", "format": "png24",
-             "transparent": "false", "f": "image"})
-    if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
-        return Image.open(io.BytesIO(r.content)).convert("RGB")
+    for attempt in range(3):
+        r = get("https://server.arcgisonline.com/ArcGIS/rest/services/"
+                "World_Imagery/MapServer/export",
+                {"bbox": f"{lon0},{lat0},{lon1},{lat1}", "bboxSR": "4326",
+                 "imageSR": "3857", "size": f"{SIZE},{SIZE}", "format": "png24",
+                 "transparent": "false", "f": "image"})
+        if r is not None and r.status_code == 200 and r.content[:4] == b"\x89PNG":
+            return Image.open(io.BytesIO(r.content)).convert("RGB")
+        time.sleep(3 * (attempt + 1))
+    log("export failed; stitching tiles instead")
+    return aerial_tiles(lon0, lat0, lon1, lat1)
+
+
+def aerial_tiles(lon0, lat0, lon1, lat1):
+    """Stitch World Imagery XYZ tiles and crop to the bbox."""
+    def deg2xy(lon, lat, z):
+        n = 2 ** z
+        x = (lon + 180.0) / 360.0 * n
+        la = math.radians(lat)
+        y = (1 - math.log(math.tan(la) + 1 / math.cos(la)) / math.pi) / 2 * n
+        return x, y
+
+    for z in (19, 18, 17):
+        x0f, y0f = deg2xy(lon0, lat1, z)   # top-left
+        x1f, y1f = deg2xy(lon1, lat0, z)   # bottom-right
+        tx0, ty0, tx1, ty1 = (int(x0f), int(y0f), int(x1f), int(y1f))
+        if (tx1 - tx0 + 1) * (ty1 - ty0 + 1) > 90:
+            continue
+        canvas = Image.new("RGB", ((tx1 - tx0 + 1) * 256,
+                                   (ty1 - ty0 + 1) * 256), (20, 20, 20))
+        ok = True
+        for tx in range(tx0, tx1 + 1):
+            for ty in range(ty0, ty1 + 1):
+                rr = get("https://server.arcgisonline.com/ArcGIS/rest/services/"
+                         f"World_Imagery/MapServer/tile/{z}/{ty}/{tx}",
+                         quiet=True)
+                if rr is None or rr.status_code != 200:
+                    ok = False
+                    break
+                canvas.paste(Image.open(io.BytesIO(rr.content)).convert("RGB"),
+                             ((tx - tx0) * 256, (ty - ty0) * 256))
+            if not ok:
+                break
+        if not ok:
+            continue
+        left = int((x0f - tx0) * 256)
+        top = int((y0f - ty0) * 256)
+        right = int((x1f - tx0) * 256)
+        bottom = int((y1f - ty0) * 256)
+        log("stitched tiles at zoom", z)
+        return canvas.crop((left, top, right, bottom)).resize(
+            (SIZE, SIZE), Image.LANCZOS)
     return None
 
 
