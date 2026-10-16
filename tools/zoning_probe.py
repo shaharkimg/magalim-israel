@@ -1,4 +1,4 @@
-"""Mine govmap's app bundle for its layers API routes and the land-use layer id."""
+"""Enumerate govmap's proxied GeoServer and find the land-use (mavat) layer."""
 import json
 import os
 import re
@@ -26,57 +26,36 @@ S.headers.update({
     "Referer": "https://www.govmap.gov.il/",
 })
 
+BASES = [
+    "https://www.govmap.gov.il/api/geoserver/wms",
+    "https://www.govmap.gov.il/api/geoserver/multi/wms",
+    "https://www.govmap.gov.il/api/geoserver/govmap/wms",
+    "https://open.govmap.gov.il/geoserver/wms",
+]
 
-def get(url, **kw):
+KEYS = ("יעוד", "ייעוד", "mavat", "mba", "taba", "tba", "zoning", "plan")
+
+for base in BASES:
     try:
-        r = S.get(url, timeout=90, **kw)
-        log("GET", r.status_code, len(r.content), r.url[:220])
-        return r
+        r = S.get(base, params={"service": "WMS", "version": "1.3.0",
+                                "request": "GetCapabilities"}, timeout=120)
     except Exception as e:  # noqa: BLE001
-        log("ERR", type(e).__name__, str(e)[:200], url[:200])
-        return None
-
-
-home = get("https://www.govmap.gov.il/")
-src = ""
-if home is not None:
-    m = re.search(r'src="(/assets/index-[^"]+\.js)"', home.text)
-    if m:
-        rj = get("https://www.govmap.gov.il" + m.group(1))
-        if rj is not None:
-            src = rj.text
-
-log("bundle chars:", len(src))
-
-log("=== api route strings ===")
-routes = sorted(set(re.findall(r'["\'`](/?api/[A-Za-z0-9_\-/{}.$]{3,80})["\'`]', src)))
-for r0 in routes[:120]:
-    log("  ", r0)
-
-log("=== context around 'layers-catalog' ===")
-for m in list(re.finditer(r"layers-catalog", src))[:6]:
-    log("  ...", re.sub(r"\s+", " ", src[max(0, m.start() - 260):m.start() + 260]))
-
-log("=== land-use layer mentions ===")
-for kw in ("מבא", "יעודי קרקע", "ייעודי קרקע"):
-    for m in list(re.finditer(re.escape(kw), src))[:4]:
-        log(f"  [{kw}] ...",
-            re.sub(r"\s+", " ", src[max(0, m.start() - 300):m.start() + 300]))
-
-log("=== tile / wmts hosts ===")
-hosts = sorted(set(re.findall(r"https?://[A-Za-z0-9_.\-]+", src)))
-for h in hosts:
-    if any(k in h for k in ("govmap", "mapi", "iplan", "gov.il", "arcgis")):
-        log("  ", h)
-
-log("=== try layers api ===")
-for u in ("https://www.govmap.gov.il/api/layers-catalog/catalog?lang=he",
-          "https://www.govmap.gov.il/api/layers-catalog/catalog?searchText=",
-          "https://www.govmap.gov.il/api/layers-catalog/catalog/all",
-          "https://www.govmap.gov.il/api/layers-catalog/search?text=%D7%99%D7%A2%D7%95%D7%93%D7%99"):
-    rr = get(u)
-    if rr is not None:
-        log("   body:", rr.text[:1500])
+        log("ERR", type(e).__name__, str(e)[:160], base)
+        continue
+    log("GET", r.status_code, len(r.content), r.url[:200])
+    if r.status_code != 200 or "<" not in r.text[:200]:
+        log("   body:", r.text[:300])
+        continue
+    fname = os.path.join(OUT, "caps_" + re.sub(r"\W+", "_", base)[-60:] + ".xml")
+    open(fname, "w", encoding="utf-8").write(r.text[:3000000])
+    # pair each <Name> with the following <Title> inside <Layer> blocks
+    pairs = re.findall(r"<Name>([^<]+)</Name>\s*<Title>([^<]*)</Title>", r.text)
+    log("   layers:", len(pairs))
+    hits = [(n, t) for n, t in pairs
+            if any(k in n.lower() or k in t.lower() for k in KEYS)]
+    log("   matching layers:", json.dumps(hits[:60], ensure_ascii=False))
+    log("   first 60 names:", json.dumps([n for n, _ in pairs[:60]],
+                                         ensure_ascii=False))
 
 open(os.path.join(OUT, "zoning_probe.txt"), "w",
      encoding="utf-8").write("\n".join(lines))
