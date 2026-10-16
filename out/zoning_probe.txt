@@ -1,14 +1,72 @@
-GET 403 9 https://www.govmap.gov.il/api/geoserver/wms?service=WMS&version=1.3.0&request=GetCapabilities
-   body: Forbidden
-GET 403 9 https://www.govmap.gov.il/api/geoserver/multi/wms?service=WMS&version=1.3.0&request=GetCapabilities
-   body: Forbidden
-GET 403 9 https://www.govmap.gov.il/api/geoserver/govmap/wms?service=WMS&version=1.3.0&request=GetCapabilities
-   body: Forbidden
-GET 404 1376 https://open.govmap.gov.il/geoserver/wms?service=WMS&version=1.3.0&request=GetCapabilities
-   body: <!DOCTYPE html>
-<html dir="rtl" lang="he-IL" class="no-js">
-    <head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width" />
-    	<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <link rel="preconnect" href="https://fonts.
+=== iplan arcgis candidates ===
+GET 200 2848 https://ags.iplan.gov.il/arcgis/rest/services?f=pjson
+   not json: ï»¿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> <HTML>   <meta http-equiv="Content-Type" content="te
+GET 200 2848 https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/Xplan/MapServer?f=pjson
+   not json: ï»¿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> <HTML>   <meta http-equiv="Content-Type" content="te
+GET 200 2848 https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/Xplan20/MapServer?f=pjson
+   not json: ï»¿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> <HTML>   <meta http-equiv="Content-Type" content="te
+GET 200 2848 https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/XPLAN/MapServer?f=pjson
+   not json: ï»¿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> <HTML>   <meta http-equiv="Content-Type" content="te
+GET 200 2848 https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/Xplan_Report/MapServer?f=pjson
+   not json: ï»¿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> <HTML>   <meta http-equiv="Content-Type" content="te
+ERR ConnectionError HTTPSConnectionPool(host='gis.iplan.gov.il', port=443): Max retries exceeded with url: /arcgis/rest/services?f=pjson (Caused by NameResolutionError("HTTPSConnection(host='gis.iplan https://gis.iplan.gov.il/arcgis/rest/services
+ERR ConnectionError HTTPSConnectionPool(host='services.iplan.gov.il', port=443): Max retries exceeded with url: /arcgis/rest/services?f=pjson (Caused by NameResolutionError("HTTPSConnection(host='serv https://services.iplan.gov.il/arcgis/rest/services
+GET 200 162 https://ags.iplan.gov.il/arcgisiplan/rest/services?f=pjson
+   KEYS: ["currentVersion", "folders", "services"]
+   folders: ["PlanningPublic", "Utilities"]
+   services: ["SampleWorldCities"]
+GET 200 3029 https://ags.iplan.gov.il/arcgisiplan/rest/services/PlanningPublic/Xplan/MapServer?f=pjson
+   KEYS: ["currentVersion", "serviceDescription", "mapName", "description", "copyrightText", "supportsDynamicLayers", "layers", "tables", "spatialReference", "singleFusedMapCache", "initialExtent", "fullExtent"]
+   layer 0: ישויות נקודתיות
+   layer 1: קוים כחולים-תכניות מקוונות
+   layer 2: ישויות קוויות
+   layer 3: ישויות פוליגונליות
+   layer 4: יעודי קרקע
+=== data.gov.il search ===
+GET 200 45748 ckan:ייעודי קרקע
+  PKG: ייעודי קרקע | br7-zoning
+      RES: JPEG ייעודי קרקע- כל הפורמטים https://data.gov.il/images/large-previews/5b7/on-the-road-7-1384791.jpg
+      RES: ZIP SHP https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/c2dee7ca-56a4-4b44-9d4d-9786e4cc206b/download/land-designations.zip
+      RES: CSV CSV https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/60bedb3c-1520-4475-86a1-44de38f9d284/download/land-designations.csv
+      RES: XLSX XLSX https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/58a4e0ea-b660-43e3-b3b9-104008eafcc9/download/land-designations.xlsx
+      RES: GeoJSON GeoJSON https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/9d9d650f-d266-4828-bda4-f02c99b7bca5/download/land-designations.geojson
+      RES: GeoJSON GeoJSON-ITM https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/eea662f1-b39e-46b1-970d-8ed4a2a26b6e/download/land-designations.itm.geojson
+  PKG: XPLAN - מה חל במקום שלי | xplan
+      RES:  קישור לאתר XPLAN https://data.gov.il/xplan/
+  PKG: ימי סביבה עולמיים | world-environmental-days
+      RES: XLSX ימי סביבה עולמיים https://data.gov.il/dataset/a9fe54d7-d74c-4adc-a7ca-4768ae6ed2cd/resource/49b7a8ef-447d-41dc-bfc4-2fa4bd30db86/download/environmental_days.xlsx
+  PKG: תכניות מתאר מחוזיות | tmm
+      RES:  קישור למידע תכנוני של מינהל התכנון - תכניות מתאר מחוזיות https://data.gov.il/he/Departments/Guides/new_geo?chapterIndex=2
+GET 200 88854 ckan:רצף ייעודי קרקע
+  PKG: מילוני מאסטר (Code Lists) | dictionaries
+      RES: XLSX מילון ארצות https://data.gov.il/dataset/08645753-6d8b-4bb3-be0f-9cec2cd7557a/resource/cd175110-4e71-4fa5-a828-591df6ff0871/download/diccountry.xlsx
+      RES: XLSX מילון סיווג ענפי כלכלה https://data.gov.il/dataset/08645753-6d8b-4bb3-be0f-9cec2cd7557a/resource/4e7ee924-c8a2-4dc7-8b4f-d6a178e0785e/download/dicstdclassindactivities.xlsx
+      RES: XLSX מילון בתי חולים ומרכזי טראומה https://data.gov.il/dataset/08645753-6d8b-4bb3-be0f-9cec2cd7557a/resource/3ab6475a-7ff4-4c49-ba26-a099d584da4a/download/dichospital.xlsx
+      RES: XLSX מילון מטבע https://data.gov.il/dataset/08645753-6d8b-4bb3-be0f-9cec2cd7557a/resource/1feb3d3a-ef0a-465e-a680-3c65727afc04/download/diccurrency.xlsx
+      RES: XLSX מילון שפות https://data.gov.il/dataset/08645753-6d8b-4bb3-be0f-9cec2cd7557a/resource/663fa193-4b3b-4d25-8290-29f0661c615f/download/diclanguageiso.xlsx
+      RES: XLSX סיווג רצף החשבונות הלאומיים https://data.gov.il/dataset/08645753-6d8b-4bb3-be0f-9cec2cd7557a/resource/7d7d83e0-fb0e-4005-b197-325a890d9062/download/dicsnasequenceaccounts.xlsx
+  PKG: ייעודי קרקע | br7-zoning
+      RES: JPEG ייעודי קרקע- כל הפורמטים https://data.gov.il/images/large-previews/5b7/on-the-road-7-1384791.jpg
+      RES: ZIP SHP https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/c2dee7ca-56a4-4b44-9d4d-9786e4cc206b/download/land-designations.zip
+      RES: CSV CSV https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/60bedb3c-1520-4475-86a1-44de38f9d284/download/land-designations.csv
+      RES: XLSX XLSX https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/58a4e0ea-b660-43e3-b3b9-104008eafcc9/download/land-designations.xlsx
+      RES: GeoJSON GeoJSON https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/9d9d650f-d266-4828-bda4-f02c99b7bca5/download/land-designations.geojson
+      RES: GeoJSON GeoJSON-ITM https://data.gov.il/dataset/b2969a93-239e-4418-815d-3c6b5580ab12/resource/eea662f1-b39e-46b1-970d-8ed4a2a26b6e/download/land-designations.itm.geojson
+  PKG: XPLAN - מה חל במקום שלי | xplan
+      RES:  קישור לאתר XPLAN https://data.gov.il/xplan/
+  PKG: ימי סביבה עולמיים | world-environmental-days
+      RES: XLSX ימי סביבה עולמיים https://data.gov.il/dataset/a9fe54d7-d74c-4adc-a7ca-4768ae6ed2cd/resource/49b7a8ef-447d-41dc-bfc4-2fa4bd30db86/download/environmental_days.xlsx
+  PKG: תכניות מתאר מחוזיות | tmm
+      RES:  קישור למידע תכנוני של מינהל התכנון - תכניות מתאר מחוזיות https://data.gov.il/he/Departments/Guides/new_geo?chapterIndex=2
+GET 200 18776 ckan:מבאת
+  PKG: XPLAN - מה חל במקום שלי | xplan
+      RES:  קישור לאתר XPLAN https://data.gov.il/xplan/
+  PKG: תחום אזורי תעשיה תעסוקה | industrial
+      RES: SHP INDUSTRIAL SHP https://data.gov.il/dataset/8db5effd-59ca-44ef-b561-86e0ce2911d1/resource/c9447ab4-f167-4194-92e4-a5718915004c/download/industrial.zip
+      RES: KMZ INDUSTRIAL KMZ https://data.gov.il/dataset/8db5effd-59ca-44ef-b561-86e0ce2911d1/resource/a7b34e8a-fb46-448c-ad3a-244bae6d137c/download/industrial_kmz.zip
+      RES: CSV INDUSTRIAL csv https://data.gov.il/dataset/8db5effd-59ca-44ef-b561-86e0ce2911d1/resource/71799e72-7a1f-45cf-9d81-5cd1d5f3b201/download/industrial.csv
+      RES: PDF INDUSTRIAL.pdf https://data.gov.il/dataset/8db5effd-59ca-44ef-b561-86e0ce2911d1/resource/f1e63314-8f5e-472a-8733-6496973deaeb/download/industrial.pdf
+GET 200 7828 ckan:תכנון זמין
+  PKG: תוכניות מקוונות | xplan2
+      RES: ZIP XPLAN https://data.gov.il/dataset/768f4b9f-9e67-430c-ba29-d329638230b9/resource/f41c3be3-4c53-4895-8f3b-ee6fa84f715c/download/f41c3be3-4c53-4895-8f3b-ee6fa84f715c.zip
+      RES: ZIP Xplan.zip https://data.gov.il/dataset/768f4b9f-9e67-430c-ba29-d329638230b9/resource/28e0b8b3-4515-4f01-b55f-41e3e2d9dec4/download/xplan.zip
