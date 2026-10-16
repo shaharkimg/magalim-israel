@@ -20,6 +20,9 @@ jobs:
       - run: pip install requests pillow pyproj
       - run: python tools/tza_export.py
         continue-on-error: true
+        env:
+          GUSH: "8561"
+          HELKA: "13"
       - uses: actions/upload-artifact@v4
         with:
           name: tza
