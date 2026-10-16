@@ -95,6 +95,8 @@ def parcel_rings(gush, helka):
     if not feats:
         log("no parcel found for", gush, helka)
         return None
+    props = feats[0].get("properties", {})
+    log("   parcel attributes:", json.dumps(props, ensure_ascii=False)[:600])
     geom = feats[0]["geometry"]
     coords = geom["coordinates"]
     rings = ([r0 for poly in coords for r0 in poly]
@@ -193,6 +195,17 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
         rings = parcel_rings(gush, helka)
         if not rings:
             continue
+        signed = 0.0
+        for ring in rings:
+            s = 0.0
+            for i in range(len(ring) - 1):
+                x1, y1 = ring[i]
+                x2, y2 = ring[i + 1]
+                s += x1 * y2 - x2 * y1
+            signed += s / 2.0
+        area_m2 = abs(signed)
+        log(f"   area: {area_m2:.1f} m2 = {area_m2 / 1000:.3f} dunam")
+
         xs = [p[0] for r0 in rings for p in r0]
         ys = [p[1] for r0 in rings for p in r0]
         minx, maxx, miny, maxy = min(xs) - PAD, max(xs) + PAD, min(ys) - PAD, max(ys) + PAD
