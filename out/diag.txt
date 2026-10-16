@@ -5,11 +5,12 @@ GET 200 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&versi
 GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.58646028550547%2C31.391858797901325%2C34.592250909667285%2C31.396881823357162&bboxSR=4326&imageSR=
 GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.58646028550547%2C31.391858797901325%2C34.592250909667285%2C31.396881823357162&bboxSR=4326&imageSR=
 GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.58646028550547%2C31.391858797901325%2C34.592250909667285%2C31.396881823357162&bboxSR=4326&imageSR=
-export failed; stitching tiles instead
-stitched tiles at zoom 19
-wrote out/tza_100812_31.png 236273
+GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.58646028550547%2C31.391858797901325%2C34.592250909667285%2C31.396881823357162&bboxSR=4326&imageSR=
+GET 200 649960 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.58646028550547%2C31.391858797901325%2C34.592250909667285%2C31.396881823357162&bboxSR=4326&imageSR=
+   imagery at 1.00 m/px
+wrote out/tza_100812_31.png 3125613
 GET 200 162988 https://ags.iplan.gov.il/arcgisiplan/rest/services/PlanningPublic/Xplan/MapServer/export?bbox=160678.05857527%2C589051.0663232901%2C161231.93467439%2C589604.94242241&bboxSR=2039&imageSR=2039
-wrote out/tza_100812_31_yeud.png 423256
+wrote out/tza_100812_31_yeud.png 3079637
 POST 200 578964 yeud intersect query
    breakdown: [{"pl_number": "651-1108703", "pl_name": "פעילות לא חקלאית (פל\"ח) בנחלות במושבי המועצה האזורית שדות נגב ויכיני", "status": "אישור", "yeud": "יעוד עפ\"י תכנית מאושרת אחרת", "m2": 661.4, "dunam": 0.661, "pct_of_parcel": 100.0}, {"pl_number": "651-1400977", "pl_name": "תכנית אסטרטגית לנגב מערבי וחבל תקומה", "status": "מסמך מדיניות", "yeud": "יעוד עפ\"י תכנית מאושרת אחרת", "m2": 661.4, "dunam": 0.661, "pct_of_parcel": 100.0}, {"pl_number": "651-0515072", "pl_name": "הסדרת גבולות מגרשי ההרחבה והוספת 2 מגרשי מגורים - מושב גבעולים", "status": "אישור", "yeud": "מגורים א'", "m2": 646.9, "dunam": 0.647, "pct_of_parcel": 97.8}, {"pl_number": "651-0934133", "pl_name": "מגרש 129 - מושב גבעולים", "status": "אישור", "yeud": "מגורים א'", "m2": 645.7, "dunam": 0.646, "pct_of_parcel": 97.6}, {"pl_number": "651-0754374", "pl_name": "תכנית מתאר כוללנית שדות נגב", "status": "אישור", "yeud": "מגורים בישוב כפרי", "m2": 575.0, "dunam": 0.575, "pct_of_parcel": 86.9}, {"pl_number": "651-0754374", "pl_name": "תכנית מתאר כוללנית שדות נגב", "status": "אישור", "yeud": "דרך מאושרת", "m2": 86.4, "dunam": 0.086, "pct_of_parcel": 13.1}, {"pl_number": "651-0515072", "pl_name": "הסדרת גבולות מגרשי ההרחבה והוספת 2 מגרשי מגורים - מושב גבעולים", "status": "אישור", "yeud": "דרך מאושרת", "m2": 7.3, "dunam": 0.007, "pct_of_parcel": 1.1}, {"pl_number": "651-0515072", "pl_name": "הסדרת גבולות מגרשי ההרחבה והוספת 2 מגרשי מגורים - מושב גבעולים", "status": "אישור", "yeud": "שטח ציבורי פתוח", "m2": 7.2, "dunam": 0.007, "pct_of_parcel": 1.1}]
 GET 200 41567 https://ags.iplan.gov.il/arcgisiplan/rest/services/PlanningPublic/Xplan/MapServer/4/query?geometry=160678.05857527%2C589051.0663232901%2C161231.93467439%2C589604.94242241&geometryType=esriGe
