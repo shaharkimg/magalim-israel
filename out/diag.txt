@@ -13,9 +13,9 @@ GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
 GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
 GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
 GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
-GET 200 15947 https://open.govmap.gov.il/geoserver/opendata/wfs
-HIT opendata:PARCEL_ALL GUSH_NUM=2547 AND PARCEL=10 features: 1
-parcel bbox ITM: 176529.51728058 627901.21989275 176805.86729456 628146.45987989 size_m: 276 245
-bbox wgs84: 34.748691316769644 31.740426063100102 34.75706043977508 31.74763746494743
-GET 200 3810244 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export
-wrote out/tza_2547_10.png 3884625 bytes
+GET 200 1260 https://open.govmap.gov.il/geoserver/opendata/wfs
+HIT opendata:PARCEL_ALL GUSH_NUM=8561 AND PARCEL=13 features: 1
+parcel bbox ITM: 195011.05794319 687189.83911837 195337.84124595 687259.25193488 size_m: 327 69
+bbox wgs84: 34.94220960084385 32.27461816152089 34.951176400597205 32.282272461876154
+GET 200 3713296 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export
+wrote out/tza_8561_13.png 3719240 bytes
