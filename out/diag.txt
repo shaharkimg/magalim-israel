@@ -1,5 +1,7 @@
 === gush 8957 helka 61 ===
 GET 200 1243 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
+   parcel attributes: {"OBJECTID": 737741, "PARCEL_ID": 735039, "GUSH_NUM": 8957, "GUSH_SUFFI": 0, "PARCEL": 61, "LEGAL_AREA": 9135, "PNUMTYPE": 0, "PNUMTYPE_T": "", "STATUS": 6, "STATUS_TEX": "מוסדר", "LOCALITY_I": 288, "LOCALITY_N": "בית יהושע", "REG_MUN_ID": 19, "REG_MUN_NA": "חוף השרון", "COUNTY_ID": 41, "COUNTY_NAM": "השרון", "REGION_ID": 4, "REGION_NAM": "המרכז", "WP": 10019, "TALAR_NUMB": 0, "TALAR_YEAR": 0, "SYS_DATE": "2023-12-12 11:28:00", "ID": "8957--61", "NOTE": "הנתון שטח רשום כאן אינו מהווה אסמכתה. לאסמכתה חוקית לשטח הרשום של חלקה יש לפנות ללשכות המרשם במשרד המשפטים.", "SHAPE_AREA": 9084.40728324, "S
+   area: 9084.4 m2 = 9.084 dunam
 GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.861334330221474%2C32.26196916651807%2C34.86878678670151%2C32.26834139875321&bboxSR=4326&imageSR=38
 GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.861334330221474%2C32.26196916651807%2C34.86878678670151%2C32.26834139875321&bboxSR=4326&imageSR=38
 GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.861334330221474%2C32.26196916651807%2C34.86878678670151%2C32.26834139875321&bboxSR=4326&imageSR=38
