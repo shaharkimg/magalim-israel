@@ -279,6 +279,12 @@ for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
         lon0, lat0 = to_wgs.transform(minx, miny)
         lon1, lat1 = to_wgs.transform(maxx, maxy)
 
+        with open(os.path.join(OUT, f"geo_{gush}_{helka}.json"), "w",
+                  encoding="utf-8") as fh:
+            json.dump({"gush": gush, "helka": helka, "rings": rings,
+                       "bbox_itm": [minx, miny, maxx, maxy], "size_px": SIZE,
+                       "area_m2": area_m2}, fh)
+
         base = aerial(lon0, lat0, lon1, lat1)
         if base is None:
             log("NO BASE IMAGERY")
