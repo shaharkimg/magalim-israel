@@ -8,6 +8,7 @@ GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/M
 export failed; stitching tiles instead
 stitched tiles at zoom 18
 wrote out/tza_8957_61.png 3759799
+GET 200 237893 https://ags.iplan.gov.il/arcgisiplan/rest/services/PlanningPublic/Xplan/MapServer/export?bbox=187127.14190731%2C685419.94961344%2C187831.56190759002%2C686124.36961372&bboxSR=2039&imageSR=203
 GET 200 53968 https://ags.iplan.gov.il/arcgisiplan/rest/services/PlanningPublic/Xplan/MapServer/export?bbox=187127.14190731%2C685419.94961344%2C187831.56190759002%2C686124.36961372&bboxSR=2039&imageSR=203
 wrote out/tza_8957_61_yeud.png 3787282
 POST 200 3418 yeud intersect query
