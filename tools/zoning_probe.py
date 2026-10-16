@@ -1,10 +1,11 @@
-"""Probe the national planning map service (iplan / mavat) for land-use layers.
+"""Find the service behind govmap's "land-use (mavat)" layer.
 
-ags.iplan.gov.il needs a relaxed TLS setup (legacy renegotiation, SECLEVEL=1),
-so it gets its own adapter here. Results land in out/zoning_probe.txt.
+Dumps the iplan error body and mines govmap's own JS bundles for the map
+service URLs it calls. Results land in out/zoning_probe.txt.
 """
 import json
 import os
+import re
 import ssl
 
 import requests
@@ -29,7 +30,7 @@ class LegacyTLSAdapter(HTTPAdapter):
         ctx.verify_mode = ssl.CERT_NONE
         ctx.minimum_version = ssl.TLSVersion.TLSv1
         try:
-            ctx.options |= 0x4  # OP_LEGACY_SERVER_CONNECT
+            ctx.options |= 0x4
         except Exception:  # noqa: BLE001
             pass
         try:
@@ -42,9 +43,13 @@ class LegacyTLSAdapter(HTTPAdapter):
 
 S = requests.Session()
 S.mount("https://", LegacyTLSAdapter())
-S.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
-                                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                "Chrome/124.0 Safari/537.36"})
+S.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Language": "he-IL,he;q=0.9,en;q=0.8",
+})
 
 
 def get(url, **params):
@@ -57,30 +62,44 @@ def get(url, **params):
         return None
 
 
-CANDIDATES = [
-    "https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/Xplan/MapServer",
-    "https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/XplanMavat/MapServer",
-    "https://ags.iplan.gov.il/arcgis/rest/services",
-    "https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic",
-]
+log("=== iplan error body ===")
+r = get("https://ags.iplan.gov.il/arcgis/rest/services/PlanningPublic/Xplan/"
+        "MapServer", f="json")
+if r is not None:
+    body = re.sub(r"\s+", " ", r.text)
+    log(body[:1800])
 
-for url in CANDIDATES:
-    r = get(url, f="json")
-    if r is None or r.status_code != 200:
+log("=== govmap bundles ===")
+home = get("https://www.govmap.gov.il/")
+srcs = []
+if home is not None and home.status_code == 200:
+    srcs = re.findall(r'src="([^"]+\.js[^"]*)"', home.text)
+    srcs += re.findall(r'href="([^"]+\.js[^"]*)"', home.text)
+    log("scripts:", json.dumps(srcs[:40], ensure_ascii=False))
+
+urls = set()
+for s in srcs[:25]:
+    u = s if s.startswith("http") else "https://www.govmap.gov.il/" + s.lstrip("/")
+    rj = get(u)
+    if rj is None or rj.status_code != 200:
         continue
-    try:
-        j = r.json()
-    except Exception:  # noqa: BLE001
-        log("  (not json)", r.text[:300])
-        continue
-    if "folders" in j or "services" in j:
-        log("  folders:", json.dumps(j.get("folders", []), ensure_ascii=False))
-        log("  services:", json.dumps(
-            [s.get("name") for s in j.get("services", [])], ensure_ascii=False))
-    if "layers" in j:
-        log("  spatialReference:", json.dumps(j.get("spatialReference", {})))
-        for lyr in j.get("layers", []):
-            log(f"  layer {lyr.get('id')}: {lyr.get('name')}")
+    for m in re.findall(r"https?://[A-Za-z0-9_.\-]+/[A-Za-z0-9_/.\-]*"
+                        r"(?:MapServer|FeatureServer|geoserver|wms|wfs|api)"
+                        r"[A-Za-z0-9_/.\-]*", rj.text):
+        urls.add(m)
+
+log("service-ish urls found:", len(urls))
+for u in sorted(urls)[:200]:
+    log("  ", u)
+
+log("=== direct api guesses ===")
+for u in ("https://www.govmap.gov.il/api/layers-catalog/catalog",
+          "https://www.govmap.gov.il/api/layers/catalog",
+          "https://www.govmap.gov.il/api/layers-catalog/layers",
+          "https://www.govmap.gov.il/api/search-service/layers"):
+    rr = get(u)
+    if rr is not None and rr.status_code == 200:
+        log("   body:", rr.text[:1200])
 
 open(os.path.join(OUT, "zoning_probe.txt"), "w",
      encoding="utf-8").write("\n".join(lines))
