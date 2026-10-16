@@ -1,0 +1,21 @@
+GET 200 97413 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetCapabilities
+WFS layers: ["opendata:Nikuz", "opendata:SUB_GUSH_ALL", "opendata:SUB_GUSH_ALL_ITM", "opendata:PARCEL_ALL", "opendata:Parcels_ITM", "opendata:nechalim1", "opendata:muni_il"]
+parcel-ish layers: ["opendata:SUB_GUSH_ALL", "opendata:SUB_GUSH_ALL_ITM", "opendata:PARCEL_ALL", "opendata:Parcels_ITM"]
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 0 https://open.govmap.gov.il/geoserver/opendata/wfs
+GET 200 15947 https://open.govmap.gov.il/geoserver/opendata/wfs
+HIT opendata:PARCEL_ALL GUSH_NUM=2547 AND PARCEL=10 features: 1
+parcel bbox ITM: 176529.51728058 627901.21989275 176805.86729456 628146.45987989 size_m: 276 245
+bbox wgs84: 34.748691316769644 31.740426063100102 34.75706043977508 31.74763746494743
+GET 200 3810244 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export
+wrote out/tza_2547_10.png 3884625 bytes
