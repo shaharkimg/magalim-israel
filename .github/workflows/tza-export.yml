@@ -21,7 +21,7 @@ jobs:
       - run: python tools/tza_export.py
         continue-on-error: true
         env:
-          PARCELS: "8957/61"
+          PARCELS: "100812/31"
       - uses: actions/upload-artifact@v4
         with:
           name: tza
