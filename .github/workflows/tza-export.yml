@@ -18,6 +18,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install requests pillow pyproj
+      - run: python tools/zoning_probe.py
+        continue-on-error: true
       - run: python tools/tza_export.py
         continue-on-error: true
         env:
