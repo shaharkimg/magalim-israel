@@ -40,3 +40,4 @@ migrations_landmark_photos_table.sql
 migrations_drop_landmarks_points.sql
 migrations_trip_partners.sql
 migrations_admin_new_user_notification.sql
+migrations_admin_add_landmark.sql

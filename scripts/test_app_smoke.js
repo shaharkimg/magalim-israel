@@ -406,6 +406,49 @@ function baseFake(landmarks, extra) {
       check('no uncaught page errors', errors.length === 0, errors.join(' | '));
       await ctx.close();
     }
+
+    // ---------------------------------------------------------------- 7. admin adds a landmark
+    console.log('\n7. admin dashboard: add a landmark through the server RPC');
+    {
+      const fake = baseFake(landmarks);
+      fake.tables.profiles[0].is_admin = true;
+      const { ctx, page, errors } = await newPage(browser, base, fake, { storageState: seenOnboarding });
+      await page.addInitScript(() => {
+        window.__FAKE.rpc.admin_add_landmark = args => {
+          window.__addArgs = (window.__addArgs || []).concat([args]);
+          const p = args.p;
+          return { landmark: { id: 'adm-test', name: p.name, description: p.description, category: p.category, difficulty: p.difficulty, region: p.region,
+            lat: p.lat, lon: p.lon, duration: p.duration || 'שעה', distance_km: Number(p.distance_km) || 0, base_visits: 0,
+            family_friendly: p.family_friendly, dog_friendly: p.dog_friendly, accessible: p.accessible, has_water: p.has_water, price_type: p.price_type } };
+        };
+      });
+      await page.goto(base + '/#/map', { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => window.__t && window.__t.LANDMARKS.length === 1500 && document.getElementById('loadingScreen').classList.contains('hidden'), null, { timeout: 20000 });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => { location.hash = '#/admin'; });
+      await page.waitForSelector('#adminScreen:not(.hidden) #admAddLmForm', { timeout: 20000 });
+      await page.click('#admLmSubmit');
+      check('cannot submit without a name', !(await page.evaluate(() => window.__addArgs)));
+      await page.fill('#admLmName', '<img src=x onerror=window.__xss=1>מסלול');
+      await page.fill('#admLmDesc', 'תיאור');
+      await page.fill('#admLmLoc', 'not a place');
+      const bad = await page.evaluate(() => document.getElementById('admLmLocInfo').classList.contains('warn'));
+      check('unparseable location is flagged', bad);
+      await page.fill('#admLmLoc', 'https://www.google.com/maps/@32.3672,34.9079,15z');
+      const info = await page.evaluate(() => document.getElementById('admLmLocInfo').textContent);
+      check('google maps url is parsed to coordinates', /32\.367200, 34\.907900/.test(info), info);
+      await page.selectOption('#admLmCategory', 'water');
+      await page.click('#admLmSubmit');
+      await page.waitForFunction(() => (window.__addArgs || []).length > 0, null, { timeout: 10000 });
+      const sent = await page.evaluate(() => window.__addArgs[0].p);
+      check('payload carries parsed location and fields', sent.lat === 32.3672 && sent.lon === 34.9079 && sent.category === 'water' && sent.family_friendly === true, JSON.stringify(sent));
+      const added = await page.evaluate(() => !!window.__t.lmById['adm-test'] && window.__t.LANDMARKS.length === 1501);
+      check('new landmark is added to the map without reload', added);
+      await page.waitForTimeout(300);
+      check('landmark name renders inert in the toast', !(await page.evaluate(() => window.__xss)));
+      check('no uncaught page errors', errors.length === 0, errors.join(' | '));
+      await ctx.close();
+    }
   } finally {
     await browser.close();
     server.close();
