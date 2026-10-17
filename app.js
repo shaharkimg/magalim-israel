@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20260930c5";
+const APP_VERSION = "20261017a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1450,7 +1450,10 @@ function kmForDriveMinutes(min){ return Math.round(min/60*EST_DRIVE_KMH); }
 // כדי שהכפתור יישאר בשפה הגרפית של האפליקציה ולא "ישתלט" ויזואלית).
 const WAZE_ICON_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M13.218 0C9.915 0 6.835 1.49 4.723 4.148c-1.515 1.913-2.31 4.272-2.31 6.706v1.739c0 .894-.62 1.738-1.862 1.813-.298.025-.547.224-.547.522-.05.82.82 2.31 2.012 3.502.82.844 1.788 1.515 2.832 2.036a3 3 0 0 0 2.955 3.528 2.966 2.966 0 0 0 2.931-2.385h2.509c.323 1.689 2.086 2.856 3.974 2.21 1.64-.546 2.36-2.409 1.763-3.924a12.84 12.84 0 0 0 1.838-1.465 10.73 10.73 0 0 0 3.18-7.65c0-2.882-1.118-5.589-3.155-7.625A10.899 10.899 0 0 0 13.218 0zm0 1.217c2.558 0 4.967.994 6.78 2.807a9.525 9.525 0 0 1 2.807 6.78A9.526 9.526 0 0 1 20 17.585a9.647 9.647 0 0 1-6.78 2.807h-2.46a3.008 3.008 0 0 0-2.93-2.41 3.03 3.03 0 0 0-2.534 1.367v.024a8.945 8.945 0 0 1-2.41-1.788c-.844-.844-1.316-1.614-1.515-2.11a2.858 2.858 0 0 0 1.441-.846 2.959 2.959 0 0 0 .795-2.036v-1.789c0-2.11.696-4.197 2.012-5.861 1.863-2.385 4.62-3.726 7.6-3.726zm-2.41 5.986a1.192 1.192 0 0 0-1.191 1.192 1.192 1.192 0 0 0 1.192 1.193A1.192 1.192 0 0 0 12 8.395a1.192 1.192 0 0 0-1.192-1.192zm7.204 0a1.192 1.192 0 0 0-1.192 1.192 1.192 1.192 0 0 0 1.192 1.193 1.192 1.192 0 0 0 1.192-1.193 1.192 1.192 0 0 0-1.192-1.192zm-7.377 4.769a.596.596 0 0 0-.546.845 4.813 4.813 0 0 0 4.346 2.757 4.77 4.77 0 0 0 4.347-2.757.596.596 0 0 0-.547-.845h-.025a.561.561 0 0 0-.521.348 3.59 3.59 0 0 1-3.254 2.061 3.591 3.591 0 0 1-3.254-2.061.64.64 0 0 0-.546-.348z"/></svg>';
 function openWazeNavigation(latitude, longitude, destinationName){
-  window.open(`https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`, "_blank", "noopener");
+  // חיפוש לפי שם היעד (q) - כך Waze מנווט לנקודה הרשמית שלו עבור המקום ולא לקואורדינטה גולמית.
+  // ll משמש רק להטיית החיפוש לאזור הנכון (שמות כמו "יער ..." חוזרים בהרבה מקומות), וגם כגיבוי אם אין שם.
+  const q = destinationName ? `q=${encodeURIComponent(destinationName)}&` : "";
+  window.open(`https://waze.com/ul?${q}ll=${latitude},${longitude}&navigate=yes`, "_blank", "noopener");
 }
 function wireWazeButton(btn, l){
   if(!btn || !l) return;
@@ -2076,6 +2079,12 @@ function applyRoute(){
 // עותק מקומי של רשימת היעדים (שינוי איטי, ~1MB): מאפשר לאפליקציה לעלות ולהראות מפה גם
 // בטיול בלי קליטה. נשמר בהצלחה אחרי כל טעינה מלאה; כל כשל אחסון (מכסה מלאה / מצב פרטי) מתעלמים.
 const LANDMARKS_CACHE_KEY = "magalim-landmarks-cache-v1";
+// שורת landmarks מה-DB -> האובייקט שהאפליקציה עובדת איתו (גם בטעינה וגם אחרי הוספת יעד בלוח הניהול)
+function landmarkFromRow(l){
+  return { id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, baseVisits:l.base_visits,
+    familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null,
+    officialUrl:l.official_url||null, stockPhotoUrl:l.stock_photo_url||null, stockPhotoCredit:l.stock_photo_credit||null };
+}
 function cacheLandmarks(rows){
   // ~1MB: לא כותבים בכל עלייה (רק כשהמספר השתנה או עברו 12 שעות) ולא על הנתיב הקריטי של הטעינה
   const META = LANDMARKS_CACHE_KEY+"-meta";
@@ -2142,9 +2151,7 @@ async function bootPublic(){
       trackMapLoadFailure(fetchErr);
       setTimeout(()=>toast("אין חיבור — מוצגים המקומות שנשמרו במכשיר"), 1200);
     }
-    LANDMARKS = lms.map(l=>({ id:l.id, name:l.name, desc:l.description, category:l.category, difficulty:l.difficulty, region:l.region, lat:l.lat, lon:l.lon, duration:l.duration, distanceKm:l.distance_km, baseVisits:l.base_visits,
-      familyFriendly:!!l.family_friendly, dogFriendly:!!l.dog_friendly, accessible:!!l.accessible, hasWater:!!l.has_water, priceType:l.price_type||"free", season:l.season||null, durationHours:l.duration_hours!=null?Number(l.duration_hours):null,
-      officialUrl:l.official_url||null, stockPhotoUrl:l.stock_photo_url||null, stockPhotoCredit:l.stock_photo_credit||null }));
+    LANDMARKS = lms.map(landmarkFromRow);
     lmById = Object.fromEntries(LANDMARKS.map(l=>[l.id,l]));
     await loadVisitCounts();
     loadLandmarkPhotos().then(()=>{
@@ -2650,6 +2657,199 @@ async function saveAdminSettings(){
   $("admSaveBtn").disabled = false;
   $("admSaveNote").textContent = error ? "שגיאה בשמירת ההגדרות." : "ההגדרות נשמרו.";
   $("admSaveNote").classList.add("show");
+}
+
+/* ============ ADMIN: הוספת יעד ============ */
+// הכתיבה עצמה רק דרך admin_add_landmark() בשרת (בודקת is_admin ומאמתת כל שדה) - כאן רק
+// פענוח מיקום נוח, אזהרת-כפילות לפי מרחק, ועדכון המפה בלי טעינה מחדש.
+const OLC_ALPHABET = "23456789CFGHJMPQRVWX";
+// Open Location Code (Plus Code) - מלא ("8G4P9W85+V5C") או מקוצר ("9W85+V5C"), שמשלימים
+// לפי נקודת ייחוס (המיקום האחרון של המשתמש, או מרכז הארץ). מחזיר null לקוד לא תקין.
+function decodePlusCode(raw, refLat, refLon){
+  let code = raw.toUpperCase().replace(/\s+/g,"");
+  const plus = code.indexOf("+");
+  if(plus<2 || plus>8 || plus%2) return null;
+  const digits = code.replace("+","").replace(/0+$/,"");
+  if(![...digits].every(c=>OLC_ALPHABET.includes(c))) return null;
+  const decodeFull = c=>{
+    const d = c.replace("+","");
+    let lat = -90, lon = -180, res = 20;
+    for(let i=0; i<Math.min(d.length,10); i+=2){
+      lat += OLC_ALPHABET.indexOf(d[i])*res; lon += OLC_ALPHABET.indexOf(d[i+1])*res;
+      if(i+2 < Math.min(d.length,10)) res /= 20;
+    }
+    // אחרי 10 ספרות התא הוא 1/8000 מעלה; כל ספרה נוספת מחלקת אותו לרשת 5x4
+    let latSize = res, lonSize = res;
+    for(let i=10; i<d.length; i++){
+      const k = OLC_ALPHABET.indexOf(d[i]);
+      latSize /= 5; lonSize /= 4;
+      lat += Math.floor(k/4)*latSize; lon += (k%4)*lonSize;
+    }
+    return { lat: lat + latSize/2, lon: lon + lonSize/2 };
+  };
+  if(plus===8) return decodeFull(code);
+  // קוד מקוצר: משלימים את הקידומת מנקודת הייחוס ומתקנים קפיצה מעבר לגבול התא
+  const pad = 8 - plus, res = Math.pow(20, 2 - pad/2), half = res/2;
+  const ref = encodePlusPrefix(refLat, refLon);
+  const p = decodeFull(ref.slice(0,pad) + code);
+  if(refLat + half < p.lat) p.lat -= res; else if(refLat - half > p.lat) p.lat += res;
+  if(refLon + half < p.lon) p.lon -= res; else if(refLon - half > p.lon) p.lon += res;
+  return p;
+}
+function encodePlusPrefix(lat, lon){
+  let la = lat + 90, lo = lon + 180, res = 20, out = "";
+  for(let i=0; i<4; i++){
+    const a = Math.floor(la/res), b = Math.floor(lo/res);
+    out += OLC_ALPHABET[a] + OLC_ALPHABET[b]; la -= a*res; lo -= b*res; res /= 20;
+  }
+  return out;
+}
+// "32.36, 34.90" / קישור Google Maps מלא (@lat,lon · !3dlat!4dlon · q=lat,lon) / Plus Code.
+// קישורי maps.app.goo.gl מקוצרים אי אפשר לפתוח מהדפדפן (CORS) - מבקשים קואורדינטות במקום.
+function parseLocationInput(text){
+  const t = (text||"").trim();
+  if(!t) return null;
+  if(/goo\.gl\//i.test(t)) return { error:"קישור מקוצר לא נתמך — פתחו אותו ב-Google Maps והעתיקו את הקואורדינטות או את ה-Plus Code" };
+  const num = "(-?\\d{1,2}\\.\\d+)";
+  const pats = [ new RegExp("!3d"+num+"!4d"+num), new RegExp("@"+num+","+num), new RegExp("[?&](?:q|ll|query|destination)=" + num + "(?:,|%2C)\\s*" + num, "i"), new RegExp("^" + num + "\\s*[,\\s]\\s*" + num + "$") ];
+  for(const re of pats){
+    const m = t.match(re);
+    if(m) return { lat:Number(m[1]), lon:Number(m[2]) };
+  }
+  const pc = t.match(/[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]*/i);
+  if(pc){
+    const round = p=>({ lat:+p.lat.toFixed(6), lon:+p.lon.toFixed(6) });
+    if(userLoc){
+      const p = decodePlusCode(pc[0], userLoc.lat, userLoc.lon);
+      if(p) return round(p);
+    } else {
+      // בלי מיקום משתמש קוד מקוצר דו-משמעי (התא שלו מעלה אחת, ישראל משתרעת על כ-4.5) -
+      // מחזירים את כל האפשרויות בתוך הגבולות, והמנהל בוחר לפי שם היעד הקרוב לכל אחת
+      const seen = new Set(), choices = [];
+      for(let dLat=-3; dLat<=3; dLat++) for(let dLon=-1; dLon<=1; dLon++){
+        const p = decodePlusCode(pc[0], 31.5+dLat, 35+dLon);
+        if(!p || !inIsraelBounds(p)) continue;
+        const r = round(p), key = r.lat+","+r.lon;
+        if(!seen.has(key)){ seen.add(key); choices.push(r); }
+      }
+      // אפשרויות בים/בירדן/בלבנון נופלות כי אין לידן אף יעד
+      const onLand = choices.filter(c=> nearestLandmarks(c.lat, c.lon, 15).length);
+      if(onLand.length===1) return onLand[0];
+      if(onLand.length) return { choices:onLand };
+    }
+  }
+  return { error:"לא זיהינו מיקום — הזינו קואורדינטות (למשל 32.3672, 34.9079) או Plus Code" };
+}
+function inIsraelBounds(p){ return p && p.lat>=29 && p.lat<=34 && p.lon>=34 && p.lon<=36; }
+function nearestLandmarks(lat, lon, maxKm){
+  return LANDMARKS.map(l=>({ l, km:haversine(lat,lon,l.lat,l.lon) }))
+    .filter(x=>x.km<=maxKm).sort((a,b)=>a.km-b.km);
+}
+let admLmLoc = null;
+function updateAdminLmLocation(){
+  const info = $("admLmLocInfo");
+  const p = parseLocationInput($("admLmLoc").value);
+  admLmLoc = null;
+  info.classList.remove("warn");
+  if(!p){ info.textContent = ""; return; }
+  if(p.error || !inIsraelBounds(p)){
+    info.textContent = p.error || "המיקום מחוץ לגבולות ישראל";
+    info.classList.add("warn");
+    return;
+  }
+  if(p.choices){
+    info.innerHTML = "קוד מקוצר — בחרו את המקום הנכון:<br>" + p.choices.map(c=>{
+      const n = nearestLandmarks(c.lat, c.lon, 15)[0];
+      return `<button type="button" class="chip" data-ll="${c.lat},${c.lon}" style="margin:4px 0 0 6px;">${n ? "ליד "+escapeHtml(n.l.name) : `${c.lat}, ${c.lon}`}</button>`;
+    }).join("");
+    info.querySelectorAll("[data-ll]").forEach(b=> b.onclick = ()=>{
+      $("admLmLoc").value = b.dataset.ll.replace(",", ", ");
+      updateAdminLmLocation();
+    });
+    return;
+  }
+  admLmLoc = p;
+  const near = nearestLandmarks(p.lat, p.lon, 30);
+  // אזור ברירת מחדל = האזור של היעד הקרוב ביותר (אפשר לשנות ידנית)
+  if(near.length && !$("admLmRegion").dataset.touched) $("admLmRegion").value = near[0].l.region;
+  const close = near.filter(x=>x.km<=1);
+  info.innerHTML = `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)} · <a href="https://www.google.com/maps?q=${p.lat},${p.lon}" target="_blank" rel="noopener">בדיקה במפה</a>`
+    + (close.length ? `<br>קרוב ליעד קיים: ${close.slice(0,3).map(x=>`${escapeHtml(x.l.name)} (${x.km<0.1?"פחות מ-100 מ'":x.km.toFixed(1)+" ק\"מ"})`).join(", ")}` : "");
+  if(close.length) info.classList.add("warn");
+}
+function initAdminAddLandmarkForm(){
+  const fill = (id, dict)=>{ $(id).innerHTML = Object.entries(dict).map(([k,v])=>`<option value="${k}">${escapeHtml(v)}</option>`).join(""); };
+  fill("admLmCategory", Object.fromEntries(Object.entries(CATEGORIES).map(([k,c])=>[k,c.label])));
+  fill("admLmRegion", REGIONS);
+  fill("admLmDifficulty", Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t.label])));
+  $("admLmCategory").value = "nature";
+  $("admLmRegion").value = "center";
+  $("admLmRegion").onchange = ()=>{ $("admLmRegion").dataset.touched = "1"; };
+  $("admLmLoc").oninput = updateAdminLmLocation;
+  $("admLmHereBtn").onclick = ()=>{
+    const btn = $("admLmHereBtn");
+    btn.disabled = true;
+    locateUser(pos=>{
+      btn.disabled = false;
+      $("admLmLoc").value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      updateAdminLmLocation();
+    }, err=>{ btn.disabled = false; toast(geoErrorMessage(err)); }, { preciseOnly:true });
+  };
+  $("admAddLmForm").onsubmit = e=>{ e.preventDefault(); submitAdminLandmark(); };
+}
+const ADMIN_LM_ERRORS = {
+  not_authenticated:"צריך להתחבר מחדש.", not_authorized:"אין לך הרשאת מנהל.",
+  invalid_name:"שם היעד חייב להכיל 2–80 תווים.", invalid_description:"חסר תיאור (עד 600 תווים).",
+  invalid_category:"קטגוריה לא תקינה.", invalid_region:"אזור לא תקין.", invalid_difficulty:"רמת קושי לא תקינה.",
+  invalid_price:"סוג מחיר לא תקין.", invalid_location:"המיקום חסר או מחוץ לגבולות ישראל.",
+  invalid_number:"אורך או משך לא תקינים.", invalid_duration:"טקסט המשך ארוך מדי.", invalid_url:"כתובת האתר צריכה להתחיל ב-https://",
+};
+async function submitAdminLandmark(allowDuplicateName){
+  const note = $("admLmNote"), btn = $("admLmSubmit");
+  const show = msg=>{ note.textContent = msg; note.classList.add("show"); };
+  note.classList.remove("show");
+  updateAdminLmLocation();
+  const name = $("admLmName").value.trim(), desc = $("admLmDesc").value.trim();
+  if(name.length<2){ show(ADMIN_LM_ERRORS.invalid_name); $("admLmName").focus(); return; }
+  if(!desc){ show(ADMIN_LM_ERRORS.invalid_description); $("admLmDesc").focus(); return; }
+  if(!admLmLoc){ show(ADMIN_LM_ERRORS.invalid_location); $("admLmLoc").focus(); return; }
+  if(!allowDuplicateName){
+    const close = nearestLandmarks(admLmLoc.lat, admLmLoc.lon, 1);
+    if(close.length){
+      const ok = await confirmAction({ title:"יש יעד קרוב", message:`"${close[0].l.name}" נמצא במרחק ${close[0].km.toFixed(1)} ק"מ. להוסיף בכל זאת?`, confirmLabel:"להוסיף" });
+      if(!ok) return;
+    }
+  }
+  const payload = {
+    name, description:desc, lat:admLmLoc.lat, lon:admLmLoc.lon,
+    category:$("admLmCategory").value, region:$("admLmRegion").value, difficulty:$("admLmDifficulty").value,
+    duration:$("admLmDuration").value.trim(), distance_km:$("admLmKm").value, duration_hours:$("admLmHours").value,
+    family_friendly:$("admLmFamily").checked, dog_friendly:$("admLmDog").checked, accessible:$("admLmAccessible").checked,
+    has_water:$("admLmWater").checked, price_type:$("admLmPaid").checked?"paid":"free",
+    official_url:$("admLmUrl").value.trim(), allow_duplicate_name:!!allowDuplicateName,
+  };
+  btn.disabled = true;
+  const { data, error } = await supabase.rpc("admin_add_landmark", { p: payload });
+  btn.disabled = false;
+  if(error || !data){ show("שגיאה בהוספת היעד (יתכן שהמיגרציה טרם רצה)."); return; }
+  if(data.error==="name_exists"){
+    const ok = await confirmAction({ title:"השם כבר קיים", message:`כבר יש יעד בשם "${name}". להוסיף יעד נוסף באותו שם?`, confirmLabel:"להוסיף" });
+    if(ok) submitAdminLandmark(true);
+    return;
+  }
+  if(data.error){ show(ADMIN_LM_ERRORS[data.error] || "שגיאה בהוספת היעד."); return; }
+  const lm = landmarkFromRow(data.landmark);
+  LANDMARKS.push(lm);
+  lmById[lm.id] = lm;
+  regionHullsCache = null;
+  renderMap();
+  $("admAddLmForm").reset();
+  $("admLmRegion").value = lm.region;
+  delete $("admLmRegion").dataset.touched;
+  $("admLmLocInfo").textContent = "";
+  admLmLoc = null;
+  show(`"${lm.name}" נוסף למפה.`);
+  toast(`"${escapeHtml(lm.name)}" נוסף`, { label:"הצג", onClick:()=> goToDestination(lm.id) });
 }
 
 function subscribeRealtime(){
@@ -3981,6 +4181,7 @@ function wireStaticUI(){
   $("revokeSharingBtn").onclick = revokeSharing;
   $("adminCloseBtn").onclick = closeAdmin;
   $("admSaveBtn").onclick = saveAdminSettings;
+  initAdminAddLandmarkForm();
   $("adminLinkBtn").onclick = ()=> navigate("#/admin");
   $("deleteAccountBtn").onclick = async ()=>{
     const ok = await confirmAction({
