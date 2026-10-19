@@ -278,12 +278,13 @@ def resolve_point(spec):
     else:
         x, y = to_itm.transform(b, a)  # spec is lat,lon -> transform(lon,lat)
     log(f"=== point {spec} -> ITM {x:.2f},{y:.2f} ===")
+    d = 3.0
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
              "typeNames": "opendata:PARCEL_ALL",
              "outputFormat": "application/json", "srsName": "EPSG:2039",
-             "count": "5",
-             "CQL_FILTER": f"INTERSECTS(the_geom, POINT({x} {y}))"})
+             "count": "25",
+             "bbox": f"{x - d},{y - d},{x + d},{y + d},EPSG:2039"})
     if r is None or r.status_code != 200:
         log("   point lookup failed")
         return None
@@ -291,10 +292,24 @@ def resolve_point(spec):
         feats = r.json().get("features") or []
     except Exception:  # noqa: BLE001
         return None
+    log(f"   {len(feats)} candidate parcel(s) near point")
     if not feats:
         log("   no parcel at point", spec)
         return None
-    pr = feats[0].get("properties", {})
+    from shapely.geometry import Point, shape
+    pt = Point(x, y)
+    hit = None
+    for f in feats:
+        try:
+            if shape(f["geometry"]).buffer(0).contains(pt):
+                hit = f
+                break
+        except Exception:  # noqa: BLE001
+            continue
+    if hit is None:
+        hit = feats[0]
+        log("   no polygon strictly contains the point; using nearest candidate")
+    pr = hit.get("properties", {})
     g, h = pr.get("GUSH_NUM"), pr.get("PARCEL")
     log(f"   point resolves to gush {g} helka {h}",
         pr.get("LOCALITY_N"), "legal_area", pr.get("LEGAL_AREA"))
