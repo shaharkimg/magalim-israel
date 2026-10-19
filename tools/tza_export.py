@@ -68,6 +68,7 @@ S.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                   "Accept": "*/*"})
 
 to_wgs = Transformer.from_crs("EPSG:2039", "EPSG:4326", always_xy=True)
+to_itm = Transformer.from_crs("EPSG:4326", "EPSG:2039", always_xy=True)
 
 
 def get(url, params=None, quiet=False):
@@ -265,7 +266,53 @@ def yeud_records(minx, miny, maxx, maxy):
         return []
 
 
-for spec in [p.strip() for p in PARCELS.split(",") if p.strip()]:
+
+def resolve_point(spec):
+    """POINTS entry "a,b" -> "gush/helka" for the parcel containing that point.
+
+    Accepts ITM/EPSG:2039 "x,y" (values > 100000) or WGS84 "lat,lon".
+    """
+    a, b = [float(v.strip()) for v in spec.split(",")[:2]]
+    if abs(a) > 100000 or abs(b) > 100000:
+        x, y = a, b
+    else:
+        x, y = to_itm.transform(b, a)  # spec is lat,lon -> transform(lon,lat)
+    log(f"=== point {spec} -> ITM {x:.2f},{y:.2f} ===")
+    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
+            {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
+             "typeNames": "opendata:PARCEL_ALL",
+             "outputFormat": "application/json", "srsName": "EPSG:2039",
+             "count": "5",
+             "CQL_FILTER": f"INTERSECTS(the_geom, POINT({x} {y}))"})
+    if r is None or r.status_code != 200:
+        log("   point lookup failed")
+        return None
+    try:
+        feats = r.json().get("features") or []
+    except Exception:  # noqa: BLE001
+        return None
+    if not feats:
+        log("   no parcel at point", spec)
+        return None
+    pr = feats[0].get("properties", {})
+    g, h = pr.get("GUSH_NUM"), pr.get("PARCEL")
+    log(f"   point resolves to gush {g} helka {h}",
+        pr.get("LOCALITY_N"), "legal_area", pr.get("LEGAL_AREA"))
+    return f"{g}/{h}"
+
+
+SPECS = [p.strip() for p in PARCELS.split(",") if p.strip()]
+for _pt in [p.strip() for p in os.environ.get("POINTS", "").split(";") if p.strip()]:
+    try:
+        _res = resolve_point(_pt)
+    except Exception as e:  # noqa: BLE001
+        log("   point error", type(e).__name__, str(e)[:160])
+        _res = None
+    if _res and _res not in SPECS:
+        SPECS.append(_res)
+
+
+for spec in SPECS:
     try:
         gush, helka = [int(x) for x in re.split(r"[/\-]", spec)]
         log(f"=== gush {gush} helka {helka} ===")
