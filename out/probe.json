@@ -1,0 +1,451 @@
+{
+ "plan": "651-0484089",
+ "gush": "100805",
+ "parcels_in_gush": [
+  {
+   "helka": 3,
+   "legal_area": 696700,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 6,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 7,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 8,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 9,
+   "legal_area": 588,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 10,
+   "legal_area": 599,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 11,
+   "legal_area": 601,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 12,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 13,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 14,
+   "legal_area": 630,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 15,
+   "legal_area": 630,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 16,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 17,
+   "legal_area": 950,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 18,
+   "legal_area": 730,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 19,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 20,
+   "legal_area": 1000,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 21,
+   "legal_area": 900,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 22,
+   "legal_area": 800,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 23,
+   "legal_area": 595,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 24,
+   "legal_area": 614,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 25,
+   "legal_area": 637,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 26,
+   "legal_area": 617,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 27,
+   "legal_area": 606,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 28,
+   "legal_area": 603,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 29,
+   "legal_area": 620,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 30,
+   "legal_area": 602,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 34,
+   "legal_area": 514,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 35,
+   "legal_area": 607,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 36,
+   "legal_area": 742,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 37,
+   "legal_area": 590,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 38,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 39,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 40,
+   "legal_area": 681,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 41,
+   "legal_area": 590,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 42,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 43,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 44,
+   "legal_area": 603,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 45,
+   "legal_area": 588,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 46,
+   "legal_area": 599,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 47,
+   "legal_area": 602,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 48,
+   "legal_area": 598,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 49,
+   "legal_area": 602,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 50,
+   "legal_area": 602,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 51,
+   "legal_area": 601,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 52,
+   "legal_area": 589,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 53,
+   "legal_area": 603,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 54,
+   "legal_area": 624,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 55,
+   "legal_area": 590,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 56,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 57,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 58,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 59,
+   "legal_area": 590,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 60,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 61,
+   "legal_area": 608,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 62,
+   "legal_area": 599,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 63,
+   "legal_area": 588,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 64,
+   "legal_area": 599,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 65,
+   "legal_area": 582,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 66,
+   "legal_area": 605,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 67,
+   "legal_area": 597,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 68,
+   "legal_area": 588,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 69,
+   "legal_area": 605,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 70,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 71,
+   "legal_area": 590,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 72,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 73,
+   "legal_area": 594,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 74,
+   "legal_area": 600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 75,
+   "legal_area": 601,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 76,
+   "legal_area": 2993,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 77,
+   "legal_area": 1105,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 78,
+   "legal_area": 3564,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 79,
+   "legal_area": 17789,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 80,
+   "legal_area": 25640,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 81,
+   "legal_area": 1288,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 82,
+   "legal_area": 3011,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 83,
+   "legal_area": 140,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 84,
+   "legal_area": 210,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 86,
+   "legal_area": 3052,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 88,
+   "legal_area": 4600,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 89,
+   "legal_area": 293,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 93,
+   "legal_area": 18844,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 95,
+   "legal_area": 5525,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 96,
+   "legal_area": 871,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 97,
+   "legal_area": 870,
+   "locality": "תלמי בילו"
+  },
+  {
+   "helka": 98,
+   "legal_area": 711,
+   "locality": "תלמי בילו"
+  }
+ ],
+ "plan_parts": [
+  {
+   "pl_name": "נחלה מספר 65 במושב תלמי ביל\"ו",
+   "yeud": "קרקע חקלאית",
+   "status": "אישור",
+   "m2": 7004.2
+  },
+  {
+   "pl_name": "נחלה מספר 65 במושב תלמי ביל\"ו",
+   "yeud": "מגורים בישוב כפרי",
+   "status": "אישור",
+   "m2": 2999.8
+  }
+ ],
+ "plan_centroid_itm": [
+  166279.87,
+  593691.09
+ ],
+ "plan_total_m2": 10004.0,
+ "resolved": "100805/3"
+}
