@@ -1,0 +1,8 @@
+POST 200 1903 plan geometry
+GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.64303329050404%2C31.432146189194572%2C34.6475462128428%2C31.43605527663009&bboxSR=4326&imageSR=385
+GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.64303329050404%2C31.432146189194572%2C34.6475462128428%2C31.43605527663009&bboxSR=4326&imageSR=385
+GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.64303329050404%2C31.432146189194572%2C34.6475462128428%2C31.43605527663009&bboxSR=4326&imageSR=385
+GET 500 643 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.64303329050404%2C31.432146189194572%2C34.6475462128428%2C31.43605527663009&bboxSR=4326&imageSR=385
+GET 200 385409 https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=34.64303329050404%2C31.432146189194572%2C34.6475462128428%2C31.43605527663009&bboxSR=4326&imageSR=385
+   imagery at 1.00 m/px
+wrote out/plan_nahala-65.png out/plan_nahala-65_yeud.png
