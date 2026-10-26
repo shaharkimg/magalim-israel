@@ -1,0 +1,35 @@
+name: tza-export
+
+on:
+  push:
+    branches: [claude-tza-export]
+  workflow_dispatch:
+    inputs:
+      parcels:
+        description: "gush/helka,gush/helka"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests pillow pyproj shapely numpy
+      - run: python tools/tza_export.py
+        continue-on-error: true
+        env:
+          PARCELS: ${{ github.event.inputs.parcels != '' && github.event.inputs.parcels || '100805/3,100805/1' }}
+          POINTS: ""
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tza
+          path: out
+          retention-days: 1
