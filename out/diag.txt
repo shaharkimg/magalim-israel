@@ -1,2 +1,19 @@
-GET 404 1376 https://open.govmap.gov.il/geoserver/wfs?service=WFS&version=2.0.0&request=GetCapabilities
-   capabilities failed
+GET 400 25 https://www.govmap.gov.il/api/layers-catalog/catalog
+   status 400 len 25
+   body: {"error":"access denied"}
+GET 404 166 https://www.govmap.gov.il/api/search-service/autocomplete?searchText=100812/143
+   status 404 len 166
+   body: <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot GET /search-service/autocomplete</pre>
+</body>
+</html>
+
+GET 200 18838 https://data.gov.il/api/3/action/package_search?q=parcel
+   status 200 len 18838
+   body: {"help": "https://data.gov.il/api/3/action/help_show?name=package_search", "success": true, "result": {"count": 2, "facets": {}, "results": [{"author": null, "author_email": "vered@mapi.gov.il", "creator_user_id": "fe2ccffb-a7bc-47c9-b35e-599f8ca0040a", "id": "bd74ce49-4397-4271-94ad-cddfc7dd04f0", "isopen": true, "license_id": "other-open", "license_title": "Other (Open)", "mail_box": "vered@mapi.gov.il", "maintainer": null, "maintainer_email": null, "metadata_created": "2026-10-19T12:52:15.818640", "metadata_modified": "2026-10-20T07:57:07.946427", "name": "modern-cadaster", "notes": "\u05d1\u05e1\u05d9\u05e1 \u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e7\u05d3\u05e1\u05d8\u05e8 \u05d1\u05de\u05d1\u05e0\u05d4 \u05d7\u05d3\u05e9.\r\n\u05d4\u05e9\u05db\u05d1\u05d5\u05ea \u05d4\u05d7\u05d3\u05e9\u05d5\u05ea \u05de\u05e1\u05e4\u05e7\u05d5\u05ea \u05d0\u05ea \u05d0\u05d5\u05ea\u05d5 \u05d4\u05de\u05d9\u05d3\u05e2 \u05d4\u05de\u05d5\u05e2\u05d1\u05e8 \u05db\u05d9\u05d5\u05dd, \u05d0\u05da \u05d1\u05de\u05d1\u05e0\u05d4 \u05e1\u05db\u05de\u05d4 \u05d7\u05d3\u05e9. \u05d3\u05d5\u05d2\u05de\u05ea \u05e7\u05d5\u05d1\u05e5 gdb.\r\n\u05d8\u05d1\u05dc\u05d0\u05d5\u05ea \u05d4\u05d0\u05e7\u05e1\u05dc \u05de\u05ea\u05d0\u05e8\u05d5\u05ea \u05d0\u05ea \u05e1\u05db\u05de\u05ea \u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc \u05d4\u05e9\u05db\u05d1\u05d5\u05ea \u05d5\u05d4-Domain.", "num_resources": 8, "num_tags": 5, "organization": {"id": "7e53d29b-cf3a-488b-9335-f1967c4b37b9", "name": "israel_mapping_center", "title": "\u05d4\u05de\u05e8\u05db\u05d6 \u05dc\u05de\u05d9\u05e4\u05d5\u05d9 \u05d9\u05e9\u05e8\u05d0\u05dc", "type": "organization", "description": "", "image_url": "2021-08-17-142632.639898Logo-New.jpg", "created": "2015-12-07T10:40:46.788578", "is_organization": true, "approval_status": "approved", "state": "active"}, "owner_org": "7e53d29b-cf3a-488b-9335-f1967c4b37b9", "private": false, "remark": "\u05d4\u05de\u05d9\u05d3\u05e2 \u05d1\u05d3\u05d5\u05d2\u05de\u05d0\u05d5\u05ea \u05d0\u05dc\u05d5 \u05de\u05e9\u05de\u05e9 \u05db\u05d3\u05d5\u05d2\u05de\u05d0 \u05d1\u05dc\u05d1\u05d3. \u05d4\u05de\u05d9\u05d3\u05e2 \u05d0\u05d9\u05e0\u05d5 \u05de\u05e2\u05d5\u05d3\u05db\u05df.", "state": "active", "title": "\u05e0\u05ea\u05d5\u05e0\u05d9 \u05e7\u05d3\u05e1\u05d8\u05e8 \u05d1\u05de\u05d1\u05e0\u05d4 \u05d7\u05d3\u05e9", "title_link": "", "type": "dataset", "url": "", "url_link": "", "version": null, "resources": [{"Frequency": "NoUpdate", "cache_last_updated": null, "cache_url": null, "category": "information", "created": "2026-10-19T13:04:29.234037", "datastore_active": false, "datastore_contains_all_records_of_source_file": false, "description": null, "format": "XLSX", "hash": "", "how_update": "Manual", "id": "db3eaf27-d8da-43c1-88cc-c2f7a0af441e", "last_modified": "2026-10-20T07:33:13.101053", "metadata_modified": "2026-10-20T07:33:13.146778", "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "mimetype_inner": null
