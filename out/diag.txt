@@ -1,9 +1,3 @@
-GET 200 97413 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetCapabilities
-   7 feature types
-      opendata:Nikuz
-      opendata:PARCEL_ALL
-      opendata:Parcels_ITM
-      opendata:SUB_GUSH_ALL
-      opendata:SUB_GUSH_ALL_ITM
-      opendata:muni_il
-      opendata:nechalim1
+GET 200 1327 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3Anechalim1&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=2
+   keys: ['ACC_LEN', 'DATA_YEAR', 'FCODE', 'FNAME', 'FNAME_CODE', 'FSTATUS', 'FTYPE', 'HYDRO_NET', 'LATIN_NAME', 'ORIG_LEN', 'PARENT', 'PRDCT_VER', 'SHAPE_Leng', 'STRM_ORDER', 'UNIQ_ID']
+   row: {"UNIQ_ID": 59305739, "PARENT": 1238429, "FCODE": 701, "FTYPE": 13, "FSTATUS": 32, "HYDRO_NET": 51, "STRM_ORDER": 3, "ACC_LEN": 1320.83499055, "FNAME_CODE": 577, "FNAME": "נחל אלי-אל", "LATIN_NAME": "Nahal Eli-El", "ORIG_LEN": 109.01360513, "DATA_YEAR": 2014, "PRDCT_VER": "2015-07", "SHAPE_Leng": 109.013605128}
