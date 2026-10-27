@@ -1,0 +1,19 @@
+serving /home/runner/work/magalim-israel/magalim-israel/tools/govmap_web on :8765
+govmap defined: object
+  console: debug Successfully connected to a new govmap iframe
+  console: debug Request arrived {requestId: 4f819d91-66bb-4c54-a6db-b5d087af5183, requestType: authenticate, payload: Object}
+  console: log Service Worker registered:  ServiceWorkerRegistration
+  console: error Failed to load resource: the server responded with a status of 401 ()
+  console: error Failed to load resource: the server responded with a status of 400 ()
+  console: warning Failed to authenticate API token
+  console: debug Received message from iframe MessageEvent
+  console: error API token authentication failed
+  console: error Failed to load resource: the server responded with a status of 401 ()
+  console: error Failed to load resource: the server responded with a status of 401 ()
+  console: error Failed to load resource: the server responded with a status of 401 ()
+  console: debug Request arrived {requestId: d869dbf2-ba68-4c97-aeb3-810822d1c650, requestType: getLayerData, payload: Object}
+  console: warning Received API request but not authenticated MessageEvent
+  page: govmap typeof: object
+  page: govmap keys: _messagePorts,_iframeMessagesSubject,_subscriptionsMap,_iframeElements,_listeningPorts,_debouncedSearch,cursorType,events,geocodeType,locateType,drawType,geometryType,saveAction,saveActionStatus,rendererType,internalClickEvents,aggSrid,aggOperationType,aggTimeseriesInterval,aggTimeseriesAggregation,aggViewMode,aggSpatialRelation,aggSpatialLogic,aggCompareTo,aggSortType,aggSortOrder,aggDisplayFormat,aggNullHandling,layerFilterFields,languages
+  page: createMap returned: object
+result: None
