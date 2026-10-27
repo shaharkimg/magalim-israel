@@ -4,27 +4,6 @@ on:
   push:
     branches: [claude-tza-export]
   workflow_dispatch:
-    inputs:
-      parcels:
-        description: "gush/helka,gush/helka"
-        required: false
-        default: ""
-      points:
-        description: "lat,lon;lat,lon  (resolve parcel containing the point)"
-        required: false
-        default: ""
-      locality_parcels:
-        description: "locality/helka,locality/helka  (helka '*' lists gushim)"
-        required: false
-        default: ""
-      centers:
-        description: "ITM x,y[,half_m];x,y[,half_m]  render around a coordinate"
-        required: false
-        default: ""
-      parcel_layer:
-        description: "WFS feature type for parcels (default opendata:PARCEL_ALL)"
-        required: false
-        default: ""
 
 permissions:
   contents: write
@@ -42,16 +21,12 @@ jobs:
       - run: python tools/tza_export.py
         continue-on-error: true
         env:
-          PARCELS: ${{ github.event.inputs.parcels }}
-          POINTS: ${{ github.event.inputs.points }}
-          LOCALITY_PARCELS: ${{ github.event.inputs.locality_parcels }}
-          PARCEL_LAYER: ${{ github.event.inputs.parcel_layer }}
-          CENTERS: ${{ github.event.inputs.centers }}
+          PARCELS: "100242/149,200242/149,400242/149,210024/149"
+          POINTS: "31.3286,34.6564"
       - uses: actions/upload-artifact@v4
         with:
           name: tza
           path: out
-          retention-days: 1
       - name: commit output
         run: |
           git config user.name "github-actions[bot]"

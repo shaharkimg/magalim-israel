@@ -27,7 +27,6 @@ from pyproj import Transformer
 OUT = "out"
 os.makedirs(OUT, exist_ok=True)
 PARCELS = os.environ.get("PARCELS", "2547/10,8561/13")
-PARCEL_LAYER = os.environ.get("PARCEL_LAYER") or "opendata:PARCEL_ALL"
 PAD = float(os.environ.get("PAD_M", "260"))
 SIZE = 1500
 XPLAN = ("https://ags.iplan.gov.il/arcgisiplan/rest/services/"
@@ -84,17 +83,11 @@ def get(url, params=None, quiet=False):
 
 
 def parcel_rings(gush, helka):
-    gush = str(gush)
-    if "-" in gush:
-        gnum, gsuf = gush.split("-", 1)
-        cql = (f"GUSH_NUM={gnum} AND GUSH_SUFFI={gsuf} AND PARCEL={helka}")
-    else:
-        cql = f"GUSH_NUM={gush} AND PARCEL={helka}"
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": PARCEL_LAYER,
+             "typeNames": "opendata:PARCEL_ALL",
              "outputFormat": "application/json", "srsName": "EPSG:2039",
-             "count": "5", "CQL_FILTER": cql})
+             "count": "5", "CQL_FILTER": f"GUSH_NUM={gush} AND PARCEL={helka}"})
     if r is None or r.status_code != 200:
         return None
     try:
@@ -104,10 +97,6 @@ def parcel_rings(gush, helka):
     if not feats:
         log("no parcel found for", gush, helka)
         return None
-    if len(feats) > 1:
-        log("   WARNING", len(feats), "parcels match — sub-gushim:",
-            [f.get("properties", {}).get("ID") for f in feats],
-            "— using the first; pass gush-suffi/helka to disambiguate")
     props = feats[0].get("properties", {})
     log("   parcel attributes:", json.dumps(props, ensure_ascii=False)[:600])
     geom = feats[0]["geometry"]
@@ -292,7 +281,7 @@ def resolve_point(spec):
     d = 3.0
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": PARCEL_LAYER,
+             "typeNames": "opendata:PARCEL_ALL",
              "outputFormat": "application/json", "srsName": "EPSG:2039",
              "count": "25",
              "bbox": f"{x - d},{y - d},{x + d},{y + d},EPSG:2039"})
@@ -327,126 +316,6 @@ def resolve_point(spec):
     return f"{g}/{h}"
 
 
-def list_layers(base="https://open.govmap.gov.il/geoserver/opendata/wfs"):
-    """Log every WFS feature type a GeoServer endpoint publishes."""
-    r = get(base, {"service": "WFS", "version": "2.0.0",
-                   "request": "GetCapabilities"})
-    if r is None or r.status_code != 200:
-        log("   capabilities failed")
-        return
-    import re as _re
-    names = _re.findall(r"<(?:wfs:)?Name>([^<]+)</(?:wfs:)?Name>", r.text)
-    names = sorted(set(names))
-    log(f"   {len(names)} feature types")
-    for n in names:
-        log("     ", n)
-
-
-def sample_layer(name):
-    """Log the property keys and a sample row of a WFS feature type."""
-    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
-            {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": name, "outputFormat": "application/json",
-             "srsName": "EPSG:2039", "count": "2"})
-    if r is None or r.status_code != 200:
-        log("   sample failed", name)
-        return
-    try:
-        feats = r.json().get("features") or []
-    except Exception:  # noqa: BLE001
-        log("   sample not json", r.text[:200])
-        return
-    if not feats:
-        log("   no features in", name)
-        return
-    pr = feats[0].get("properties", {})
-    log("   keys:", sorted(pr))
-    log("   row:", json.dumps(pr, ensure_ascii=False)[:500])
-
-
-def probe_url(u):
-    """GET an arbitrary URL and log a truncated response (layer discovery)."""
-    r = get(u)
-    if r is None:
-        return
-    log("   status", r.status_code, "len", len(r.content))
-    log("   body:", r.text[:3000])
-
-
-def resolve_locality(spec):
-    """LOCALITY_PARCELS entry "locality/helka" -> "gush/helka".
-
-    Finds a parcel by locality name when the card's gush number is wrong.
-    A helka of "*" just lists the gush numbers registered to that locality.
-    """
-    if spec.strip() == "layers":
-        list_layers()
-        return None
-    if spec.strip().startswith("layers:"):
-        list_layers(spec.strip()[7:])
-        return None
-    if spec.strip().startswith("probe:"):
-        probe_url(spec.strip()[6:])
-        return None
-    if spec.strip().startswith("sample:"):
-        sample_layer(spec.strip()[7:])
-        return None
-    loc, helka = spec.rsplit("/", 1)
-    loc, helka = loc.strip(), helka.strip()
-    log(f"=== locality {loc} helka {helka} ===")
-    if loc.startswith("mun:"):
-        base = f"REG_MUN_NA LIKE '%{loc[4:]}%'"
-    elif loc.isdigit():
-        base = f"GUSH_NUM={loc}"
-    else:
-        base = f"LOCALITY_N LIKE '%{loc}%'"
-    cql = base if helka == "*" else f"{base} AND PARCEL={helka}"
-    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
-            {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": PARCEL_LAYER,
-             "outputFormat": "application/json", "srsName": "EPSG:2039",
-             "count": "1000", "CQL_FILTER": cql})
-    if r is None or r.status_code != 200:
-        log("   locality lookup failed")
-        return None
-    try:
-        feats = r.json().get("features") or []
-    except Exception:  # noqa: BLE001
-        return None
-    if not feats:
-        log("   no parcel found for locality", loc, "helka", helka)
-        return None
-    if helka == "*":
-        seen, locs = {}, {}
-        for f in feats:
-            pr = f.get("properties", {})
-            seen.setdefault(pr.get("GUSH_NUM"), []).append(pr.get("PARCEL"))
-            locs.setdefault(pr.get("GUSH_NUM"), []).append(
-                pr.get("LOCALITY_N") or "(blank)")
-        for g in sorted(seen, key=lambda v: (v is None, v)):
-            hs = sorted(x for x in seen[g] if x is not None)
-            log(f"   gush {g}: {len(hs)} parcels, "
-                f"min {hs[0] if hs else '-'} max {hs[-1] if hs else '-'}")
-            log(f"      helkot {hs}")
-            log(f"      localities {sorted(set(locs.get(g, [])))}")
-        return None
-    for f in feats[:20]:
-        pr = f.get("properties", {})
-        cx = cy = None
-        try:
-            from shapely.geometry import shape as _sh
-            c = _sh(f["geometry"]).buffer(0).centroid
-            cx, cy = round(c.x), round(c.y)
-        except Exception:  # noqa: BLE001
-            pass
-        log("   candidate", pr.get("ID"), "gush", pr.get("GUSH_NUM"),
-            "suffi", pr.get("GUSH_SUFFI"), "helka", pr.get("PARCEL"),
-            repr(pr.get("LOCALITY_N")), pr.get("REG_MUN_NA"),
-            "area", pr.get("LEGAL_AREA"), "centroid", cx, cy)
-    pr = feats[0].get("properties", {})
-    return f"{pr.get('GUSH_NUM')}/{pr.get('PARCEL')}"
-
-
 SPECS = [p.strip() for p in PARCELS.split(",") if p.strip()]
 for _pt in [p.strip() for p in os.environ.get("POINTS", "").split(";") if p.strip()]:
     try:
@@ -457,44 +326,12 @@ for _pt in [p.strip() for p in os.environ.get("POINTS", "").split(";") if p.stri
     if _res and _res not in SPECS:
         SPECS.append(_res)
 
-for _c in [p.strip() for p in os.environ.get("CENTERS", "").split(";")
-           if p.strip()]:
-    _p = [v.strip() for v in _c.split(",")]
-    if len(_p) >= 2:
-        SPECS.append("@" + "_".join(_p[:3]))
-
-for _lp in [p.strip() for p in os.environ.get("LOCALITY_PARCELS", "").split(",")
-            if p.strip()]:
-    try:
-        _res = resolve_locality(_lp)
-    except Exception as e:  # noqa: BLE001
-        log("   locality error", type(e).__name__, str(e)[:160])
-        _res = None
-    if _res and _res not in SPECS:
-        SPECS.append(_res)
-
 
 for spec in SPECS:
     try:
-        if spec.startswith("@"):
-            _v = [float(v) for v in spec[1:].split("_")]
-            _cx, _cy = _v[0], _v[1]
-            _hf = _v[2] if len(_v) > 2 else 150.0
-            gush, helka = "pt", f"{int(_cx)}x{int(_cy)}"
-            log(f"=== center ITM {_cx:.0f},{_cy:.0f} half-span {_hf:.0f} m ===")
-            log("   NOTE: square view box, not a cadastral parcel outline")
-            rings = [[(_cx - _hf, _cy - _hf), (_cx + _hf, _cy - _hf),
-                      (_cx + _hf, _cy + _hf), (_cx - _hf, _cy + _hf),
-                      (_cx - _hf, _cy - _hf)]]
-        else:
-            _m = re.match(r"^(\d+)(?:-(\d+))?/(\d+)$", spec)
-            if not _m:
-                log("   bad spec", spec)
-                continue
-            gush = _m.group(1) + ("-" + _m.group(2) if _m.group(2) else "")
-            helka = int(_m.group(3))
-            log(f"=== gush {gush} helka {helka} ===")
-            rings = parcel_rings(gush, helka)
+        gush, helka = [int(x) for x in re.split(r"[/\-]", spec)]
+        log(f"=== gush {gush} helka {helka} ===")
+        rings = parcel_rings(gush, helka)
         if not rings:
             continue
         signed = 0.0
