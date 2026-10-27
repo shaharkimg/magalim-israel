@@ -325,8 +325,12 @@ def resolve_locality(spec):
     loc, helka = spec.rsplit("/", 1)
     loc, helka = loc.strip(), helka.strip()
     log(f"=== locality {loc} helka {helka} ===")
-    base = (f"GUSH_NUM={loc}" if loc.isdigit()
-            else f"LOCALITY_N LIKE '%{loc}%'")
+    if loc.startswith("mun:"):
+        base = f"REG_MUN_NA LIKE '%{loc[4:]}%'"
+    elif loc.isdigit():
+        base = f"GUSH_NUM={loc}"
+    else:
+        base = f"LOCALITY_N LIKE '%{loc}%'"
     cql = base if helka == "*" else f"{base} AND PARCEL={helka}"
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
