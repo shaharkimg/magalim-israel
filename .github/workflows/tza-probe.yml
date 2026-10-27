@@ -3,6 +3,20 @@ name: tza-probe
 on:
   push:
     branches: [claude-tza-probe]
+  workflow_dispatch:
+    inputs:
+      gx:
+        description: "ITM X"
+        required: false
+        default: "160890"
+      gy:
+        description: "ITM Y"
+        required: false
+        default: "589470"
+      radius:
+        description: "search radius in metres"
+        required: false
+        default: "200"
 
 permissions:
   contents: write
@@ -17,11 +31,15 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install requests pillow pyproj shapely numpy
-      - run: cd tools && PARCELS="" POINTS="" python tza_probe.py && PARCELS="" POINTS="" python tza_plan.py && mkdir -p ../out && cp -r out/. ../out/
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - run: mkdir -p out && python tools/govmap_api.py
         continue-on-error: true
         env:
-          PLAN: "651-0484089"
-          PROBE_GUSH: "100805"
+          OUTDIR: out
+          GX: ${{ github.event.inputs.gx }}
+          GY: ${{ github.event.inputs.gy }}
+          RADIUS: ${{ github.event.inputs.radius }}
+          GOVMAP_TOKEN: ${{ secrets.GOVMAP_TOKEN }}
       - name: commit output
         run: |
           git config user.name "github-actions[bot]"

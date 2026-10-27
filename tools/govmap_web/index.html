@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he">
+<head><meta charset="utf-8"><title>govmap probe</title>
+<script src="https://www.govmap.gov.il/govmap/api/govmap.api.js"></script>
+<style>#map{width:800px;height:600px}</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+window.__log = [];
+function L(){ window.__log.push(Array.from(arguments).map(String).join(' ')); }
+window.__done = false;
+window.__result = null;
+
+window.runProbe = function (gx, gy, radius, token) {
+  try {
+    L('govmap typeof:', typeof window.govmap);
+    if (typeof window.govmap === 'undefined') { window.__done = true; return; }
+    L('govmap keys:', Object.keys(window.govmap).slice(0, 40).join(','));
+    var opts = { layers: ['PARCEL_ALL'], showXY: true, identifyOnClick: false };
+    if (token) { opts.token = token; }
+    var p = govmap.createMap('map', opts);
+    L('createMap returned:', typeof p);
+    setTimeout(function () {
+      try {
+        govmap.getLayerData({ LayerName: 'PARCEL_ALL', Point: { x: gx, y: gy }, Radius: radius })
+          .then(function (resp) {
+            L('getLayerData OK');
+            window.__result = resp;
+            window.__done = true;
+          })
+          .catch(function (e) {
+            L('getLayerData ERR:', e && (e.message || JSON.stringify(e)));
+            window.__done = true;
+          });
+      } catch (e) { L('getLayerData threw:', e.message); window.__done = true; }
+    }, 4000);
+  } catch (e) { L('outer threw:', e.message); window.__done = true; }
+};
+</script>
+</body>
+</html>
