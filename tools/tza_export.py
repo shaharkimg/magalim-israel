@@ -457,6 +457,12 @@ for _pt in [p.strip() for p in os.environ.get("POINTS", "").split(";") if p.stri
     if _res and _res not in SPECS:
         SPECS.append(_res)
 
+for _c in [p.strip() for p in os.environ.get("CENTERS", "").split(";")
+           if p.strip()]:
+    _p = [v.strip() for v in _c.split(",")]
+    if len(_p) >= 2:
+        SPECS.append("@" + "_".join(_p[:3]))
+
 for _lp in [p.strip() for p in os.environ.get("LOCALITY_PARCELS", "").split(",")
             if p.strip()]:
     try:
@@ -470,9 +476,25 @@ for _lp in [p.strip() for p in os.environ.get("LOCALITY_PARCELS", "").split(",")
 
 for spec in SPECS:
     try:
-        gush, helka = [int(x) for x in re.split(r"[/\-]", spec)]
-        log(f"=== gush {gush} helka {helka} ===")
-        rings = parcel_rings(gush, helka)
+        if spec.startswith("@"):
+            _v = [float(v) for v in spec[1:].split("_")]
+            _cx, _cy = _v[0], _v[1]
+            _hf = _v[2] if len(_v) > 2 else 150.0
+            gush, helka = "pt", f"{int(_cx)}x{int(_cy)}"
+            log(f"=== center ITM {_cx:.0f},{_cy:.0f} half-span {_hf:.0f} m ===")
+            log("   NOTE: square view box, not a cadastral parcel outline")
+            rings = [[(_cx - _hf, _cy - _hf), (_cx + _hf, _cy - _hf),
+                      (_cx + _hf, _cy + _hf), (_cx - _hf, _cy + _hf),
+                      (_cx - _hf, _cy - _hf)]]
+        else:
+            _m = re.match(r"^(\d+)(?:-(\d+))?/(\d+)$", spec)
+            if not _m:
+                log("   bad spec", spec)
+                continue
+            gush = _m.group(1) + ("-" + _m.group(2) if _m.group(2) else "")
+            helka = int(_m.group(3))
+            log(f"=== gush {gush} helka {helka} ===")
+            rings = parcel_rings(gush, helka)
         if not rings:
             continue
         signed = 0.0
