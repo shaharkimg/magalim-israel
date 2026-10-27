@@ -365,6 +365,15 @@ def sample_layer(name):
     log("   row:", json.dumps(pr, ensure_ascii=False)[:500])
 
 
+def probe_url(u):
+    """GET an arbitrary URL and log a truncated response (layer discovery)."""
+    r = get(u)
+    if r is None:
+        return
+    log("   status", r.status_code, "len", len(r.content))
+    log("   body:", r.text[:3000])
+
+
 def resolve_locality(spec):
     """LOCALITY_PARCELS entry "locality/helka" -> "gush/helka".
 
@@ -373,6 +382,9 @@ def resolve_locality(spec):
     """
     if spec.strip() == "layers":
         list_layers()
+        return None
+    if spec.strip().startswith("probe:"):
+        probe_url(spec.strip()[6:])
         return None
     if spec.strip().startswith("sample:"):
         sample_layer(spec.strip()[7:])
