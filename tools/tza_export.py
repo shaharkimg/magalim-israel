@@ -316,12 +316,31 @@ def resolve_point(spec):
     return f"{g}/{h}"
 
 
+def list_layers():
+    """Log every WFS feature type the govmap opendata service publishes."""
+    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
+            {"service": "WFS", "version": "2.0.0",
+             "request": "GetCapabilities"})
+    if r is None or r.status_code != 200:
+        log("   capabilities failed")
+        return
+    import re as _re
+    names = _re.findall(r"<(?:wfs:)?Name>([^<]+)</(?:wfs:)?Name>", r.text)
+    names = sorted(set(n for n in names if ":" in n))
+    log(f"   {len(names)} feature types")
+    for n in names:
+        log("     ", n)
+
+
 def resolve_locality(spec):
     """LOCALITY_PARCELS entry "locality/helka" -> "gush/helka".
 
     Finds a parcel by locality name when the card's gush number is wrong.
     A helka of "*" just lists the gush numbers registered to that locality.
     """
+    if spec.strip() == "layers":
+        list_layers()
+        return None
     loc, helka = spec.rsplit("/", 1)
     loc, helka = loc.strip(), helka.strip()
     log(f"=== locality {loc} helka {helka} ===")
