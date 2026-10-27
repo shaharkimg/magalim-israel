@@ -336,7 +336,7 @@ def list_layers(base="https://open.govmap.gov.il/geoserver/opendata/wfs"):
         return
     import re as _re
     names = _re.findall(r"<(?:wfs:)?Name>([^<]+)</(?:wfs:)?Name>", r.text)
-    names = sorted(set(n for n in names if ":" in n))
+    names = sorted(set(names))
     log(f"   {len(names)} feature types")
     for n in names:
         log("     ", n)
