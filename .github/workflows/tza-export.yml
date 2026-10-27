@@ -4,6 +4,11 @@ on:
   push:
     branches: [claude-tza-export]
   workflow_dispatch:
+    inputs:
+      parcels:
+        description: "gush/helka,gush/helka"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -21,12 +26,13 @@ jobs:
       - run: python tools/tza_export.py
         continue-on-error: true
         env:
-          PARCELS: "100242/149,200242/149,400242/149,210024/149"
-          POINTS: "31.3286,34.6564"
+          PARCELS: ${{ github.event.inputs.parcels != '' && github.event.inputs.parcels || '100805/3,100805/1' }}
+          POINTS: ""
       - uses: actions/upload-artifact@v4
         with:
           name: tza
           path: out
+          retention-days: 1
       - name: commit output
         run: |
           git config user.name "github-actions[bot]"
