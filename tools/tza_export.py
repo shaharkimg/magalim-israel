@@ -325,13 +325,14 @@ def resolve_locality(spec):
     loc, helka = spec.rsplit("/", 1)
     loc, helka = loc.strip(), helka.strip()
     log(f"=== locality {loc} helka {helka} ===")
-    cql = (f"LOCALITY_N LIKE '%{loc}%'" if helka == "*"
-           else f"LOCALITY_N LIKE '%{loc}%' AND PARCEL={helka}")
+    base = (f"GUSH_NUM={loc}" if loc.isdigit()
+            else f"LOCALITY_N LIKE '%{loc}%'")
+    cql = base if helka == "*" else f"{base} AND PARCEL={helka}"
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
              "typeNames": "opendata:PARCEL_ALL",
              "outputFormat": "application/json", "srsName": "EPSG:2039",
-             "count": "200", "CQL_FILTER": cql})
+             "count": "1000", "CQL_FILTER": cql})
     if r is None or r.status_code != 200:
         log("   locality lookup failed")
         return None
@@ -343,13 +344,18 @@ def resolve_locality(spec):
         log("   no parcel found for locality", loc, "helka", helka)
         return None
     if helka == "*":
-        seen = {}
+        seen, locs = {}, {}
         for f in feats:
             pr = f.get("properties", {})
             seen.setdefault(pr.get("GUSH_NUM"), []).append(pr.get("PARCEL"))
+            locs.setdefault(pr.get("GUSH_NUM"), []).append(
+                pr.get("LOCALITY_N") or "(blank)")
         for g in sorted(seen, key=lambda v: (v is None, v)):
             hs = sorted(x for x in seen[g] if x is not None)
-            log(f"   gush {g}: {len(hs)} parcels, helkot {hs}")
+            log(f"   gush {g}: {len(hs)} parcels, "
+                f"min {hs[0] if hs else '-'} max {hs[-1] if hs else '-'}")
+            log(f"      helkot {hs}")
+            log(f"      localities {sorted(set(locs.get(g, [])))}")
         return None
     for f in feats[:10]:
         pr = f.get("properties", {})
