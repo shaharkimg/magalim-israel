@@ -349,7 +349,7 @@ def resolve_locality(spec):
             seen.setdefault(pr.get("GUSH_NUM"), []).append(pr.get("PARCEL"))
         for g in sorted(seen, key=lambda v: (v is None, v)):
             hs = sorted(x for x in seen[g] if x is not None)
-            log(f"   gush {g}: {len(hs)} parcels, helkot {hs[:40]}")
+            log(f"   gush {g}: {len(hs)} parcels, helkot {hs}")
         return None
     for f in feats[:10]:
         pr = f.get("properties", {})
