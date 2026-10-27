@@ -327,11 +327,10 @@ def resolve_point(spec):
     return f"{g}/{h}"
 
 
-def list_layers():
-    """Log every WFS feature type the govmap opendata service publishes."""
-    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
-            {"service": "WFS", "version": "2.0.0",
-             "request": "GetCapabilities"})
+def list_layers(base="https://open.govmap.gov.il/geoserver/opendata/wfs"):
+    """Log every WFS feature type a GeoServer endpoint publishes."""
+    r = get(base, {"service": "WFS", "version": "2.0.0",
+                   "request": "GetCapabilities"})
     if r is None or r.status_code != 200:
         log("   capabilities failed")
         return
@@ -382,6 +381,9 @@ def resolve_locality(spec):
     """
     if spec.strip() == "layers":
         list_layers()
+        return None
+    if spec.strip().startswith("layers:"):
+        list_layers(spec.strip()[7:])
         return None
     if spec.strip().startswith("probe:"):
         probe_url(spec.strip()[6:])
