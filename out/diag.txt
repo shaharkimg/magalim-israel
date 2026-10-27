@@ -1,9 +1,8 @@
-GET 200 97413 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetCapabilities
-   7 feature types
-      opendata:Nikuz
-      opendata:PARCEL_ALL
-      opendata:Parcels_ITM
-      opendata:SUB_GUSH_ALL
-      opendata:SUB_GUSH_ALL_ITM
-      opendata:muni_il
-      opendata:nechalim1
+GET 200 3235 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3AParcels_ITM&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=2
+   keys: ['COUNTY_ID', 'COUNTY_NAM', 'GUSH_NUM', 'GUSH_SUFFI', 'ID', 'LEGAL_AREA', 'LOCALITY_I', 'LOCALITY_N', 'NOTE', 'PARCEL', 'PARCEL_ID', 'PNUMTYPE', 'PNUMTYPE_T', 'REGION_ID', 'REGION_NAM', 'REG_MUN_ID', 'REG_MUN_NA', 'SHAPE_AREA', 'SHAPE_LEN', 'STATUS', 'STATUS_TEX', 'SYS_DATE', 'TALAR_NUMB', 'TALAR_YEAR', 'WP']
+   row: {"PARCEL_ID": 66, "GUSH_NUM": 14372, "GUSH_SUFFI": 0, "PARCEL": 10, "LEGAL_AREA": 1704, "PNUMTYPE": 0, "PNUMTYPE_T": "", "STATUS": 6, "STATUS_TEX": "מוסדר", "LOCALITY_I": 2063, "LOCALITY_N": "דישון", "REG_MUN_ID": 55, "REG_MUN_NA": "מבואות החרמון", "COUNTY_ID": 21, "COUNTY_NAM": "צפת", "REGION_ID": 2, "REGION_NAM": "הצפון", "WP": 10055, "TALAR_NUMB": 0, "TALAR_YEAR": 0, "SYS_DATE": "1999-03-22 15:05:12", "ID": "14372--10", "NOTE": "הנתון שטח רשום כאן אינו מהווה אסמכתה. לאסמכתה חוקית לשטח הרשום ש
+=== locality 100812 helka * ===
+GET 200 225698 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3AParcels_ITM&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=1000
+   gush 100812: 80 parcels, min 2 max 81
+      helkot [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81]
+      localities ['גבעולים']
