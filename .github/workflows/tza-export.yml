@@ -17,6 +17,10 @@ on:
         description: "locality/helka,locality/helka  (helka '*' lists gushim)"
         required: false
         default: ""
+      parcel_layer:
+        description: "WFS feature type for parcels (default opendata:PARCEL_ALL)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -37,6 +41,7 @@ jobs:
           PARCELS: ${{ github.event.inputs.parcels }}
           POINTS: ${{ github.event.inputs.points }}
           LOCALITY_PARCELS: ${{ github.event.inputs.locality_parcels }}
+          PARCEL_LAYER: ${{ github.event.inputs.parcel_layer }}
       - uses: actions/upload-artifact@v4
         with:
           name: tza

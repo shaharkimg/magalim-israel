@@ -27,6 +27,7 @@ from pyproj import Transformer
 OUT = "out"
 os.makedirs(OUT, exist_ok=True)
 PARCELS = os.environ.get("PARCELS", "2547/10,8561/13")
+PARCEL_LAYER = os.environ.get("PARCEL_LAYER") or "opendata:PARCEL_ALL"
 PAD = float(os.environ.get("PAD_M", "260"))
 SIZE = 1500
 XPLAN = ("https://ags.iplan.gov.il/arcgisiplan/rest/services/"
@@ -85,7 +86,7 @@ def get(url, params=None, quiet=False):
 def parcel_rings(gush, helka):
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": "opendata:PARCEL_ALL",
+             "typeNames": PARCEL_LAYER,
              "outputFormat": "application/json", "srsName": "EPSG:2039",
              "count": "5", "CQL_FILTER": f"GUSH_NUM={gush} AND PARCEL={helka}"})
     if r is None or r.status_code != 200:
@@ -281,7 +282,7 @@ def resolve_point(spec):
     d = 3.0
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": "opendata:PARCEL_ALL",
+             "typeNames": PARCEL_LAYER,
              "outputFormat": "application/json", "srsName": "EPSG:2039",
              "count": "25",
              "bbox": f"{x - d},{y - d},{x + d},{y + d},EPSG:2039"})
@@ -332,6 +333,28 @@ def list_layers():
         log("     ", n)
 
 
+def sample_layer(name):
+    """Log the property keys and a sample row of a WFS feature type."""
+    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
+            {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
+             "typeNames": name, "outputFormat": "application/json",
+             "srsName": "EPSG:2039", "count": "2"})
+    if r is None or r.status_code != 200:
+        log("   sample failed", name)
+        return
+    try:
+        feats = r.json().get("features") or []
+    except Exception:  # noqa: BLE001
+        log("   sample not json", r.text[:200])
+        return
+    if not feats:
+        log("   no features in", name)
+        return
+    pr = feats[0].get("properties", {})
+    log("   keys:", sorted(pr))
+    log("   row:", json.dumps(pr, ensure_ascii=False)[:500])
+
+
 def resolve_locality(spec):
     """LOCALITY_PARCELS entry "locality/helka" -> "gush/helka".
 
@@ -340,6 +363,9 @@ def resolve_locality(spec):
     """
     if spec.strip() == "layers":
         list_layers()
+        return None
+    if spec.strip().startswith("sample:"):
+        sample_layer(spec.strip()[7:])
         return None
     loc, helka = spec.rsplit("/", 1)
     loc, helka = loc.strip(), helka.strip()
@@ -353,7 +379,7 @@ def resolve_locality(spec):
     cql = base if helka == "*" else f"{base} AND PARCEL={helka}"
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": "opendata:PARCEL_ALL",
+             "typeNames": PARCEL_LAYER,
              "outputFormat": "application/json", "srsName": "EPSG:2039",
              "count": "1000", "CQL_FILTER": cql})
     if r is None or r.status_code != 200:
