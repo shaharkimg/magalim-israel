@@ -84,11 +84,17 @@ def get(url, params=None, quiet=False):
 
 
 def parcel_rings(gush, helka):
+    gush = str(gush)
+    if "-" in gush:
+        gnum, gsuf = gush.split("-", 1)
+        cql = (f"GUSH_NUM={gnum} AND GUSH_SUFFI={gsuf} AND PARCEL={helka}")
+    else:
+        cql = f"GUSH_NUM={gush} AND PARCEL={helka}"
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
              "typeNames": PARCEL_LAYER,
              "outputFormat": "application/json", "srsName": "EPSG:2039",
-             "count": "5", "CQL_FILTER": f"GUSH_NUM={gush} AND PARCEL={helka}"})
+             "count": "5", "CQL_FILTER": cql})
     if r is None or r.status_code != 200:
         return None
     try:
@@ -98,6 +104,10 @@ def parcel_rings(gush, helka):
     if not feats:
         log("no parcel found for", gush, helka)
         return None
+    if len(feats) > 1:
+        log("   WARNING", len(feats), "parcels match — sub-gushim:",
+            [f.get("properties", {}).get("ID") for f in feats],
+            "— using the first; pass gush-suffi/helka to disambiguate")
     props = feats[0].get("properties", {})
     log("   parcel attributes:", json.dumps(props, ensure_ascii=False)[:600])
     geom = feats[0]["geometry"]
@@ -406,10 +416,19 @@ def resolve_locality(spec):
             log(f"      helkot {hs}")
             log(f"      localities {sorted(set(locs.get(g, [])))}")
         return None
-    for f in feats[:10]:
+    for f in feats[:20]:
         pr = f.get("properties", {})
-        log("   candidate gush", pr.get("GUSH_NUM"), "helka", pr.get("PARCEL"),
-            pr.get("LOCALITY_N"), "legal_area", pr.get("LEGAL_AREA"))
+        cx = cy = None
+        try:
+            from shapely.geometry import shape as _sh
+            c = _sh(f["geometry"]).buffer(0).centroid
+            cx, cy = round(c.x), round(c.y)
+        except Exception:  # noqa: BLE001
+            pass
+        log("   candidate", pr.get("ID"), "gush", pr.get("GUSH_NUM"),
+            "suffi", pr.get("GUSH_SUFFI"), "helka", pr.get("PARCEL"),
+            repr(pr.get("LOCALITY_N")), pr.get("REG_MUN_NA"),
+            "area", pr.get("LEGAL_AREA"), "centroid", cx, cy)
     pr = feats[0].get("properties", {})
     return f"{pr.get('GUSH_NUM')}/{pr.get('PARCEL')}"
 
