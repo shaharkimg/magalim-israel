@@ -9,6 +9,14 @@ on:
         description: "gush/helka,gush/helka"
         required: false
         default: ""
+      points:
+        description: "lat,lon;lat,lon  (resolve parcel containing the point)"
+        required: false
+        default: ""
+      locality_parcels:
+        description: "locality/helka,locality/helka  (helka '*' lists gushim)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -26,8 +34,9 @@ jobs:
       - run: python tools/tza_export.py
         continue-on-error: true
         env:
-          PARCELS: ${{ github.event.inputs.parcels != '' && github.event.inputs.parcels || '100805/3,100805/1' }}
-          POINTS: ""
+          PARCELS: ${{ github.event.inputs.parcels }}
+          POINTS: ${{ github.event.inputs.points }}
+          LOCALITY_PARCELS: ${{ github.event.inputs.locality_parcels }}
       - uses: actions/upload-artifact@v4
         with:
           name: tza

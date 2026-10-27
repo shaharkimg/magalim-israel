@@ -316,12 +316,65 @@ def resolve_point(spec):
     return f"{g}/{h}"
 
 
+def resolve_locality(spec):
+    """LOCALITY_PARCELS entry "locality/helka" -> "gush/helka".
+
+    Finds a parcel by locality name when the card's gush number is wrong.
+    A helka of "*" just lists the gush numbers registered to that locality.
+    """
+    loc, helka = spec.rsplit("/", 1)
+    loc, helka = loc.strip(), helka.strip()
+    log(f"=== locality {loc} helka {helka} ===")
+    cql = (f"LOCALITY_N LIKE '%{loc}%'" if helka == "*"
+           else f"LOCALITY_N LIKE '%{loc}%' AND PARCEL={helka}")
+    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
+            {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
+             "typeNames": "opendata:PARCEL_ALL",
+             "outputFormat": "application/json", "srsName": "EPSG:2039",
+             "count": "200", "CQL_FILTER": cql})
+    if r is None or r.status_code != 200:
+        log("   locality lookup failed")
+        return None
+    try:
+        feats = r.json().get("features") or []
+    except Exception:  # noqa: BLE001
+        return None
+    if not feats:
+        log("   no parcel found for locality", loc, "helka", helka)
+        return None
+    if helka == "*":
+        seen = {}
+        for f in feats:
+            pr = f.get("properties", {})
+            seen.setdefault(pr.get("GUSH_NUM"), []).append(pr.get("PARCEL"))
+        for g in sorted(seen, key=lambda v: (v is None, v)):
+            hs = sorted(x for x in seen[g] if x is not None)
+            log(f"   gush {g}: {len(hs)} parcels, helkot {hs[:40]}")
+        return None
+    for f in feats[:10]:
+        pr = f.get("properties", {})
+        log("   candidate gush", pr.get("GUSH_NUM"), "helka", pr.get("PARCEL"),
+            pr.get("LOCALITY_N"), "legal_area", pr.get("LEGAL_AREA"))
+    pr = feats[0].get("properties", {})
+    return f"{pr.get('GUSH_NUM')}/{pr.get('PARCEL')}"
+
+
 SPECS = [p.strip() for p in PARCELS.split(",") if p.strip()]
 for _pt in [p.strip() for p in os.environ.get("POINTS", "").split(";") if p.strip()]:
     try:
         _res = resolve_point(_pt)
     except Exception as e:  # noqa: BLE001
         log("   point error", type(e).__name__, str(e)[:160])
+        _res = None
+    if _res and _res not in SPECS:
+        SPECS.append(_res)
+
+for _lp in [p.strip() for p in os.environ.get("LOCALITY_PARCELS", "").split(",")
+            if p.strip()]:
+    try:
+        _res = resolve_locality(_lp)
+    except Exception as e:  # noqa: BLE001
+        log("   locality error", type(e).__name__, str(e)[:160])
         _res = None
     if _res and _res not in SPECS:
         SPECS.append(_res)
