@@ -1,0 +1,33 @@
+name: parcel-layers
+
+on:
+  push:
+    branches: [claude-parcel-layers]
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - run: mkdir -p out && python tools/parcel_layers.py
+        continue-on-error: true
+        env:
+          OUTDIR: out
+          GUSH: "100812"
+          HELKA: "143"
+          BBOX: "160474,588977,161792,590152"
+      - name: commit output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A out
+          git commit -m "parcel layer probe output [skip ci]" || echo "nothing to commit"
+          git push origin HEAD:claude-parcel-layers
