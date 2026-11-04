@@ -60,3 +60,69 @@ restart_gateway() {
   done
   die "Gateway did not become healthy; see: journalctl --user -u openclaw-gateway -n 100"
 }
+
+# "050-123 4567" / "972501234567" / "+972501234567" -> +972501234567 (Israeli local numbers get +972)
+normalize_e164() {
+  local d; d="$(printf '%s' "${1:-}" | tr -cd '0-9+')"
+  [[ "$d" == +* ]] || { [[ "$d" == 0* ]] && d="+972${d#0}" || d="+$d"; }
+  [[ "$d" =~ ^\+[1-9][0-9]{7,14}$ ]] || return 1
+  printf '%s\n' "$d"
+}
+
+# Owner's preferred channel for proactive messages: whatsapp | telegram
+owner_channel() {
+  local c; c="$(env_get PRIMARY_CHANNEL)"
+  if [[ -z "$c" ]]; then [[ -n "$(env_get WHATSAPP_OWNER)" ]] && c=whatsapp || c=telegram; fi
+  printf '%s\n' "$c"
+}
+owner_target() {
+  case "$(owner_channel)" in
+    whatsapp) env_get WHATSAPP_OWNER ;;
+    *)        env_get TELEGRAM_OWNER_ID ;;
+  esac
+}
+
+plugin_installed() { oc plugins list 2>/dev/null | grep -qE "(^|[[:space:]│|])$1([[:space:]│|]|$)"; }
+
+# Official WhatsApp plugin, pinned to the installed OpenClaw version.
+ensure_whatsapp_plugin() {
+  plugin_installed whatsapp && return 0
+  local v; v="$(openclaw --version | awk '{print $2}')"
+  info "Installing official WhatsApp plugin @openclaw/whatsapp@$v"
+  oc plugins install "npm:@openclaw/whatsapp@$v" --pin
+}
+
+# Local guard plugin shipped in this kit (root-owned path, read-only for the agent).
+ensure_guard_plugin() {
+  plugin_installed owner-only-outbound && return 0
+  info "Linking owner-only-outbound guard plugin"
+  oc plugins install --link "$KIT_DIR/plugins/owner-only-outbound" --force
+}
+
+# Write owner-dependent policy in ONE config patch: guard allowlist, channel
+# allowlists, owner commands and failure alerts. Fail-closed: no owner -> the
+# guard blocks every outbound message on that channel.
+sync_owner_policies() {
+  local tg wa ch to patch
+  tg="$(env_get TELEGRAM_OWNER_ID)"; wa="$(env_get WHATSAPP_OWNER)"
+  ch="$(owner_channel)"; to="$(owner_target)"
+  patch="$(mktemp --suffix=.json5)"
+  {
+    echo '{'
+    echo '  plugins: { entries: { "owner-only-outbound": { enabled: true, hooks: { allowConversationAccess: true },'
+    printf '    config: { owners: { telegram: [%s], whatsapp: [%s] } } } } },\n' \
+      "${tg:+\"$tg\"}" "${wa:+\"$wa\"}"
+    echo '  channels: {'
+    [[ -n "$tg" ]] && printf '    telegram: { dmPolicy: "allowlist", allowFrom: ["%s"], groupPolicy: "disabled" },\n' "$tg"
+    [[ -n "$wa" ]] && printf '    whatsapp: { dmPolicy: "allowlist", allowFrom: ["%s"], groupPolicy: "disabled" },\n' "$wa"
+    echo '  },'
+    printf '  commands: { ownerAllowFrom: [%s] },\n' \
+      "$(printf '%s' "${tg:+\"telegram:$tg\"}${tg:+${wa:+,}}${wa:+\"whatsapp:$wa\"}")"
+    if [[ -n "$to" ]]; then
+      printf '  cron: { failureAlert: { enabled: true, after: 1, mode: "announce", channel: "%s", to: "%s" } },\n' "$ch" "$to"
+    fi
+    echo '}'
+  } > "$patch"
+  oc config patch --file "$patch" >/dev/null
+  rm -f "$patch"
+}

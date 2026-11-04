@@ -1,0 +1,19 @@
+{
+  "id": "owner-only-outbound",
+  "name": "Owner-only outbound guard",
+  "description": "Gateway-level guard: messages may only be delivered to the owner's own Telegram id / WhatsApp number.",
+  "categories": ["other"],
+  "activation": { "onStartup": true },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "owners": {
+        "type": "object",
+        "description": "channel id -> list of allowed recipients (Telegram numeric ids, WhatsApp E.164 numbers)",
+        "additionalProperties": { "type": "array", "items": { "type": "string" } }
+      },
+      "logOnly": { "type": "boolean", "description": "Log instead of cancel (never use in production)" }
+    }
+  }
+}

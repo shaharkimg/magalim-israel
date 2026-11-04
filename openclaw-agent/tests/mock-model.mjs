@@ -33,6 +33,23 @@ function decide(body) {
   if (lastMsg?.role === "tool") {
     return { text: `MOCK-TOOL-RESULT: ${textOf(lastMsg.content).slice(0, 2000)}` };
   }
+  const sendm = userText.match(/TEST_SEND:(\w+):(\S+)/);
+  if (sendm) {
+    const t = (body.tools || []).find((x) => (x.function?.name || x.name) === "message");
+    if (!t) return { text: "MOCK: message tool not available" };
+    const props = Object.keys(t.function?.parameters?.properties || {});
+    log({ kind: "message_schema", props });
+    const args = { action: "send", channel: sendm[1] };
+    for (const k of ["to", "target"]) if (props.includes(k)) args[k] = sendm[2];
+    for (const k of ["message", "text"]) if (props.includes(k)) { args[k] = "MOCK unsolicited message"; break; }
+    return { tool: { name: "message", args } };
+  }
+  const descm = userText.match(/TEST_DESCRIBE:(\S+)/);
+  if (descm) {
+    const t = (body.tools || []).find((x) => (x.function?.name || x.name) === "tool_describe");
+    const props = Object.keys(t?.function?.parameters?.properties || {});
+    return { tool: { name: "tool_describe", args: { [props.includes("id") ? "id" : props[0]]: descm[1] } } };
+  }
   const sm = userText.match(/TEST_SEARCH:(\S+)/);
   if (sm) {
     const t = (body.tools || []).find((x) => (x.function?.name || x.name) === "tool_search");
@@ -40,7 +57,7 @@ function decide(body) {
     log({ kind: "search_schema", props });
     return { tool: { name: "tool_search", args: { [props.find((k) => /query|q/i.test(k)) || "query"]: sm[1] } } };
   }
-  const dm = userText.match(/TEST_DISPATCH:([\w-]+)(?::(\{.*\}))?/);
+  const dm = userText.match(/TEST_DISPATCH:([\w-]+)(?::(\{[^\n]*?\}))?(?=\s*(?:$|\n))/m) || userText.match(/TEST_DISPATCH:([\w-]+)/);
   if (dm) {
     const t = (body.tools || []).find((x) => (x.function?.name || x.name) === "dispatch_action");
     if (!t) return { text: "MOCK: dispatch_action not available" };
@@ -93,8 +110,9 @@ http
         res.writeHead(404);
         return res.end();
       }
-      const body = JSON.parse(raw || "{}");
-      const d = decide(body);
+      let body = {}, d;
+      try { body = JSON.parse(raw || "{}"); d = decide(body); }
+      catch (err) { log({ kind: "mock_error", error: String(err) }); d = { text: `MOCK-ERROR: ${err}` }; }
       const id = Math.random().toString(36).slice(2, 10);
       if (body.stream) return sendSSE(res, id, body.model, d);
       const message = d.tool

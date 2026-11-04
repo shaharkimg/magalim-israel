@@ -13,6 +13,14 @@ journalctl -t openclaw-health -t openclaw-backup --since today
 - `openclaw-health.timer` כל 10 דקות: אם ה-gateway לא עונה → restart + הודעה אליך ב-Telegram; התראה גם כשהדיסק מעל 90%.
 - משימה מתוזמנת שנכשלה → הודעה אליך ב-Telegram (`cron.failureAlert`).
 
+## WhatsApp
+- מצב: `agent status` (סעיף Channels) או `agent oc channels status --probe`.
+- הטלפון של **מספר הסוכן** צריך להתחבר לאינטרנט מדי פעם; אם WhatsApp ניתק את המכשיר המקושר (או החלפת טלפון): `agent whatsapp --relink` וסריקת QR מחדש.
+- החלפת המספר האישי המורשה: `agent whatsapp <מספר-חדש>` (גם מעדכן את ה-guard).
+- לאן נשלחות התראות ותוצאות משימות: `agent channel whatsapp` / `agent channel telegram`.
+- ניתוק מיידי: בטלפון של מספר הסוכן → Linked devices → Log out (או `agent oc channels logout --channel whatsapp`).
+- הודעות קוליות נכנסות: דורשות ספק תמלול (לא מוגדר כרגע).
+
 ## גיבוי
 - אוטומטי: כל יום 03:30 → `/var/backups/openclaw` (ארכיון OpenClaw מאומת + keyring של gog), שמירה 14 יום.
 - ידני: `agent backup`.

@@ -21,8 +21,9 @@ if [[ "$what" == telegram || "$what" == all ]]; then
   oc channels status --probe 2>&1 | tail -n 15 || true
   cat <<'EOF'
 
-Next: open Telegram, send any message to your bot. It replies with
-"Your Telegram user id: <number>". Then lock the bot to you:
-  sudo -iu openclaw /opt/agent-kit/openclaw-agent/scripts/telegram-lock.sh <number>
+Next: open Telegram and send any message to your bot. It answers with a system
+message "Your Telegram user id: <number>" (the agent itself is not active for you yet).
+The same id is shown on the server by:   agent pairing
+Then lock the bot to you:                agent lock <number>
 EOF
 fi

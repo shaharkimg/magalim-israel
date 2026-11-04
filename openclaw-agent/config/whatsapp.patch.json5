@@ -1,0 +1,17 @@
+// Applied by scripts/whatsapp-setup.sh / apply-config.sh once WHATSAPP_OWNER is set.
+// The agent runs on a DEDICATED WhatsApp number (second SIM) linked as a
+// WhatsApp Web device; only the owner's personal number may talk to it.
+// dmPolicy/allowFrom are written separately with the owner's number.
+{
+  channels: {
+    whatsapp: {
+      enabled: true,
+      groupPolicy: "disabled",   // never act in groups
+      selfChatMode: false,       // ignore messages the bot number sends to itself
+      configWrites: false,       // no config changes from chat
+      sendReadReceipts: true,
+      reactionLevel: "ack",
+      actions: { calls: false, polls: false },
+    },
+  },
+}

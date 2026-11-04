@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Root-run health check (openclaw-health.timer, every 10 min).
 # - restarts the gateway if it is not answering
-# - alerts the owner on Telegram after a recovery, or when disk is >90% full
+# - alerts the owner (WhatsApp or Telegram) after a recovery, or when disk is >90% full
 set -uo pipefail
 AGENT_USER=openclaw
 uid="$(id -u "$AGENT_USER")"
@@ -9,10 +9,13 @@ STATE=/var/lib/openclaw-health; mkdir -p "$STATE"
 as_agent() { runuser -u "$AGENT_USER" -- env HOME="/home/$AGENT_USER" XDG_RUNTIME_DIR="/run/user/$uid" \
   DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" TZ=Asia/Jerusalem bash -lc "$*"; }
 healthy() { as_agent "openclaw gateway status 2>/dev/null" | grep -q "Connectivity check: ok"; }
-owner="$(grep -E '^TELEGRAM_OWNER_ID=' /home/$AGENT_USER/.openclaw/.env 2>/dev/null | cut -d= -f2)"
+envv() { grep -E "^$1=" "/home/$AGENT_USER/.openclaw/.env" 2>/dev/null | tail -1 | cut -d= -f2-; }
+tg="$(envv TELEGRAM_OWNER_ID)"; wa="$(envv WHATSAPP_OWNER)"; ch="$(envv PRIMARY_CHANNEL)"
+[[ -n "$ch" ]] || { [[ -n "$wa" ]] && ch=whatsapp || ch=telegram; }
+[[ "$ch" == whatsapp ]] && to="$wa" || to="$tg"
 notify() {
-  [[ -n "$owner" ]] || return 0
-  as_agent "openclaw message send --channel telegram --target '$owner' --message '$1'" >/dev/null 2>&1 || true
+  [[ -n "$to" && "$to" =~ ^\+?[0-9]+$ ]] || return 0
+  as_agent "openclaw message send --channel '$ch' --target '$to' --message '$1'" >/dev/null 2>&1 || true
 }
 
 if healthy; then

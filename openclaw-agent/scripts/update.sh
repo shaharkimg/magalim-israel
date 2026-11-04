@@ -33,6 +33,10 @@ if [[ "$target" != "$current" ]]; then
   echo "== 4/6 openclaw@$target"
   npm install -g --allow-scripts=@google/genai,esbuild,protobufjs,openclaw "openclaw@$target"
 else echo "== 4/6 openclaw already $target"; fi
+if as_agent "openclaw plugins list 2>/dev/null" | grep -qw whatsapp; then
+  echo "   whatsapp plugin -> $target"
+  as_agent "openclaw plugins install npm:@openclaw/whatsapp@$target --pin --force" || echo "   (whatsapp plugin update failed - kept previous)"
+fi
 echo "== 5/6 doctor + config"
 as_agent "openclaw doctor --non-interactive" || as_agent "openclaw doctor" || true
 as_agent "$KIT/scripts/apply-config.sh --no-restart"
@@ -42,6 +46,7 @@ for _ in $(seq 1 40); do healthy && { echo "UPDATE OK: $(openclaw --version)"; e
 
 echo "!! Gateway unhealthy after update -> rolling back to $current"
 npm install -g --allow-scripts=@google/genai,esbuild,protobufjs,openclaw "openclaw@$current"
+as_agent "openclaw plugins list 2>/dev/null" | grep -qw whatsapp && as_agent "openclaw plugins install npm:@openclaw/whatsapp@$current --pin --force" || true
 as_agent "systemctl --user restart openclaw-gateway.service"
 sleep 15; healthy && echo "Rolled back to $current (healthy)." || echo "Rollback unhealthy: restore with: agent restore <latest backup>"
 exit 1

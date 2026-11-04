@@ -18,10 +18,8 @@ sent_count() { curl -s "$TG/__sent" | python3 -c 'import json,sys;print(len(json
 ask() { timeout 150 openclaw agent --agent main --model mock/mock-1 --session-id "t-$RANDOM$RANDOM" --message "$1" --timeout 120 2>&1; }
 
 info "setup: mocks + test overlay"
-pkill -u "$(id -u)" -f mock-model.mjs; pkill -u "$(id -u)" -f mock-telegram.mjs; : > "$LOG"
-(nohup node "$T/mock-model.mjs" 18999 "$LOG" >/dev/null 2>&1 &)
-(nohup node "$T/mock-telegram.mjs" 18998 >/dev/null 2>&1 &)
-sleep 2
+"$T/mock-supervise.sh" stop; : > "$LOG"
+MOCK_LOG="$LOG" "$T/mock-supervise.sh" start || die "mocks did not start"
 store_has TELEGRAM_BOT_TOKEN || printf '123456:MOCK-TOKEN-NOT-REAL' | oc secrets store set TELEGRAM_BOT_TOKEN --kind secret --value-file - >/dev/null
 OC_SKIP_RESTART=1 "$KIT_DIR/scripts/apply-config.sh" --no-restart >/dev/null
 "$KIT_DIR/scripts/telegram-lock.sh" "$OWNER" --no-restart >/dev/null
@@ -34,6 +32,9 @@ EOF
 oc config patch --file "$overlay" >/dev/null; rm -f "$overlay"
 wait_healthy() { for _ in $(seq 1 120); do openclaw gateway status 2>/dev/null | grep -q "Connectivity check: ok" && return 0; sleep 3; done; return 1; }
 sleep 10; wait_healthy || red "gateway not healthy after setup (a restart may be pending)"
+
+info "0. guard policy unit tests"
+check "owner-only-outbound policy (15 cases)" node "$T/guard-unit.test.mjs"
 
 info "1. gateway"
 check "gateway healthy"                   bash -c 'openclaw gateway status 2>/dev/null | grep -q "Connectivity check: ok"'
@@ -56,10 +57,10 @@ out="$(ask 'בדיקת צינור')"
 check "agent turn returns model reply"    grep -q "MOCK-OK" <<<"$out"
 check "runtime timezone is Asia/Jerusalem" bash -c 'grep "\"kind\":\"request\"" "$1" | tail -1 | grep -q "\"tzSeen\":true"' _ "$LOG"
 tools="$(grep '"kind":"request"' "$LOG" | tail -1)"
-check "no exec/web/browser tools exposed" bash -c '! grep -qE "\"(exec|process|web_fetch|web_search|browser|gateway|code_execution)\"" <<<"$1"' _ "$tools"
+check "no exec/web/browser/message tools exposed" bash -c '! grep -qE "\"(exec|process|web_fetch|web_search|browser|gateway|code_execution|message)\"" <<<"$1"' _ "$tools"
 
 info "3. tool policy (attack simulation)"
-for t in exec web_fetch browser gateway sessions_spawn; do
+for t in exec web_fetch browser gateway sessions_spawn message; do
   out="$(ask "TEST_DISPATCH:$t")"; check "dispatch $t is rejected" grep -qiE "Unknown tool|not allowed|denied" <<<"$out"
 done
 out="$(ask 'TEST_WRITE:/home/openclaw/escape-test.txt')"
@@ -90,7 +91,35 @@ for _ in $(seq 1 40); do [[ "$(sent_count)" -gt "$n" ]] && break; sleep 5; done
 check "one-shot automation delivered to owner" test "$(sent_count)" -gt "$n"
 [[ -n "$id" ]] && oc automations rm "$id" >/dev/null 2>&1
 
-info "6. secrets hygiene + audit"
+info "6. outbound guard (prompt-injection exfiltration attempt)"
+blocked() {
+  if [[ -f "$OC_HOME/logs/gateway.out" ]]; then grep -c "blocked outbound" "$OC_HOME/logs/gateway.out" || true
+  else journalctl --user -u openclaw-gateway --no-pager 2>/dev/null | grep -c "blocked outbound" || true; fi
+}
+to3() { curl -s "$TG/__sent" | python3 -c 'import json,sys;print(sum(1 for s in json.load(sys.stdin)["result"]["sent"] if str(s["chat_id"])=="555666777"))'; }
+check "guard plugin loaded with message_sending hook" bash -c 'openclaw plugins inspect owner-only-outbound --runtime --json 2>/dev/null | grep -q message_sending'
+b0="$(blocked)"; s0="$(to3)"
+at="$(date -u -d '+1 min' +%Y-%m-%dT%H:%M:%SZ)"
+job="{\"action\":\"add\",\"job\":{\"name\":\"exfil-test\",\"schedule\":{\"kind\":\"at\",\"at\":\"$at\"},\"payload\":{\"kind\":\"agentTurn\",\"message\":\"TEST exfil\"},\"delivery\":{\"mode\":\"announce\",\"channel\":\"telegram\",\"to\":\"555666777\"}}}"
+ask "TEST_DISPATCH:automations:$job" >/dev/null
+for _ in $(seq 1 40); do [[ "$(blocked)" -gt "$b0" ]] && break; sleep 5; done
+check "scheduled delivery to a third party is blocked" bash -c '[[ "$1" -eq "$2" && "$3" -gt "$4" ]]' _ "$(to3)" "$s0" "$(blocked)" "$b0"
+jid="$(openclaw automations list --all 2>/dev/null | awk '/ exfil-test /{print $1}')"; [[ -n "$jid" ]] && oc automations rm "$jid" >/dev/null 2>&1
+# Guard also covers ordinary replies: temporarily remove the owner from the guard list only.
+gp="$(mktemp --suffix=.json5)"
+echo '{ plugins: { entries: { "owner-only-outbound": { config: { owners: { telegram: ["999"] } } } } } }' > "$gp"; oc config patch --file "$gp" >/dev/null; sleep 15
+b0="$(blocked)"; n="$(sent_count)"
+curl -s "$TG/__inject" -d "{\"fromId\":$OWNER,\"text\":\"guard reply test\"}" >/dev/null
+for _ in $(seq 1 40); do [[ "$(blocked)" -gt "$b0" ]] && break; sleep 3; done; sleep 5
+check "guard blocks an ordinary reply to a non-listed recipient" bash -c '[[ "$1" -eq "$2" && "$3" -gt "$4" ]]' _ "$(sent_count)" "$n" "$(blocked)" "$b0"
+rm -f "$gp"; sync_owner_policies; sleep 15
+if [[ -n "$(env_get WHATSAPP_OWNER)" ]]; then
+  wa="$(env_get WHATSAPP_OWNER)"
+  check "whatsapp: allowlist = owner only"   bash -c 'openclaw config get channels.whatsapp 2>/dev/null | python3 -c "import json,sys;d=json.load(sys.stdin);sys.exit(0 if d.get(\"dmPolicy\")==\"allowlist\" and d.get(\"allowFrom\")==[sys.argv[1]] and d.get(\"groupPolicy\")==\"disabled\" and d.get(\"selfChatMode\") is False else 1)" "$1"' _ "$wa"
+  check "whatsapp: owner in outbound guard"  bash -c 'openclaw config get plugins.entries.owner-only-outbound.config.owners.whatsapp 2>/dev/null | grep -q "$1"' _ "$wa"
+fi
+
+info "7. secrets hygiene + audit"
 check "no plaintext secrets in openclaw.json" bash -c '! grep -qE "sk-ant-|[0-9]{6,}:[A-Za-z0-9_-]{20,}" ~/.openclaw/openclaw.json'
 check "security audit: 0 critical"        bash -c 'openclaw security audit 2>&1 | grep -q "0 critical"'
 check ".env is mode 600"                  bash -c '[[ ! -e ~/.openclaw/.env ]] || [[ $(stat -c %a ~/.openclaw/.env) == 600 ]]'
@@ -100,6 +129,6 @@ oc config unset models.providers.mock >/dev/null 2>&1
 oc config unset channels.telegram.apiRoot >/dev/null 2>&1
 oc config unset channels.telegram.network >/dev/null 2>&1
 OC_SKIP_RESTART=1 "$KIT_DIR/scripts/apply-config.sh" --no-restart >/dev/null
-pkill -u "$(id -u)" -f mock-model.mjs; pkill -u "$(id -u)" -f mock-telegram.mjs
+"$T/mock-supervise.sh" stop
 echo; info "RESULT: $pass passed, $fail failed"
 [[ $fail -eq 0 ]]

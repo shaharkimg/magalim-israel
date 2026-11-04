@@ -12,20 +12,24 @@ if store_has ANTHROPIC_API_KEY; then
   info "ANTHROPIC_API_KEY present -> applying anthropic.patch.json5"
   oc config patch --file "$KIT_DIR/config/anthropic.patch.json5"
 fi
-tg="$(mktemp --suffix=.json5)"
-owner="$(env_get TELEGRAM_OWNER_ID)"
+tmp="$(mktemp --suffix=.json5)"
 if store_has TELEGRAM_BOT_TOKEN; then
   info "TELEGRAM_BOT_TOKEN present -> enabling Telegram"
   oc config patch --file "$KIT_DIR/config/telegram.patch.json5"
-  if [[ -n "$owner" ]]; then
-    "$KIT_DIR/scripts/telegram-lock.sh" "$owner" --no-restart >/dev/null
-  else
-    echo '{ channels: { telegram: { dmPolicy: "pairing" } } }' > "$tg"; oc config patch --file "$tg"
-  fi
+  # Before the owner is known: pairing (strangers only get their id, no agent access).
+  [[ -n "$(env_get TELEGRAM_OWNER_ID)" ]] || { echo '{ channels: { telegram: { dmPolicy: "pairing" } } }' > "$tmp"; oc config patch --file "$tmp"; }
 else
-  echo '{ channels: { telegram: { enabled: false, dmPolicy: "pairing" } } }' > "$tg"; oc config patch --file "$tg"
+  echo '{ channels: { telegram: { enabled: false, dmPolicy: "pairing" } } }' > "$tmp"; oc config patch --file "$tmp"
 fi
-rm -f "$tg"
+rm -f "$tmp"
+if [[ -n "$(env_get WHATSAPP_OWNER)" ]]; then
+  info "WHATSAPP_OWNER set -> enabling WhatsApp (dedicated number, owner-only)"
+  ensure_whatsapp_plugin
+  oc config patch --file "$KIT_DIR/config/whatsapp.patch.json5"
+fi
+info "Outbound guard + owner policies (allowlists, owner commands, failure alerts)"
+ensure_guard_plugin
+sync_owner_policies
 if [[ -n "$(env_get GOG_ACCOUNT)" && -n "$(env_get GOG_KEYRING_PASSWORD)" ]]; then
   info "Google account configured -> applying google-mcp.patch.json5"
   set -a; source "$OC_ENV_FILE"; set +a

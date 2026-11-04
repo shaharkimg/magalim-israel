@@ -1,0 +1,8 @@
+{
+  "name": "owner-only-outbound",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cancels every outbound channel message whose recipient is not the configured owner.",
+  "openclaw": { "extensions": ["./index.js"] }
+}

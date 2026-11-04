@@ -10,6 +10,9 @@ cmd="${1:-help}"; shift || true
 case "$cmd" in
   secrets)    as_agent "$S/set-secrets.sh" "${1:-all}" ;;
   lock)       as_agent "$S/telegram-lock.sh" "$@" ;;
+  whatsapp)   as_agent "$S/whatsapp-setup.sh" "$@" ;;
+  channel)    [[ "${1:-}" =~ ^(whatsapp|telegram)$ ]] || { echo "usage: agent channel whatsapp|telegram"; exit 1; }
+              as_agent bash -c "source '$S/lib.sh'; env_set PRIMARY_CHANNEL '$1'; sync_owner_policies" && echo "Notifications -> $1" ;;
   pairing)    as_agent openclaw pairing list telegram ;;
   google)     email="${1:?email}"; src="${2:?client_secret.json}"
               dst="/home/$AGENT_USER/client_secret.json"; install -m 600 -o "$AGENT_USER" "$src" "$dst"; shred -u "$src" || rm -f "$src"
@@ -32,6 +35,9 @@ case "$cmd" in
   *) cat <<'EOF'
 agent secrets [anthropic|telegram|all]   store API key / bot token (hidden input)
 agent lock <telegram_user_id>            allow ONLY this Telegram user
+agent whatsapp <your-number>             link the agent's WhatsApp (2nd SIM) via QR; only <your-number> may use it
+agent whatsapp --relink                  show a new QR (after logout / phone change)
+agent channel whatsapp|telegram          where scheduled results & alerts are sent
 agent pairing                            show pending Telegram pairing requests
 agent google <email> <client_secret.json> connect Gmail (read+drafts) & Calendar (read)
 agent status | logs [n] | follow | restart | audit

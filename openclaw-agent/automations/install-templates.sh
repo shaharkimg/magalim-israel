@@ -6,8 +6,8 @@
 # All templates are read-only: they summarize; they never send email or change the calendar.
 source "$(dirname "$0")/../scripts/lib.sh"
 require_agent_user
-owner="$(env_get TELEGRAM_OWNER_ID)"
-[[ -n "$owner" ]] || die "Lock Telegram to your user id first: agent lock <id>"
+channel="$(owner_channel)"; owner="$(owner_target)"
+[[ -n "$owner" ]] || die "Connect a channel first: agent whatsapp <your number>  or  agent lock <telegram id>"
 
 declare -A CRON MSG
 CRON[morning-agenda]="0 8 * * *"
@@ -31,7 +31,7 @@ esac
 for name in "${!CRON[@]}"; do
   oc automations add --agent main --name "$name" --declaration-key "template:$name" --cron "${CRON[$name]}" \
     --tz Asia/Jerusalem --session isolated --message "${MSG[$name]}" \
-    --announce --channel telegram --to "$owner" --disabled >/dev/null
+    --announce --channel "$channel" --to "$owner" --disabled >/dev/null
   green "installed (disabled): $name  [${CRON[$name]}]"
 done
 echo "Review the text above, then enable with:  agent templates --enable <name>"

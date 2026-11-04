@@ -48,6 +48,9 @@
       "sessions_send",
       "conversations_send",
       "subagents",
+      "message",         // no free-form sends: replies + scheduled deliveries don't need it.
+                         // (Delivery to anyone but the owner is also blocked by the
+                         //  owner-only-outbound guard plugin.)
     ],
     fs: { workspaceOnly: true },
     exec: { mode: "deny" },

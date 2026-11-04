@@ -8,7 +8,8 @@ const port = Number(process.argv[2] || 18998);
 // Monotonic across restarts: OpenClaw persists its getUpdates offset.
 let updateId = Math.floor(Date.now() / 1000);
 let delivered = 0;
-let messageId = 1;
+// Also monotonic across restarts: OpenClaw de-duplicates inbound (chat, message_id).
+let messageId = Math.floor(Date.now() / 100) % 2_000_000_000;
 const queue = [];
 const sent = [];
 const calls = {};
