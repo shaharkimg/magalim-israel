@@ -34,6 +34,16 @@ else
   fi
 fi
 
+# Claude-subscription token is valid for 1 year: remind the owner ~2 weeks before expiry.
+created="$(envv AI_TOKEN_CREATED)"
+if [[ "$(envv AI_ROUTE)" == claude-subscription && -n "$created" ]]; then
+  age_days=$(( ( $(date +%s) - $(date -d "$created" +%s) ) / 86400 ))
+  if (( age_days >= 350 )) && [[ ! -f "$STATE/token-reminded-$created" ]]; then
+    notify "🔑 הטוקן של מנוי Claude יפוג בעוד כשבועיים. לחידוש (דקה אחת): sudo agent ai claude"
+    touch "$STATE/token-reminded-$created"
+  fi
+fi
+
 usage="$(df --output=pcent / | tail -1 | tr -dc 0-9)"
 if (( usage > 90 )) && [[ ! -f "$STATE/disk-alerted" ]]; then
   notify "⚠️ הדיסק בשרת הסוכן מלא ב-${usage}%."

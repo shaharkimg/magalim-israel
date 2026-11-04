@@ -46,13 +46,26 @@ no plaintext secrets in openclaw.json · security audit: 0 critical · .env is m
 | `openclaw security audit` | ✅ 0 critical (warn יחיד: trustedProxies — לא רלוונטי, אין reverse proxy) |
 | shellcheck / bash -n לכל הסקריפטים | ✅ (אזהרות false-positive בלבד) |
 
+## סבב "עלות 0 ₪" — מה נבדק
+| בדיקה | תוצאה |
+|---|---|
+| `claude setup-token` (Claude Code 2.1.318) | ✅ מגיע לקישור ההרשאה `claude.com/cai/oauth/authorize`, scope `user:inference` בלבד, טוקן לשנה, "Claude subscription required" |
+| קליטה אוטומטית של הטוקן (`ai-login.sh claude`) | ✅ עם CLI מדומה: הטוקן זוהה בפלט, נשמר כפרופיל `anthropic:manual [anthropic/token; expires +365d]`, הקובץ הזמני נמחק (shred) |
+| מסלול המנוי מול Anthropic | ✅ בקשה אמיתית ל-api.anthropic.com עם טוקן מנוי לא-תקף → `401 OAuth access token is invalid` (החיווט תקין; נדרש רק טוקן אמיתי) |
+| הסוכן נשאר בסביבת OpenClaw (לא Claude Code native) | ✅ `agentRuntime: openclaw` מקובע; 0 הפעלות `claude-cli` בלוג; הטוקן לא מופיע בלוגים |
+| אשף `agent setup` | ✅ רץ מקצה לקצה עם דילוג על כל השלבים (ללא חשבונות אמיתיים) |
+| צריכת זיכרון של ה-gateway | נמדד ~1.6GB RSS → שרת חינמי של 1GB (Google e2-micro) לא מספיק; Oracle A1 עם 4GB כן |
+| Gemini free tier | ⚠️ לא נבדק — `generativelanguage.googleapis.com` חסום בסביבה זו; נבדקה רק תקינות התצורה |
+| Oracle Cloud (install.sh על OCI) | ⚠️ לא נבדק על מכונה אמיתית — זיהוי OCI ושמירת ה-firewall של Oracle מבוססים על תיעוד; תחביר + shellcheck עברו |
+| ממצא | `openclaw models auth setup-token` נתקע בקונטיינר ללא systemd → `ai-login.sh` מריץ את `claude setup-token` ישירות ומעביר את הטוקן ב-stdin ל-`paste-token` |
+
 ## ⏳ ממתין לפעולה שלך (ייבדק מיד לאחר מכן)
 | בדיקה | חוסם |
 |---|---|
-| תשובה אמיתית מ-Claude בעברית | מפתח Anthropic |
+| תשובה אמיתית מ-Claude בעברית | אישור טוקן המנוי (`sudo agent ai claude`) |
 | Telegram אמיתי מהטלפון + נעילה ל-user id שלך | יצירת בוט ב-BotFather |
 | OAuth + קריאת Gmail/Calendar אמיתיים + יצירת טיוטה | OAuth client + אישור בחשבון Google |
-| `deploy/install.sh` על שרת אמיתי (systemd, UFW, fail2ban, reboot) | אישור ויצירת שרת Hetzner (בתשלום) |
+| `deploy/install.sh` על שרת אמיתי (systemd, firewall, fail2ban, reboot) | פתיחת חשבון Oracle Cloud ויצירת שרת Always Free (חינם) |
 
 ## ⚠️ לא ניתן לבדוק בסביבה זו
 - `install.sh` מקצה לקצה (אין systemd/Docker; NodeSource ו-GitHub releases חסומים ברשת של הסביבה). הסקריפט עבר בדיקת תחביר ו-shellcheck; כל רכיב בו נבדק בנפרד כאן. בהרצה הראשונה על השרת — `tail /var/log/openclaw-install.log`.

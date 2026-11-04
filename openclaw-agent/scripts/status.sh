@@ -7,6 +7,8 @@ section "Versions";        oc --version; node --version; gog --version 2>/dev/nu
 section "Gateway";         oc gateway status 2>&1 | grep -E "Listening|Connectivity|Gateway version" || true
 section "Service";         systemctl --user --no-pager --lines=0 status openclaw-gateway.service 2>&1 | head -5 || true
 section "Model";           oc config get agents.defaults.model 2>/dev/null | tr -d '\n '; echo
+                           echo "route: $(env_get AI_ROUTE)  token created: $(env_get AI_TOKEN_CREATED)"
+                           oc models auth list --provider anthropic 2>/dev/null | grep -E "anthropic:" | sed -E 's/sk-ant-[A-Za-z0-9_-]+/***/g' || true
 section "Channels";        oc channels status --probe 2>&1 | tail -n 12 || true
 section "Telegram policy"; oc config get channels.telegram.dmPolicy 2>/dev/null; oc config get channels.telegram.allowFrom 2>/dev/null | tr -d '\n '; echo
 section "Google (gog)";    if [[ -n "$(env_get GOG_ACCOUNT)" ]]; then

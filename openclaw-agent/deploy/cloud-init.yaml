@@ -1,5 +1,7 @@
 #cloud-config
-# Paste this whole file into Hetzner Cloud -> Create Server -> "Cloud config".
+# Oracle Cloud (Always Free): Create instance -> Show advanced options -> Management ->
+#   "Cloud-init script" -> paste this whole file.
+# (Any other Ubuntu 24.04 VPS: paste into its "user data" / "cloud config" field.)
 # It installs and hardens everything automatically (~5-8 minutes after boot).
 # Progress log on the server: /var/log/openclaw-install.log
 # KIT_REF: git branch or commit of github.com/shaharkimg/magalim-israel to install from.

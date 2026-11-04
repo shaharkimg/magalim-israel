@@ -24,6 +24,15 @@
     },
   },
 
+  // Keep Claude models on OpenClaw's own runtime (the tested tool policy applies),
+  // whether auth is the owner's Claude subscription token or an API key.
+  // Never hand turns to the native Claude Code CLI runtime.
+  models: {
+    providers: {
+      anthropic: { agentRuntime: { id: "openclaw" } },
+    },
+  },
+
   // Each Telegram DM peer gets an isolated session.
   session: { dmScope: "per-channel-peer" },
 

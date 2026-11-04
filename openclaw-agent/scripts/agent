@@ -8,7 +8,9 @@ as_agent() { runuser -u "$AGENT_USER" -- env HOME="/home/$AGENT_USER" XDG_RUNTIM
   DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" TZ=Asia/Jerusalem BACKUP_DIR=/var/backups/openclaw "$@"; }
 cmd="${1:-help}"; shift || true
 case "$cmd" in
-  secrets)    as_agent "$S/set-secrets.sh" "${1:-all}" ;;
+  setup)      as_agent "$S/setup-wizard.sh" "$@" ;;
+  ai)         as_agent "$S/ai-login.sh" "${1:-claude}" ;;
+  secrets)    as_agent "$S/set-secrets.sh" "${1:-telegram}" ;;
   lock)       as_agent "$S/telegram-lock.sh" "$@" ;;
   whatsapp)   as_agent "$S/whatsapp-setup.sh" "$@" ;;
   channel)    [[ "${1:-}" =~ ^(whatsapp|telegram)$ ]] || { echo "usage: agent channel whatsapp|telegram"; exit 1; }
@@ -33,7 +35,9 @@ case "$cmd" in
   templates)  as_agent "$KIT/automations/install-templates.sh" "$@" ;;
   oc)         as_agent openclaw "$@" ;;
   *) cat <<'EOF'
-agent secrets [anthropic|telegram|all]   store API key / bot token (hidden input)
+agent setup                              guided first-time setup (AI, WhatsApp, Google, tasks)
+agent ai claude|gemini|apikey            connect the model (claude = your Claude subscription, no extra cost)
+agent secrets telegram                   store a Telegram bot token (optional channel)
 agent lock <telegram_user_id>            allow ONLY this Telegram user
 agent whatsapp <your-number>             link the agent's WhatsApp (2nd SIM) via QR; only <your-number> may use it
 agent whatsapp --relink                  show a new QR (after logout / phone change)

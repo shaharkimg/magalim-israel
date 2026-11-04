@@ -5,14 +5,15 @@
 | רכיב | מימוש |
 |---|---|
 | מנוע הסוכן | [OpenClaw](https://github.com/openclaw/openclaw) `2026.10.10` (חבילת npm רשמית), Node.js 24 |
-| מודל | Anthropic Claude Opus 5.5 (גיבוי: Sonnet 5.5) — החלפה בפקודה אחת |
+| מודל | Claude Opus 5.5 (גיבוי: Sonnet 5.5) **דרך מנוי Claude הקיים שלך — ללא עלות נוספת**; חלופה חינמית: Gemini free tier |
 | ערוצים | **WhatsApp**: הסוכן על המספר השני (מכשיר מקושר), עונה רק למספר האישי שלך · **Telegram** (אופציונלי): נעול ל-user id שלך. אין פורט פתוח |
 | שליחה יוצאת | פלאגין `owner-only-outbound`: כל הודעה שאינה מיועדת לבעלים נחסמת בשרת |
 | Gmail + Calendar | [gogcli](https://github.com/openclaw/gogcli) `0.47.1` כשרת MCP טיפוסי — קריאה + טיוטות במייל, קריאה ביומן, **ללא שליחה** |
 | זיכרון | קבצי Markdown ב-workspace (`USER.md`, `MEMORY.md`, `memory/*.md`) + חיפוש זיכרון + איחוד לילי |
 | תזמון | Automations מובנה של OpenClaw, אזור זמן `Asia/Jerusalem`, נשמר ב-SQLite |
 | ממשק ניהול | Control UI המובנה (127.0.0.1:18789) דרך SSH tunnel |
-| שרת | Ubuntu 24.04 ב-Hetzner Cloud, systemd, UFW, fail2ban, עדכוני אבטחה אוטומטיים |
+| שרת | **Oracle Cloud Always Free** (ARM, Ubuntu 24.04) — 0 ₪, systemd, firewall, fail2ban, עדכוני אבטחה אוטומטיים |
+| עלות חודשית | **0 ₪** (פירוט ב-[SETUP.md](SETUP.md#מה-עולה-כסף-כלום)) |
 
 ## איך מדברים עם הסוכן
 מהוואטסאפ האישי שלך פותחים צ'אט עם מספר הסוכן (או את הבוט ב-Telegram) וכותבים בעברית, למשל:
@@ -25,8 +26,10 @@
 
 פקודות מובנות (WhatsApp ו-Telegram): `/new` (שיחה חדשה), `/status`, `/models`.
 
-## ניהול (על השרת, כ-root)
+## ניהול (על השרת: `sudo agent ...`)
 ```
+agent setup           # אשף ההתקנה הראשונית (מודל, WhatsApp, Google, משימות)
+agent ai claude       # חיבור/חידוש מנוי Claude (פעם בשנה)
 agent status          # מצב מלא: gateway, ערוצים, Google, משימות, אבטחה, גיבויים, שגיאות
 agent logs | follow   # לוגים
 agent automations     # משימות מתוזמנות
@@ -34,10 +37,10 @@ agent templates       # התקנת משימות לדוגמה (כבויות) ; ag
 agent model sonnet    # החלפת מודל (opus | sonnet | haiku)
 agent backup | restore <file> | update [version]
 ```
-ממשק ניהול גרפי: `scripts/tunnel.sh <server-ip>` מהמחשב → http://127.0.0.1:18789/
+ממשק ניהול גרפי: `scripts/tunnel.sh ubuntu@<server-ip>` מהמחשב → http://127.0.0.1:18789/
 
 ## מסמכים
-- [SETUP.md](SETUP.md) — התקנה מאפס (כולל מה שרק אתה יכול לבצע)
+- [SETUP.md](SETUP.md) — התקנה מאפס בעלות 0 ₪ (כולל מה שרק אתה יכול לבצע)
 - [SECURITY.md](SECURITY.md) — מודל האבטחה וההגדרות
 - [OPERATIONS.md](OPERATIONS.md) — עדכונים, גיבוי, שחזור, עלויות, תקלות
 - [TEST-REPORT.md](TEST-REPORT.md) — מה נבדק בפועל ומה ממתין

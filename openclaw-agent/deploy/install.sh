@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-shot, idempotent server bootstrap for the personal OpenClaw agent.
-# Target: fresh Ubuntu 24.04 LTS (Hetzner Cloud CX/CAX). Run as root:
+# Target: fresh Ubuntu 24.04 LTS - Oracle Cloud Always Free (A1, arm64) or any VPS. Run as root:
 #   KIT_REF=<branch-or-commit> bash install.sh
 # Usually executed automatically by deploy/cloud-init.yaml.
 set -euo pipefail
@@ -11,6 +11,7 @@ KIT_ROOT=/opt/agent-kit
 KIT="$KIT_ROOT/openclaw-agent"
 OPENCLAW_VERSION="${OPENCLAW_VERSION:-2026.10.10}"
 GOG_VERSION="${GOG_VERSION:-0.47.1}"
+CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION:-2.1.318}"
 NODE_MAJOR=24
 AGENT_USER=openclaw
 
@@ -36,11 +37,17 @@ APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
 
-log "Firewall: deny all inbound except SSH (rate-limited). Gateway stays on 127.0.0.1."
-ufw default deny incoming
-ufw default allow outgoing
-ufw limit OpenSSH
-ufw --force enable
+is_oci() { grep -qi "oraclecloud" /sys/class/dmi/id/chassis_asset_tag 2>/dev/null || grep -qs "InstanceServices" /etc/iptables/rules.v4; }
+if is_oci; then
+  log "Oracle Cloud detected: keeping Oracle's built-in iptables (inbound: SSH only). Not enabling UFW."
+  iptables -S INPUT | head -20 || true
+else
+  log "Firewall: deny all inbound except SSH (rate-limited). Gateway stays on 127.0.0.1."
+  ufw default deny incoming
+  ufw default allow outgoing
+  ufw limit OpenSSH
+  ufw --force enable
+fi
 systemctl enable --now fail2ban
 
 log "SSH hardening (only if key-based root login is already configured)"
@@ -82,6 +89,12 @@ if [[ "$(openclaw --version 2>/dev/null | awk '{print $2}')" != "$OPENCLAW_VERSI
   npm install -g --allow-scripts=@google/genai,esbuild,protobufjs,openclaw "openclaw@$OPENCLAW_VERSION"
 fi
 openclaw --version
+
+log "Claude Code CLI $CLAUDE_CODE_VERSION (only used to create the Claude-subscription token: agent ai claude)"
+if [[ "$(claude --version 2>/dev/null | awk '{print $1}')" != "$CLAUDE_CODE_VERSION" ]]; then
+  npm install -g --allow-scripts=@anthropic-ai/claude-code "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
+fi
+claude --version || true
 
 log "gogcli $GOG_VERSION (GitHub release, SHA-256 verified)"
 if [[ "$(gog --version 2>/dev/null)" != "v$GOG_VERSION" ]]; then
@@ -157,7 +170,7 @@ log "Verification"
 sleep 10
 as_agent "openclaw gateway status" | grep -E "Listening|Connectivity" || true
 ss -ltnp | grep 18789 || true
-ufw status verbose | head -12
+if is_oci; then iptables -S INPUT | head -12; else ufw status verbose | head -12; fi
 echo
-echo "DONE. Next (as root):  agent secrets     # model key + Telegram token"
-echo "                       agent status"
+echo "DONE. Next:  sudo agent setup     # guided: AI (your Claude subscription), WhatsApp QR, Google, tasks"
+echo "             sudo agent status"

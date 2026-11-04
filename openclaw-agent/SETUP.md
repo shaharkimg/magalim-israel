@@ -1,26 +1,62 @@
-# SETUP — התקנה מאפס
+# SETUP — התקנה מאפס, בעלות 0 ₪
 
-כל ההתקנה, ההקשחה וההגדרות אוטומטיות. הפעולות שמסומנות 👤 דורשות אותך (חשבון, תשלום, OAuth). הכול ביחד כ-20–30 דקות.
+כל ההתקנה, ההקשחה וההגדרות אוטומטיות. נשארו רק פעולות שדורשות **אותך** (חשבון, סריקת QR, אישור גישה) — מסומנות 👤. סה"כ כ-30–40 דקות, פעם אחת.
 
-## שלב 1 👤 — שרת (Hetzner Cloud, בתשלום, ~€5–6 לחודש)
-1. https://console.hetzner.cloud → פרויקט חדש → **Add Server**.
-2. Location: Falkenstein / Nuremberg / Helsinki. Image: **Ubuntu 24.04**. Type: **CX23** (2 vCPU, 4GB) או **CAX11** (ARM) — שניהם נתמכים.
-3. **SSH key**: הוסיפו את המפתח הציבורי שלכם (`~/.ssh/id_ed25519.pub`; אם אין: `ssh-keygen -t ed25519`). חובה — סיסמאות SSH מבוטלות.
-4. **Firewall**: צרו firewall עם כלל נכנס יחיד: TCP 22 (רצוי רק מכתובת ה-IP שלכם). שום פורט אחר.
-5. **Cloud config**: הדביקו את כל התוכן של [`deploy/cloud-init.yaml`](deploy/cloud-init.yaml).
-6. (מומלץ) סמנו **Backups** (+20% מחיר השרת) — snapshot יומי של כל הדיסק.
-7. Create. לאחר ~8 דקות: `ssh root@<IP>` ואז `tail -n 30 /var/log/openclaw-install.log` — אמור להסתיים ב-`OPENCLAW-INSTALL-OK`.
+## מה עולה כסף? כלום
+| רכיב | פתרון | עלות |
+|---|---|---|
+| שרת 24/7 | Oracle Cloud **Always Free** (ARM, Ubuntu 24.04) | 0 ₪ — כל עוד לא משדרגים ל-Pay As You Go |
+| מודל AI | **מנוי Claude הקיים שלך** (Pro/Max) דרך טוקן `setup-token` | 0 ₪ נוסף — נספר במכסת המנוי. חובה: "Extra usage" כבוי |
+| חלופה למודל | Google Gemini free tier | 0 ₪ — עם אזהרת פרטיות (ראו למטה) |
+| WhatsApp | הסים השני שלך + אפליקציית WhatsApp / WhatsApp Business | 0 ₪ |
+| Telegram (אופציונלי) | בוט | 0 ₪ |
+| Gmail + Calendar | Google API + פרויקט Google Cloud **ללא חיוב** | 0 ₪ |
+| OpenClaw, gog, Claude Code CLI | קוד פתוח / כלי חינמי | 0 ₪ |
+| גיבויים | מקומיים בשרת (+ העתק מוצפן אופציונלי) | 0 ₪ |
 
-ההתקנה האוטומטית: אזור זמן, עדכוני אבטחה, UFW, fail2ban, הקשחת SSH, Node 24, OpenClaw, gog (עם אימות SHA-256), משתמש `openclaw` ללא root, תצורה מוקשחת, שירות systemd עם הפעלה מחדש אוטומטית, גיבוי יומי ו-health check.
+## שלב 1 👤 — חשבון Oracle Cloud (פעם אחת, ~10 דק')
+1. https://www.oracle.com/cloud/free/ → **Start for free**.
+2. **Home Region**: מומלץ **Germany Central (Frankfurt)** (יותר זמינות לשרתים החינמיים). אי אפשר לשנות אחר כך.
+3. Oracle מבקשת כרטיס אשראי **לאימות זהות בלבד** (חיוב זמני קטן שמבוטל). חשבון Free Tier **לא יכול לחייב** — רק אם תלחץ בעצמך "Upgrade to Pay As You Go". אל תשדרג.
 
-## שלב 2 👤 — מפתח Anthropic
-1. https://console.anthropic.com → Billing: הגדירו **Monthly spend limit** (למשל $50).
-2. API Keys → Create Key בשם `openclaw-agent`.
-3. בשרת: `agent secrets anthropic` → הדביקו (הקלט מוסתר; נשמר ב-secret store של OpenClaw, לא בקבצים ולא בלוג).
+## שלב 2 👤 — יצירת השרת (~5 דק' + ~10 דק' התקנה אוטומטית)
+ב-Oracle Console: ☰ → **Compute → Instances → Create instance**:
+1. **Image**: Canonical **Ubuntu 24.04**.
+2. **Shape** → Change shape → **Ampere** → `VM.Standard.A1.Flex` → **1 OCPU, 4 GB** RAM (מסומן "Always Free-eligible").
+   > למה 4GB ולא 24GB: לפי מדיניות Oracle (כפי שמדווחת; הספים השתנו בעבר), שרת חינמי עלול להיעצר אם במשך 7 ימים ה-CPU, הרשת **וגם** הזיכרון נמוכים מ-~20%. הסוכן צורך ~1.2–1.6GB → ב-4GB הזיכרון מעל הסף. אם בכל זאת נעצר: Oracle שולחת מייל, ומפעילים מחדש ב-Console (הנתונים נשמרים).
+3. **Networking**: ברירת המחדל (VCN חדש, public IPv4).
+4. **SSH keys**: "Generate a key pair for me" → **Save private key** (שמור את הקובץ!).
+5. **Show advanced options → Management → Cloud-init script**: הדבק את כל התוכן של [`deploy/cloud-init.yaml`](deploy/cloud-init.yaml).
+6. **Create**. אם מתקבל "Out of capacity" — נסה Availability Domain אחר באותו מסך, או שוב מאוחר יותר.
 
-## שלב 3 👤 — ערוץ שיחה: WhatsApp (מומלץ) ו/או Telegram
+אחרי ~10 דקות, מהמחשב:
+```bash
+chmod 600 ~/Downloads/ssh-key-*.key          # (ב-Windows אין צורך)
+ssh -i ~/Downloads/ssh-key-*.key ubuntu@<PUBLIC-IP>
+tail -n 5 /var/log/openclaw-install.log       # צריך להופיע OPENCLAW-INSTALL-OK
+```
+ההתקנה האוטומטית: אזור זמן, עדכוני אבטחה, firewall (של Oracle: רק SSH נכנס), fail2ban, הקשחת SSH, Node 24, OpenClaw, gog, Claude Code CLI, משתמש `openclaw` ללא root, תצורה מוקשחת + guard, שירות systemd עם הפעלה מחדש אוטומטית, גיבוי יומי ו-health check.
 
-### 3א. WhatsApp — הסוכן על המספר השני שלך
+## שלב 3 👤 — OAuth client של Google (פעם אחת, ~5 דק', חינם, ללא כרטיס)
+1. https://console.cloud.google.com → פרויקט חדש `openclaw-agent` (**אין צורך** להפעיל Billing).
+2. APIs & Services → Library → הפעל **Gmail API** ו-**Google Calendar API**.
+3. Google Auth Platform → Branding/Audience: External, שם אפליקציה, המייל שלך → **Audience → Publish app** (אחרת Google מנתקת כל 7 ימים; לשימוש אישי לא נדרש אימות — תופיע אזהרת "unverified app" שמאשרים).
+4. Clients → Create client → **Desktop app** → **Download JSON**. תצטרך להדביק את תוכנו בשלב הבא.
+
+## שלב 4 👤 — `sudo agent setup` (הכול בפקודה אחת)
+בשרת: `sudo agent setup`. האשף עובר שלב-שלב (אפשר לדלג על כל שלב ולחזור אליו):
+
+1. **מודל AI — מנוי Claude**. לפני כן: claude.ai → Settings → Usage/Billing → ודא ש-**Extra usage כבוי** (כך לעולם אין חיוב נוסף).
+   יופיע קישור → פתח בדפדפן שמחובר ל-claude.ai → Authorize → העתק את הקוד שמוצג → הדבק בטרמינל. הטוקן נקלט אוטומטית (תוקף שנה, הרשאה למודל בלבד).
+   - אין לך מנוי Pro/Max? בחר **Gemini**: https://aistudio.google.com/apikey → Create API key → הדבק. ⚠️ ב-free tier Google רשאית להשתמש בתוכן (כולל תוכן מיילים שהסוכן קורא) לשיפור מוצרים, ובודקים אנושיים עשויים לקרוא אותו.
+2. **WhatsApp** — המספר האישי שלך, ואז סריקת QR מהטלפון של מספר הסוכן (פירוט למטה).
+3. **Telegram** — אופציונלי, אפשר לדלג.
+4. **Google** — המייל שלך + הדבקת תוכן קובץ ה-JSON משלב 3 → קישור → אישור בדפדפן → הדבקת הכתובת שהדפדפן הגיע אליה (`http://127.0.0.1/...` שלא נטענת — זה תקין).
+5. **משימות מתוזמנות** — האשף מציג כל משימה (תוכן + שעה) ושואל אם להפעיל.
+
+בסוף תקבל בוואטסאפ: "✅ העוזר האישי שלך מחובר ופעיל".
+
+### פירוט: WhatsApp — הסוכן על המספר השני שלך
 המבנה: **סים 2 = מספר הסוכן**, **סים 1 = המספר האישי שלך**. אתה כותב מהוואטסאפ האישי לצ'אט עם מספר הסוכן, והוא עונה. רק המספר האישי שלך מורשה; הסוכן גם לא יכול לשלוח הודעה לאף מספר אחר (נאכף בשרת).
 
 1. **הפעל WhatsApp על מספר הסוכן (סים 2)** באחת הדרכים:
@@ -28,50 +64,25 @@
    - בטלפון Dual-SIM: אפליקציית **WhatsApp Business** (חינם) רשומה על סים 2 לצד WhatsApp הרגיל שלך על סים 1; או
    - WhatsApp ב-Android: ⋮ → Settings → **Add account** (חשבון שני באותה אפליקציה).
    מומלץ: שם פרופיל כמו "העוזר שלי". שמור את מספר הסוכן באנשי הקשר בטלפון האישי.
-2. בשרת: `agent whatsapp 050-1234567` ← **המספר האישי שלך** (סים 1), לא מספר הסוכן.
+2. באשף (או `sudo agent whatsapp 050-1234567`) ← **המספר האישי שלך** (סים 1), לא מספר הסוכן.
 3. יוצג QR בטרמינל (הגדל את חלון הטרמינל). בטלפון של **מספר הסוכן**: WhatsApp → ⋮ / Settings → **Linked devices → Link a device** → סרוק.
-4. מהוואטסאפ האישי שלך: פתח צ'אט עם מספר הסוכן וכתוב "שלום".
 
 חשוב לדעת:
-- השרת מחובר כ"מכשיר מקושר" (WhatsApp Web) של מספר הסוכן. הטלפון של מספר הסוכן צריך להתחבר לאינטרנט מדי פעם (לפחות פעם בשבוע-שבועיים), אחרת WhatsApp מנתק את המכשיר המקושר → `agent whatsapp --relink`.
-- זה חיבור לא-רשמי (WhatsApp Web, ספריית Baileys), כמו בכל עוזר AI אישי מבוסס וואטסאפ. Meta עלולה לחסום מספר שמזוהה כאוטומטי. לכן הסוכן על **המספר השני** — המספר האישי שלך לא בסיכון. שימוש אישי בהיקף נמוך הוא הסיכון הנמוך ביותר.
-- התראות, תוצאות משימות מתוזמנות והתראות תקלה יישלחו אליך בוואטסאפ (לשינוי: `agent channel telegram`).
+- השרת מחובר כ"מכשיר מקושר" (WhatsApp Web) של מספר הסוכן. הטלפון של מספר הסוכן צריך להתחבר לאינטרנט מדי פעם (לפחות פעם בשבוע-שבועיים), אחרת WhatsApp מנתק את המכשיר המקושר → `sudo agent whatsapp --relink`.
+- זה חיבור לא-רשמי (WhatsApp Web, ספריית Baileys), כמו בכל עוזר AI אישי מבוסס וואטסאפ. Meta עלולה לחסום מספר שמזוהה כאוטומטי. לכן הסוכן על **המספר השני** — המספר האישי שלך לא בסיכון.
+- התראות, תוצאות משימות מתוזמנות והתראות תקלה יישלחו אליך בוואטסאפ (לשינוי: `sudo agent channel telegram`).
 
-### 3ב. Telegram (אופציונלי, אפשר במקביל)
-1. ב-Telegram: חפשו **@BotFather** (בדקו שהשם מדויק) → `/newbot` → שם (למשל "העוזר שלי") → username שמסתיים ב-`bot`.
-2. מומלץ: `/setjoingroups` → Disable.
-3. בשרת: `agent secrets telegram` → הדביקו את ה-token.
-4. שלחו לבוט הודעה כלשהי. הבוט יחזיר הודעת מערכת עם `Your Telegram user id: <מספר>` (הסוכן עצמו לא פעיל עבורכם עדיין). אפשר לראות את אותו מספר גם בשרת: `agent pairing`.
-5. בשרת: `agent lock <המספר>` — מעכשיו רק אתם.
-6. שלחו "שלום" — הסוכן עונה בעברית.
+### פירוט: Telegram (אופציונלי, אפשר במקביל)
+1. ב-Telegram: **@BotFather** (בדוק שהשם מדויק) → `/newbot` → שם → username שמסתיים ב-`bot`. מומלץ: `/setjoingroups` → Disable.
+2. `sudo agent secrets telegram` → הדבק את ה-token.
+3. שלח לבוט הודעה. הוא יחזיר הודעת מערכת עם `Your Telegram user id: <מספר>` (גם ב-`sudo agent pairing`).
+4. `sudo agent lock <המספר>`.
 
-## שלב 4 👤 — Gmail + Calendar (OAuth)
-### 4א. OAuth Client (פעם אחת, חינם)
-1. https://console.cloud.google.com → פרויקט חדש `openclaw-agent`.
-2. APIs & Services → Library → הפעילו **Gmail API** ו-**Google Calendar API**.
-3. OAuth consent screen (Google Auth Platform): External, שם האפליקציה, המייל שלכם; ב-**Audience → Test users** הוסיפו את חשבון ה-Gmail שלכם.
-   - הערה: באפליקציה במצב Testing, Google מפקיעה את ההרשאה כל 7 ימים. כדי להימנע: Audience → **Publish app** (לשימוש אישי אין צורך באימות Google; תופיע אזהרת "unverified app" שאותה מאשרים).
-4. Clients → Create client → **Desktop app** → Download JSON.
-### 4ב. חיבור
-```bash
-scp client_secret_*.json root@<IP>:/root/cs.json
-ssh root@<IP> agent google you@gmail.com /root/cs.json
-```
-הסקריפט מדפיס קישור → פותחים בדפדפן, מאשרים (קריאת מייל, ניהול טיוטות, קריאת יומן) → הדפדפן יגיע לכתובת `http://127.0.0.1:...` שלא נטענת — **זה תקין**. מעתיקים את הכתובת המלאה מסרגל הכתובות ומדביקים בטרמינל (לא בצ'אט). הסקריפט מאמת קריאת Gmail ו-Calendar ומחבר את הכלים לסוכן. קובץ ה-client נמחק לאחר השימוש.
-
-## שלב 5 👤 — אישור משימות מתוזמנות
-```bash
-agent templates                          # מתקין 3 משימות לדוגמה — כבויות
-agent automations                        # צפייה
-agent templates --enable morning-agenda  # 08:00 כל יום: סדר יום
-agent templates --enable inbox-replies   # 17:00 א'-ה': מיילים שממתינים לתשובה + משימות ומועדים
-agent templates --enable weekly-summary  # 09:00 ביום א': סיכום שבועי
-```
-אפשר גם פשוט לבקש מהסוכן ב-Telegram ("כל בוקר ב-8 תשלח לי...") — הוא יציג את התוכן ויבקש אישור.
-
-## שלב 6 (אופציונלי) — ממשק ניהול
-מהמחשב: `./scripts/tunnel.sh <IP>` → http://127.0.0.1:18789/ . בכניסה ראשונה: `agent dashboard` (קישור עם token), ואז `agent devices list` / `agent devices approve <id>`.
-מהטלפון (Android): Termius / JuiceSSH עם Port Forwarding מקומי 18789 → 127.0.0.1:18789, או Tailscale (ראו OPERATIONS.md).
+## שלב 5 (אופציונלי) — ממשק ניהול
+מהמחשב: `./scripts/tunnel.sh ubuntu@<IP>` (או `ssh -i <key> -N -L 18789:127.0.0.1:18789 ubuntu@<IP>`) → http://127.0.0.1:18789/ . בכניסה ראשונה: `sudo agent dashboard`, ואז `sudo agent devices list` / `sudo agent devices approve <id>`.
 
 ## בדיקה סופית
-`agent status` — אמור להראות: Connectivity ok, WhatsApp linked/running (ו/או telegram running), google ok, 0 critical בביקורת האבטחה, גיבוי אחרון.
+`sudo agent status` — Connectivity ok, WhatsApp linked/running, google ok, 0 critical בביקורת האבטחה, גיבוי אחרון.
+
+## חלופה בתשלום (לא נדרשת)
+אם Oracle לא זמינה: כל VPS עם Ubuntu 24.04 ו-4GB RAM (למשל Hetzner CX23, ~€5–6 לחודש) — אותו `cloud-init.yaml`, משתמש `root` במקום `ubuntu`. ואם תעדיף חיוב לפי שימוש במקום המנוי: `sudo agent ai apikey`.

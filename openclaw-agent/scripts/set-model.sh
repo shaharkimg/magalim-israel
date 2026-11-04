@@ -10,7 +10,7 @@ case "${1:-}" in
   */*)    primary="$1"; fallback="${2:-anthropic/claude-sonnet-5-5}" ;;
   *) die "usage: $0 opus|sonnet|haiku|<provider/model> [fallback]" ;;
 esac
-patch="$(mktemp --suffix=.json5)"
+patch="$(mktemp -p "$OC_TMPDIR" --suffix=.json5)"
 printf '{ agents: { defaults: { model: { primary: "%s", fallbacks: ["%s"] } } } }\n' "$primary" "$fallback" > "$patch"
 oc config patch --file "$patch"; rm -f "$patch"
 green "Primary model: $primary (fallback: $fallback)"

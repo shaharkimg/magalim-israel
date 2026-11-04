@@ -12,7 +12,7 @@ if store_has ANTHROPIC_API_KEY; then
   info "ANTHROPIC_API_KEY present -> applying anthropic.patch.json5"
   oc config patch --file "$KIT_DIR/config/anthropic.patch.json5"
 fi
-tmp="$(mktemp --suffix=.json5)"
+tmp="$(mktemp -p "$OC_TMPDIR" --suffix=.json5)"
 if store_has TELEGRAM_BOT_TOKEN; then
   info "TELEGRAM_BOT_TOKEN present -> enabling Telegram"
   oc config patch --file "$KIT_DIR/config/telegram.patch.json5"

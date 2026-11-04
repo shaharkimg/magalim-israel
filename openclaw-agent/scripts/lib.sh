@@ -11,6 +11,8 @@ BACKUP_DIR="${BACKUP_DIR:-$HOME/backups}"
 export TZ="${TZ:-Asia/Jerusalem}"
 export PATH="$PATH:/usr/local/bin:/usr/bin:/bin"
 umask 077
+# Private scratch dir for config patches; removed on exit (also on failure).
+OC_TMPDIR="$(mktemp -d)"; trap 'rm -rf "$OC_TMPDIR"' EXIT
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -106,7 +108,7 @@ sync_owner_policies() {
   local tg wa ch to patch
   tg="$(env_get TELEGRAM_OWNER_ID)"; wa="$(env_get WHATSAPP_OWNER)"
   ch="$(owner_channel)"; to="$(owner_target)"
-  patch="$(mktemp --suffix=.json5)"
+  patch="$(mktemp -p "$OC_TMPDIR" --suffix=.json5)"
   {
     echo '{'
     echo '  plugins: { entries: { "owner-only-outbound": { enabled: true, hooks: { allowConversationAccess: true },'

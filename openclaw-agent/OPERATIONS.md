@@ -27,7 +27,7 @@ journalctl -t openclaw-health -t openclaw-backup --since today
 - Off-site מוצפן (מומלץ): במחשב שלך `age-keygen -o agent-backup.key` (שמור במקום בטוח!), ואז בשרת
   `echo 'AGE_RECIPIENT=age1...' >> /home/openclaw/.openclaw/.env`. מעכשיו נוצר גם `*.age`; העתקה:
   `scp root@<IP>:/var/backups/openclaw/*.age ./`.
-- שכבה נוספת: Hetzner Backups (snapshot יומי של השרת).
+- שכבה נוספת: ב-Oracle Console → Boot volume → Backups. Always Free כולל מספר מוגבל של גיבויי volume — ודא בעמוד ה-Always Free של Oracle שהגיבוי מסומן Always Free לפני שמפעילים.
 
 ## שחזור
 ```bash
@@ -44,20 +44,18 @@ agent update "" <git-branch>         # עדכון ה-kit (תצורה/סקריפ�
 ```
 מומלץ לעדכן פעם בחודש לגרסת `extended-stable`/`latest` אחרי קריאת ה-release notes. עדכוני אבטחה של Ubuntu מותקנים אוטומטית (reboot ב-04:30 רק אם נדרש).
 
-## מודל ועלויות
-```bash
-agent model opus     # ברירת מחדל: הכי עמיד ל-prompt injection, $4/$20 למיליון טוקנים
-agent model sonnet   # ~חצי מחיר, $2/$10
-```
-הערכה (שימוש אישי, ~30 הודעות ביום + 3 משימות יומיות, עם prompt caching):
-| | Opus 5.5 | Sonnet 5.5 |
+## מודל ועלויות — 0 ₪
+| רכיב | עלות | מה לוודא |
 |---|---|---|
-| מודל לחודש (הערכה) | ~$60–90 | ~$30–45 |
-| שרת Hetzner CX23 | ~€5–6 | ~€5–6 |
-| Hetzner Backups (אופציונלי) | ~€1.2 | ~€1.2 |
+| מודל — מנוי Claude (`agent ai claude`) | 0 ₪ נוסף | claude.ai → Settings → Usage: **Extra usage כבוי**. השימוש נספר במכסת המנוי שלך (משותף עם השימוש שלך ב-Claude). הגעת למכסה → הסוכן יענה שוב כשהמכסה תתאפס |
+| שרת Oracle Always Free | 0 ₪ | לא לשדרג ל-Pay As You Go; לשמור 1 OCPU / 4GB |
+| Google APIs, WhatsApp, Telegram, OpenClaw, gog | 0 ₪ | — |
 
-ניטור צריכה: Control UI → **Usage** (עלות משוערת לפי session); `agent oc sessions list` (טוקנים לשיחה). לחיוב בפועל מ-Anthropic הוסיפו `ANTHROPIC_ADMIN_KEY` ל-`.env`. **הגדירו Spend limit ב-console.anthropic.com.**
-Gemini נבדק כחלופה זולה יותר, אך לפי תיעוד OpenClaw עמידותו ל-prompt injection נמוכה משמעותית — לא מומלץ לסוכן שקורא מיילים. החלפה עתידית אפשרית: `agent oc onboard --auth-choice gemini-api-key ...` ואז `agent model google/<model>`.
+- הטוקן של המנוי בתוקף שנה (נשמר תאריך ב-`.env` כ-`AI_TOKEN_CREATED`). חידוש: `sudo agent ai claude`.
+- הגבלת צריכה: `sudo agent model sonnet` חוסך ממכסת המנוי (Opus צורך יותר); המשימות המתוזמנות כבויות עד שאתה מאשר.
+- ניטור: Control UI → **Usage** (מכסות המנוי וצריכה לפי שיחה); `sudo agent oc sessions list`.
+- מדיניות Anthropic: OpenClaw מציין שהשימוש במנוי דרך `setup-token` "נתמך" ושצוות Anthropic אישר אותו, אך Anthropic יכולה לשנות זאת. אם ייחסם — הסוכן פשוט יפסיק לענות (לא ייווצר חיוב). חלופות: `sudo agent ai gemini` (חינם, אזהרת פרטיות) או `sudo agent ai apikey` (בתשלום לפי שימוש).
+- Oracle: אם שרת חינמי נעצר ("reclaimed") — Oracle שולחת מייל; מפעילים אותו מחדש מה-Console (Instance → Start). הנתונים נשמרים.
 
 ## משימות מתוזמנות
 - מהצ'אט: "תזכיר לי מחר ב-9 ל..." / "כל יום ב-17:00 ..." (הסוכן מאשר איתך תוכן ותדירות).
