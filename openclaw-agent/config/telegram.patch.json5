@@ -1,0 +1,9 @@
+// Applied by scripts/set-secrets.sh after TELEGRAM_BOT_TOKEN is in the secret store.
+{
+  channels: {
+    telegram: {
+      enabled: true,
+      botToken: { source: "store", provider: "default", id: "TELEGRAM_BOT_TOKEN" },
+    },
+  },
+}

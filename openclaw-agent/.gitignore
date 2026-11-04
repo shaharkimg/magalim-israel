@@ -1,0 +1,6 @@
+!.env.example
+.env
+client_secret*.json
+*.tar.gz
+*.age
+*.sqlite*

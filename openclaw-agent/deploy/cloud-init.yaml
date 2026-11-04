@@ -1,0 +1,14 @@
+#cloud-config
+# Paste this whole file into Hetzner Cloud -> Create Server -> "Cloud config".
+# It installs and hardens everything automatically (~5-8 minutes after boot).
+# Progress log on the server: /var/log/openclaw-install.log
+# KIT_REF: git branch or commit of github.com/shaharkimg/magalim-israel to install from.
+write_files:
+  - path: /root/openclaw-kit.env
+    permissions: "0600"
+    content: |
+      KIT_REF=ccr-ce28a98b-d5v973
+      OPENCLAW_VERSION=2026.10.10
+      GOG_VERSION=0.47.1
+runcmd:
+  - [bash, -c, 'set -a; . /root/openclaw-kit.env; set +a; curl -fsSL "https://raw.githubusercontent.com/shaharkimg/magalim-israel/${KIT_REF}/openclaw-agent/deploy/install.sh" -o /root/openclaw-install.sh && bash /root/openclaw-install.sh >> /var/log/openclaw-install.log 2>&1 && echo OPENCLAW-INSTALL-OK >> /var/log/openclaw-install.log']
