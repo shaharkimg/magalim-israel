@@ -47,6 +47,7 @@ agent backup | restore <file> | update [version]
 
 ## מבנה התיקייה
 ```
+env.example  רשימת משתני הסביבה והסודות (בלי ערכים) ואיפה כל אחד נשמר בשרת
 config/      openclaw.base.json5 (תצורה מוקשחת) + patches שמופעלים רק כשהסוד קיים
 workspace/   AGENTS.md (כללים), SOUL.md (אישיות), USER.md, MEMORY.md, IDENTITY.md
 deploy/      cloud-init.yaml, install.sh, systemd/ (גיבוי יומי, health check)
