@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily OpenClaw backup at 03:30 (Asia/Jerusalem)
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Jerusalem
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

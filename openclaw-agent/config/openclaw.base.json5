@@ -1,0 +1,102 @@
+// Hardened base configuration for the personal OpenClaw agent.
+// Applied with: scripts/apply-config.sh  (openclaw config patch --file ...)
+// NO SECRETS IN THIS FILE. Secrets live in the OpenClaw secret store
+// (~/.openclaw/state/openclaw.sqlite) or in ~/.openclaw/.env (mode 600).
+{
+  agents: {
+    defaults: {
+      userTimezone: "Asia/Jerusalem",
+      // Primary: Claude Opus 5.5 (best prompt-injection resistance + Hebrew + tools).
+      // Fallback: Claude Sonnet 5.5 (half the price). Switch with scripts/set-model.sh.
+      model: {
+        primary: "anthropic/claude-opus-5-5",
+        fallbacks: ["anthropic/claude-sonnet-5-5"],
+      },
+      // No recurring "heartbeat" turns: proactive messages only from owner-approved automations.
+      heartbeat: { every: "0m" },
+      // No sandbox runtime needed: the agent has no shell (exec) at all.
+      sandbox: { mode: "off" },
+    },
+    entries: {
+      main: {
+        identity: { name: "עוזר" },
+      },
+    },
+  },
+
+  // Keep Claude models on OpenClaw's own runtime (the tested tool policy applies),
+  // whether auth is the owner's Claude subscription token or an API key.
+  // Never hand turns to the native Claude Code CLI runtime.
+  models: {
+    providers: {
+      anthropic: { agentRuntime: { id: "openclaw" } },
+    },
+  },
+
+  // Each Telegram DM peer gets an isolated session.
+  session: { dmScope: "per-channel-peer" },
+
+  tools: {
+    // Start from the narrow "messaging" profile (implicitly allows configured MCP servers).
+    profile: "messaging",
+    // Add only what a personal assistant needs:
+    //  - read/write/edit  -> memory files inside the workspace only (fs.workspaceOnly)
+    //  - memory_search/get -> recall
+    //  - automations       -> scheduled tasks requested by the owner in chat
+    alsoAllow: ["read", "write", "edit", "memory_search", "memory_get", "automations"],
+    deny: [
+      "group:runtime",   // exec / process / code_execution: no shell on the server
+      "group:web",       // web_search / web_fetch: off until explicitly needed (prompt-injection surface)
+      "group:ui",        // browser, terminal, canvas ...
+      "group:nodes",     // remote devices / computer use
+      "apply_patch",
+      "gateway",         // no config changes or self-updates from chat
+      "plugins",
+      "openclaw",
+      "sessions_spawn",
+      "sessions_send",
+      "conversations_send",
+      "subagents",
+      "message",         // no free-form sends: replies + scheduled deliveries don't need it.
+                         // (Delivery to anyone but the owner is also blocked by the
+                         //  owner-only-outbound guard plugin.)
+    ],
+    fs: { workspaceOnly: true },
+    exec: { mode: "deny" },
+    elevated: { enabled: false },
+    sessions: { visibility: "agent" },
+    agentToAgent: { enabled: false },
+  },
+
+  // Telegram channel defaults. Enablement and DM policy are set by scripts/apply-config.sh:
+  //   no token  -> enabled:false
+  //   token, owner not yet known -> enabled, dmPolicy "pairing" (strangers get no agent access)
+  //   owner locked (scripts/telegram-lock.sh) -> dmPolicy "allowlist" + allowFrom [owner id]
+  channels: {
+    telegram: {
+      groupPolicy: "disabled",
+      configWrites: false,
+      linkPreview: false,
+      streaming: { mode: "partial" },
+    },
+  },
+
+  cron: {
+    enabled: true,
+  },
+
+  // No browser automation on the server.
+  browser: { enabled: false },
+
+  // Control UI stays bound to 127.0.0.1; reach it only through an SSH tunnel.
+  gateway: {
+    bind: "loopback",
+    port: 18789,
+    auth: { mode: "token" },
+  },
+
+  logging: {
+    level: "info",
+    audit: { enabled: true },
+  },
+}

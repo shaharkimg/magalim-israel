@@ -1,0 +1,10 @@
+// Applied by scripts/set-secrets.sh after ANTHROPIC_API_KEY is in the secret store.
+{
+  models: {
+    providers: {
+      anthropic: {
+        apiKey: { source: "store", provider: "default", id: "ANTHROPIC_API_KEY" },
+      },
+    },
+  },
+}

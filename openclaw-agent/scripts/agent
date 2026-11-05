@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Admin entry point on the server (run as root):  agent <command>
+set -euo pipefail
+KIT=/opt/agent-kit/openclaw-agent; S="$KIT/scripts"
+AGENT_USER=openclaw; uid="$(id -u "$AGENT_USER")"
+[[ $EUID -eq 0 ]] || { echo "run with sudo / as root"; exit 1; }
+as_agent() { runuser -u "$AGENT_USER" -- env HOME="/home/$AGENT_USER" XDG_RUNTIME_DIR="/run/user/$uid" \
+  DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" TZ=Asia/Jerusalem BACKUP_DIR=/var/backups/openclaw "$@"; }
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  setup)      as_agent "$S/setup-wizard.sh" "$@" ;;
+  ai)         as_agent "$S/ai-login.sh" "${1:-claude}" ;;
+  secrets)    as_agent "$S/set-secrets.sh" "${1:-telegram}" ;;
+  lock)       as_agent "$S/telegram-lock.sh" "$@" ;;
+  whatsapp)   as_agent "$S/whatsapp-setup.sh" "$@" ;;
+  channel)    [[ "${1:-}" =~ ^(whatsapp|telegram)$ ]] || { echo "usage: agent channel whatsapp|telegram"; exit 1; }
+              as_agent bash -c "source '$S/lib.sh'; env_set PRIMARY_CHANNEL '$1'; sync_owner_policies" && echo "Notifications -> $1" ;;
+  pairing)    as_agent openclaw pairing list telegram ;;
+  google)     email="${1:?email}"; src="${2:?client_secret.json}"
+              dst="/home/$AGENT_USER/client_secret.json"; install -m 600 -o "$AGENT_USER" "$src" "$dst"; shred -u "$src" || rm -f "$src"
+              as_agent "$S/google-auth.sh" "$email" "$dst" ;;
+  status)     as_agent "$S/status.sh" ;;
+  logs)       as_agent journalctl --user -u openclaw-gateway -n "${1:-200}" --no-pager ;;
+  follow)     as_agent journalctl --user -u openclaw-gateway -f ;;
+  restart)    as_agent systemctl --user restart openclaw-gateway.service; sleep 8; as_agent openclaw gateway status | grep -E "Connectivity|Listening" ;;
+  model)      as_agent "$S/set-model.sh" "$@" ;;
+  apply)      as_agent "$S/apply-config.sh" ;;
+  backup)     as_agent "$S/backup.sh" ;;
+  restore)    as_agent "$S/restore.sh" "$@" ;;
+  update)     "$S/update.sh" "$@" ;;
+  audit)      as_agent openclaw security audit --deep ;;
+  dashboard)  as_agent openclaw dashboard --no-open ;;
+  devices)    as_agent openclaw devices "${@:-list}" ;;
+  automations) as_agent openclaw automations list --all ;;
+  templates)  as_agent "$KIT/automations/install-templates.sh" "$@" ;;
+  oc)         as_agent openclaw "$@" ;;
+  *) cat <<'EOF'
+agent setup                              guided first-time setup (AI, WhatsApp, Google, tasks)
+agent ai claude|gemini|apikey            connect the model (claude = your Claude subscription, no extra cost)
+agent secrets telegram                   store a Telegram bot token (optional channel)
+agent lock <telegram_user_id>            allow ONLY this Telegram user
+agent whatsapp <your-number>             link the agent's WhatsApp (2nd SIM) via QR; only <your-number> may use it
+agent whatsapp --relink                  show a new QR (after logout / phone change)
+agent channel whatsapp|telegram          where scheduled results & alerts are sent
+agent pairing                            show pending Telegram pairing requests
+agent google <email> <client_secret.json> connect Gmail (read+drafts) & Calendar (read)
+agent status | logs [n] | follow | restart | audit
+agent model opus|sonnet|haiku            switch primary model
+agent automations                        list scheduled tasks
+agent templates [--enable <name>]        install the example automations (disabled)
+agent dashboard                          print Control UI URL (use via SSH tunnel)
+agent devices [list|approve <id>]        approve a browser for the Control UI
+agent backup | restore <file> | update [version] [kit-ref] | apply
+agent oc <openclaw args...>              raw openclaw CLI as the agent user
+EOF
+  ;;
+esac

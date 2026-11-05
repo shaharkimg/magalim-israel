@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenClaw agent - verified daily backup
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=openclaw
+Environment=HOME=/home/openclaw
+Environment=TZ=Asia/Jerusalem
+Environment=BACKUP_DIR=/var/backups/openclaw
+ExecStart=/opt/agent-kit/openclaw-agent/scripts/backup.sh
+Nice=10
