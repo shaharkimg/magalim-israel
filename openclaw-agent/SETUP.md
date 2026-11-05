@@ -19,22 +19,25 @@
 2. **Home Region**: מומלץ **Germany Central (Frankfurt)** (יותר זמינות לשרתים החינמיים). אי אפשר לשנות אחר כך.
 3. Oracle מבקשת כרטיס אשראי **לאימות זהות בלבד** (חיוב זמני קטן שמבוטל). חשבון Free Tier **לא יכול לחייב** — רק אם תלחץ בעצמך "Upgrade to Pay As You Go". אל תשדרג.
 
-## שלב 2 👤 — יצירת השרת (~5 דק' + ~10 דק' התקנה אוטומטית)
-ב-Oracle Console: ☰ → **Compute → Instances → Create instance**:
-1. **Image**: Canonical **Ubuntu 24.04**.
-2. **Shape** → Change shape → **Ampere** → `VM.Standard.A1.Flex` → **1 OCPU, 4 GB** RAM (מסומן "Always Free-eligible").
-   > למה 4GB ולא 24GB: לפי מדיניות Oracle (כפי שמדווחת; הספים השתנו בעבר), שרת חינמי עלול להיעצר אם במשך 7 ימים ה-CPU, הרשת **וגם** הזיכרון נמוכים מ-~20%. הסוכן צורך ~1.2–1.6GB → ב-4GB הזיכרון מעל הסף. אם בכל זאת נעצר: Oracle שולחת מייל, ומפעילים מחדש ב-Console (הנתונים נשמרים).
-3. **Networking**: ברירת המחדל (VCN חדש, public IPv4).
-4. **SSH keys**: "Generate a key pair for me" → **Save private key** (שמור את הקובץ!).
-5. **Show advanced options → Management → Cloud-init script**: הדבק את כל התוכן של [`deploy/cloud-init.yaml`](deploy/cloud-init.yaml).
-6. **Create**. אם מתקבל "Out of capacity" — נסה Availability Domain אחר באותו מסך, או שוב מאוחר יותר.
-
-אחרי ~10 דקות, מהמחשב:
+## שלב 2 👤 — יצירת השרת: הדבקה אחת (~2 דק' + ~10 דק' התקנה אוטומטית)
+ב-Oracle Console לחץ על אייקון **Cloud Shell** (`>_` למעלה מימין) — טרמינל בדפדפן שכבר מחובר לחשבון שלך — והדבק:
 ```bash
-chmod 600 ~/Downloads/ssh-key-*.key          # (ב-Windows אין צורך)
-ssh -i ~/Downloads/ssh-key-*.key ubuntu@<PUBLIC-IP>
-tail -n 5 /var/log/openclaw-install.log       # צריך להופיע OPENCLAW-INSTALL-OK
+curl -fsSL https://raw.githubusercontent.com/shaharkimg/magalim-israel/ccr-ce28a98b-d5v973/openclaw-agent/deploy/oci-cloudshell.sh | bash
 ```
+הסקריפט ([`deploy/oci-cloudshell.sh`](deploy/oci-cloudshell.sh)) יוצר לבד, רק משאבי Always Free: רשת + firewall (רק SSH נכנס), שרת `VM.Standard.A1.Flex` **1 OCPU / 4GB** עם Ubuntu 24.04, מפתח SSH (נשמר ב-Cloud Shell), ומפעיל את ההתקנה האוטומטית. אם אין מקום פנוי בשרתים החינמיים ("Out of host capacity") — הוא מנסה את כל אזורי הזמינות במשך 15 דקות; אם עדיין אין, פשוט מריצים שוב מאוחר יותר (הוא ממשיך מאיפה שעצר ולא יוצר כפילויות).
+
+בסוף הוא מדפיס את שתי הפקודות הבאות — מריצים אותן **באותו Cloud Shell** (לא צריך להתקין כלום במחשב):
+```bash
+ssh -i ~/.ssh/openclaw_agent_ed25519 ubuntu@<IP> 'tail -n 3 /var/log/openclaw-install.log'   # עד OPENCLAW-INSTALL-OK
+ssh -t -i ~/.ssh/openclaw_agent_ed25519 ubuntu@<IP> sudo agent setup                           # שלב 4
+```
+> למה 4GB ולא 24GB: לפי מדיניות Oracle (כפי שמדווחת; הספים השתנו בעבר), שרת חינמי עלול להיעצר אם במשך 7 ימים ה-CPU, הרשת **וגם** הזיכרון נמוכים מ-~20%. הסוכן צורך ~1.2–1.6GB → ב-4GB הזיכרון מעל הסף. אם בכל זאת נעצר: Oracle שולחת מייל, ומפעילים מחדש ב-Console (הנתונים נשמרים).
+
+<details><summary>חלופה ידנית (בלי Cloud Shell)</summary>
+
+☰ → **Compute → Instances → Create instance**: Image **Canonical Ubuntu 24.04** · Shape **Ampere `VM.Standard.A1.Flex`, 1 OCPU, 4 GB** · Networking ברירת מחדל (public IPv4) · SSH keys: "Generate a key pair for me" → Save private key · **Show advanced options → Management → Cloud-init script**: הדבק את [`deploy/cloud-init.yaml`](deploy/cloud-init.yaml) · Create. ואז מהמחשב: `ssh -i ~/Downloads/ssh-key-*.key ubuntu@<IP>`.
+</details>
+
 ההתקנה האוטומטית: אזור זמן, עדכוני אבטחה, firewall (של Oracle: רק SSH נכנס), fail2ban, הקשחת SSH, Node 24, OpenClaw, gog, Claude Code CLI, משתמש `openclaw` ללא root, תצורה מוקשחת + guard, שירות systemd עם הפעלה מחדש אוטומטית, גיבוי יומי ו-health check.
 
 ## שלב 3 👤 — OAuth client של Google (פעם אחת, ~5 דק', חינם, ללא כרטיס)
@@ -44,7 +47,7 @@ tail -n 5 /var/log/openclaw-install.log       # צריך להופיע OPENCLAW-I
 4. Clients → Create client → **Desktop app** → **Download JSON**. תצטרך להדביק את תוכנו בשלב הבא.
 
 ## שלב 4 👤 — `sudo agent setup` (הכול בפקודה אחת)
-בשרת: `sudo agent setup`. האשף עובר שלב-שלב (אפשר לדלג על כל שלב ולחזור אליו):
+מ-Cloud Shell: `ssh -t -i ~/.ssh/openclaw_agent_ed25519 ubuntu@<IP> sudo agent setup` (או מכל טרמינל שמחובר לשרת: `sudo agent setup`). האשף עובר שלב-שלב (אפשר לדלג על כל שלב ולחזור אליו):
 
 1. **מודל AI — מנוי Claude**. לפני כן: claude.ai → Settings → Usage/Billing → ודא ש-**Extra usage כבוי** (כך לעולם אין חיוב נוסף).
    יופיע קישור → פתח בדפדפן שמחובר ל-claude.ai → Authorize → העתק את הקוד שמוצג → הדבק בטרמינל. הטוקן נקלט אוטומטית (תוקף שנה, הרשאה למודל בלבד).

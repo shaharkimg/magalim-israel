@@ -56,6 +56,7 @@ no plaintext secrets in openclaw.json · security audit: 0 critical · .env is m
 | אשף `agent setup` | ✅ רץ מקצה לקצה עם דילוג על כל השלבים (ללא חשבונות אמיתיים) |
 | צריכת זיכרון של ה-gateway | נמדד ~1.6GB RSS → שרת חינמי של 1GB (Google e2-micro) לא מספיק; Oracle A1 עם 4GB כן |
 | Gemini free tier | ⚠️ לא נבדק — `generativelanguage.googleapis.com` חסום בסביבה זו; נבדקה רק תקינות התצורה |
+| יצירת שרת אוטומטית ב-Cloud Shell (`deploy/oci-cloudshell.sh`) | ✅ מול סימולטור OCI CLI (`tests/run-oci-sim.sh`, 3/3): אזור בית, רשת, תמונת Ubuntu 24.04 רגילה (לא Minimal), 1 OCPU/4GB, cloud-init מ-GitHub, מפתח SSH, מעבר ל-AD הבא ב-"Out of host capacity", ריצה חוזרת ללא כפילויות, הודעה ברורה כשאין מקום. כל הפרמטרים אומתו מול OCI CLI 3.96.0. ⚠️ לא הורץ מול חשבון Oracle אמיתי |
 | Oracle Cloud (install.sh על OCI) | ⚠️ לא נבדק על מכונה אמיתית — זיהוי OCI ושמירת ה-firewall של Oracle מבוססים על תיעוד; תחביר + shellcheck עברו |
 | ממצא | `openclaw models auth setup-token` נתקע בקונטיינר ללא systemd → `ai-login.sh` מריץ את `claude setup-token` ישירות ומעביר את הטוקן ב-stdin ל-`paste-token` |
 
