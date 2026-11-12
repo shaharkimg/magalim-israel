@@ -1,8 +1,2 @@
 === gush 17188 helka 14 ===
 GET 404 81 https://www.govmap.gov.il/api/data/mapi/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL_FILTE
-=== gush 34109 helka 18 ===
-GET 404 81 https://www.govmap.gov.il/api/data/mapi/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL_FILTE
-=== gush 3025 helka 41 ===
-GET 404 81 https://www.govmap.gov.il/api/data/mapi/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL_FILTE
-=== gush 4680 helka 15 ===
-GET 404 81 https://www.govmap.gov.il/api/data/mapi/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL_FILTE
