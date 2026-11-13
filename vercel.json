@@ -3,21 +3,250 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "geolocation=(self), camera=(self), microphone=(), payment=(), usb=()" },
-        { "key": "Strict-Transport-Security", "value": "max-age=31536000" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(self), camera=(self), microphone=(), payment=(), usb=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000"
+        }
       ]
     },
     {
       "source": "/(sw.js|index.html|config.js)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     },
     {
       "source": "/.well-known/assetlinks.json",
-      "headers": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Cache-Control", "value": "public, max-age=3600" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/places/lm-8b5d0efb/:rest*",
+      "destination": "/places/np-tel-lachish/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3a7ce26d/:rest*",
+      "destination": "/places/np-tel-tzafit/",
+      "permanent": true
+    },
+    {
+      "source": "/places/tiuli-44/:rest*",
+      "destination": "/places/caesarea/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-e88746aa/:rest*",
+      "destination": "/places/caesarea/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-a3ccf81b/:rest*",
+      "destination": "/places/tiuli-199/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3dc71019/:rest*",
+      "destination": "/places/castel/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-44764f86/:rest*",
+      "destination": "/places/ein-hemed/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-42f2837e/:rest*",
+      "destination": "/places/yarkon-park/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-ed257803/:rest*",
+      "destination": "/places/ein-hovila/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-179/:rest*",
+      "destination": "/places/xlsx-155/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-4e14954d/:rest*",
+      "destination": "/places/deadsea/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-52bdd58b/:rest*",
+      "destination": "/places/np-keren-naftali/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-63110dc3/:rest*",
+      "destination": "/places/yaar-lahav/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3428dfe4/:rest*",
+      "destination": "/places/begin-park-jerusalem/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-1cd785a2/:rest*",
+      "destination": "/places/tel-dan-reserve/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-a2e04bd9/:rest*",
+      "destination": "/places/nahaldavid/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-7ad52c0b/:rest*",
+      "destination": "/places/tiuli-33/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-656daa51/:rest*",
+      "destination": "/places/meron/",
+      "permanent": true
+    },
+    {
+      "source": "/places/tiuli-42/:rest*",
+      "destination": "/places/hermon/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-bb71fecd/:rest*",
+      "destination": "/places/beit-guvrin/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-8c1d54fe/:rest*",
+      "destination": "/places/beit-guvrin/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-bbd1565f/:rest*",
+      "destination": "/places/givat-hamore/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-24bd0863/:rest*",
+      "destination": "/places/ein-prat/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-6d7f71f7/:rest*",
+      "destination": "/places/akko/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-013/:rest*",
+      "destination": "/places/maayan-aniam/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-28dc24a0/:rest*",
+      "destination": "/places/ein-hanya/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-adaf56f5/:rest*",
+      "destination": "/places/agmon-hula/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-196/:rest*",
+      "destination": "/places/habonim-beach-reserve/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-0eb53a4d/:rest*",
+      "destination": "/places/ben-shemen-forest/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-79f6bcc4/:rest*",
+      "destination": "/places/einavdat/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-f5e97416/:rest*",
+      "destination": "/places/gan-hashlosha/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-217/:rest*",
+      "destination": "/places/holot-nitzanim/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-d79f078a/:rest*",
+      "destination": "/places/ein-auja/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-97d80ac5/:rest*",
+      "destination": "/places/ein-sappir/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-04e75e13/:rest*",
+      "destination": "/places/ein-moda/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-9edf9f8b/:rest*",
+      "destination": "/places/ein-nun/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3cd54d49/:rest*",
+      "destination": "/places/ein-shokek/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-597e7572/:rest*",
+      "destination": "/places/ein-yorkeam/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-dbf2d321/:rest*",
+      "destination": "/places/ein-akev/",
+      "permanent": true
     }
   ]
 }

@@ -969,7 +969,7 @@ revoke execute on function public.get_group_preview(uuid) from public, anon;
 -- "delete from landmarks" (למשל בניקוי כפילויות) מוחק לכל המשתמשים את הביקורים, ה-XP ואת
 -- ההתקדמות שלהם ביעד, בלי שום אזהרה. הטריגר חוסם מחיקה של יעד שיש עליו נתוני משתמשים.
 --   * לאיחוד כפילות: select public.merge_landmarks('<כפילות>', '<היעד שנשאר>');
---     (מעביר ביקורים / כיבושים / מועדפים / תמונות ואז מוחק).
+--     (מעביר ביקורים / כיבושים / מועדפים / תמונות / פוסטי שותפים ואז מוחק).
 --   * למחיקה מכוונת אחרי בדיקה:  set local app.allow_landmark_delete = 'on';  לפני ה-delete.
 create or replace function public.tg_guard_landmark_delete()
 returns trigger
@@ -1023,6 +1023,12 @@ begin
   update public.landmark_photos set landmark_id = p_to where landmark_id = p_from;
   update public.field_reports set landmark_id = p_to where landmark_id = p_from;
   update public.place_corrections set landmark_id = p_to where landmark_id = p_from;
+  -- trip_posts נוספה אחרי הקובץ הזה (migrations_trip_partners.sql) וגם היא on delete cascade -
+  -- בלי השורה הזו איחוד היה מוחק בשקט פוסטים של "מחפש שותפים לטיול" ביעד הכפול.
+  -- דינמי, כי בהתקנה שבה הטבלה עוד לא קיימת הפונקציה צריכה להמשיך לעבוד.
+  if to_regclass('public.trip_posts') is not null then
+    execute 'update public.trip_posts set landmark_id = $1 where landmark_id = $2' using p_to, p_from;
+  end if;
   perform set_config('app.allow_landmark_delete', 'on', true);
   delete from public.landmarks where id = p_from;
   perform set_config('app.allow_landmark_delete', 'off', true);
