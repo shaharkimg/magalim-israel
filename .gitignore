@@ -6,3 +6,4 @@ data/osm_places.json
 .env.*
 *.keystore
 *.jks
+data/audit/osm_places.json
