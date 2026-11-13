@@ -312,4 +312,5 @@ async function main() {
   console.log(`built ${all.length} place pages, ${Object.keys(byRegion).length} region pages, sitemap with ${urls.length} URLs`);
 }
 
-main().catch(e => { console.error(e.message || e); process.exit(1); });
+if (require.main === module) main().catch(e => { console.error(e.message || e); process.exit(1); });
+module.exports = { fetchRows, normalize, haversineKm, REGIONS, CATEGORIES };

@@ -1,0 +1,48 @@
+name: בדיקת מיקומים וכפילויות
+
+# מורץ ידנית בלבד, וקורא בלבד: משווה כל יעד במפה למקום עם אותו שם ב-OpenStreetMap
+# ומחפש יעדים שמופיעים פעמיים. לא נוגע במסד הנתונים - רק מפיק דוח לבדיקה.
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'לשמור את הדוח (data/audit) בענף שעליו רץ ה-workflow?'
+        type: boolean
+        default: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: בדיקה
+        run: |
+          node scripts/audit_locations.js
+          cat data/audit/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: הדוח להורדה
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit
+          path: |
+            data/audit/locations.csv
+            data/audit/duplicates.csv
+            data/audit/summary.md
+          if-no-files-found: ignore
+
+      - name: שמירה לענף
+        if: inputs.commit && github.ref != 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/audit/locations.csv data/audit/duplicates.csv data/audit/summary.md
+          git diff --staged --quiet && echo "אין שינוי" && exit 0
+          git commit -m "דוח בדיקת מיקומים וכפילויות"
+          git push

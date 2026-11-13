@@ -54,197 +54,392 @@
   ],
   "redirects": [
     {
-      "source": "/places/lm-8b5d0efb/:rest*",
+      "source": "/places/lm-8b5d0efb",
       "destination": "/places/np-tel-lachish/",
       "permanent": true
     },
     {
-      "source": "/places/lm-3a7ce26d/:rest*",
+      "source": "/places/lm-8b5d0efb/",
+      "destination": "/places/np-tel-lachish/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3a7ce26d",
       "destination": "/places/np-tel-tzafit/",
       "permanent": true
     },
     {
-      "source": "/places/tiuli-44/:rest*",
+      "source": "/places/lm-3a7ce26d/",
+      "destination": "/places/np-tel-tzafit/",
+      "permanent": true
+    },
+    {
+      "source": "/places/tiuli-44",
       "destination": "/places/caesarea/",
       "permanent": true
     },
     {
-      "source": "/places/lm-e88746aa/:rest*",
+      "source": "/places/tiuli-44/",
       "destination": "/places/caesarea/",
       "permanent": true
     },
     {
-      "source": "/places/lm-a3ccf81b/:rest*",
+      "source": "/places/lm-e88746aa",
+      "destination": "/places/caesarea/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-e88746aa/",
+      "destination": "/places/caesarea/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-a3ccf81b",
       "destination": "/places/tiuli-199/",
       "permanent": true
     },
     {
-      "source": "/places/lm-3dc71019/:rest*",
+      "source": "/places/lm-a3ccf81b/",
+      "destination": "/places/tiuli-199/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3dc71019",
       "destination": "/places/castel/",
       "permanent": true
     },
     {
-      "source": "/places/lm-44764f86/:rest*",
+      "source": "/places/lm-3dc71019/",
+      "destination": "/places/castel/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-44764f86",
       "destination": "/places/ein-hemed/",
       "permanent": true
     },
     {
-      "source": "/places/lm-42f2837e/:rest*",
+      "source": "/places/lm-44764f86/",
+      "destination": "/places/ein-hemed/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-42f2837e",
       "destination": "/places/yarkon-park/",
       "permanent": true
     },
     {
-      "source": "/places/lm-ed257803/:rest*",
+      "source": "/places/lm-42f2837e/",
+      "destination": "/places/yarkon-park/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-ed257803",
       "destination": "/places/ein-hovila/",
       "permanent": true
     },
     {
-      "source": "/places/xlsx-179/:rest*",
+      "source": "/places/lm-ed257803/",
+      "destination": "/places/ein-hovila/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-179",
       "destination": "/places/xlsx-155/",
       "permanent": true
     },
     {
-      "source": "/places/lm-4e14954d/:rest*",
+      "source": "/places/xlsx-179/",
+      "destination": "/places/xlsx-155/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-4e14954d",
       "destination": "/places/deadsea/",
       "permanent": true
     },
     {
-      "source": "/places/lm-52bdd58b/:rest*",
+      "source": "/places/lm-4e14954d/",
+      "destination": "/places/deadsea/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-52bdd58b",
       "destination": "/places/np-keren-naftali/",
       "permanent": true
     },
     {
-      "source": "/places/lm-63110dc3/:rest*",
+      "source": "/places/lm-52bdd58b/",
+      "destination": "/places/np-keren-naftali/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-63110dc3",
       "destination": "/places/yaar-lahav/",
       "permanent": true
     },
     {
-      "source": "/places/lm-3428dfe4/:rest*",
+      "source": "/places/lm-63110dc3/",
+      "destination": "/places/yaar-lahav/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3428dfe4",
       "destination": "/places/begin-park-jerusalem/",
       "permanent": true
     },
     {
-      "source": "/places/lm-1cd785a2/:rest*",
+      "source": "/places/lm-3428dfe4/",
+      "destination": "/places/begin-park-jerusalem/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-1cd785a2",
       "destination": "/places/tel-dan-reserve/",
       "permanent": true
     },
     {
-      "source": "/places/lm-a2e04bd9/:rest*",
+      "source": "/places/lm-1cd785a2/",
+      "destination": "/places/tel-dan-reserve/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-a2e04bd9",
       "destination": "/places/nahaldavid/",
       "permanent": true
     },
     {
-      "source": "/places/lm-7ad52c0b/:rest*",
+      "source": "/places/lm-a2e04bd9/",
+      "destination": "/places/nahaldavid/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-7ad52c0b",
       "destination": "/places/tiuli-33/",
       "permanent": true
     },
     {
-      "source": "/places/lm-656daa51/:rest*",
+      "source": "/places/lm-7ad52c0b/",
+      "destination": "/places/tiuli-33/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-656daa51",
       "destination": "/places/meron/",
       "permanent": true
     },
     {
-      "source": "/places/tiuli-42/:rest*",
+      "source": "/places/lm-656daa51/",
+      "destination": "/places/meron/",
+      "permanent": true
+    },
+    {
+      "source": "/places/tiuli-42",
       "destination": "/places/hermon/",
       "permanent": true
     },
     {
-      "source": "/places/lm-bb71fecd/:rest*",
+      "source": "/places/tiuli-42/",
+      "destination": "/places/hermon/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-bb71fecd",
       "destination": "/places/beit-guvrin/",
       "permanent": true
     },
     {
-      "source": "/places/lm-8c1d54fe/:rest*",
+      "source": "/places/lm-bb71fecd/",
       "destination": "/places/beit-guvrin/",
       "permanent": true
     },
     {
-      "source": "/places/lm-bbd1565f/:rest*",
+      "source": "/places/lm-8c1d54fe",
+      "destination": "/places/beit-guvrin/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-8c1d54fe/",
+      "destination": "/places/beit-guvrin/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-bbd1565f",
       "destination": "/places/givat-hamore/",
       "permanent": true
     },
     {
-      "source": "/places/lm-24bd0863/:rest*",
+      "source": "/places/lm-bbd1565f/",
+      "destination": "/places/givat-hamore/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-24bd0863",
       "destination": "/places/ein-prat/",
       "permanent": true
     },
     {
-      "source": "/places/lm-6d7f71f7/:rest*",
+      "source": "/places/lm-24bd0863/",
+      "destination": "/places/ein-prat/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-6d7f71f7",
       "destination": "/places/akko/",
       "permanent": true
     },
     {
-      "source": "/places/xlsx-013/:rest*",
+      "source": "/places/lm-6d7f71f7/",
+      "destination": "/places/akko/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-013",
       "destination": "/places/maayan-aniam/",
       "permanent": true
     },
     {
-      "source": "/places/lm-28dc24a0/:rest*",
+      "source": "/places/xlsx-013/",
+      "destination": "/places/maayan-aniam/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-28dc24a0",
       "destination": "/places/ein-hanya/",
       "permanent": true
     },
     {
-      "source": "/places/lm-adaf56f5/:rest*",
+      "source": "/places/lm-28dc24a0/",
+      "destination": "/places/ein-hanya/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-adaf56f5",
       "destination": "/places/agmon-hula/",
       "permanent": true
     },
     {
-      "source": "/places/xlsx-196/:rest*",
+      "source": "/places/lm-adaf56f5/",
+      "destination": "/places/agmon-hula/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-196",
       "destination": "/places/habonim-beach-reserve/",
       "permanent": true
     },
     {
-      "source": "/places/lm-0eb53a4d/:rest*",
+      "source": "/places/xlsx-196/",
+      "destination": "/places/habonim-beach-reserve/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-0eb53a4d",
       "destination": "/places/ben-shemen-forest/",
       "permanent": true
     },
     {
-      "source": "/places/lm-79f6bcc4/:rest*",
+      "source": "/places/lm-0eb53a4d/",
+      "destination": "/places/ben-shemen-forest/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-79f6bcc4",
       "destination": "/places/einavdat/",
       "permanent": true
     },
     {
-      "source": "/places/lm-f5e97416/:rest*",
+      "source": "/places/lm-79f6bcc4/",
+      "destination": "/places/einavdat/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-f5e97416",
       "destination": "/places/gan-hashlosha/",
       "permanent": true
     },
     {
-      "source": "/places/xlsx-217/:rest*",
+      "source": "/places/lm-f5e97416/",
+      "destination": "/places/gan-hashlosha/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-217",
       "destination": "/places/holot-nitzanim/",
       "permanent": true
     },
     {
-      "source": "/places/lm-d79f078a/:rest*",
+      "source": "/places/xlsx-217/",
+      "destination": "/places/holot-nitzanim/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-d79f078a",
       "destination": "/places/ein-auja/",
       "permanent": true
     },
     {
-      "source": "/places/lm-97d80ac5/:rest*",
+      "source": "/places/lm-d79f078a/",
+      "destination": "/places/ein-auja/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-97d80ac5",
       "destination": "/places/ein-sappir/",
       "permanent": true
     },
     {
-      "source": "/places/lm-04e75e13/:rest*",
+      "source": "/places/lm-97d80ac5/",
+      "destination": "/places/ein-sappir/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-04e75e13",
       "destination": "/places/ein-moda/",
       "permanent": true
     },
     {
-      "source": "/places/lm-9edf9f8b/:rest*",
+      "source": "/places/lm-04e75e13/",
+      "destination": "/places/ein-moda/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-9edf9f8b",
       "destination": "/places/ein-nun/",
       "permanent": true
     },
     {
-      "source": "/places/lm-3cd54d49/:rest*",
+      "source": "/places/lm-9edf9f8b/",
+      "destination": "/places/ein-nun/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-3cd54d49",
       "destination": "/places/ein-shokek/",
       "permanent": true
     },
     {
-      "source": "/places/lm-597e7572/:rest*",
+      "source": "/places/lm-3cd54d49/",
+      "destination": "/places/ein-shokek/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-597e7572",
       "destination": "/places/ein-yorkeam/",
       "permanent": true
     },
     {
-      "source": "/places/lm-dbf2d321/:rest*",
+      "source": "/places/lm-597e7572/",
+      "destination": "/places/ein-yorkeam/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-dbf2d321",
+      "destination": "/places/ein-akev/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-dbf2d321/",
       "destination": "/places/ein-akev/",
       "permanent": true
     }
