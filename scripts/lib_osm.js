@@ -59,6 +59,9 @@ async function overpass(selector) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': 'magalim-israel/1.0 (one-off landmark seeding)' },
         body: 'data=' + encodeURIComponent(q),
+        // the query asks the server for at most 90 s; a connection that is still silent
+        // well after that is stuck, and waiting on it would hold up every later query
+        signal: AbortSignal.timeout(150000),
       });
     } catch (e) { lastError = e.message; await sleep(10000); continue; }
 
@@ -86,6 +89,7 @@ async function fetchAll(extraSelectors = []) {
   const out = [];
   const failed = [];
   const all = [...SELECTORS, ...extraSelectors];
+  const started = Date.now();
   for (const [theme, selector] of all) {
     const label = selector.replace(/\["name"\]/, '').replace(/[["\]]/g, ' ').trim();
     process.stdout.write('  ' + label.padEnd(42) + ' ');
@@ -100,7 +104,7 @@ async function fetchAll(extraSelectors = []) {
         out.push({ name, lat, lon, theme, alt: e.tags.alt_name || '' });
         kept++;
       }
-      console.log(kept + ' named');
+      console.log(kept + ' named  (' + Math.round((Date.now() - started) / 1000) + 's)');
     } catch (e) {
       // One tag failing is not worth losing the other seventeen over.
       console.log('FAILED — ' + e.message);

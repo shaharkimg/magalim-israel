@@ -13,6 +13,8 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    # Overpass is shared and slow at busy times: ~1 min per kind of place, 26 kinds
+    timeout-minutes: 60
     permissions:
       contents: write
     steps:
