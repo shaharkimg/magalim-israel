@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://megalim-israel.co.il/sitemap.xml
