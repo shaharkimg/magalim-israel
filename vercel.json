@@ -442,6 +442,76 @@
       "source": "/places/lm-dbf2d321/",
       "destination": "/places/ein-akev/",
       "permanent": true
+    },
+    {
+      "source": "/places/lm-b826e98c",
+      "destination": "/places/ein-tina-golan/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-b826e98c/",
+      "destination": "/places/ein-tina-golan/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-815c21f4",
+      "destination": "/places/tiuli-85/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-815c21f4/",
+      "destination": "/places/tiuli-85/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-275",
+      "destination": "/places/xlsx-333/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-275/",
+      "destination": "/places/xlsx-333/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-9d7f48cf",
+      "destination": "/places/lm-644c897d/",
+      "permanent": true
+    },
+    {
+      "source": "/places/lm-9d7f48cf/",
+      "destination": "/places/lm-644c897d/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-200",
+      "destination": "/places/np-yam-palmachim/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-200/",
+      "destination": "/places/np-yam-palmachim/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-167",
+      "destination": "/places/np-shimron/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-167/",
+      "destination": "/places/np-shimron/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-212",
+      "destination": "/places/ashkelon-national-park/",
+      "permanent": true
+    },
+    {
+      "source": "/places/xlsx-212/",
+      "destination": "/places/ashkelon-national-park/",
+      "permanent": true
     }
   ]
 }
