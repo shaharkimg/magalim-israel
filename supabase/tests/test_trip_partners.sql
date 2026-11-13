@@ -141,3 +141,14 @@ set role authenticated;
 select tt.as_user('cccccccc-0000-0000-0000-000000000003');
 select (public.create_trip_post('masada', current_date + 4, 1, null))->>'error' as e \gset
 select tt.ok(:'e' = 'account_unavailable', 'suspended account cannot post');
+
+-- merging a duplicate landmark keeps its trip posts (they cascade on landmark delete)
+reset role;
+insert into public.landmarks (id, name, description, category, difficulty, region, lat, lon, duration, distance_km)
+  values ('dup_trip', 'dup trip', 'x', 'water', 'easy', 'deadsea', 31.3, 35.35, '1h', 1);
+insert into public.trip_posts (user_id, landmark_id, trip_date) values ('aaaaaaaa-0000-0000-0000-000000000001', 'dup_trip', current_date + 17);  -- a date no other test uses
+select public.merge_landmarks('dup_trip', 'masada');
+select tt.ok(not exists (select 1 from public.landmarks where id = 'dup_trip'), 'duplicate removed by merge');
+select tt.ok(not exists (select 1 from public.trip_posts where landmark_id = 'dup_trip')
+  and (select count(*) from public.trip_posts where landmark_id = 'masada' and trip_date = current_date + 17) = 1,
+  'merge moves trip posts to the surviving landmark instead of deleting them');
