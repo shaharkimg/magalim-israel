@@ -35,3 +35,11 @@ update public.landmarks set lat = 31.817, lon = 35.033 where id = 'xlsx-234';   
 update public.landmarks set region = 'center', description = 'תצפית / פסגה באזור מרכז / תל אביב והשרון.' where id = 'xlsx-139'; -- מצפור הצוק (תל אביב)
 update public.landmarks set region = 'eilat', description = 'מעיין / מקור מים באזור ערבה / הרי אילת.' where id = 'xlsx-302';    -- גב עשרון (חבל אילות)
 update public.landmarks set region = 'center', description = replace(description, 'בגוש עציון', 'במערב בנימין, ליד היישוב נריה') where id = 'einot-aner'; -- עיינות ענר
+
+-- ד. נמחקו: לא נמצא מקום אמיתי בשם הזה (חיפוש ברשת + OSM), והנעץ היה התאמת-שם שגויה
+-- (כביש 6 / מערת איילון). נבדק לפני המחיקה: 0 שורות בכל הטבלאות התלויות (visits, wishlist,
+-- landmark_conquests, landmark_photos, trip_posts, field_reports, place_corrections,
+-- group_destination_votes) - כולן on delete cascade, כך שלא נמחק שום דבר מעבר לשתי השורות.
+delete from public.landmarks where id in (
+  'xlsx-054',  -- חורבת חוצה
+  'xlsx-091'); -- מערת אביב
