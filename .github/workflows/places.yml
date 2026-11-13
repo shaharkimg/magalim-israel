@@ -1,0 +1,38 @@
+name: דפי יעדים לגוגל
+
+# בונה מחדש את דפי היעדים הסטטיים (places/, regions/, sitemap.xml) מתוך מסד הנתונים,
+# כך שיעד שנוסף או עודכן בדשבורד מקבל דף משלו בגוגל בלי שום פעולה ידנית.
+# שומר ל-main רק כשמשהו באמת השתנה, ו-Vercel מפרסם אוטומטית.
+on:
+  schedule:
+    - cron: '23 2 * * *'   # כל יום ב-04:23/05:23 שעון ישראל
+  workflow_dispatch:
+
+concurrency:
+  group: build-places
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: בניית הדפים
+        run: node scripts/build_places.js
+
+      - name: שמירה ל-main אם השתנה משהו
+        run: |
+          git add -A places regions sitemap.xml
+          if git diff --staged --quiet; then echo "אין שינוי"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "דפי יעדים: עדכון אוטומטי ממסד הנתונים"
+          git push

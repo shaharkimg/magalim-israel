@@ -54,6 +54,18 @@ Supabase ← Authentication ← URL Configuration — Site URL ו-Redirect URLs.
 הפירוט המלא: [`docs/OAUTH-DOMAIN.md`](docs/OAUTH-DOMAIN.md).
 חיבור הדומיין עצמו ב-Vercel וב-DNS: [`docs/VERCEL-DOMAIN.md`](docs/VERCEL-DOMAIN.md).
 
+## דפי יעדים לגוגל (SEO)
+
+האפליקציה מנווטת עם `#`, וגוגל לא מאנדקס כתובות כאלה. לכן לכל יעד יש גם דף HTML סטטי
+(`/places/<id>/`), לכל אזור דף (`/regions/<region>/`), ודף מרכזי (`/places/`) — כולם
+מקושרים לאפליקציה (`/#/destination/<id>`) ומופיעים ב-`sitemap.xml`.
+
+**אלה קבצים שנוצרים אוטומטית — לא עורכים אותם ידנית.** `scripts/build_places.js` בונה
+אותם מטבלת `landmarks`, וה-workflow ‏**דפי יעדים לגוגל** מריץ אותו כל לילה ושומר ל-`main`
+רק אם משהו השתנה. אחרי הוספת יעד בדשבורד אפשר להריץ אותו מיד מ-**Actions ← דפי יעדים
+לגוגל ← Run workflow**. אם המסד מחזיר פחות מ-100 יעדים (תקלה, שינוי הרשאות) הסקריפט
+מסרב לדרוס את הדפים.
+
 ## בדיקות
 
 כל הבדיקות רצות אוטומטית ב-GitHub Actions על כל push, וניתנות להרצה ידנית
@@ -70,6 +82,7 @@ node scripts/check_live.js      # שהאתר הפרוס תקין (דורש רש�
 node scripts/test_geolocation.js scripts/test_view_reset.js \
      scripts/test_recommendation.js scripts/test_auth_views.js scripts/test_oauth_error.js
 node scripts/test_client_safety.js  # ניקוי כתובות/טקסט, הודעות שגיאה, תור אופליין
+node scripts/test_build_places.js   # מחולל דפי היעדים: escaping, מפת אתר, הגנה מדריסה
 node scripts/test_map_controls.js   # דורש Playwright; בלעדיו מדלג בהודעה ברורה
 node scripts/test_app_smoke.js      # דפדפן אמיתי מול Supabase מדומה; דורש Playwright + leaflet (ראו בראש הקובץ)
 
