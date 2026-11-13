@@ -35,6 +35,8 @@ const sm = fs.readFileSync(path.join(out, 'sitemap.xml'), 'utf8');
 const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
 check('sitemap lists home, hub, regions and every place', locs.length === 1 + 1 + 3 + 121);
 check('every sitemap URL on the www host', locs.every(u => u.startsWith('https://www.megalim-israel.co.il/')));
+const north = fs.readFileSync(path.join(out, 'places/p-1/index.html'), 'utf8');
+check('Hebrew "in the region" is בצפון, not בהצפון', north.includes('בצפון') && !/בה(צפון|מרכז|דרום)/.test(north + evil));
 check('canonical on the www host', evil.includes('<link rel="canonical" href="https://www.megalim-israel.co.il/places/evil/">'));
 
 // stale page from a previous run is removed
