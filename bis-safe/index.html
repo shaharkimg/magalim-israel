@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ביס־סייפ | לירון מעודה־כהן, קלינאית תקשורת</title>
+  <meta name="description" content="שפה, תקשורת ואכילה. מלידה ועד כיתה א׳. מידע ברור להורים, רעיונות לשגרה בבית וליווי אישי עם לירון מעודה־כהן, קלינאית תקשורת.">
+  <meta name="theme-color" content="#FBF6EE">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Rubik:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">דילוג לתוכן הראשי</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#/" aria-label="ביס־סייפ – לעמוד הבית">
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 5c10.5 0 19 7.6 19 17s-8.5 17-19 17c-2.3 0-4.5-.4-6.5-1L9 42l1.8-7.6C7.2 31.3 5 26.9 5 22 5 12.6 13.5 5 24 5Z" fill="var(--teal)"/>
+          <path d="M43 22c0 1.6-.2 3.1-.7 4.6a5.5 5.5 0 0 1-6.7-6.6 5.5 5.5 0 0 1-5.4-6.7A19.6 19.6 0 0 1 43 22Z" fill="var(--bg)"/>
+          <circle cx="17" cy="23" r="2.4" fill="var(--bg)"/>
+          <circle cx="24.5" cy="23" r="2.4" fill="var(--bg)"/>
+        </svg>
+        <span class="brand-text">
+          <span class="brand-name">ביס־סייפ</span>
+          <span class="brand-sub">עם לירון מעודה־כהן | קלינאית תקשורת</span>
+        </span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+        <span class="sr-only">תפריט</span>
+      </button>
+
+      <nav class="site-nav" id="site-nav" aria-label="ניווט ראשי">
+        <ul>
+          <li><a href="#/age" data-nav="age">לפי גיל</a></li>
+          <li><a href="#/topics" data-nav="topics">לפי נושא</a></li>
+          <li><a href="#/about" data-nav="about">עליי</a></li>
+          <li><a href="#/consult" data-nav="consult">ייעוץ אישי</a></li>
+          <li><a href="#/library" data-nav="library">ספריית ההדרכות</a></li>
+        </ul>
+        <a class="btn btn-outline btn-sm account-btn" href="#/account" data-nav="account">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          האזור האישי
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1"></main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <p class="footer-name">ביס־סייפ</p>
+        <p class="footer-sub">לירון מעודה־כהן | קלינאית תקשורת</p>
+        <p class="footer-tagline">שפה, תקשורת ואכילה. מלידה ועד כיתה א׳.</p>
+      </div>
+      <nav aria-label="קישורים באתר">
+        <p class="footer-title">באתר</p>
+        <ul class="footer-links">
+          <li><a href="#/about">עליי</a></li>
+          <li><a href="#/age">לפי גיל</a></li>
+          <li><a href="#/topics">לפי נושא</a></li>
+          <li><a href="#/consult">ייעוץ אישי</a></li>
+          <li><a href="#/library">ספריית ההדרכות</a></li>
+          <li><a href="#/consult">יצירת קשר</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="קישורי שירות">
+        <p class="footer-title">מידע</p>
+        <ul class="footer-links">
+          <li><a href="#/legal/privacy">מדיניות פרטיות</a></li>
+          <li><a href="#/legal/terms">תנאי שימוש</a></li>
+          <li><a href="#/legal/accessibility">הצהרת נגישות</a></li>
+          <li><a href="#/faq">שאלות נפוצות</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="container">
+      <p class="footer-disclaimer">
+        המידע באתר מיועד להרחבת הידע ולהדרכה כללית. הוא אינו מחליף ייעוץ, אבחון או טיפול אישי.
+        לשאלות הנוגעות להתפתחות, לשמיעה, לשפה או לאכילה של ילדכם, יש לפנות לאיש או לאשת מקצוע מתאימים.
+      </p>
+      <p class="footer-copy">© <span id="year"></span> ביס־סייפ</p>
+    </div>
+  </footer>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" type="button" data-close aria-label="סגירה">×</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
