@@ -43,3 +43,12 @@ update public.landmarks set region = 'center', description = replace(description
 delete from public.landmarks where id in (
   'xlsx-054',  -- חורבת חוצה
   'xlsx-091'); -- מערת אביב
+
+-- ה. תיאורים שציינו את האזור הישן אחרי התיקון בסעיף א' (למשל עכו "באזור מרכז / גוש דן")
+update public.landmarks set description = replace(description, 'באזור מרכז / גוש דן ואתרים עירוניים', 'באזור צפון / עכו והגליל המערבי') where id in ('lm-6d7f71f7','lm-a0d4ffa4');
+update public.landmarks set description = replace(description, 'באזור מרכז / ירושלים והשפלה', 'באזור צפון / רמות מנשה') where id = 'lm-e3bae8d5';
+update public.landmarks set description = replace(description, 'באזור מרכז / ירושלים והשפלה', 'באזור ירושלים / הרי ירושלים והשפלה') where id in ('lm-1508c76b','lm-220d71e0','lm-4f538368','lm-d89355a3');
+update public.landmarks set description = replace(description, 'באזור מרכז / השרון ומישור החוף.', 'באזור צפון / חוף הכרמל.') where id = 'xlsx-196';
+update public.landmarks set description = replace(description, 'בנגב ובדרום הארץ', 'במישור החוף הדרומי, בין אשדוד לניצנים') where id = 'tiuli-72';
+update public.landmarks set description = replace(description, 'בנגב ובדרום הארץ', 'בדרום ים המלח') where id in ('tiuli-183','tiuli-328');
+update public.landmarks set description = replace(description, 'באזור ערבה / הרי אילת.', 'באזור הערבה התיכונה.') where id = 'xlsx-374';
