@@ -27,14 +27,15 @@ const argVal = name => { const i = args.indexOf(name); return i >= 0 ? args[i + 
 const OUT = path.resolve(argVal('--out') || root);
 const FROM = argVal('--from');
 
-// Labels mirror app.js (CATEGORIES, REGIONS, REGION_THE, DIFF_TIERS, SEASON_LABEL).
+// Labels mirror app.js (CATEGORIES, REGIONS, DIFF_TIERS, SEASON_LABEL).
 const CATEGORIES = {
   nature: 'טבע ונופים', mountains: 'מסלולי הרים', water: 'מים ומעיינות', heritage: 'מורשת והיסטוריה',
   archaeology: 'ארכיאולוגיה', viewpoints: 'תצפיות', religious: 'אתרים דתיים', parks: 'פארקים לאומיים',
   reserves: 'שמורות טבע', urban: 'אתרים אורבניים',
 };
 const REGIONS = { north: 'צפון', center: 'מרכז', jerusalem: 'ירושלים', south: 'דרום', deadsea: 'ים המלח', eilat: 'אילת' };
-const REGION_THE = { north: 'הצפון', center: 'המרכז', jerusalem: 'ירושלים', south: 'הדרום', deadsea: 'ים המלח', eilat: 'אילת' };
+// "in the north" etc. — Hebrew folds the article into the preposition (ב+הצפון = בצפון), so it is spelled out
+const REGION_IN = { north: 'בצפון', center: 'במרכז', jerusalem: 'בירושלים', south: 'בדרום', deadsea: 'בים המלח', eilat: 'באילת' };
 const REGION_ORDER = ['north', 'center', 'jerusalem', 'south', 'deadsea', 'eilat'];
 const DIFFICULTY = { easy: 'קל', medium: 'בינוני', hard: 'מאתגר', extreme: 'קשה' };
 const SEASON = { spring: 'אביב', summer: 'קיץ', autumn: 'סתיו', winter: 'חורף' };
@@ -174,7 +175,7 @@ const crumbsHtml = items => `<nav class="crumbs" aria-label="פירורי לחם
 
 function placePage(l, all) {
   const cat = CATEGORIES[l.category] || 'יעד טיול';
-  const region = REGIONS[l.region], regionThe = REGION_THE[l.region];
+  const region = REGIONS[l.region], regionIn = REGION_IN[l.region];
   const photo = safeUrl(l.stock_photo_url);
   const official = safeUrl(l.official_url);
   const km = Number(l.distance_km);
@@ -196,10 +197,10 @@ function placePage(l, all) {
   const nearby = all.filter(o => o.id !== l.id).map(o => ({ o, d: haversineKm(l, o) }))
     .sort((a, b) => a.d - b.d).slice(0, 8);
 
-  const descText = l.description || `${l.name} – ${cat} ב${regionThe}.`;
-  const metaDesc = clip(`${l.name} – ${cat} ב${regionThe}. ${l.description && !l.description.startsWith(l.name) ? l.description + ' ' : ''}`
+  const descText = l.description || `${l.name} – ${cat} ${regionIn}.`;
+  const metaDesc = clip(`${l.name} – ${cat} ${regionIn}. ${l.description && !l.description.startsWith(l.name) ? l.description + ' ' : ''}`
     + `${DIFFICULTY[l.difficulty] ? `רמת קושי ${DIFFICULTY[l.difficulty]}, ` : ''}${free ? 'כניסה חינם' : 'כניסה בתשלום'}. ניווט, פרטים ויעדים קרובים במגלים.`, 160);
-  const title = `${l.name} – ${cat} ב${regionThe} | מגלים`;
+  const title = `${l.name} – ${cat} ${regionIn} | מגלים`;
   const crumbs = [['מגלים', '/'], ['יעדים', '/places/'], [region, regionUrl(l.region)], [l.name, placeUrl(l.id)]];
   const appLink = `/#/destination/${encodeURIComponent(l.id)}`;
   const waze = `https://waze.com/ul?q=${encodeURIComponent(l.name)}&ll=${l.lat},${l.lon}&navigate=yes`;
@@ -222,10 +223,10 @@ ${official ? `<a class="btn" href="${esc(official)}" rel="noopener" target="_bla
 <section>
 <h2>יעדים קרובים ל${esc(l.name)}</h2>
 <ul class="list">${nearby.map(({ o, d }) => `<li><a href="${placeUrl(o.id)}"><span>${esc(o.name)}</span><span class="sub">${esc(CATEGORIES[o.category] || '')} · ${fmtKm(d)}</span></a></li>`).join('')}</ul>
-<p><a href="${regionUrl(l.region)}">כל היעדים ב${esc(regionThe)} ←</a></p>
+<p><a href="${regionUrl(l.region)}">כל היעדים ${esc(regionIn)} ←</a></p>
 </section>
 <aside class="cta">
-<p><strong>טיילתם ב${esc(l.name)}?</strong> במגלים עושים צ'ק-אין במקום, צוברים נקודות ותגים, ורואים לאן החברים שלכם יצאו.</p>
+<p><strong>טיילתם ב${esc(l.name)}?</strong> במגלים עושים צ'ק-אין במקום, צוברים נקודות ותגים ורואים לאן החברים שלכם יצאו.</p>
 <a class="btn btn-primary" href="${appLink}">לצ'ק-אין במגלים</a>
 </aside>`;
 
@@ -242,21 +243,21 @@ ${official ? `<a class="btn" href="${esc(official)}" rel="noopener" target="_bla
 }
 
 function regionPage(r, list) {
-  const the = REGION_THE[r];
+  const the = REGION_IN[r];
   const byCat = {};
   for (const l of list) (byCat[l.category] = byCat[l.category] || []).push(l);
   const cats = Object.keys(byCat).sort((a, b) => byCat[b].length - byCat[a].length);
   const catNames = cats.slice(0, 4).map(c => CATEGORIES[c]).filter(Boolean).join(', ');
   const crumbs = [['מגלים', '/'], ['יעדים', '/places/'], [REGIONS[r], regionUrl(r)]];
   const body = `${crumbsHtml(crumbs)}
-<h1>יעדי טיול ב${esc(the)}</h1>
-<p class="lead">${list.length} מקומות לטייל בהם ב${esc(the)} – ${esc(catNames)} ועוד. לכל מקום יש דף עם פרטים, ניווט ויעדים קרובים.</p>
+<h1>יעדי טיול ${esc(the)}</h1>
+<p class="lead">${list.length} מקומות לטייל בהם ${esc(the)} – ${esc(catNames)} ועוד. לכל מקום יש דף עם פרטים, ניווט ויעדים קרובים.</p>
 <div class="actions"><a class="btn btn-primary" href="/#/map">לכל היעדים על המפה</a></div>
 ${cats.map(c => `<section><h2>${esc(CATEGORIES[c] || 'עוד יעדים')} <span class="sub">(${byCat[c].length})</span></h2>
 <ul class="cols">${byCat[c].map(l => `<li><a href="${placeUrl(l.id)}">${esc(l.name)}</a></li>`).join('')}</ul></section>`).join('\n')}`;
   return layout({
-    title: `יעדי טיול ב${the} – ${list.length} מקומות | מגלים`,
-    description: clip(`${list.length} יעדי טיול ב${the}: ${catNames}. פרטים, ניווט ויעדים קרובים לכל מקום – במגלים, מפת הטיולים של ישראל.`, 160),
+    title: `יעדי טיול ${the} – ${list.length} מקומות | מגלים`,
+    description: clip(`${list.length} יעדי טיול ${the}: ${catNames}. פרטים, ניווט ויעדים קרובים לכל מקום – במגלים, מפת הטיולים של ישראל.`, 160),
     canonical: regionUrl(r), body, ld: [crumbsLd(crumbs)],
   });
 }
