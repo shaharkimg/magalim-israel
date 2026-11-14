@@ -57,7 +57,7 @@ calls.length = 0; switchView('home');
 check('no reset when the view did not change', !calls.includes('closePreview'), 'switchView(home) twice');
 
 console.log('\n2. sub-tabs return to their default');
-switchView('board'); globalThis.boardTab = 'achievements'; calls.length = 0;
+switchView('board'); globalThis.boardTab = 'group'; calls.length = 0;
 switchView('home'); switchView('board');
 check('board resets to leaders', calls.includes('board:leaders'), calls.filter(c => c.startsWith('board')).join(','));
 globalThis.profileListTab = 'history';
@@ -97,9 +97,9 @@ switchView('map'); calls.length = 0; switchView('home', { keepState: true });
 check('keepState does not keep the GPS running', calls.includes('stopLocationWatch'));
 
 console.log('\n7. keepState opts out');
-switchView('board'); globalThis.boardTab = 'achievements'; calls.length = 0;
+switchView('board'); globalThis.boardTab = 'group'; calls.length = 0;
 switchView('home'); switchView('board', { keepState: true });
-check('keepState preserves the sub-tab', calls.includes('board:achievements'), calls.filter(c => c.startsWith('board')).join(','));
+check('keepState preserves the sub-tab', calls.includes('board:group'), calls.filter(c => c.startsWith('board')).join(','));
 
 console.log('\n8. a screen reader is told the screen changed');
 switchView('home'); calls.length = 0; switchView('board');

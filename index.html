@@ -649,6 +649,7 @@ button{font-family:inherit;}
 
 .section-head{display:flex;align-items:center;justify-content:space-between;margin:var(--space-5) 0 var(--space-3);}
 .section-head h2{font-size:var(--font-h2);margin:0;}
+.achievements-subhead{font-size:16px;font-weight:700;margin:var(--space-4) 0 var(--space-2);}
 /* כרטיס-מקום (רכיב משותף אחד - ראו placeCardHtml ב-app.js): התמונה היא האלמנט המרכזי,
    מידע משני מוצג כאייקונים קטנים, והניקוד מופיע כ-pill חם אחד (warm = נקודות/הישגים). */
 .mini-card{display:flex;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-3);align-items:center;cursor:pointer;transition:transform .12s,background .12s,box-shadow .12s;box-shadow:var(--shadow-card);}
@@ -1799,7 +1800,6 @@ input[type=file]{display:none;}
         <button data-tab="leaders" class="active">מובילים</button>
         <button data-tab="group">קבוצה</button>
         <button data-tab="feed">אתגרים</button>
-        <button data-tab="achievements">הישגים</button>
       </div>
 
       <div id="boardPanelLeaders">
@@ -1857,12 +1857,6 @@ input[type=file]{display:none;}
         <div id="feedList"></div>
       </div>
 
-      <div id="boardPanelAchievements" class="hidden">
-        <div class="section-head" style="margin-top:4px;"><h2>תגים</h2></div>
-        <div class="badge-grid" id="badgeGrid"></div>
-        <div class="section-head"><h2>אוספים</h2></div>
-        <div id="collectionGrid"></div>
-      </div>
       </div>
     </div>
   </div>
@@ -1935,6 +1929,15 @@ input[type=file]{display:none;}
       <button class="btn btn-outline btn-block" id="shareMapBtn" style="margin:var(--space-3) 0 var(--space-1);">שתף את המפה שלי</button>
       <div id="regionProgressList"></div>
       </div>
+      <!-- הישגים (חותמות + אוספים) - הועברו לכאן מלשונית "חברים". מחוץ ל-progressSection בכוונה:
+           זה מוסתר למי שעוד לא כבש כלום, והחותמות שמחכות לו צריכות להיראות גם אז. -->
+      <section id="achievementsSection" aria-labelledby="achievementsHeading">
+        <div class="section-head"><h2 id="achievementsHeading">הישגים</h2></div>
+        <h3 class="achievements-subhead">תגים</h3>
+        <div class="badge-grid" id="badgeGrid"></div>
+        <h3 class="achievements-subhead">אוספים</h3>
+        <div id="collectionGrid"></div>
+      </section>
       <div class="section-head"><h2>חברים</h2><span class="hidden t-caption" id="inviteQuotaText"></span></div>
       <div id="friendRequestsBox"></div>
       <div id="friendsListBox"></div>
@@ -2323,6 +2326,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261114a6"></script>
+<script type="module" src="./app.js?v=20261114a7"></script>
 </body>
 </html>
