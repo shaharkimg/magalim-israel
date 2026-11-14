@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114a6";
+const APP_VERSION = "20261114a7";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1969,14 +1969,12 @@ function switchBoardTab(tab){
   $("boardPanelLeaders").classList.toggle("hidden", tab!=="leaders");
   $("boardPanelGroup").classList.toggle("hidden", tab!=="group");
   $("boardPanelFeed").classList.toggle("hidden", tab!=="feed");
-  $("boardPanelAchievements").classList.toggle("hidden", tab!=="achievements");
   if(tab==="leaders") renderBoard();
   else if(tab==="group") renderGroupPanel();
   else if(tab==="feed") renderFeed();
-  else if(tab==="achievements") renderAchievementsPanel();
 }
-// תגים+אוספים אישיים - הועברו מטאב "פרופיל" (היום "המסע שלי") לטאב חדש "הישגים" בתוך "המסע שלנו" (היום "חברים") (לבקשת
-// המשתמש), נשארים תלויים ב-myVisits/BADGES/COLLECTIONS הגלובליים בדיוק כמו קודם.
+// תגים+אוספים אישיים - מקטע "הישגים" בלשונית "המסע שלי" (היו קודם טאב בתוך "חברים"),
+// תלויים ב-myVisits/BADGES/COLLECTIONS הגלובליים.
 const STAMP_RING_C = 163.4; // 2πr, r=26 - חייב להתאים ל-r ב-stampHtml למטה
 function stampHtml(b, state){
   const cur = b.current(myVisits), tgt = b.target(myVisits);
@@ -5875,6 +5873,10 @@ function renderProfile(){
     ? myVisits.length+" מתוך "+LANDMARKS.length+" מקומות · "+regionsVisited.size+" אזורים"
     : "כל צ׳ק-אין פותח עוד פיסה מהמפה";
   renderRegionProgress();
+  // רק כש"המסע שלי" על המסך: הציור מסמן חותמות חדשות כ"נראו" (freshStamps.clear), ו-renderProfile
+  // רץ גם ברקע (למשל אחרי צ'ק-אין) - אז אנימציית ההטבעה הייתה "נצרכת" בלי שאיש ראה אותה.
+  // switchView("profile") קורא ל-renderProfile, כך שהמקטע מתעדכן בכל כניסה למסך.
+  if(currentView==="profile") renderAchievementsPanel();
   $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();
   $("statBadges").textContent = unlockedBadges().length+"/"+BADGES.length;
