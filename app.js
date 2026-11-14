@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114a2";
+const APP_VERSION = "20261114a3";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1376,8 +1376,11 @@ function celebrate(steps){
         : s.levelIndex!=null
           ? `<div class="celebrate-level"><div class="stamp-face">${stampGlyph(levelGlyphName(s.levelIndex), 44)}</div></div>`
           : s.icon ? `<div class="celebrate-icon"><div class="stamp-face">${uiIcon(s.icon,44)}</div></div>` : "";
+    // a.link = כפתור-טקסט קטן מתחת לשורה (למשל "דלג"), לא עוד כפתור באותה שורה צפופה
+    const actionBtn = (a,ai)=> `<button type="button" class="${a.link ? "celebrate-link" : "btn "+(a.primary?"btn-primary":"btn-outline")}" data-action-i="${ai}">${a.label}</button>`;
     const actionsHtml = s.actions
-      ? `<div class="celebrate-actions">${s.actions.map((a,ai)=>`<button class="btn ${a.primary?"btn-primary":"btn-outline"}" data-action-i="${ai}">${a.label}</button>`).join("")}</div>`
+      ? `<div class="celebrate-actions">${s.actions.map((a,ai)=> a.link ? "" : actionBtn(a,ai)).join("")}</div>`
+        + s.actions.map((a,ai)=> a.link ? actionBtn(a,ai) : "").join("")
       : "";
     // Gamification Overhaul, Phase 3 - שדות חדשים ואופציונליים (subtitle/tag/totalLine/
     // progress) על אותו celebrate() הקיים - לא מודל חדש. subtitle/tag משמשים גם לשם-היעד+
@@ -1407,12 +1410,23 @@ function celebrate(steps){
       window.confetti({ particleCount:60, spread:65, origin:{y:0.35}, scalar:0.9, ticks:150 });
     }
     if(s.actions){
+      // a.continueAfter: הפעולה לא סוגרת את כל החגיגה אלא ממשיכה לכרטיס הבא (חותמת/רמה/היעד הבא)
       card.querySelectorAll("[data-action-i]").forEach(btn=>{
-        btn.onclick = (e)=>{ e.stopPropagation(); s.actions[Number(btn.dataset.actionI)].onClick(); dismiss(); };
+        btn.onclick = (e)=>{
+          e.stopPropagation();
+          const a = s.actions[Number(btn.dataset.actionI)];
+          a.onClick();
+          if(a.continueAfter) advance(); else dismiss();
+        };
       });
+      // מיקוד בכפתור הראשון - כדי ש-VoiceOver/מקלדת יגיעו לשאלה ולא יישארו מאחורי השכבה
+      const first = card.querySelector("[data-action-i]");
+      if(first) setTimeout(()=> first.focus({ preventScroll:true }), 60);
     }
     clearTimeout(celebrate._t);
-    celebrate._t = setTimeout(advance, s.actions ? 5000 : 1900);
+    // s.hold: כרטיס שמחכה לתשובה לא נעלם לבד - שאלה שנסגרת אחרי 5 שניות לא נותנת זמן לענות
+    // (ובקורא-מסך בכלל לא). הקשה על הרקע עדיין מדלגת.
+    if(!s.hold) celebrate._t = setTimeout(advance, s.actions ? 5000 : 1900);
   };
   const advance = ()=>{
     i++;
@@ -4574,6 +4588,7 @@ function openDetail(id){
       ${l.distanceKm!=null ? `<div class="lm-stat"><div class="v">${l.distanceKm} ק"מ</div><div class="l">הליכה</div></div>` : ""}
       <div class="lm-stat"><div class="v">${conquestEntry ? '<span class="ltr">✓ '+conquestEntry.xp_awarded.toLocaleString()+'</span>' : '<span class="ltr">+'+pointsForLandmark(l)+'</span>'}</div><div class="l">${conquestEntry ? "נכבש" : effortClassFor(l).label}</div></div>
     </div>
+    ${isWaterSite(l) ? `<div id="waterReportsBox" data-stage="mid" data-landmark="${escapeHtml(id)}"></div>` : ""}
     <div class="lm-important-head" data-stage="full">${uiIcon("warning",15)} חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
@@ -4733,46 +4748,86 @@ document.addEventListener("keydown", e=>{
 // על כל ערך שגם שימשו בפועל כתחליף-לכותרת-הקבוצה (המשתמש היה מזהה "זו שורת החניה"
 // לפי ה-🅿️, לא לפי טקסט) - עכשיו הכותרת עצמה נושאת את האייקון, והערכים טקסט נקי.
 const FIELD_REPORT_LABELS = {
-  water: { flowing:"יש מים", low:"מעט מים", dry:"יבש" },
+  // הערכים במסד (flowing/low/dry) לא השתנו - רק התווית. "יבש" לא מוצע יותר בשאלה אבל
+  // דיווחים ישנים עם הערך הזה עדיין מוצגים.
+  water: { flowing:"הרבה מים", low:"מעט מים", dry:"יבש" },
   crowding: { quiet:"שקט", moderate:"בינוני", crowded:"עמוס" },
   parking: { available:"יש מקום", limited:"מוגבל", full:"מלא" },
 };
 const FIELD_REPORT_TITLES = { water:"מצב מים", crowding:"עומס", parking:"חניה" };
 const FIELD_REPORT_ICONS = { water:"water", crowding:"family", parking:"car" };
+// קריאה אחת ל-RPC, שתי תיבות: מצב המים (רק ביעדי מים, ברמת "mid" - נראה מיד כשעמוד היעד נפתח)
+// ו"דיווחים מהשטח" לעומס/חניה (ברמת "full", כמו קודם).
+const WATER_REPORTS_SHOWN = 5;
+const REPORT_STALE_DAYS = 14;
 async function renderFieldReports(id, l){
   const box = $("fieldReportsBox");
-  if(!box) return;
+  const waterBox = $("waterReportsBox");
+  if(!box && !waterBox) return;
+  let data;
   try{
-    const { data, error } = await supabase.rpc("get_landmark_field_reports", { p_landmark_id: id });
-    if(error) throw error;
-    if(!box.isConnected) return;
-    const latest = {};
-    for(const row of (data||[])){
-      if(row.water_level && !latest.water) latest.water = { val:row.water_level, at:row.created_at };
-      if(row.crowding && !latest.crowding) latest.crowding = { val:row.crowding, at:row.created_at };
-      if(row.parking && !latest.parking) latest.parking = { val:row.parking, at:row.created_at };
-    }
-    const keys = Object.keys(latest);
-    if(!keys.length){ box.innerHTML = ""; return; }
-    box.innerHTML = `<div class="field-reports"><div class="field-reports-title">דיווחים מהשטח</div>` +
-      keys.map(key=>{
-        const r = latest[key];
-        const ageDays = (Date.now()-new Date(r.at).getTime())/86400000;
-        const stale = ageDays>14;
-        return `<div class="field-report-row${stale?" stale":""}">
-          <span>${uiIcon(FIELD_REPORT_ICONS[key],13)} ${FIELD_REPORT_TITLES[key]}: ${FIELD_REPORT_LABELS[key][r.val]}</span>
-          <span class="field-report-time">${timeAgo(r.at)}${stale?" · ייתכן שהמצב השתנה":""}</span>
-        </div>`;
-      }).join("") + `</div>`;
+    const res = await supabase.rpc("get_landmark_field_reports", { p_landmark_id: id });
+    if(res.error) throw res.error;
+    data = res.data || [];
   }catch(err){
-    box.innerHTML = "";
+    if(box) box.innerHTML = "";
+    if(waterBox) waterBox.innerHTML = "";
+    return;
   }
+  if(waterBox && waterBox.isConnected && waterBox.dataset.landmark===id) renderWaterReports(waterBox, id, data);
+  if(!box || !box.isConnected) return;
+  const latest = {};
+  for(const row of data){
+    if(row.crowding && !latest.crowding) latest.crowding = { val:row.crowding, at:row.created_at };
+    if(row.parking && !latest.parking) latest.parking = { val:row.parking, at:row.created_at };
+    // יעד שהוגדר בלי מים אבל יש לו דיווח מים ישן - נשאר כאן, כי אין לו תיבת מים משלו
+    if(!waterBox && row.water_level && !latest.water) latest.water = { val:row.water_level, at:row.created_at };
+  }
+  const keys = Object.keys(latest);
+  if(!keys.length){ box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="field-reports"><div class="field-reports-title">דיווחים מהשטח</div>` +
+    keys.map(key=>{
+      const r = latest[key];
+      const ageDays = (Date.now()-new Date(r.at).getTime())/86400000;
+      const stale = ageDays>REPORT_STALE_DAYS;
+      return `<div class="field-report-row${stale?" stale":""}">
+        <span>${uiIcon(FIELD_REPORT_ICONS[key],13)} ${FIELD_REPORT_TITLES[key]}: ${FIELD_REPORT_LABELS[key][r.val]}</span>
+        <span class="field-report-time">${timeAgo(r.at)}${stale?" · ייתכן שהמצב השתנה":""}</span>
+      </div>`;
+    }).join("") + `</div>`;
+}
+function renderWaterReports(waterBox, id, data){
+  const rows = data.filter(r=> r.water_level && FIELD_REPORT_LABELS.water[r.water_level]).slice(0, WATER_REPORTS_SHOWN);
+  // עדכון אפשרי רק למי שכבש (ה-RLS דורש visit בשרת) - צ'ק-אין שעוד ממתין לסנכרון לא נחשב
+  const canReport = !!session && myVisits.some(v=> v.landmark_id===id && !v.pending);
+  const latestStale = rows.length && (Date.now()-new Date(rows[0].created_at).getTime())/86400000 > REPORT_STALE_DAYS;
+  const dateOf = iso=> new Date(iso).toLocaleDateString("he-IL", { day:"numeric", month:"numeric", year:"numeric" });
+  waterBox.innerHTML = `<section class="water-reports" aria-labelledby="waterReportsTitle">
+    <h3 class="water-reports-title" id="waterReportsTitle">${uiIcon("water",15)} מצב המים במסלול</h3>
+    ${rows.length
+      ? `<ul class="water-report-list">${rows.map(r=>`<li class="water-report-row">
+          <span class="water-level level-${r.water_level}">${FIELD_REPORT_LABELS.water[r.water_level]}</span>
+          <span class="water-report-date"><time datetime="${escapeHtml(r.created_at)}">${dateOf(r.created_at)}</time> · ${timeAgo(r.created_at)}</span>
+        </li>`).join("")}</ul>`
+      : `<p class="water-reports-empty">עוד אין דיווחים על מצב המים. מי שכובש את המקום יכול לדווח ראשון.</p>`}
+    ${latestStale ? `<p class="water-reports-stale">${uiIcon("warning",13)} הדיווח האחרון לפני יותר משבועיים — ייתכן שהמצב השתנה</p>` : ""}
+    ${canReport ? `<div class="water-report-update">
+        <span class="water-report-update-label" id="waterReportUpdateLabel">הייתם שם לאחרונה? עדכנו:</span>
+        <div class="water-report-btns" role="group" aria-labelledby="waterReportUpdateLabel">
+          ${WATER_REPORT_CHOICES.map(v=>`<button type="button" class="chip teal" data-water="${v}">${FIELD_REPORT_LABELS.water[v]}</button>`).join("")}
+        </div>
+      </div>` : ""}
+  </section>`;
+  waterBox.querySelectorAll("[data-water]").forEach(btn=> btn.onclick = async ()=>{
+    waterBox.querySelectorAll("[data-water]").forEach(b=> b.disabled = true);
+    const ok = await submitWaterReport(id, btn.dataset.water);   // בהצלחה - מרנדר את התיבה מחדש
+    if(!ok) waterBox.querySelectorAll("[data-water]").forEach(b=> b.disabled = false);
+  });
 }
 
 function fieldReportChips(l){
-  const groups = [];
-  if(l.hasWater || l.category==="water") groups.push("water");
-  groups.push("crowding","parking");
+  // מצב המים נשאל בנפרד, מיד אחרי הכיבוש (waterReportStep) - לא כאן, כדי לא לשאול פעמיים
+  const groups = ["crowding","parking"];
   return `<label class="field-label" style="margin-top:10px;">איך המצב בשטח עכשיו? (אופציונלי)</label>` +
     groups.map(key=>`<div class="report-group">
       <div class="report-group-title">${uiIcon(FIELD_REPORT_ICONS[key],13)} ${FIELD_REPORT_TITLES[key]}</div>
@@ -4788,6 +4843,51 @@ function wireFieldReportChips(){
       document.querySelectorAll(`.chip[data-report="${report}"]`).forEach(c=>c.classList.toggle("active", c.dataset.val===reportState[report]));
     };
   });
+}
+/* ============ דיווח מצב מים (מסלולי מים/נחלים) ============ */
+// רק ליעדים עם מים. הדיווח נשמר כשורה ב-field_reports (water_level בלבד); ה-RLS מאפשר להוסיף
+// רק למי שיש לו visit ביעד, כלומר רק מי שכבש. הקריאה ציבורית דרך get_landmark_field_reports,
+// בלי זהות המדווח - כל המשתמשים (גם אורחים) רואים את הדיווח והתאריך שלו בעמוד היעד.
+const WATER_REPORT_CHOICES = ["flowing","low"];
+function isWaterSite(l){ return !!l && (l.hasWater || l.category==="water"); }
+let waterReportInFlight = false;
+async function submitWaterReport(landmarkId, level){
+  if(!session || waterReportInFlight || !WATER_REPORT_CHOICES.includes(level)) return false;
+  waterReportInFlight = true;
+  try{
+    const { error } = await supabase.from("field_reports").insert({
+      landmark_id: landmarkId, user_id: session.user.id, water_level: level,
+    });
+    if(error) throw error;
+    track("water_report_submitted", { landmark_id: landmarkId, level });
+    toast("תודה! הדיווח שלך מופיע עכשיו בעמוד היעד");
+    // עמוד היעד פתוח על אותו יעד? מרעננים את הדיווחים כדי שהדיווח החדש יופיע מיד
+    const box = $("waterReportsBox");
+    if(box && box.isConnected && box.dataset.landmark===landmarkId) renderFieldReports(landmarkId, lmById[landmarkId]);
+    return true;
+  }catch(err){
+    console.warn("דיווח מצב המים לא נשמר:", err.message||err);
+    toast("לא הצלחנו לשמור את הדיווח. נסו שוב בעוד רגע.");
+    return false;
+  }finally{
+    waterReportInFlight = false;
+  }
+}
+// כרטיס-שאלה בתוך רצף החגיגה, מיד אחרי "עוד מקום נכבש!". hold - לא נעלם לבד; continueAfter -
+// התשובה ממשיכה לחותמות/רמה/היעד הבא במקום לסגור את כל החגיגה.
+function waterReportStep(l){
+  return {
+    icon: "water",
+    title: "איך המים במסלול?",
+    subtitle: l.name,
+    sub: "הדיווח שלך יופיע בעמוד היעד לכל המטיילים, עם התאריך של היום",
+    hold: true,
+    actions: [
+      { label: FIELD_REPORT_LABELS.water.flowing, primary:true, continueAfter:true, onClick:()=> submitWaterReport(l.id, "flowing") },
+      { label: FIELD_REPORT_LABELS.water.low, primary:true, continueAfter:true, onClick:()=> submitWaterReport(l.id, "low") },
+      { label: "דלג", link:true, continueAfter:true, onClick:()=>{} },
+    ],
+  };
 }
 function startCheckin(l){
   // הצ׳ק-אין נפתח כ-sheet נפרד משלו (לא כהרחבה בתוך עמוד-היעד הארוך) - כדי שכפתור-האישור
@@ -5031,6 +5131,7 @@ async function confirmCheckin(l){
       confetti: true,
       haptic: "success",
     }];
+    if(isWaterSite(l)) steps.push(waterReportStep(l));
     newBadges.forEach(b=> steps.push({
       stampId: b.id, metal: badgeMetal(b.id),
       title: "חותמת חדשה", subtitle: b.label,
