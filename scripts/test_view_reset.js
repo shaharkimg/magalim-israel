@@ -104,7 +104,7 @@ check('keepState preserves the sub-tab', calls.includes('board:achievements'), c
 console.log('\n8. a screen reader is told the screen changed');
 switchView('home'); calls.length = 0; switchView('board');
 check('focus moves to the new screen', calls.includes('focus:board'));
-check('and the screen names itself', calls.includes('announce:המסע שלנו'));
+check('and the screen names itself', calls.includes('announce:חברים'));
 calls.length = 0; switchView('board');
 check('switching to the screen already shown stays quiet',
   !calls.some(c => c.startsWith('announce:')));
