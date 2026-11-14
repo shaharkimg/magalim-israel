@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114a8";
+const APP_VERSION = "20261114a9";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -253,6 +253,10 @@ const BADGES = [
   {id:"all",label:"כל הארץ",target:()=>LANDMARKS.length||259,current:v=>v.length},
   ...regionTierBadges(),
   ...SEASONAL_STAMPS.map(seasonalBadge),
+  // חידה שבועית: סופרות חידות שפתרתי (myMysterySolves מהשרת), לא ביקורים - לכן mystery:true,
+  // ומסך הקבוצה (שמחשב לכל חבר מהביקורים שלו) מדלג עליהן
+  {id:"detective1",label:"בלש",mystery:true,target:()=>1,current:()=>Math.min(myMysterySolves,1)},
+  {id:"detective5",label:"בלש ותיק",mystery:true,target:()=>5,current:()=>Math.min(myMysterySolves,5)},
 ];
 // חותמת עונתית שאין לה אף מקום במפה (נמחקו/לא נטענו) לא מוצגת ולא נספרת
 function visibleBadges(){ return BADGES.filter(b=> !b.seasonal || seasonalPlaces(b.seasonal).length); }
@@ -552,6 +556,7 @@ const STAMP_GLYPHS = {
   // חותמות עונתיות
   flower:'<circle cx="12" cy="9" r="1.7"/><circle cx="12" cy="5.6" r="2"/><circle cx="15.3" cy="8" r="2"/><circle cx="14" cy="11.8" r="2"/><circle cx="10" cy="11.8" r="2"/><circle cx="8.7" cy="8" r="2"/><path d="M12 13.8V21"/><path d="M12 18.5c-1.4-1.6-3.2-1.9-4.3-1.5.9 1.7 2.6 2.2 4.3 1.5Z"/>',
   crane:'<path d="M15.5 4.5c1 0 1.7.6 1.7 1.4l2.3.6-2.4.5-1.2 5.8c1.6 1.8 1.2 4.4-.9 5.4-2.7 1.3-6.8-.2-9.5-3.6 2.4.6 4.5.4 6.1-.6.9-.6 1.6-1.4 2-2.4L15.5 4.5Z"/><path d="M11 17.6 10.2 21.5M13.6 17.8l.4 3.7"/>',
+  magnifier:'<circle cx="10.5" cy="10.5" r="5.5"/><path d="m14.6 14.6 5.4 5.4"/><path d="M8 9.6a2.8 2.8 0 0 1 2.4-1.9"/>',
   waterfall:'<path d="M4 5h16"/><path d="M8 5v8.5M12 5v11M16 5v8.5"/><path d="M4.5 19c1.6-1.6 3.1-1.6 4.7 0s3.1 1.6 4.7 0 3.1-1.6 4.7 0"/>',
 };
 // אינדקס ברמה -> שם גליף. עוקב אחרי הדפוס שכבר קיים באימוג'ים המקוריים (8 גליפים-בסיס
@@ -572,6 +577,7 @@ const BADGE_GLYPHS = {
   first:"footprint", milestone3:"trail", seven:"boot", milestone10:"medal",
   milestone25:"peaks", milestone50:"gem", region1:"flag", water5:"drop",
   hist5:"amphora", north:"compassRose", desert:"dunes", extreme:"summit", all:"wreath",
+  detective1:"magnifier", detective5:"magnifier",
 };
 function badgeGlyphName(id){
   if(BADGE_GLYPHS[id]) return BADGE_GLYPHS[id];
@@ -758,6 +764,8 @@ let userLoc = restoreLastLoc();
 function defaultFilters(){ return { cats:[], diffs:[], regions:[], maxDist:400, duration:null, season:null, family:false, dog:false, water:false, accessible:false, free:false, customIds:null, customLabel:null }; }
 let filters = defaultFilters();
 let prevBadgeSet = new Set();
+let myMysterySolves = 0;        // כמה חידות שבועיות פתרתי (get_weekly_mystery) - לחותמות "בלש"
+let mysterySolvesKnown = false; // נטען כבר לסשן הזה? (ראו setMysterySolves)
 // badge_id -> unlocked_at. נטען ב-loadMyConquestsAndBonuses, ריק כשאין חיבור/טבלה.
 let myBadgeDates = {};
 // חותמות שנפתחו בסשן הזה - מקבלות הדגשה + אנימציית הטבעה בפעם הראשונה שהן מוצגות.
@@ -1883,7 +1891,10 @@ function requireAuth(message, onSuccess){
 supabase.auth.onAuthStateChange((event, newSession)=>{
   const hadNoSession = !session;
   const hadSession = !hadNoSession;
+  const prevUid = session && session.user ? session.user.id : null;
   session = newSession;
+  // משתמש אחר (כניסה/יציאה, לא רענון טוקן): מצב החידה - נפתרה? כמה ניחושים נשארו? - אישי
+  if((newSession && newSession.user ? newSession.user.id : null) !== prevUid) resetMysteryForUser();
   if(event==="PASSWORD_RECOVERY"){
     $("authScreen").classList.remove("hidden");
     $("authCloseBtn").classList.add("hidden");
@@ -1968,7 +1979,7 @@ function switchView(view, opts){
   const changed = view !== currentView;
   // ה-GPS נכבה ביציאה מהמפה בכל מקרה, גם ב-keepState: אין לו צרכן מחוץ למפה, והוא
   // מרוקן סוללה ברקע. ההעדפה נשמרת, כך שהוא חוזר מעצמו בכניסה הבאה.
-  if(changed && currentView==="map") stopLocationWatch();
+  if(changed && currentView==="map"){ stopLocationWatch(); clearMysteryArea(); }
   if(changed && !opts.keepState){
     if(currentView==="map") closePreview();
     if(view==="board" && !explicitBoardTab) boardTab = "leaders";
@@ -2704,6 +2715,7 @@ async function renderAdminDashboard(){
     $("admMaxUsers").value = settings.max_users ?? "";
     $("admDefaultInvites").value = settings.default_invites_per_user ?? 3;
   }
+  renderAdminMysteries();
   await renderAdminUsersList();
 }
 async function renderAdminUsersList(){
@@ -3401,6 +3413,310 @@ function renderWeeklyChallenge(){
     renderMap();
   };
 }
+/* ============ החידה השבועית ============ */
+// חידה על מקום שמתפרסמת כל שישי ב-08:00 (supabase/migrations_weekly_mystery.sql). התשובה לא מגיעה
+// למכשיר עד שפותרים: get_weekly_mystery מחזיר רק רמזים, ו-guess_mystery בודק ניחוש בשרת.
+// רמזים נוספים (ראשון 08:00) ואזור על המפה (שלישי 08:00) נפתחים לפי השעון של השרת.
+const MYSTERY_TTL_MS = 10*60*1000;
+const MYSTERY_MAX_GUESSES = 8;
+const HE_WEEKDAYS = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+let mysteryState = null;        // { mystery, my_total_solves } או null (אין חידה / המיגרציה עוד לא רצה)
+let mysteryLoadedAt = 0;
+let mysteryInFlight = false;
+let mysteryGuessPick = null;    // היעד שנבחר בחלון הניחוש
+let mysteryAreaLayer = null;
+// mysteryState עצמו נשאר: אורח שלחץ "יש לי תשובה" ונכנס לחשבון חוזר לחלון הניחוש עם אותה חידה.
+// השדות האישיים בו (נפתרה? ניחושים?) מתרעננים בטעינה הבאה (mysteryLoadedAt=0), והשרת ממילא
+// הוא שקובע בניחוש. בלי קריאה ל-supabase מכאן: זה רץ בתוך onAuthStateChange.
+function resetMysteryForUser(){
+  mysteryLoadedAt = 0; myMysterySolves = 0; mysterySolvesKnown = false;
+}
+// בטעינה הראשונה בסשן: חותמות "בלש" שכבר הושגו נכנסות ל-prevBadgeSet, כדי שהצ'ק-אין הבא לא
+// יחגוג אותן שוב כאילו הן חדשות (prevBadgeSet נקבע לפני שמספר החידות נטען).
+function setMysterySolves(n){
+  myMysterySolves = Number(n) || 0;
+  if(!mysterySolvesKnown){
+    BADGES.filter(b=> b.mystery && b.current(myVisits)>=b.target(myVisits)).forEach(b=> prevBadgeSet.add(b.id));
+    mysterySolvesKnown = true;
+  }
+}
+async function loadWeeklyMystery(force){
+  if(mysteryInFlight) return;
+  if(!force && Date.now()-mysteryLoadedAt < MYSTERY_TTL_MS) return;
+  mysteryInFlight = true;
+  try{
+    const { data, error } = await supabase.rpc("get_weekly_mystery");
+    if(error) throw error;
+    mysteryState = data || null;
+    if(session && data) setMysterySolves(data.my_total_solves);
+  }catch(err){
+    // לרוב: המיגרציה עוד לא הורצה. בלי חידה פשוט אין כרטיס; מנסים שוב אחרי ה-TTL.
+    console.warn("החידה השבועית לא נטענה:", err.message||err);
+    mysteryState = null;
+  }finally{
+    mysteryLoadedAt = Date.now();
+    mysteryInFlight = false;
+    renderMysteryCard();
+  }
+}
+function mysteryUnlockText(iso){
+  const d = new Date(iso);
+  return "ביום "+HE_WEEKDAYS[d.getDay()]+" ב-"+d.toLocaleTimeString("he-IL", { hour:"2-digit", minute:"2-digit" });
+}
+function renderMysteryCard(){
+  const el = $("mysteryCard");
+  if(!el) return;
+  const m = mysteryState && mysteryState.mystery;
+  if(!m){ el.classList.add("hidden"); el.innerHTML = ""; return; }
+  const now = Date.now();
+  const isNew = !m.solved && now - new Date(m.release_at).getTime() < 24*3600*1000;
+  const answer = m.answer ? lmById[m.answer] : null;
+  const conquered = answer && myVisits.some(v=> v.landmark_id===answer.id);
+  const lockIc = stampGlyph("lock", 13);
+  const hintHtml = m.hint
+    ? `<div class="mystery-clue"><b>רמז נוסף:</b> ${escapeHtml(m.hint)}</div>`
+    : (m.has_hint ? `<div class="mystery-clue is-locked">${lockIc} רמז נוסף ייפתח ${mysteryUnlockText(m.hint_at)}</div>` : "");
+  const areaHtml = m.area
+    ? `<button type="button" class="btn btn-outline btn-sm" id="mysteryAreaBtn">${uiIcon("region",15)} הצג את האזור על המפה</button>`
+    : `<div class="mystery-clue is-locked">${lockIc} אזור על המפה ייפתח ${mysteryUnlockText(m.area_at)}</div>`;
+  const solvers = Number(m.solvers)||0;
+  const solversText = solvers===0 ? "עוד אף אחד לא פתר. תהיו הראשונים!" : (solvers===1 ? "מטייל אחד כבר פתר" : solvers+" מטיילים כבר פתרו");
+  let actionHtml;
+  if(m.solved){
+    actionHtml = `<div class="mystery-solved">✓ פיצחת${answer ? ": זה "+escapeHtml(answer.name) : ""}${m.my_rank ? " · פתרת "+m.my_rank+" מכל הארץ" : ""}</div>`
+      + (answer ? `<button type="button" class="btn btn-primary btn-block" id="mysteryGoBtn">${conquered ? "לעמוד היעד" : "עכשיו לכבוש את "+escapeHtml(answer.name)}</button>` : "");
+  } else if(session && m.guesses_left===0){
+    actionHtml = `<div class="mystery-out">נגמרו הניחושים לחידה הזו. חידה חדשה בשישי הקרוב!</div>`;
+  } else {
+    const left = session && m.guesses_left < MYSTERY_MAX_GUESSES ? `<div class="mystery-left">נשארו ${m.guesses_left} ניחושים</div>` : "";
+    actionHtml = `<button type="button" class="btn btn-primary btn-block" id="mysteryGuessBtn">יש לי תשובה</button>${left}`;
+  }
+  el.innerHTML = `<section class="mystery-card" aria-labelledby="mysteryTitle">
+    <div class="mystery-head">${stampGlyph("magnifier", 20)}<h2 id="mysteryTitle">החידה השבועית</h2>${isNew ? '<span class="mystery-new">חדשה!</span>' : ""}</div>
+    <p class="mystery-riddle">${escapeHtml(m.riddle)}</p>
+    ${m.solved ? "" : hintHtml + areaHtml}
+    <div class="mystery-solvers">${solversText}</div>
+    ${actionHtml}
+    <div class="mystery-foot">חידה חדשה בכל שישי ב-8:00</div>
+  </section>`;
+  el.classList.remove("hidden");
+  const guessBtn = $("mysteryGuessBtn");
+  if(guessBtn) guessBtn.onclick = ()=>{
+    if(!requireAuth("כדי לנחש, צרו חשבון בחינם", openMysteryGuess)) return;
+    openMysteryGuess();
+  };
+  const areaBtn = $("mysteryAreaBtn");
+  if(areaBtn) areaBtn.onclick = ()=> showMysteryArea(m.area);
+  const goBtn = $("mysteryGoBtn");
+  if(goBtn) goBtn.onclick = ()=> goToDestination(answer.id);
+}
+function openMysteryGuess(){
+  const m = mysteryState && mysteryState.mystery;
+  if(!m) return;
+  if(m.solved){ renderMysteryCard(); return; }
+  mysteryGuessPick = null;
+  $("mysteryGuessRiddle").textContent = m.riddle;
+  $("mysteryGuessInput").value = "";
+  $("mysteryGuessResults").innerHTML = "";
+  $("mysteryGuessNote").textContent = m.guesses_left < MYSTERY_MAX_GUESSES ? "נשארו "+m.guesses_left+" ניחושים" : "";
+  $("mysteryGuessSubmit").disabled = true;
+  openSheet("mysteryGuessSheet", "mysteryGuessScrim");
+  setTimeout(()=> $("mysteryGuessInput").focus(), 80);
+  track("mystery_guess_opened");
+}
+function renderMysteryGuessResults(){
+  const q = $("mysteryGuessInput").value;
+  const box = $("mysteryGuessResults");
+  if(!q.trim()){ box.innerHTML = ""; return; }
+  const list = searchLandmarks(q).slice(0,8);
+  box.innerHTML = list.length
+    ? list.map(l=>`<button type="button" class="trip-result${mysteryGuessPick===l.id?" is-picked":""}" aria-pressed="${mysteryGuessPick===l.id}" data-id="${escapeHtml(l.id)}">${escapeHtml(l.name)}<small>${escapeHtml(REGIONS[l.region]||"")}</small></button>`).join("")
+    : `<p class="t-caption" style="margin:6px 0 0;">לא נמצא מקום כזה. נסו שם אחר.</p>`;
+  box.querySelectorAll(".trip-result").forEach(b=> b.onclick = ()=>{
+    mysteryGuessPick = b.dataset.id;
+    $("mysteryGuessSubmit").disabled = false;
+    renderMysteryGuessResults();
+  });
+}
+async function submitMysteryGuess(){
+  const m = mysteryState && mysteryState.mystery;
+  if(!m || !mysteryGuessPick) return;
+  const btn = $("mysteryGuessSubmit"), note = $("mysteryGuessNote");
+  btn.disabled = true;
+  const pick = mysteryGuessPick;
+  const { data, error } = await supabase.rpc("guess_mystery", { p_mystery_id: m.id, p_landmark_id: pick });
+  if(error || !data){ btn.disabled = false; note.textContent = "לא הצלחנו לבדוק את הניחוש. נסו שוב."; return; }
+  if(data.error==="not_active"){ closeSheet("mysteryGuessSheet","mysteryGuessScrim"); toast("החידה הזו כבר הסתיימה"); loadWeeklyMystery(true); return; }
+  if(data.error==="no_guesses_left"){ m.guesses_left = 0; note.textContent = "נגמרו הניחושים לחידה הזו."; renderMysteryCard(); return; }
+  if(data.error){ btn.disabled = false; note.textContent = data.error==="not_authenticated" ? "צריך להתחבר מחדש." : "שגיאה בבדיקת הניחוש."; return; }
+  track("mystery_guess", { correct: !!data.correct });
+  if(!data.correct){
+    m.guesses_left = data.guesses_left;
+    mysteryGuessPick = null;
+    note.textContent = data.guesses_left>0 ? "לא זה... נשארו "+data.guesses_left+" ניחושים" : "לא זה, ונגמרו הניחושים. חידה חדשה בשישי!";
+    renderMysteryGuessResults();
+    renderMysteryCard();
+    if(data.guesses_left===0) setTimeout(()=> closeSheet("mysteryGuessSheet","mysteryGuessScrim"), 1800);
+    return;
+  }
+  // נכון!
+  Object.assign(m, { solved:true, answer:data.answer, my_rank:data.rank, solvers:(Number(m.solvers)||0)+(data.already?0:1) });
+  // מספר הפתרונות *לפני* הפתרון הזה צריך להיות ידוע קודם, אחרת setMysterySolves היה רושם את
+  // חותמת "בלש" החדשה כאילו כבר הושגה, ו-checkNewBadges לא היה חוגג אותה
+  const total = data.my_total_solves!=null ? Number(data.my_total_solves) : myMysterySolves + (data.already?0:1);
+  if(!mysterySolvesKnown) setMysterySolves(Math.max(0, total - (data.already?0:1)));
+  myMysterySolves = total;
+  closeSheet("mysteryGuessSheet","mysteryGuessScrim");
+  renderMysteryCard();
+  const lm = lmById[data.answer];
+  const steps = [{
+    icon:"eye", title:"פיצחת!", subtitle: lm ? lm.name : "",
+    sub: data.rank ? "פתרת "+data.rank+" מכל הארץ" : null,
+    confetti:true, haptic:"success",
+  }];
+  const newBadges = checkNewBadges();
+  if(newBadges.length && session){
+    supabase.from("user_badges").insert(newBadges.map(b=>({ user_id:session.user.id, badge_id:b.id }))).then(()=>{});
+  }
+  newBadges.forEach(b=> steps.push({ stampId:b.id, metal:badgeMetal(b.id), title:"חותמת חדשה", subtitle:b.label, confetti:false, haptic:"milestone" }));
+  if(lm && !myVisits.some(v=> v.landmark_id===lm.id)){
+    steps.push({ icon:"compass", title:"עכשיו לכבוש", sub:"צ'ק-אין במקום עצמו פותח את הכיבוש והנקודות",
+      actions:[{ label:"לעמוד היעד", primary:true, onClick:()=> goToDestination(lm.id) }] });
+  }
+  celebrate(steps);
+  renderProfile();
+}
+// רמז שלישי: עיגול על המפה. מרכזו מוזז בשרת, כך שהמקום בתוכו אבל לא באמצע.
+function showMysteryArea(area){
+  if(!area) return;
+  keepMapFraming = true;
+  navigate("#/map");
+  setTimeout(()=>{
+    if(!leafletMap) return;
+    clearMysteryArea();
+    mysteryAreaLayer = L.circle([area.lat, area.lon], {
+      radius: Number(area.radius_km)*1000, color:"#6b4bc4", weight:2, dashArray:"6 6", fillOpacity:0.08, interactive:false,
+    }).addTo(leafletMap);
+    leafletMap.fitBounds(mysteryAreaLayer.getBounds(), { padding:[24,24] });
+    toast("המקום של החידה נמצא איפשהו בתוך העיגול");
+    track("mystery_area_opened");
+  }, 0);
+}
+function clearMysteryArea(){
+  if(mysteryAreaLayer && leafletMap) leafletMap.removeLayer(mysteryAreaLayer);
+  mysteryAreaLayer = null;
+}
+function initMysteryUI(){
+  $("mysteryGuessInput").oninput = ()=>{ mysteryGuessPick = null; $("mysteryGuessSubmit").disabled = true; renderMysteryGuessResults(); };
+  $("mysteryGuessSubmit").onclick = submitMysteryGuess;
+  $("mysteryGuessClose").onclick = ()=> closeSheet("mysteryGuessSheet","mysteryGuessScrim");
+  $("mysteryGuessScrim").onclick = ()=> closeSheet("mysteryGuessSheet","mysteryGuessScrim");
+  initAdminMysteryForm();
+}
+
+/* ============ ADMIN: החידה השבועית ============ */
+// הכתיבה רק דרך admin_save_mystery / admin_delete_mystery בשרת (בודקות is_admin, שישי בלבד,
+// רק חידה שעוד לא פורסמה). כאן: רשימה, טופס, ובחירת יעד מתוך החיפוש הקיים.
+const ADMIN_MYSTERY_ERRORS = {
+  not_authenticated:"צריך להתחבר מחדש.", not_authorized:"אין לך הרשאת מנהל.",
+  invalid_date:"תאריך לא תקין.", not_friday:"חידה מתפרסמת רק ביום שישי - בחרו תאריך של יום שישי.",
+  already_released:"החידה הזו כבר פורסמה, ואי אפשר לשנות או למחוק אותה.", invalid_landmark:"בחרו יעד מהרשימה.",
+  invalid_riddle:"החידה צריכה להכיל 5–500 תווים.", invalid_hint:"הרמז ארוך מדי (עד 300 תווים).", not_found:"החידה לא נמצאה.",
+};
+let adminMysteries = [];
+let adminMysteryPick = null;
+function isoDateLocal(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+// השישי הקרוב שעוד אין לו חידה (שישי היום אחרי 8:00 כבר לא נחשב)
+function nextFreeFriday(){
+  const taken = new Set(adminMysteries.map(m=> isoDateLocal(new Date(m.release_at))));
+  const d = new Date();
+  d.setDate(d.getDate() + ((5 - d.getDay() + 7) % 7));
+  if(d.getDay()===5 && new Date().getDay()===5 && new Date().getHours()>=8) d.setDate(d.getDate()+7);
+  for(let i=0; i<52 && taken.has(isoDateLocal(d)); i++) d.setDate(d.getDate()+7);
+  return isoDateLocal(d);
+}
+async function renderAdminMysteries(){
+  const box = $("admMysteryList");
+  if(!box) return;
+  const { data, error } = await supabase.rpc("admin_list_mysteries");
+  if(error || !data || data.error){
+    box.innerHTML = `<p class="t-caption">לא ניתן לטעון חידות${error ? " (יתכן שהמיגרציה migrations_weekly_mystery.sql טרם רצה)" : ""}.</p>`;
+    return;
+  }
+  adminMysteries = data.mysteries || [];
+  const now = Date.now();
+  box.innerHTML = adminMysteries.length ? adminMysteries.map(m=>{
+    const released = new Date(m.release_at).getTime() <= now;
+    const date = new Date(m.release_at).toLocaleDateString("he-IL", { day:"numeric", month:"numeric" });
+    return `<div class="adm-mystery-row">
+      <div class="adm-mystery-main">
+        <div class="adm-mystery-title">שישי ${date} · ${escapeHtml(m.landmark_name || m.landmark_id)}</div>
+        <div class="adm-mystery-riddle">${escapeHtml(m.riddle)}</div>
+        <div class="adm-mystery-sub">${released ? (m.solvers+" פתרו מתוך "+m.players+" ששיחקו") : "מתוזמנת"}</div>
+      </div>
+      ${released ? "" : `<div class="adm-mystery-actions">
+        <button type="button" class="btn btn-outline btn-sm" data-myst-edit="${m.id}">עריכה</button>
+        <button type="button" class="btn btn-outline btn-sm" data-myst-del="${m.id}">מחיקה</button></div>`}
+    </div>`;
+  }).join("") : `<p class="t-caption">עוד אין חידות. כתבו את הראשונה למטה.</p>`;
+  box.querySelectorAll("[data-myst-edit]").forEach(b=> b.onclick = ()=>{
+    const m = adminMysteries.find(x=> x.id===b.dataset.mystEdit);
+    if(!m) return;
+    $("admMysteryDate").value = isoDateLocal(new Date(m.release_at));
+    setAdminMysteryPick(m.landmark_id);
+    $("admMysteryRiddle").value = m.riddle || "";
+    $("admMysteryHint").value = m.hint || "";
+    $("admMysteryForm").scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+  box.querySelectorAll("[data-myst-del]").forEach(b=> b.onclick = async ()=>{
+    const ok = await confirmAction({ title:"למחוק את החידה?", message:"החידה עוד לא פורסמה, ואפשר יהיה לכתוב חידה אחרת לאותו שישי.", confirmLabel:"מחיקה", destructive:true });
+    if(!ok) return;
+    const { data: r, error: e } = await supabase.rpc("admin_delete_mystery", { p_id: b.dataset.mystDel });
+    if(e || !r || r.error){ toast(ADMIN_MYSTERY_ERRORS[r && r.error] || "המחיקה נכשלה."); return; }
+    renderAdminMysteries();
+  });
+  if(!$("admMysteryDate").value) $("admMysteryDate").value = nextFreeFriday();
+}
+function setAdminMysteryPick(id){
+  adminMysteryPick = id && lmById[id] ? id : null;
+  const picked = $("admMysteryPicked");
+  picked.classList.toggle("hidden", !adminMysteryPick);
+  $("admMysterySearchBox").classList.toggle("hidden", !!adminMysteryPick);
+  $("admMysteryPickedName").textContent = adminMysteryPick ? "התשובה: "+lmById[adminMysteryPick].name : "";
+  if(!adminMysteryPick){ $("admMysterySearch").value = ""; $("admMysteryResults").innerHTML = ""; }
+}
+function initAdminMysteryForm(){
+  $("admMysterySearch").oninput = ()=>{
+    const q = $("admMysterySearch").value, box = $("admMysteryResults");
+    if(!q.trim()){ box.innerHTML = ""; return; }
+    const list = searchLandmarks(q).slice(0,8);
+    box.innerHTML = list.map(l=>`<button type="button" class="trip-result" data-id="${escapeHtml(l.id)}">${escapeHtml(l.name)}<small>${escapeHtml(REGIONS[l.region]||"")}</small></button>`).join("")
+      || `<p class="t-caption" style="margin:6px 0 0;">לא נמצא יעד כזה.</p>`;
+    box.querySelectorAll(".trip-result").forEach(b=> b.onclick = ()=> setAdminMysteryPick(b.dataset.id));
+  };
+  $("admMysteryChange").onclick = ()=>{ setAdminMysteryPick(null); $("admMysterySearch").focus(); };
+  $("admMysteryForm").onsubmit = async e=>{
+    e.preventDefault();
+    const note = $("admMysteryNote"), btn = $("admMysterySubmit");
+    const show = msg=>{ note.textContent = msg; note.classList.add("show"); };
+    note.classList.remove("show");
+    if(!adminMysteryPick){ show(ADMIN_MYSTERY_ERRORS.invalid_landmark); $("admMysterySearch").focus(); return; }
+    btn.disabled = true;
+    const { data, error } = await supabase.rpc("admin_save_mystery", { p: {
+      release_date: $("admMysteryDate").value, landmark_id: adminMysteryPick,
+      riddle: $("admMysteryRiddle").value.trim(), hint: $("admMysteryHint").value.trim(),
+    }});
+    btn.disabled = false;
+    if(error || !data){ show("שגיאה בשמירה (יתכן שהמיגרציה טרם רצה)."); return; }
+    if(data.error){ show(ADMIN_MYSTERY_ERRORS[data.error] || "שגיאה בשמירה."); return; }
+    show("החידה נשמרה ותתפרסם בשישי ב-8:00.");
+    $("admMysteryForm").reset();
+    setAdminMysteryPick(null);
+    $("admMysteryDate").value = "";
+    renderAdminMysteries();
+  };
+}
+
 /* ============ ירד גשם — הנחלים מתעוררים ============ */
 // נתוני גשם מ-Open-Meteo (חינמי, בלי מפתח; רישיון CC BY 4.0 - הקרדיט מוצג בבאנר). הבקשה
 // כוללת רק קואורדינטות של יעדים קבועים מכל אזור - אף פעם לא את המיקום של המשתמש.
@@ -3477,7 +3793,7 @@ function rainDismissed(regs){
   }catch(e){ return false; }
 }
 // חזרה לאפליקציה אחרי כמה שעות ברקע: הבית לא בהכרח מתרנדר מחדש, אז בודקים כאן (ה-TTL מונע עודף בקשות)
-document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible" && currentView==="home") checkRain(); });
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible" && currentView==="home"){ checkRain(); loadWeeklyMystery(); } });
 function hebrewList(items){ return items.length<=1 ? (items[0]||"") : items.slice(0,-1).join(", ")+" ו"+items[items.length-1]; }
 function renderRainBanner(){
   const el = $("rainBanner");
@@ -3517,6 +3833,8 @@ function renderHome(){
   if(!$("homeNextGoal") || !LANDMARKS.length) return;
   renderRainBanner();
   checkRain();
+  renderMysteryCard();
+  loadWeeklyMystery();
   const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
   $("homeRingPct").textContent = discPct+"%";
   $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
@@ -4414,6 +4732,7 @@ function wireStaticUI(){
   $("adminCloseBtn").onclick = closeAdmin;
   $("admSaveBtn").onclick = saveAdminSettings;
   initAdminAddLandmarkForm();
+  initMysteryUI();
   $("adminLinkBtn").onclick = ()=> navigate("#/admin");
   $("deleteAccountBtn").onclick = async ()=>{
     const ok = await confirmAction({
@@ -7165,7 +7484,7 @@ async function renderGroupPanel(){
 
     // אותה שפת-חותמות של המסך האישי, רק שה"הושגה" כאן היא "מישהו בקבוצה השיג"
     // והכתובית סופרת כמה חברים - לא תאריך.
-    $("groupBadgeGrid").innerHTML = visibleBadges().map(b=>{
+    $("groupBadgeGrid").innerHTML = visibleBadges().filter(b=>!b.mystery).map(b=>{
       const count = memberIds.filter(id=> b.current(byMember[id])>=b.target(byMember[id])).length;
       const metal = badgeMetal(b.id);
       return `<div class="stamp${count>0?" is-earned":""}${metal?" metal-"+metal:""}" role="listitem"

@@ -999,6 +999,29 @@ button{font-family:inherit;}
 .season-card-got{font-size:13px;font-weight:700;color:var(--color-primary-dark);margin-inline-start:4px;}
 .season-card-sub{font-size:13.5px;color:var(--text-muted);}
 .season-card-body .btn{margin-top:4px;}
+/* החידה השבועית בבית */
+.mystery-card{background:color-mix(in srgb, #6b4bc4 7%, var(--surface));border:1px solid color-mix(in srgb, #6b4bc4 28%, transparent);border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-4) 0 0;}
+.mystery-head{display:flex;align-items:center;gap:var(--space-2);color:#6b4bc4;}
+.mystery-head h2{margin:0;font-size:17px;color:var(--text);}
+.mystery-new{margin-inline-start:auto;background:#6b4bc4;color:#fff;font-size:12.5px;font-weight:800;border-radius:999px;padding:2px 10px;}
+.mystery-riddle{margin:var(--space-3) 0;font-size:16.5px;line-height:1.55;font-weight:600;}
+.mystery-clue{font-size:14.5px;margin:0 0 var(--space-2);}
+.mystery-clue.is-locked{color:var(--text-muted);display:flex;align-items:center;gap:6px;font-size:13.5px;}
+.mystery-card .btn-sm{display:inline-flex;margin:0 0 var(--space-2);}
+.mystery-solvers{font-size:13.5px;color:var(--text-muted);margin:var(--space-2) 0 var(--space-3);}
+.mystery-solved{font-weight:700;color:var(--color-primary-dark);margin-bottom:var(--space-2);}
+.mystery-out{font-size:14.5px;color:var(--text-muted);}
+.mystery-left{text-align:center;font-size:13px;color:var(--text-muted);margin-top:6px;}
+.mystery-foot{font-size:12.5px;color:var(--text-muted);margin-top:var(--space-3);text-align:center;}
+.mystery-guess-riddle{margin:0 0 var(--space-3);font-weight:600;line-height:1.5;}
+.mystery-guess-note{min-height:1.4em;margin-top:6px;font-size:14px;font-weight:600;}
+.trip-result.is-picked{border-color:#6b4bc4;background:color-mix(in srgb, #6b4bc4 10%, var(--surface));}
+.adm-mystery-row{display:flex;gap:var(--space-3);align-items:flex-start;border:1px solid var(--border);border-radius:var(--radius-input);padding:var(--space-3);margin-bottom:var(--space-2);}
+.adm-mystery-main{flex:1;min-width:0;}
+.adm-mystery-title{font-weight:700;}
+.adm-mystery-riddle{font-size:14px;margin:4px 0;overflow-wrap:anywhere;}
+.adm-mystery-sub{font-size:13px;color:var(--text-muted);}
+.adm-mystery-actions{display:flex;flex-direction:column;gap:6px;flex:none;}
 /* "ירד גשם — הנחלים מתעוררים" בבית */
 .rain-banner{position:relative;background:color-mix(in srgb, var(--cat-water) 10%, var(--surface));border:1px solid color-mix(in srgb, var(--cat-water) 30%, transparent);border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-4) 0 0;}
 .rain-banner-head{display:flex;align-items:center;gap:var(--space-2);padding-inline-end:36px;}
@@ -1413,6 +1436,28 @@ input[type=file]{display:none;}
       <button type="submit" class="btn btn-primary btn-block" id="admLmSubmit">הוספת היעד</button>
       <div class="auth-note" id="admLmNote" style="margin-top:10px;"></div>
     </form>
+    <div class="section-head"><h2>החידה השבועית</h2></div>
+    <p class="t-caption" style="margin:0 0 10px;">מתפרסמת בכל שישי ב-8:00. רמז נוסף נפתח בראשון ב-8:00, ואזור על המפה בשלישי ב-8:00. אפשר לערוך או למחוק חידה עד שהיא מתפרסמת.</p>
+    <div id="admMysteryList"></div>
+    <form id="admMysteryForm" novalidate style="margin-top:12px;">
+      <label class="field-label" for="admMysteryDate">יום שישי</label>
+      <input class="text-input" type="date" id="admMysteryDate" style="margin-bottom:12px;">
+      <div class="field-label" id="admMysteryAnswerLabel">התשובה (יעד)</div>
+      <div class="trip-picked hidden" id="admMysteryPicked">
+        <span class="trip-picked-name" id="admMysteryPickedName"></span>
+        <button class="trip-link" id="admMysteryChange" type="button">שינוי</button>
+      </div>
+      <div id="admMysterySearchBox">
+        <input class="text-input" type="search" id="admMysterySearch" aria-labelledby="admMysteryAnswerLabel" autocomplete="off" placeholder="חיפוש יעד">
+        <div class="trip-results" id="admMysteryResults" aria-label="תוצאות חיפוש"></div>
+      </div>
+      <label class="field-label" for="admMysteryRiddle" style="margin-top:12px;">החידה</label>
+      <textarea class="text-input" id="admMysteryRiddle" rows="3" maxlength="500" style="resize:vertical;margin-bottom:12px;"></textarea>
+      <label class="field-label" for="admMysteryHint">רמז נוסף (נפתח בראשון, לא חובה)</label>
+      <input class="text-input" type="text" id="admMysteryHint" maxlength="300" style="margin-bottom:16px;">
+      <button type="submit" class="btn btn-primary btn-block" id="admMysterySubmit">שמירת החידה</button>
+      <div class="auth-note" id="admMysteryNote" style="margin-top:10px;"></div>
+    </form>
     <div class="section-head"><h2>משתמשים אחרונים</h2></div>
     <div id="adminUsersList"></div>
   </div>
@@ -1697,6 +1742,8 @@ input[type=file]{display:none;}
 
       <!-- "ירד גשם — הנחלים מתעוררים" (renderRainBanner) - מוצג רק אחרי גשם משמעותי באזור -->
       <div id="rainBanner" class="hidden"></div>
+      <!-- החידה השבועית (renderMysteryCard) - מתפרסמת כל שישי ב-8:00 -->
+      <div id="mysteryCard" class="hidden"></div>
       <div class="section-head"><h2>היעד הבא שלך</h2></div>
       <div id="homeNextGoal"></div>
 
@@ -2248,6 +2295,19 @@ input[type=file]{display:none;}
     </div>
   </div>
 
+  <div class="scrim" id="mysteryGuessScrim"></div>
+  <div class="sheet" id="mysteryGuessSheet" role="dialog" aria-modal="true" aria-labelledby="mysteryGuessTitle">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="mysteryGuessTitle">מה התשובה?</h2><button class="sheet-close" id="mysteryGuessClose" aria-label="סגור">✕</button></div>
+    <div class="sheet-body">
+      <p class="mystery-guess-riddle" id="mysteryGuessRiddle"></p>
+      <label class="trip-label" for="mysteryGuessInput">חפשו את המקום ובחרו אותו</label>
+      <input class="text-input" type="search" id="mysteryGuessInput" autocomplete="off" placeholder="שם המקום">
+      <div class="trip-results" id="mysteryGuessResults" aria-label="תוצאות חיפוש"></div>
+      <div class="mystery-guess-note" id="mysteryGuessNote" role="status" aria-live="polite"></div>
+      <button class="btn btn-primary btn-block" id="mysteryGuessSubmit" type="button" disabled style="margin-top:12px;">זה הניחוש שלי</button>
+    </div>
+  </div>
   <div class="scrim" id="tripPostScrim"></div>
   <div class="sheet" id="tripPostSheet">
     <div class="sheet-handle"></div>
@@ -2351,6 +2411,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261114a8"></script>
+<script type="module" src="./app.js?v=20261114a9"></script>
 </body>
 </html>

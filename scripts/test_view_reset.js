@@ -18,6 +18,7 @@ globalThis.keepMapFraming = false;
 globalThis.leafletMap = { invalidateSize() {} };
 globalThis.fitIsrael = () => calls.push('fitIsrael');
 globalThis.stopLocationWatch = () => calls.push('stopLocationWatch');
+globalThis.clearMysteryArea = () => calls.push('clearMysteryArea');
 globalThis.resumeLocationTracking = () => calls.push('resumeLocationTracking');
 globalThis.maybeShowLocateHint = () => {};
 // the map framing is deferred so it runs after invalidateSize; run timers inline here
@@ -53,6 +54,7 @@ const check = (name, cond, detail) => {
 console.log('\n1. leaving the map closes a stale preview');
 calls.length = 0; switchView('map'); calls.length = 0; switchView('home');
 check('closePreview on map -> home', calls.includes('closePreview'));
+check('the weekly mystery circle is cleared when leaving the map', calls.includes('clearMysteryArea'));
 calls.length = 0; switchView('home');
 check('no reset when the view did not change', !calls.includes('closePreview'), 'switchView(home) twice');
 
