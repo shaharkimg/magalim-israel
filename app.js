@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261017a1";
+const APP_VERSION = "20261114a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3110,8 +3110,10 @@ function renderTripMode(){
   $("tripCheckinIc").innerHTML = uiIcon("trophy",26);
   $("tripNavIc").innerHTML = uiIcon("region",24);
   $("tripInfoIc").innerHTML = uiIcon("duration",24);
+  const wasHidden = el.classList.contains("hidden");
   el.classList.remove("hidden");
   resume.classList.add("hidden");
+  if(wasHidden) setTimeout(()=> $("tripName").focus(), 60);
   tripTimer = setInterval(()=>{
     if(!activeTrip || el.classList.contains("hidden")) return;
     $("tripElapsed").textContent = tripElapsedText();
@@ -3350,7 +3352,7 @@ function renderHome(){
         <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
           <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span></div></div>
       <div class="place-pts">+${pointsForLandmark(l)}</div></div>`;
-    dailyEl.querySelector(".daily-card").onclick = ()=> goToDestination(l.id);
+    makeCardActivatable(dailyEl.querySelector(".daily-card"), ()=> goToDestination(l.id));
   } else dailyEl.innerHTML = "";
 
   // אתגר חודשי + מתכנן סופ״ש - שני מנועי-חזרה מבוססי-זמן (§9, §12)
@@ -3583,6 +3585,15 @@ function openPreview(id){
     ? '<img src="'+safeUrl(photoUrl)+'" alt="'+escapeHtml(l.name)+'">'
     : photoFallbackHtml(l, 34);
   $("destPreviewName").textContent = l.name;
+  $("destPreviewOpen").setAttribute("aria-label", "פתח את עמוד היעד "+l.name);
+  // הפעולה הראשית בכרטיס היא כיבוש - לא ניווט. ליעד שכבר נכבש הכפתור פותח את עמוד-היעד
+  // (שם עריכת התמונה/ביקורת), ולא disabled - כדי שהקשה עליו לא "תיפול" לכרטיס בדפדפנים
+  // שמעבירים קליק של כפתור מנוטרל להורה.
+  const previewVisited = myVisits.some(v=>v.landmark_id===id);
+  const conquerBtn = $("destPreviewConquer");
+  conquerBtn.innerHTML = previewVisited ? "✓ נכבש" : uiIcon("trophy",16)+" כבשתי";
+  conquerBtn.classList.toggle("is-done", previewVisited);
+  conquerBtn.setAttribute("aria-label", previewVisited ? "כבשת את "+l.name+" — לעמוד היעד" : "כבשתי את "+l.name+" — צ'ק-אין");
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
   const previewTier = tierForDb(l.difficulty);
   $("destPreviewFacts").innerHTML = (distText ? '<span class="place-meta-item">'+distText.replace(/ · $/,"")+'</span>' : "")
@@ -3616,13 +3627,18 @@ function landmarkPinIcon(l, visited, wished, selected, justIn){
   // Gamification Overhaul, Phase 4 - צבע-הפין לפי קושי (לא קטגוריה), האייקון הפנימי נשאר
   // קטגוריה ללא שינוי - דרישה מפורשת ("לעולם לא להחליף אייקון/קטגוריה"). ראו legend חדש
   // ב-map-controls להסבר-נגיש (טקסט+צבע, לא צבע-בלבד).
+  // Leaflet נותן לכל סיכה role="button", אבל בזום רחוק התווית מוסתרת (display:none) ו-VoiceOver
+  // הקריא רק "כפתור" (או "✓ כפתור") לכל אחד מ-1,500 היעדים. השם והמצב נקראים מ-sr-only, והסימנים
+  // הוויזואליים מוסתרים מקורא-המסך כדי לא להקריא אותם פעמיים.
+  const srState = [visited ? "נכבש" : "", wished ? "ברשימת המשאלות" : ""].filter(Boolean).join(", ");
   return L.divIcon({
     className: "lm-divicon",
     html: '<div class="lm-pin-wrap">'
-      + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'">'
+      + '<span class="sr-only">'+escapeHtml(l.name)+(srState?", "+srState:"")+'</span>'
+      + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'" aria-hidden="true">'
       + (wished?'<span class="lm-pin-star">★</span>':"")
       + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
-      + '</div><div class="lm-pin-label">'+escapeHtml(l.name)+'</div></div>',
+      + '</div><div class="lm-pin-label" aria-hidden="true">'+escapeHtml(l.name)+'</div></div>',
     iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
   });
 }
@@ -3777,9 +3793,9 @@ function renderMapSidePanel(){
       </div>
       <p class="lm-desc">${l.desc}</p>
       <div class="lm-actions">
-        <button class="icon-btn waze-btn" id="panelWazeBtn"></button>
-        <button class="btn btn-outline${wished?" is-wished":""}" id="panelWishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
         <button class="btn btn-primary" id="panelDetailBtn">פרטים מלאים</button>
+        <button class="btn btn-outline${wished?" is-wished":""}" id="panelWishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
+        <button class="icon-btn waze-btn" id="panelWazeBtn"></button>
       </div>
     `;
     wireWazeButton($("panelWazeBtn"), l);
@@ -3862,8 +3878,19 @@ function wireStaticUI(){
   $("filterScrim").onclick=()=>closeSheet("filterSheet","filterScrim");
   $("clearFilters").onclick=()=>{ filters=defaultFilters(); syncFilterUI(); syncQuickChips(); renderMap(); };
   $("applyFilters").onclick=()=>{ renderMap(); closeSheet("filterSheet","filterScrim"); syncFilterUI(); syncQuickChips(); };
+  // הקשה על השם/התמונה/שטח ריק בכרטיס פותחת את עמוד-היעד. מקלדת וקורא-מסך מגיעים לכאן דרך
+  // כפתור-השם (destPreviewOpen) - הקליק שלו מבעבע לכאן. כפתורי-הפעולה עוצרים propagation.
   $("destPreview").onclick = ()=> previewId && goToDestination(previewId);
-  $("destPreview").onkeydown = e=>{ if((e.key==="Enter"||e.key===" ") && previewId && e.target===$("destPreview")){ e.preventDefault(); goToDestination(previewId); } };
+  $("destPreviewConquer").onclick = (e)=>{
+    e.stopPropagation();
+    const l = previewId && lmById[previewId];
+    if(!l) return;
+    if(myVisits.some(v=>v.landmark_id===l.id)){ goToDestination(l.id); return; }
+    // סוגרים את התצוגה המקדימה כדי שלא תישאר עם "כבשתי" ישן אחרי צ'ק-אין מוצלח
+    closePreview();
+    if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם", ()=>startCheckin(l))) return;
+    startCheckin(l);
+  };
   $("destPreviewTrip").onclick = (e)=>{
     e.stopPropagation();
     if(previewId) openTripPostSheet(previewId);
@@ -4337,6 +4364,29 @@ function setGuestGate(prefix, isGuest){
 // (כמו confirmSheet שצריך לפתור promise) מעבירים callback משלהם במקום סגירה גנרית.
 let sheetFocusReturnEl = null;
 let openSheetStack = [];
+// בלי role="dialog" + aria-modal, משתמש VoiceOver באייפון שמחליק ימינה/שמאלה יוצא מה-sheet
+// הפתוח אל המפה והכפתורים שמאחוריו. השם נלקח מהכותרת הראשונה של ה-sheet (גם כשהיא מתמלאת
+// דינמית - aria-labelledby קורא אותה ברגע ההקראה). sheets שכבר הוגדרו ב-HTML נשארים כפי שהם.
+function markAsModalDialog(el){
+  if(!el) return;
+  if(!el.hasAttribute("role")) el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  if(!el.hasAttribute("aria-label") && !el.hasAttribute("aria-labelledby")){
+    const h = el.querySelector("h2, h3");
+    if(h){
+      if(!h.id) h.id = el.id + "Heading";
+      el.setAttribute("aria-labelledby", h.id);
+    }
+  }
+}
+// כרטיס שהוא div לחיץ (לא <button> כי יש בו מבנה פנימי) - נגיש למקלדת ול-VoiceOver
+function makeCardActivatable(el, onActivate){
+  if(!el) return;
+  el.setAttribute("role", "button");
+  el.tabIndex = 0;
+  el.onclick = onActivate;
+  el.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); onActivate(e); } };
+}
 function openSheet(sheetId, scrimId, onEscape){
   // באג-אמת שדווח ממכשיר פיזי: sheet חדש (למשל תצוגת-הזמנה שנפתחת מקישור) שנפתח בזמן ש-sheet
   // אחר (למשל הגדרות) כבר פתוח, השאיר את שניהם "open" בו-זמנית - נראה כמו שני מסכים דלוקים
@@ -4347,6 +4397,7 @@ function openSheet(sheetId, scrimId, onEscape){
     if(s.onEscape) s.onEscape(); else closeSheet(s.sheetId, s.scrimId);
   });
   sheetFocusReturnEl = document.activeElement;
+  markAsModalDialog($(sheetId));
   $(sheetId).classList.add("open"); $(scrimId).classList.add("open");
   openSheetStack.push({ sheetId, scrimId, onEscape });
   const sheetEl = $(sheetId);
@@ -4530,13 +4581,14 @@ function openDetail(id){
     <div id="tripPartnersBox" data-stage="mid"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
+    <!-- RTL: הראשון בתור הוא הימני ביותר, שם האגודל נוחת ראשון - לכן "כבשתי" ראשון ו-Waze אחרון -->
     <div class="lm-actions">
-      <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
+      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":uiIcon("trophy",16)+" כבשתי"}</button>
+      <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
       <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       </button>
-      <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
-      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":uiIcon("trophy",16)+" כבשתי"}</button>
+      <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
     </div>
     <div class="detail-cta">
       ${visitedEntry
@@ -4746,11 +4798,11 @@ function startCheckin(l){
   activeCheckinPhoto = null;
   reportState = { water:null, crowding:null, parking:null };
   $("checkinFlow").innerHTML = `
-    <div class="checkin-status" id="gpsStatus"><span class="ic">${uiIcon("compass",19)}</span> מאתר מיקום GPS...</div>
+    <div class="checkin-status" id="gpsStatus" role="status" aria-live="polite"><span class="ic">${uiIcon("compass",19)}</span> מאתר מיקום GPS...</div>
     <div id="photoStep" class="hidden">
       <button class="btn btn-primary btn-block" id="confirmCheckin">${uiIcon("trophy",16)} אשר צ'ק-אין וקבל נקודות</button>
       <div class="checkin-extras-divider">תוספות אופציונליות (לא נדרש כדי לקבל נקודות)</div>
-      <div class="photo-drop" id="photoDrop">${uiIcon("camera",17)} הוסיפו תמונה מהמקום (אופציונלי)</div>
+      <button type="button" class="photo-drop" id="photoDrop">${uiIcon("camera",17)} הוסיפו תמונה מהמקום (אופציונלי)</button>
       <input type="file" accept="image/*" id="photoInput">
       <img class="photo-preview hidden" id="photoPreview">
       <label class="field-label" style="margin-top:6px;">הערה קצרה לחברים (אופציונלי)</label>
@@ -5351,7 +5403,7 @@ function renderRegionProgress(){
       ${nudge}
     </div>`;
   }).join("");
-  el.querySelectorAll(".region-row").forEach(row=> row.onclick = ()=> openRegionSheet(row.dataset.region));
+  el.querySelectorAll(".region-row").forEach(row=> makeCardActivatable(row, ()=> openRegionSheet(row.dataset.region)));
 }
 function renderPlaceListSheet(title, list, subtitle){
   $("regionSheetTitle").textContent = title;
