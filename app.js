@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114a7";
+const APP_VERSION = "20261114a8";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -198,6 +198,45 @@ function regionTierBadges(){
   });
   return out;
 }
+/* ============ חותמות עונתיות ============ */
+// אפשר להשיג רק בעונה של התופעה: כיבוש של אחד המקומות כשתאריך הביקור בתוך החלון. החלון
+// חוזר כל שנה ויכול לחצות את סוף השנה (נוב'-פבר'). from/to הם [חודש, יום]. ids - רשימה
+// מפורשת למקומות שהתופעה קשורה אליהם בשמם; match - כלל, כשהתופעה היא סוג מקום (מפלים, מעיינות).
+// מקום שנמחק מהמסד פשוט לא נמצא ב-lmById; חותמת שלא נשאר לה אף מקום מוסתרת (visibleBadges).
+const SEASONAL_STAMPS = [
+  { id:"season_cranes", label:"עגורים בחולה", glyph:"crane", from:[11,1], to:[2,28],
+    hint:"אלפי עגורים חורפים בעמק החולה", ids:["agmon-hula","hula","tiuli-39"] },
+  { id:"season_winter_bloom", label:"פריחת החורף", glyph:"flower", from:[12,1], to:[2,28],
+    hint:"נרקיסים ושקדיות בפריחה", ids:["tiuli-70","tiuli-73","tiuli-129"] },
+  { id:"season_red_south", label:"דרום אדום", glyph:"flower", from:[1,15], to:[3,15],
+    hint:"מרבדי כלניות בצפון הנגב", ids:["tiuli-18","xlsx-335","xlsx-336","tiuli-23","xlsx-285","bitronot-beeri"] },
+  { id:"season_spring_bloom", label:"פריחת האביב", glyph:"flower", from:[2,15], to:[4,15],
+    hint:"אירוסים ותורמוסים", ids:["netanya-iris-reserve","xlsx-099","tiuli-109","xlsx-051","tiuli-73","tiuli-163"] },
+  { id:"season_waterfalls", label:"מפלים בחורף", glyph:"waterfall", from:[12,1], to:[3,31],
+    hint:"המפלים במלוא עוצמתם אחרי הגשמים", match:l=> (l.category==="water"||l.hasWater) && /מפל/.test(l.name) },
+  { id:"season_summer_springs", label:"מעיינות בקיץ", glyph:"drop", from:[6,15], to:[9,15],
+    hint:"לטבול במים קרירים בשיא החום", match:l=> /מעיין|(^|\s)עין\s/.test(l.name) },
+];
+const SEASONAL_BY_ID = Object.fromEntries(SEASONAL_STAMPS.map(st=>[st.id, st]));
+function monthDayKey(d){ return (d.getMonth()+1)*100 + d.getDate(); }
+function inSeasonWindow(st, date){
+  const k = monthDayKey(date), a = st.from[0]*100+st.from[1], b = st.to[0]*100+st.to[1];
+  return a<=b ? (k>=a && k<=b) : (k>=a || k<=b);
+}
+function seasonDayMonth(md){ return md[1]+"."+md[0]; }
+let seasonalPlacesCache = { ref:null, n:-1, map:{} };
+function seasonalPlaces(st){
+  if(seasonalPlacesCache.ref!==LANDMARKS || seasonalPlacesCache.n!==LANDMARKS.length) seasonalPlacesCache = { ref:LANDMARKS, n:LANDMARKS.length, map:{} };
+  return seasonalPlacesCache.map[st.id] ||
+    (seasonalPlacesCache.map[st.id] = st.ids ? st.ids.map(id=>lmById[id]).filter(Boolean) : LANDMARKS.filter(st.match));
+}
+function seasonalBadge(st){
+  return { id:st.id, label:st.label, seasonal:st, target:()=>1,
+    current:v=>{
+      const ids = new Set(seasonalPlaces(st).map(l=>l.id));
+      return v.some(x=> ids.has(x.landmark_id) && x.visited_at && inSeasonWindow(st, new Date(x.visited_at))) ? 1 : 0;
+    } };
+}
 const BADGES = [
   {id:"first",label:"צעד ראשון",target:()=>1,current:v=>Math.min(v.length,1)},
   {id:"milestone3",label:"3 יעדים",target:()=>3,current:v=>Math.min(v.length,3)},
@@ -213,7 +252,10 @@ const BADGES = [
   {id:"extreme",label:"מטפס ותיק",target:()=>2,current:v=>Math.min(countDiff(v,"extreme"),2)},
   {id:"all",label:"כל הארץ",target:()=>LANDMARKS.length||259,current:v=>v.length},
   ...regionTierBadges(),
+  ...SEASONAL_STAMPS.map(seasonalBadge),
 ];
+// חותמת עונתית שאין לה אף מקום במפה (נמחקו/לא נטענו) לא מוצגת ולא נספרת
+function visibleBadges(){ return BADGES.filter(b=> !b.seasonal || seasonalPlaces(b.seasonal).length); }
 // אוספים קיוריטד - כמו BADGES, כל אחד הוא פילטר על LANDMARKS הקיימים (לא רשימת-ID ידנית).
 // icon כאן הוא שם-גליף (STAMP_GLYPHS) או "ui:<name>" (UI_ICON_PATHS) - לא אימוג'י.
 // שני המילונים מציירים באותה שפה (viewBox 24, קו 1.8), אז ערבוב ביניהם עקבי חזותית.
@@ -507,6 +549,10 @@ const STAMP_GLYPHS = {
   pine:'<path d="M12 3 17.5 11H6.5Z"/><path d="M12 7.5 18.5 16H5.5Z"/><path d="M11 16h2v4h-2Z"/>',
   landmark:'<path d="M8 11a4 4 0 0 1 8 0v1H8Z"/><path d="M5.5 20v-9h13v9"/><path d="M10 20v-5h4v5"/>',
   cityscape:'<path d="M4 20V10h4v10M10 20V6h4v14M16 20v-8h4v8"/><path d="M3 20h18"/>',
+  // חותמות עונתיות
+  flower:'<circle cx="12" cy="9" r="1.7"/><circle cx="12" cy="5.6" r="2"/><circle cx="15.3" cy="8" r="2"/><circle cx="14" cy="11.8" r="2"/><circle cx="10" cy="11.8" r="2"/><circle cx="8.7" cy="8" r="2"/><path d="M12 13.8V21"/><path d="M12 18.5c-1.4-1.6-3.2-1.9-4.3-1.5.9 1.7 2.6 2.2 4.3 1.5Z"/>',
+  crane:'<path d="M15.5 4.5c1 0 1.7.6 1.7 1.4l2.3.6-2.4.5-1.2 5.8c1.6 1.8 1.2 4.4-.9 5.4-2.7 1.3-6.8-.2-9.5-3.6 2.4.6 4.5.4 6.1-.6.9-.6 1.6-1.4 2-2.4L15.5 4.5Z"/><path d="M11 17.6 10.2 21.5M13.6 17.8l.4 3.7"/>',
+  waterfall:'<path d="M4 5h16"/><path d="M8 5v8.5M12 5v11M16 5v8.5"/><path d="M4.5 19c1.6-1.6 3.1-1.6 4.7 0s3.1 1.6 4.7 0 3.1-1.6 4.7 0"/>',
 };
 // אינדקס ברמה -> שם גליף. עוקב אחרי הדפוס שכבר קיים באימוג'ים המקוריים (8 גליפים-בסיס
 // חוזרים בשתי מחזוריות + 3 גליפי-שיא ייחודיים) - לא ממציא רצף חדש, רק מתרגם אותו לקו.
@@ -529,6 +575,7 @@ const BADGE_GLYPHS = {
 };
 function badgeGlyphName(id){
   if(BADGE_GLYPHS[id]) return BADGE_GLYPHS[id];
+  if(SEASONAL_BY_ID[id]) return SEASONAL_BY_ID[id].glyph;
   if(id.startsWith("region_")) return "seal";
   return "seal";
 }
@@ -1989,11 +2036,18 @@ function stampHtml(b, state){
     ? `<svg class="stamp-ring" viewBox="0 0 60 60" aria-hidden="true"><circle class="stamp-ring-fill" cx="30" cy="30" r="26"
          style="stroke-dashoffset:${(STAMP_RING_C*(1-pct/100)).toFixed(1)}"/></svg>`
     : "";
+  // חותמת עונתית: "0 / 1" לא אומר כלום - מה שחשוב הוא אם עכשיו העונה, ואם לא - מתי היא חוזרת
+  const st = b.seasonal;
+  const seasonNow = st && inSeasonWindow(st, new Date());
+  const seasonText = st ? (seasonNow ? "בעונה עד "+seasonDayMonth(st.to) : "חוזרת ב-"+seasonDayMonth(st.from)) : "";
   const foot = earned
     ? `<div class="stamp-date">${date ? new Date(date).toLocaleDateString("he-IL",{month:"short",year:"2-digit"}) : "הושגה"}</div>`
-    : `<div class="stamp-progress"><bdi dir="ltr">${cur} / ${tgt}</bdi></div>`;
+    : st
+      ? `<div class="stamp-progress${seasonNow?" is-season-now":""}">${seasonText}</div>`
+      : `<div class="stamp-progress"><bdi dir="ltr">${cur} / ${tgt}</bdi></div>`;
   const aria = earned
     ? b.label + " — הושגה" + (date ? " ב-"+new Date(date).toLocaleDateString("he-IL") : "")
+    : st ? b.label + " — חותמת עונתית, " + seasonText
     : b.label + " — " + cur + " מתוך " + tgt;
   return `<div class="stamp${earned?" is-earned":""}${fresh?" is-fresh":""}${metal?" metal-"+metal:""}" role="listitem" aria-label="${aria}">
     <div class="stamp-disc">${ring}<div class="stamp-face">${stampGlyph(badgeGlyphName(b.id), 26)}</div>
@@ -2005,8 +2059,13 @@ function stampHtml(b, state){
 function renderAchievementsPanel(){
   if(!session) return;
   const unlockedIds = new Set(unlockedBadges().map(b=>b.id));
-  const earned = BADGES.filter(b=>unlockedIds.has(b.id));
-  const rest = BADGES.filter(b=>!unlockedIds.has(b.id));
+  const shown = visibleBadges();
+  const earned = shown.filter(b=>unlockedIds.has(b.id));
+  const rest = shown.filter(b=>!unlockedIds.has(b.id));
+  // חותמות שהעונה שלהן עכשיו - מקטע משלהן למעלה, עם הדרך להגיע (ולא שוב ב"כל החותמות")
+  const now = new Date();
+  const seasonNow = shown.filter(b=> b.seasonal && inSeasonWindow(b.seasonal, now));
+  const seasonNowIds = new Set(seasonNow.map(b=>b.id));
   // היררכיה במקום גריד אחיד: קודם מה שכמעט הושג (הכי מניע), אחר כך מה שנפתח לאחרונה,
   // ורק אז השאר. חותמת שטרם התחילה (0%) אף פעם לא "קרובה להשלמה".
   const close = rest
@@ -2021,15 +2080,35 @@ function renderAchievementsPanel(){
     .sort((a,b)=> new Date(myBadgeDates[b.id]) - new Date(myBadgeDates[a.id]))
     .slice(0,3);
   const recentIds = new Set(recent.map(b=>b.id));
-  const others = BADGES.filter(b=> !closeIds.has(b.id) && !recentIds.has(b.id));
+  const others = shown.filter(b=> !closeIds.has(b.id) && !recentIds.has(b.id) && !seasonNowIds.has(b.id));
   const section = (title, list, cls)=> list.length
     ? `<div class="stamp-section${cls?" "+cls:""}"><div class="stamp-section-head">${title}</div>
        <div class="stamp-grid" role="list">${list.map(b=>stampHtml(b, unlockedIds.has(b.id)?"earned":"locked")).join("")}</div></div>`
     : "";
+  const seasonNowHtml = seasonNow.length ? `<div class="stamp-section season-now">
+      <div class="stamp-section-head">בעונה עכשיו</div>
+      ${seasonNow.map(b=>{
+        const st = b.seasonal, got = unlockedIds.has(b.id), n = seasonalPlaces(st).length;
+        return `<div class="season-card">
+          <div class="stamp${got?" is-earned":""}" aria-hidden="true"><div class="stamp-disc"><div class="stamp-face">${stampGlyph(st.glyph, 26)}</div></div></div>
+          <div class="season-card-body">
+            <div class="season-card-title">${st.label}${got?' <span class="season-card-got">✓ הושגה</span>':""}</div>
+            <div class="season-card-sub">${st.hint} · עד ${seasonDayMonth(st.to)}</div>
+            <button type="button" class="btn btn-outline btn-sm" data-season-map="${st.id}">לאן הולכים? (${n} ${n===1?"מקום":"מקומות"})</button>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>` : "";
   $("badgeGrid").innerHTML =
-      section("קרובות להשלמה", close, "is-close")
+      seasonNowHtml
+    + section("קרובות להשלמה", close, "is-close")
     + section("הושגו לאחרונה", recent)
     + section(earned.length||close.length ? "כל החותמות" : "החותמות שלכם", others);
+  $("badgeGrid").querySelectorAll("[data-season-map]").forEach(btn=> btn.onclick = ()=>{
+    const st = SEASONAL_BY_ID[btn.dataset.seasonMap];
+    track("seasonal_places_opened", { stamp_id: st.id });
+    showPlacesOnMap(seasonalPlaces(st), st.label);
+  });
   freshStamps.clear();
   renderCollections();
 }
@@ -3322,8 +3401,122 @@ function renderWeeklyChallenge(){
     renderMap();
   };
 }
+/* ============ ירד גשם — הנחלים מתעוררים ============ */
+// נתוני גשם מ-Open-Meteo (חינמי, בלי מפתח; רישיון CC BY 4.0 - הקרדיט מוצג בבאנר). הבקשה
+// כוללת רק קואורדינטות של יעדים קבועים מכל אזור - אף פעם לא את המיקום של המשתמש.
+// רק אזורי הים-התיכון: בדרום, ים המלח ואילת גשם הוא סכנת שיטפונות בערוצים, לא הזמנה לטיול.
+const RAIN_REGIONS = ["north","center","jerusalem"];
+const RAIN_MM_THRESHOLD = 10;            // סה"כ 48 השעות האחרונות, בנקודה הגשומה ביותר באזור
+const RAIN_TTL_MS = 3*60*60*1000;        // לא בודקים שוב יותר מפעם ב-3 שעות
+const RAIN_RETRY_MS = 30*60*1000;        // אחרי כישלון - שוב רק בעוד חצי שעה
+const RAIN_DISMISS_DAYS = 3;
+const RAIN_CACHE_KEY = "megalim_rain_v1";
+const RAIN_DISMISS_KEY = "megalim_rain_dismissed_v1";
+let rainState = null;    // { at, regions:{ north: mm, ... } }
+let rainInFlight = false;
+// עד 3 יעדי מים לאזור, פרושים לאורכו (לפי קו רוחב) - הצפון ארוך, וגשם יכול להיות מקומי
+function rainSamplePoints(){
+  const pts = [];
+  RAIN_REGIONS.forEach(r=>{
+    const w = LANDMARKS.filter(l=> l.region===r && isWaterSite(l)).sort((a,b)=> a.lat-b.lat);
+    if(!w.length) return;
+    new Set([w[Math.floor(w.length*0.15)], w[Math.floor(w.length*0.5)], w[Math.floor(w.length*0.85)]])
+      .forEach(l=> pts.push({ r, lat:Math.round(l.lat*100)/100, lon:Math.round(l.lon*100)/100 }));
+  });
+  return pts;
+}
+// סכום הגשם ב-48 השעות האחרונות לכל אזור (המקסימום בין נקודות האזור), מתוך תשובת Open-Meteo.
+// כמה מיקומים בבקשה אחת = מערך; מיקום יחיד = אובייקט. ערכים חסרים נספרים כאפס.
+function rainByRegion(data, pts, nowSec){
+  const list = Array.isArray(data) ? data : [data];
+  const from = nowSec - 48*3600, regions = {};
+  list.forEach((loc,i)=>{
+    const p = pts[i], h = loc && loc.hourly;
+    if(!p || !h || !Array.isArray(h.time) || !Array.isArray(h.precipitation)) return;
+    let sum = 0;
+    h.time.forEach((t,j)=>{ if(t>=from && t<=nowSec) sum += Number(h.precipitation[j]) || 0; });
+    regions[p.r] = Math.max(regions[p.r]||0, Math.round(sum*10)/10);
+  });
+  return regions;
+}
+async function checkRain(){
+  if(rainInFlight || !LANDMARKS.length) return;
+  if(rainState && Date.now()-rainState.at < RAIN_TTL_MS) return;
+  try{
+    const cached = JSON.parse(localStorage.getItem(RAIN_CACHE_KEY) || "null");
+    if(cached && cached.regions && Date.now()-cached.at < RAIN_TTL_MS){ rainState = cached; renderRainBanner(); return; }
+  }catch(e){}
+  const pts = rainSamplePoints();
+  if(!pts.length) return;
+  rainInFlight = true;
+  try{
+    const url = "https://api.open-meteo.com/v1/forecast"
+      + "?latitude=" + pts.map(p=>p.lat).join(",") + "&longitude=" + pts.map(p=>p.lon).join(",")
+      + "&hourly=precipitation&past_days=2&forecast_days=1&timeformat=unixtime&timezone=Asia%2FJerusalem";
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    rainState = { at: Date.now(), regions: rainByRegion(await res.json(), pts, Date.now()/1000) };
+    try{ localStorage.setItem(RAIN_CACHE_KEY, JSON.stringify(rainState)); }catch(e){}
+    renderRainBanner();
+  }catch(err){
+    // שקט: בלי נתונים פשוט אין באנר. לא מנסים שוב בכל רינדור של הבית.
+    console.warn("נתוני גשם לא נטענו:", err.message||err);
+    rainState = { at: Date.now()-RAIN_TTL_MS+RAIN_RETRY_MS, regions:{} };
+  }finally{
+    rainInFlight = false;
+  }
+}
+function rainyRegions(){
+  if(!rainState || !rainState.regions) return [];
+  return RAIN_REGIONS.filter(r=> (rainState.regions[r]||0) >= RAIN_MM_THRESHOLD);
+}
+function rainDismissed(regs){
+  try{
+    const d = JSON.parse(localStorage.getItem(RAIN_DISMISS_KEY) || "null");
+    return !!d && d.regions===regs.join(",") && Date.now()-d.at < RAIN_DISMISS_DAYS*86400000;
+  }catch(e){ return false; }
+}
+// חזרה לאפליקציה אחרי כמה שעות ברקע: הבית לא בהכרח מתרנדר מחדש, אז בודקים כאן (ה-TTL מונע עודף בקשות)
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible" && currentView==="home") checkRain(); });
+function hebrewList(items){ return items.length<=1 ? (items[0]||"") : items.slice(0,-1).join(", ")+" ו"+items[items.length-1]; }
+function renderRainBanner(){
+  const el = $("rainBanner");
+  if(!el) return;
+  const regs = rainyRegions();
+  const places = LANDMARKS.filter(l=> regs.includes(l.region) && isWaterSite(l));
+  if(!regs.length || !places.length || rainDismissed(regs)){ el.classList.add("hidden"); el.innerHTML = ""; return; }
+  // 3 הצעות: הקרובים אליכם אם המיקום ידוע, אחרת מפלים קודם (הם הכי "מתעוררים" אחרי גשם)
+  const picks = places.slice().sort((a,b)=> userLoc
+      ? haversine(userLoc.lat,userLoc.lon,a.lat,a.lon) - haversine(userLoc.lat,userLoc.lon,b.lat,b.lon)
+      : (/מפל/.test(b.name)?1:0) - (/מפל/.test(a.name)?1:0)).slice(0,3);
+  const where = hebrewList(regs.map(r=> "ב"+REGIONS[r]));
+  el.innerHTML = `<section class="rain-banner" aria-labelledby="rainBannerTitle">
+    <button type="button" class="rain-banner-close" id="rainBannerClose" aria-label="סגירת ההתראה על הגשם">✕</button>
+    <div class="rain-banner-head">${uiIcon("water",20)}<h2 id="rainBannerTitle">ירד גשם ${where} — הנחלים מתעוררים</h2></div>
+    <p class="rain-banner-sub">${places.length} מקומות מים באזור. זה הזמן לראות אותם זורמים.</p>
+    <div class="rain-banner-picks">${picks.map(l=>`<button type="button" class="chip teal" data-rain-go="${escapeHtml(l.id)}">${escapeHtml(l.name)}</button>`).join("")}</div>
+    <button type="button" class="btn btn-primary btn-block" id="rainBannerMap">הצג את כולם על המפה</button>
+    <p class="rain-banner-safety">${uiIcon("warning",13)} אחרי גשם חזק: אל תיכנסו לערוצי נחלים בזמן גשם או כשיש אזהרת שיטפונות.</p>
+    <p class="rain-banner-credit">נתוני גשם: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></p>
+  </section>`;
+  el.classList.remove("hidden");
+  el.querySelectorAll("[data-rain-go]").forEach(b=> b.onclick = ()=>{
+    track("rain_banner_place", { landmark_id: b.dataset.rainGo });
+    goToDestination(b.dataset.rainGo);
+  });
+  $("rainBannerMap").onclick = ()=>{
+    track("rain_banner_map", { regions: regs.join(",") });
+    showPlacesOnMap(places, "נחלים אחרי הגשם");
+  };
+  $("rainBannerClose").onclick = ()=>{
+    try{ localStorage.setItem(RAIN_DISMISS_KEY, JSON.stringify({ regions: regs.join(","), at: Date.now() })); }catch(e){}
+    el.classList.add("hidden"); el.innerHTML = "";
+  };
+}
 function renderHome(){
   if(!$("homeNextGoal") || !LANDMARKS.length) return;
+  renderRainBanner();
+  checkRain();
   const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
   $("homeRingPct").textContent = discPct+"%";
   $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
@@ -5879,7 +6072,7 @@ function renderProfile(){
   if(currentView==="profile") renderAchievementsPanel();
   $("statPoints").textContent = xp.toLocaleString();
   $("statStreak").textContent = computeStreak();
-  $("statBadges").textContent = unlockedBadges().length+"/"+BADGES.length;
+  $("statBadges").textContent = unlockedBadges().length+"/"+visibleBadges().length;
   const listEl = $("profList");
   if(profileListTab==="visited"){
     if(!myVisits.length){
@@ -6972,7 +7165,7 @@ async function renderGroupPanel(){
 
     // אותה שפת-חותמות של המסך האישי, רק שה"הושגה" כאן היא "מישהו בקבוצה השיג"
     // והכתובית סופרת כמה חברים - לא תאריך.
-    $("groupBadgeGrid").innerHTML = BADGES.map(b=>{
+    $("groupBadgeGrid").innerHTML = visibleBadges().map(b=>{
       const count = memberIds.filter(id=> b.current(byMember[id])>=b.target(byMember[id])).length;
       const metal = badgeMetal(b.id);
       return `<div class="stamp${count>0?" is-earned":""}${metal?" metal-"+metal:""}" role="listitem"
@@ -7053,20 +7246,24 @@ function renderPersonalChallenges(){
     btn.onclick = ()=>{
       const ch = CHALLENGES.find(c=>c.id===btn.dataset.ch);
       const { remaining } = challengeProgress(ch);
-      filters = defaultFilters();
-      filters.customIds = new Set(remaining.map(l=>l.id));
-      filters.customLabel = ch.title;
-      keepMapFraming = true;
-      navigate("#/map");
-      setTimeout(()=>{
-        syncFilterUI(); renderMap();
-        if(remaining.length){
-          const bounds = L.latLngBounds(remaining.map(l=>[l.lat,l.lon]));
-          leafletMap.fitBounds(bounds,{padding:[36,36]});
-        }
-      },0);
+      showPlacesOnMap(remaining, ch.title);
     };
   });
+}
+// מפה מסוננת לרשימת יעדים מסוימת (אתגר, חותמת עונתית, נחלים אחרי גשם), ממוסגרת עליהם
+function showPlacesOnMap(list, label){
+  filters = defaultFilters();
+  filters.customIds = new Set(list.map(l=>l.id));
+  filters.customLabel = label;
+  keepMapFraming = true;
+  navigate("#/map");
+  setTimeout(()=>{
+    syncFilterUI(); renderMap();
+    if(list.length && leafletMap){
+      const bounds = L.latLngBounds(list.map(l=>[l.lat,l.lon]));
+      leafletMap.fitBounds(bounds,{padding:[36,36]});
+    }
+  },0);
 }
 function timeAgo(iso){
   const diff = Date.now()-new Date(iso).getTime();

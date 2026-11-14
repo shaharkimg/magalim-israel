@@ -32,8 +32,8 @@
 <!-- App Essentials Phase 0F, Round 2 - CSP מוגדר לפי בדיקה בפועל (לא generic-strict) של כל
      המקורות שהאפליקציה באמת טוענת: esm.sh (supabase-js), unpkg.com (Leaflet+markercluster+
      canvas-confetti, מוצמדים ל-SRI), fonts.google/gstatic, Supabase (API+Storage+Realtime),
-     טיילי OSM. נבדק בקפידה מקומית+production לפני שנחשב גמור (ראו plan). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://unpkg.com https://*.supabase.co https://*.tile.openstreetmap.org https://upload.wikimedia.org; connect-src 'self' https://esm.sh https://*.supabase.co wss://*.supabase.co https://ipwho.is https://ipapi.co; base-uri 'self'; object-src 'none';">
+     טיילי OSM, ונתוני גשם מ-api.open-meteo.com (באנר "ירד גשם"). נבדק בקפידה מקומית+production לפני שנחשב גמור (ראו plan). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://unpkg.com https://*.supabase.co https://*.tile.openstreetmap.org https://upload.wikimedia.org; connect-src 'self' https://esm.sh https://*.supabase.co wss://*.supabase.co https://ipwho.is https://ipapi.co https://api.open-meteo.com; base-uri 'self'; object-src 'none';">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Suez+One&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -989,6 +989,29 @@ button{font-family:inherit;}
   min-height:calc(var(--font-caption) * 1.3 * 2);display:flex;align-items:center;justify-content:center;}
 .stamp.is-earned .stamp-label{color:var(--text);font-weight:700;}
 .stamp-progress,.stamp-date{font-size:12px;font-weight:700;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+/* חותמות עונתיות: "בעונה עכשיו" - כרטיס לכל חותמת, עם הדרך להגיע למקומות שלה */
+.stamp-progress.is-season-now{color:var(--color-primary-dark);}
+.season-now{margin-bottom:var(--space-5);}
+.season-card{display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:var(--space-2);}
+.season-card .stamp{flex:none;width:64px;}
+.season-card-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
+.season-card-title{font-weight:700;font-size:15.5px;}
+.season-card-got{font-size:13px;font-weight:700;color:var(--color-primary-dark);margin-inline-start:4px;}
+.season-card-sub{font-size:13.5px;color:var(--text-muted);}
+.season-card-body .btn{margin-top:4px;}
+/* "ירד גשם — הנחלים מתעוררים" בבית */
+.rain-banner{position:relative;background:color-mix(in srgb, var(--cat-water) 10%, var(--surface));border:1px solid color-mix(in srgb, var(--cat-water) 30%, transparent);border-radius:var(--radius-card);padding:var(--space-4);margin:var(--space-4) 0 0;}
+.rain-banner-head{display:flex;align-items:center;gap:var(--space-2);padding-inline-end:36px;}
+.rain-banner-head .ui-ic{color:var(--cat-water);opacity:1;flex:none;}
+.rain-banner-head h2{margin:0;font-size:17px;line-height:1.35;}
+.rain-banner-sub{margin:var(--space-2) 0;font-size:14.5px;color:var(--text);}
+.rain-banner-picks{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-3);}
+.rain-banner-picks .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rain-banner-safety{display:flex;align-items:flex-start;gap:6px;margin:var(--space-3) 0 0;font-size:13px;color:var(--text-muted);}
+.rain-banner-safety .ui-ic{flex:none;margin-top:2px;}
+.rain-banner-credit{margin:var(--space-1) 0 0;font-size:12px;color:var(--text-muted);}
+.rain-banner-credit a{color:inherit;}
+.rain-banner-close{position:absolute;top:8px;inset-inline-end:8px;width:44px;height:44px;border:none;background:none;color:var(--text-muted);font-size:17px;cursor:pointer;border-radius:50%;}
 .stamp.is-earned .stamp-date{color:var(--color-accent);}
 @media (prefers-reduced-motion: no-preference){
   .stamp.is-fresh .stamp-face{animation:stampPress .55s cubic-bezier(.2,1.4,.4,1);}
@@ -1672,6 +1695,8 @@ input[type=file]{display:none;}
         </div>
       </div>
 
+      <!-- "ירד גשם — הנחלים מתעוררים" (renderRainBanner) - מוצג רק אחרי גשם משמעותי באזור -->
+      <div id="rainBanner" class="hidden"></div>
       <div class="section-head"><h2>היעד הבא שלך</h2></div>
       <div id="homeNextGoal"></div>
 
@@ -2326,6 +2351,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261114a7"></script>
+<script type="module" src="./app.js?v=20261114a8"></script>
 </body>
 </html>
