@@ -498,7 +498,8 @@ button{font-family:inherit;}
 .sheet-close{border:none;background:var(--bg-elevated);color:var(--text-muted);width:44px;height:44px;border-radius:50%;font-size:17px;cursor:pointer;}
 .sheet-body{overflow-y:auto;padding:0 var(--space-4) var(--space-4);}
 .filter-group{margin-bottom:24px;}
-.filter-group h3{font-size:13.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-family:"Heebo";font-weight:700;margin:0 0 var(--space-3);}
+/* h2 ו-h3 נראים אותו דבר: הרמה נקבעת לפי מבנה המסמך (לא לדלג על רמות), לא לפי המראה */
+.filter-group h2,.filter-group h3{font-size:13.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-family:"Heebo";font-weight:700;margin:0 0 var(--space-3);}
 .chip-row{display:flex;flex-wrap:wrap;gap:var(--space-2);}
 .chip{border:1px solid transparent;background:var(--bg-elevated);color:var(--text);border-radius:999px;padding:var(--space-2) var(--space-4);font-size:14.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:var(--space-2);transition:background .12s,border-color .12s,color .12s,transform .12s;}
 .chip:active{transform:scale(.94);}
@@ -1383,7 +1384,7 @@ input[type=file]{display:none;}
       </div>
     </div>
     <div class="filter-group">
-      <h3>שם</h3>
+      <h2>שם</h2>
       <input type="text" class="text-input" id="editNameInput" aria-label="השם שלך" maxlength="40" placeholder="איך לקרוא לך?">
     </div>
     <div class="section-head" style="margin-top:20px;"><h2>סגנון הטיולים שלי</h2></div>
@@ -2302,6 +2303,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261114a1"></script>
+<script type="module" src="./app.js?v=20261114a2"></script>
 </body>
 </html>
