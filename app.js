@@ -363,13 +363,13 @@ function renderFogOfWar(){
 
 /* ============ CHALLENGES ============ */
 const CHALLENGES = [
-  {id:"icons25", title:"25 המקומות שכל ישראלי חייב לראות", icon:"trophy", color:"var(--cat-heritage)", target:25, match:l=>!l.id.startsWith("tiuli-"), reward:"תג ייחודי באוסף ההישגים שלכם"},
-  {id:"water10", title:"אתגר המים — 10 יעדי מים", icon:"drop", color:"var(--cat-water)", target:10, match:l=>l.category==="water"||l.hasWater, reward:"תג ייחודי באוסף ההישגים שלכם"},
-  {id:"jlm8", title:"שבילי ירושלים", icon:"landmark", color:"var(--cat-religious)", target:8, match:l=>l.region==="jerusalem", reward:"תג ייחודי באוסף ההישגים שלכם"},
-  {id:"desert6", title:"חודש במדבר", icon:"dunes", color:"var(--cat-mountains)", target:6, match:l=>["south","eilat","deadsea"].includes(l.region), reward:"תג ייחודי באוסף ההישגים שלכם"},
-  {id:"peaks10", title:"כובשי הפסגות — 10 מסלולי הרים", icon:"peaks", color:"var(--cat-mountains)", target:10, match:l=>l.category==="mountains", reward:"תג ייחודי באוסף ההישגים שלכם"},
-  {id:"reserves8", title:"שומרי הטבע — 8 שמורות", icon:"pine", color:"var(--cat-reserves)", target:8, match:l=>l.category==="reserves", reward:"תג ייחודי באוסף ההישגים שלכם"},
-  {id:"center12", title:"גלו את המרכז — 12 יעדים", icon:"cityscape", color:"var(--cat-urban)", target:12, match:l=>l.region==="center", reward:"תג ייחודי באוסף ההישגים שלכם"},
+  {id:"icons25", title:"25 המקומות שכל ישראלי חייב לראות", icon:"trophy", color:"var(--cat-heritage)", target:25, match:l=>!l.id.startsWith("tiuli-"), reward:"תג ייחודי בפרופיל"},
+  {id:"water10", title:"אתגר המים — 10 יעדי מים", icon:"drop", color:"var(--cat-water)", target:10, match:l=>l.category==="water"||l.hasWater, reward:"תג ייחודי בפרופיל"},
+  {id:"jlm8", title:"שבילי ירושלים", icon:"landmark", color:"var(--cat-religious)", target:8, match:l=>l.region==="jerusalem", reward:"תג ייחודי בפרופיל"},
+  {id:"desert6", title:"חודש במדבר", icon:"dunes", color:"var(--cat-mountains)", target:6, match:l=>["south","eilat","deadsea"].includes(l.region), reward:"תג ייחודי בפרופיל"},
+  {id:"peaks10", title:"כובשי הפסגות — 10 מסלולי הרים", icon:"peaks", color:"var(--cat-mountains)", target:10, match:l=>l.category==="mountains", reward:"תג ייחודי בפרופיל"},
+  {id:"reserves8", title:"שומרי הטבע — 8 שמורות", icon:"pine", color:"var(--cat-reserves)", target:8, match:l=>l.category==="reserves", reward:"תג ייחודי בפרופיל"},
+  {id:"center12", title:"גלו את המרכז — 12 יעדים", icon:"cityscape", color:"var(--cat-urban)", target:12, match:l=>l.region==="center", reward:"תג ייחודי בפרופיל"},
 ];
 function challengeProgress(ch){
   const matched = myVisits.filter(v=> lmById[v.landmark_id] && ch.match(lmById[v.landmark_id]));
