@@ -42,7 +42,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous">
 <style>
 :root{
-  --bg:#F7F5EF; --bg-elevated:#ECEDE8; --surface:#FFFFFF; --text:#202622; --text-muted:#6F7772; --border:#E4E1D8;
+  --bg:#F7F5EF; --bg-elevated:#ECEDE8; --surface:#FFFFFF; --text:#202622; --text-muted:#5F6762; --border:#E4E1D8;
   /* Brand design tokens - derived from logo.png (forest-green mountains, water/sky teal, sun gold).
      This is the single place to re-brand the app; --accent/--teal/etc below just alias these so the
      ~150 existing call sites across the file don't need to change. */
@@ -608,7 +608,7 @@ button{font-family:inherit;}
 .checkin-status.ok{color:var(--success);}
 .checkin-status.bad{color:var(--danger);}
 .checkin-extras-divider{text-align:center;color:var(--text-muted);font-size:13.5px;margin:var(--space-4) 0 var(--space-2);padding-top:var(--space-3);border-top:1px solid var(--border);}
-.photo-drop{border:1.5px dashed var(--border);border-radius:var(--radius-card);padding:var(--space-5) var(--space-3);text-align:center;color:var(--text-muted);cursor:pointer;margin:var(--space-3) 0;font-size:15px;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
+.photo-drop{width:100%;background:none;font-family:inherit;border:1.5px dashed var(--border);border-radius:var(--radius-card);padding:var(--space-5) var(--space-3);text-align:center;color:var(--text-muted);cursor:pointer;margin:var(--space-3) 0;font-size:15px;display:flex;align-items:center;justify-content:center;gap:var(--space-2);}
 .photo-preview{width:100%;border-radius:var(--radius-card);display:block;margin:var(--space-3) 0;max-height:220px;object-fit:cover;}
 .privacy-card{background:var(--accent-light);border:1px solid transparent;border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:16px;}
 .privacy-head{display:flex;gap:var(--space-3);align-items:flex-start;margin-bottom:14px;}
@@ -768,6 +768,7 @@ button{font-family:inherit;}
 .trip-close{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:999px;padding:var(--space-2) var(--space-4);font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;}
 .trip-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-2);}
 .trip-name{font-family:"Suez One","Heebo",serif;font-size:30px;line-height:1.2;}
+.trip-name:focus{outline:none;}
 .trip-elapsed{font-size:var(--font-body);color:rgba(255,255,255,.7);}
 .trip-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);flex:none;}
 .trip-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);min-height:96px;border:none;border-radius:var(--radius-card);background:rgba(255,255,255,.12);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s;}
@@ -984,7 +985,7 @@ button{font-family:inherit;}
 
 .board-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);}
 .group-bar{display:flex;gap:var(--space-2);margin:0 0 var(--space-4);align-items:center;}
-.group-bar select{-webkit-appearance:none;appearance:none;}
+.group-bar select{-webkit-appearance:none;appearance:none;font-size:16px;}
 .seg{display:flex;background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-1);flex:1;}
 .seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:none;background:transparent;padding:var(--space-2) var(--space-1);border-radius:var(--radius-sm);font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;}
 .seg button svg{flex:none;}
@@ -1219,7 +1220,8 @@ input[type=file]{display:none;}
 .report-group{margin-top:10px;}
 .report-group-title{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:6px;}
 .report-group .report-chip-row{margin-top:0;}
-.text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:15.5px;color:var(--text);font-family:inherit;}
+/* 16px לפחות: Safari באייפון עושה זום לכל המסך כשמתמקדים בשדה עם גופן קטן מ-16px */
+.text-input{width:100%;border:1px solid var(--border);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-3) var(--space-3);font-size:16px;color:var(--text);font-family:inherit;}
 .loading-screen{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;align-items:stretch;justify-content:flex-start;flex-direction:column;}
 .boot-skeleton{width:100%;max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top) + var(--space-6)) var(--space-4) 0;}
 /* על ה-bg הרגיל (לא על משטח לבן) הניגודיות של .skel נמוכה מדי כדי לקרוא כשלד */
@@ -1255,7 +1257,7 @@ input[type=file]{display:none;}
     </div>
   </div>
 
-  <div class="onboarding-screen hidden" id="onboardingScreen">
+  <div class="onboarding-screen hidden" id="onboardingScreen" role="dialog" aria-modal="true" aria-labelledby="onboardingScreenHeading">
     <button class="sheet-close" id="onboardingSkip" style="position:absolute;top:16px;left:16px;" aria-label="דלג">✕</button>
     <div id="onboardingSlides">
       <div class="onboarding-slide active" data-step="0">
@@ -1271,7 +1273,7 @@ input[type=file]{display:none;}
             <circle cx="52" cy="128" r="7" fill="var(--color-accent)"/>
           </svg>
         </div>
-        <h2>כמה מישראל כבר גיליתם?</h2>
+        <h2 id="onboardingScreenHeading">כמה מישראל כבר גיליתם?</h2>
         <p>הפכו את הטיולים שלכם למסע אחד גדול.</p>
       </div>
       <div class="onboarding-slide" data-step="1">
@@ -1313,9 +1315,9 @@ input[type=file]{display:none;}
     <button class="btn btn-primary btn-block" id="onboardingNext">הבא</button>
   </div>
 
-  <div class="admin-screen hidden" id="adminScreen">
+  <div class="admin-screen hidden" id="adminScreen" role="dialog" aria-modal="true" aria-labelledby="adminScreenHeading">
     <button class="sheet-close" id="adminCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
-    <h1 class="overlay-title">לוח ניהול</h1>
+    <h1 id="adminScreenHeading" class="overlay-title">לוח ניהול</h1>
     <div class="stat-grid" id="adminStats"></div>
     <div class="section-head"><h2>כניסות לאפליקציה (כולל אורחים)</h2></div>
     <div class="stat-grid" id="adminVisitorStats"></div>
@@ -1370,9 +1372,9 @@ input[type=file]{display:none;}
     <div id="adminUsersList"></div>
   </div>
 
-  <div class="full-overlay hidden" id="editProfileScreen">
+  <div class="full-overlay hidden" id="editProfileScreen" role="dialog" aria-modal="true" aria-labelledby="editProfileScreenHeading">
     <button class="sheet-close" id="editProfileCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
-    <h1 class="overlay-title">עריכת פרופיל</h1>
+    <h1 id="editProfileScreenHeading" class="overlay-title">עריכת פרופיל</h1>
     <div class="avatar-edit-row">
       <div class="avatar" id="editAvatarPreview"><span id="editAvatarLetter">א</span></div>
       <div>
@@ -1425,18 +1427,18 @@ input[type=file]{display:none;}
     <button class="btn btn-primary btn-block" id="saveProfileBtn" style="margin:20px 0 30px;">שמירה</button>
   </div>
 
-  <div class="full-overlay hidden" id="notificationsScreen">
+  <div class="full-overlay hidden" id="notificationsScreen" role="dialog" aria-modal="true" aria-labelledby="notificationsScreenHeading">
     <button class="sheet-close" id="notificationsCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
     <div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0 16px;">
-      <h1 class="overlay-title" style="margin:0;">התראות</h1>
+      <h1 id="notificationsScreenHeading" class="overlay-title" style="margin:0;">התראות</h1>
       <button class="auth-forgot" id="markAllReadBtn">סמן הכל כנקרא</button>
     </div>
     <div id="notifList"></div>
   </div>
 
-  <div class="full-overlay hidden" id="aboutScreen">
+  <div class="full-overlay hidden" id="aboutScreen" role="dialog" aria-modal="true" aria-labelledby="aboutScreenHeading">
     <button class="sheet-close" id="aboutCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
-    <h1 class="overlay-title">אודות מגלים</h1>
+    <h1 id="aboutScreenHeading" class="overlay-title">אודות מגלים</h1>
     <p class="t-body">מגלים היא אפליקציית טיולים אינטראקטיבית שנועדה לעזור לכם לגלות, לתכנן ולתעד טיולים בכל רחבי הארץ — ממסלולי הרים ונחלים ועד אתרי מורשת ותצפיות. מפה חיה, אתגרים, תגים ורגעים לשתף עם חברים, כדי שכל טיול יהפוך לחוויה.</p>
     <div class="section-head"><h2>קישורים</h2></div>
     <button class="btn btn-outline btn-block" id="aboutTermsBtn" style="margin-bottom:8px;">תנאי שימוש</button>
@@ -1445,23 +1447,23 @@ input[type=file]{display:none;}
     <p class="t-caption" style="text-align:center;margin-top:var(--space-5);">מגלים v<span id="aboutVersionText"></span></p>
   </div>
 
-  <div class="full-overlay hidden" id="termsScreen">
+  <div class="full-overlay hidden" id="termsScreen" role="dialog" aria-modal="true" aria-labelledby="termsScreenHeading">
     <button class="sheet-close" id="termsCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
-    <h1 class="overlay-title">תנאי שימוש</h1>
+    <h1 id="termsScreenHeading" class="overlay-title">תנאי שימוש</h1>
     <div class="wiz-relaxed-note" style="margin-bottom:16px;"><b>טיוטה</b> — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
     <p class="t-body">השימוש באפליקציית מגלים כפוף לתנאים כלליים: השירות מוצע כפי שהוא ("as-is"), התוכן נועד למטרות מידע והשראה לטיולים ואינו תחליף לבדיקת תנאי שטח/מזג אוויר/הנחיות רשמיות בזמן אמת, והמשתמשים אחראים לשימוש נכון ובטוח באפליקציה במהלך טיולים בפועל. תנאי שימוש מלאים ומחייבים יפורסמו בהמשך.</p>
   </div>
 
-  <div class="full-overlay hidden" id="privacyPolicyScreen">
+  <div class="full-overlay hidden" id="privacyPolicyScreen" role="dialog" aria-modal="true" aria-labelledby="privacyPolicyScreenHeading">
     <button class="sheet-close" id="privacyPolicyCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
-    <h1 class="overlay-title">מדיניות פרטיות</h1>
+    <h1 id="privacyPolicyScreenHeading" class="overlay-title">מדיניות פרטיות</h1>
     <div class="wiz-relaxed-note" style="margin-bottom:16px;"><b>טיוטה</b> — טרם אושרה משפטית, ותוחלף בתוכן סופי לפני השקה רחבה.</div>
     <p class="t-body">מגלים שומרת מידע הדרוש להפעלת השירות בלבד — פרטי חשבון, ביקורים ותמונות שהעליתם, רשימת משאלות, וקשרי חברים/קבוצות. אנחנו לא חושפים מיקום חי בזמן אמת, ואתם שולטים במי רואה את הפעילות שלכם דרך הגדרות → פרטיות. אפשר למחוק את החשבון ואת כל המידע האישי הנלווה בכל עת. מדיניות פרטיות מלאה ומחייבת תפורסם בהמשך.</p>
   </div>
 
-  <div class="full-overlay hidden" id="helpScreen">
+  <div class="full-overlay hidden" id="helpScreen" role="dialog" aria-modal="true" aria-labelledby="helpScreenHeading">
     <button class="sheet-close" id="helpCloseBtn" style="position:absolute;top:16px;left:16px;" aria-label="סגור">✕</button>
-    <h1 class="overlay-title">עזרה ומשוב</h1>
+    <h1 id="helpScreenHeading" class="overlay-title">עזרה ומשוב</h1>
     <div class="section-head" style="margin-top:0;"><h2>שאלות נפוצות</h2></div>
     <div class="faq-list">
       <details class="faq-item"><summary>איך יוצרים חשבון?</summary><p>נרשמים עם אימייל וסיסמה, או ממשיכים כאורח/ת — האפליקציה תציע להירשם ברגע שתרצו לשמור מקום או לבצע צ'ק-אין.</p></details>
@@ -1920,13 +1922,13 @@ input[type=file]{display:none;}
   </div>
 
   <!-- Trip Mode (§14): מסך מינימלי לשימוש בחוץ - מעט טקסט, מטרות-מגע גדולות, בלי ניווט מסיח -->
-  <div class="trip-mode hidden" id="tripMode">
+  <div class="trip-mode hidden" id="tripMode" role="dialog" aria-modal="true" aria-labelledby="tripName">
     <div class="trip-top">
       <button class="trip-close" id="tripEndBtn" type="button">סיימתי</button>
       <div class="trip-kicker">אתם בטיול</div>
     </div>
     <div class="trip-center">
-      <div class="trip-name" id="tripName"></div>
+      <div class="trip-name" id="tripName" tabindex="-1"></div>
       <div class="trip-elapsed" id="tripElapsed"></div>
     </div>
     <div class="trip-actions">
@@ -2188,7 +2190,7 @@ input[type=file]{display:none;}
     <div class="sheet-handle"></div>
     <div class="sheet-head"><h2 id="reviewSheetTitle">תמונה וביקורת</h2><button class="sheet-close" id="closeReviewSheet" aria-label="סגור">✕</button></div>
     <div class="sheet-body">
-      <div class="photo-drop" id="reviewPhotoDrop"></div>
+      <button type="button" class="photo-drop" id="reviewPhotoDrop">הוסיפו תמונה מהמקום</button>
       <input type="file" accept="image/*" id="reviewPhotoInput" aria-label="בחירת תמונה">
       <img class="photo-preview hidden" id="reviewPhotoPreview">
       <label class="field-label" for="reviewNoteText">הביקורת שלכם (אופציונלי)</label>

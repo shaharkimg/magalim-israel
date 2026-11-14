@@ -3110,8 +3110,10 @@ function renderTripMode(){
   $("tripCheckinIc").innerHTML = uiIcon("trophy",26);
   $("tripNavIc").innerHTML = uiIcon("region",24);
   $("tripInfoIc").innerHTML = uiIcon("duration",24);
+  const wasHidden = el.classList.contains("hidden");
   el.classList.remove("hidden");
   resume.classList.add("hidden");
+  if(wasHidden) setTimeout(()=> $("tripName").focus(), 60);
   tripTimer = setInterval(()=>{
     if(!activeTrip || el.classList.contains("hidden")) return;
     $("tripElapsed").textContent = tripElapsedText();
@@ -3350,7 +3352,7 @@ function renderHome(){
         <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
           <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span></div></div>
       <div class="place-pts">+${pointsForLandmark(l)}</div></div>`;
-    dailyEl.querySelector(".daily-card").onclick = ()=> goToDestination(l.id);
+    makeCardActivatable(dailyEl.querySelector(".daily-card"), ()=> goToDestination(l.id));
   } else dailyEl.innerHTML = "";
 
   // אתגר חודשי + מתכנן סופ״ש - שני מנועי-חזרה מבוססי-זמן (§9, §12)
@@ -3625,13 +3627,18 @@ function landmarkPinIcon(l, visited, wished, selected, justIn){
   // Gamification Overhaul, Phase 4 - צבע-הפין לפי קושי (לא קטגוריה), האייקון הפנימי נשאר
   // קטגוריה ללא שינוי - דרישה מפורשת ("לעולם לא להחליף אייקון/קטגוריה"). ראו legend חדש
   // ב-map-controls להסבר-נגיש (טקסט+צבע, לא צבע-בלבד).
+  // Leaflet נותן לכל סיכה role="button", אבל בזום רחוק התווית מוסתרת (display:none) ו-VoiceOver
+  // הקריא רק "כפתור" (או "✓ כפתור") לכל אחד מ-1,500 היעדים. השם והמצב נקראים מ-sr-only, והסימנים
+  // הוויזואליים מוסתרים מקורא-המסך כדי לא להקריא אותם פעמיים.
+  const srState = [visited ? "נכבש" : "", wished ? "ברשימת המשאלות" : ""].filter(Boolean).join(", ");
   return L.divIcon({
     className: "lm-divicon",
     html: '<div class="lm-pin-wrap">'
-      + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'">'
+      + '<span class="sr-only">'+escapeHtml(l.name)+(srState?", "+srState:"")+'</span>'
+      + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'" aria-hidden="true">'
       + (wished?'<span class="lm-pin-star">★</span>':"")
       + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
-      + '</div><div class="lm-pin-label">'+escapeHtml(l.name)+'</div></div>',
+      + '</div><div class="lm-pin-label" aria-hidden="true">'+escapeHtml(l.name)+'</div></div>',
     iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
   });
 }
@@ -4357,6 +4364,29 @@ function setGuestGate(prefix, isGuest){
 // (כמו confirmSheet שצריך לפתור promise) מעבירים callback משלהם במקום סגירה גנרית.
 let sheetFocusReturnEl = null;
 let openSheetStack = [];
+// בלי role="dialog" + aria-modal, משתמש VoiceOver באייפון שמחליק ימינה/שמאלה יוצא מה-sheet
+// הפתוח אל המפה והכפתורים שמאחוריו. השם נלקח מהכותרת הראשונה של ה-sheet (גם כשהיא מתמלאת
+// דינמית - aria-labelledby קורא אותה ברגע ההקראה). sheets שכבר הוגדרו ב-HTML נשארים כפי שהם.
+function markAsModalDialog(el){
+  if(!el) return;
+  if(!el.hasAttribute("role")) el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  if(!el.hasAttribute("aria-label") && !el.hasAttribute("aria-labelledby")){
+    const h = el.querySelector("h2, h3");
+    if(h){
+      if(!h.id) h.id = el.id + "Heading";
+      el.setAttribute("aria-labelledby", h.id);
+    }
+  }
+}
+// כרטיס שהוא div לחיץ (לא <button> כי יש בו מבנה פנימי) - נגיש למקלדת ול-VoiceOver
+function makeCardActivatable(el, onActivate){
+  if(!el) return;
+  el.setAttribute("role", "button");
+  el.tabIndex = 0;
+  el.onclick = onActivate;
+  el.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); onActivate(e); } };
+}
 function openSheet(sheetId, scrimId, onEscape){
   // באג-אמת שדווח ממכשיר פיזי: sheet חדש (למשל תצוגת-הזמנה שנפתחת מקישור) שנפתח בזמן ש-sheet
   // אחר (למשל הגדרות) כבר פתוח, השאיר את שניהם "open" בו-זמנית - נראה כמו שני מסכים דלוקים
@@ -4367,6 +4397,7 @@ function openSheet(sheetId, scrimId, onEscape){
     if(s.onEscape) s.onEscape(); else closeSheet(s.sheetId, s.scrimId);
   });
   sheetFocusReturnEl = document.activeElement;
+  markAsModalDialog($(sheetId));
   $(sheetId).classList.add("open"); $(scrimId).classList.add("open");
   openSheetStack.push({ sheetId, scrimId, onEscape });
   const sheetEl = $(sheetId);
@@ -4767,11 +4798,11 @@ function startCheckin(l){
   activeCheckinPhoto = null;
   reportState = { water:null, crowding:null, parking:null };
   $("checkinFlow").innerHTML = `
-    <div class="checkin-status" id="gpsStatus"><span class="ic">${uiIcon("compass",19)}</span> מאתר מיקום GPS...</div>
+    <div class="checkin-status" id="gpsStatus" role="status" aria-live="polite"><span class="ic">${uiIcon("compass",19)}</span> מאתר מיקום GPS...</div>
     <div id="photoStep" class="hidden">
       <button class="btn btn-primary btn-block" id="confirmCheckin">${uiIcon("trophy",16)} אשר צ'ק-אין וקבל נקודות</button>
       <div class="checkin-extras-divider">תוספות אופציונליות (לא נדרש כדי לקבל נקודות)</div>
-      <div class="photo-drop" id="photoDrop">${uiIcon("camera",17)} הוסיפו תמונה מהמקום (אופציונלי)</div>
+      <button type="button" class="photo-drop" id="photoDrop">${uiIcon("camera",17)} הוסיפו תמונה מהמקום (אופציונלי)</button>
       <input type="file" accept="image/*" id="photoInput">
       <img class="photo-preview hidden" id="photoPreview">
       <label class="field-label" style="margin-top:6px;">הערה קצרה לחברים (אופציונלי)</label>
@@ -5372,7 +5403,7 @@ function renderRegionProgress(){
       ${nudge}
     </div>`;
   }).join("");
-  el.querySelectorAll(".region-row").forEach(row=> row.onclick = ()=> openRegionSheet(row.dataset.region));
+  el.querySelectorAll(".region-row").forEach(row=> makeCardActivatable(row, ()=> openRegionSheet(row.dataset.region)));
 }
 function renderPlaceListSheet(title, list, subtitle){
   $("regionSheetTitle").textContent = title;
