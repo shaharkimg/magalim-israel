@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261017a1";
+const APP_VERSION = "20261114a1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -3583,6 +3583,15 @@ function openPreview(id){
     ? '<img src="'+safeUrl(photoUrl)+'" alt="'+escapeHtml(l.name)+'">'
     : photoFallbackHtml(l, 34);
   $("destPreviewName").textContent = l.name;
+  $("destPreviewOpen").setAttribute("aria-label", "פתח את עמוד היעד "+l.name);
+  // הפעולה הראשית בכרטיס היא כיבוש - לא ניווט. ליעד שכבר נכבש הכפתור פותח את עמוד-היעד
+  // (שם עריכת התמונה/ביקורת), ולא disabled - כדי שהקשה עליו לא "תיפול" לכרטיס בדפדפנים
+  // שמעבירים קליק של כפתור מנוטרל להורה.
+  const previewVisited = myVisits.some(v=>v.landmark_id===id);
+  const conquerBtn = $("destPreviewConquer");
+  conquerBtn.innerHTML = previewVisited ? "✓ נכבש" : uiIcon("trophy",16)+" כבשתי";
+  conquerBtn.classList.toggle("is-done", previewVisited);
+  conquerBtn.setAttribute("aria-label", previewVisited ? "כבשת את "+l.name+" — לעמוד היעד" : "כבשתי את "+l.name+" — צ'ק-אין");
   const distText = userLoc ? Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))+' ק"מ ממך · ' : "";
   const previewTier = tierForDb(l.difficulty);
   $("destPreviewFacts").innerHTML = (distText ? '<span class="place-meta-item">'+distText.replace(/ · $/,"")+'</span>' : "")
@@ -3777,9 +3786,9 @@ function renderMapSidePanel(){
       </div>
       <p class="lm-desc">${l.desc}</p>
       <div class="lm-actions">
-        <button class="icon-btn waze-btn" id="panelWazeBtn"></button>
-        <button class="btn btn-outline${wished?" is-wished":""}" id="panelWishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
         <button class="btn btn-primary" id="panelDetailBtn">פרטים מלאים</button>
+        <button class="btn btn-outline${wished?" is-wished":""}" id="panelWishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
+        <button class="icon-btn waze-btn" id="panelWazeBtn"></button>
       </div>
     `;
     wireWazeButton($("panelWazeBtn"), l);
@@ -3862,8 +3871,19 @@ function wireStaticUI(){
   $("filterScrim").onclick=()=>closeSheet("filterSheet","filterScrim");
   $("clearFilters").onclick=()=>{ filters=defaultFilters(); syncFilterUI(); syncQuickChips(); renderMap(); };
   $("applyFilters").onclick=()=>{ renderMap(); closeSheet("filterSheet","filterScrim"); syncFilterUI(); syncQuickChips(); };
+  // הקשה על השם/התמונה/שטח ריק בכרטיס פותחת את עמוד-היעד. מקלדת וקורא-מסך מגיעים לכאן דרך
+  // כפתור-השם (destPreviewOpen) - הקליק שלו מבעבע לכאן. כפתורי-הפעולה עוצרים propagation.
   $("destPreview").onclick = ()=> previewId && goToDestination(previewId);
-  $("destPreview").onkeydown = e=>{ if((e.key==="Enter"||e.key===" ") && previewId && e.target===$("destPreview")){ e.preventDefault(); goToDestination(previewId); } };
+  $("destPreviewConquer").onclick = (e)=>{
+    e.stopPropagation();
+    const l = previewId && lmById[previewId];
+    if(!l) return;
+    if(myVisits.some(v=>v.landmark_id===l.id)){ goToDestination(l.id); return; }
+    // סוגרים את התצוגה המקדימה כדי שלא תישאר עם "כבשתי" ישן אחרי צ'ק-אין מוצלח
+    closePreview();
+    if(!requireAuth("כדי לסמן שכבשת את המקום, צרו חשבון בחינם", ()=>startCheckin(l))) return;
+    startCheckin(l);
+  };
   $("destPreviewTrip").onclick = (e)=>{
     e.stopPropagation();
     if(previewId) openTripPostSheet(previewId);
@@ -4530,13 +4550,14 @@ function openDetail(id){
     <div id="tripPartnersBox" data-stage="mid"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
+    <!-- RTL: הראשון בתור הוא הימני ביותר, שם האגודל נוחת ראשון - לכן "כבשתי" ראשון ו-Waze אחרון -->
     <div class="lm-actions">
-      <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
+      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":uiIcon("trophy",16)+" כבשתי"}</button>
+      <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
       <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       </button>
-      <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
-      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":uiIcon("trophy",16)+" כבשתי"}</button>
+      <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
     </div>
     <div class="detail-cta">
       ${visitedEntry

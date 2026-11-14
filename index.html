@@ -373,16 +373,25 @@ button{font-family:inherit;}
 .dest-preview-hero{width:92px;flex:none;position:relative;overflow:hidden;}
 .dest-preview-hero > div{width:100%;height:100%;}
 .dest-preview-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-.dest-preview-body{flex:1;min-width:0;padding:var(--space-3) var(--space-4);display:flex;flex-direction:column;justify-content:center;}
-.dest-preview-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);}
-.dest-preview-top h3{margin:0;font-size:var(--font-h2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dest-preview-body{flex:1;min-width:0;padding:var(--space-3);display:flex;flex-direction:column;justify-content:center;}
+.dest-preview-name{margin:0;font-size:var(--font-h2);min-width:0;}
+.dest-preview-open{display:block;width:100%;min-height:32px;padding:0;border:none;background:none;color:inherit;font:inherit;font-weight:700;text-align:start;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dest-preview-actions{display:flex;align-items:center;gap:6px;margin-top:var(--space-2);}
+.dest-preview-conquer{flex:1 1 auto;min-width:0;min-height:44px;padding:0 var(--space-3);font-size:15px;white-space:nowrap;}
+.dest-preview-conquer.is-done{background:var(--bg-elevated);color:var(--text);}
 .dest-preview-wish,.dest-preview-nav,.dest-preview-trip{border:none;background:var(--bg-elevated);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;cursor:pointer;color:var(--text-muted);transition:color .15s,background .15s;}
 .dest-preview-wish.active{color:var(--danger);background:color-mix(in srgb, var(--danger) 12%, transparent);}
 .dest-preview-wish.active .ui-ic{fill:currentColor;opacity:1;}
+/* מסכים צרים (iPhone SE): כפתור "כבשתי" חייב להישאר קריא - מקטינים תמונה ואייקונים, לא אותו */
+@media (max-width:360px){
+  .dest-preview-hero{width:64px;}
+  .dest-preview-wish,.dest-preview-nav{width:40px;height:40px;}
+  .dest-preview-conquer{padding:0 var(--space-2);}
+  .dest-preview-conquer .ui-ic{display:none;}
+}
 .btn.is-wished{color:var(--danger);border-color:color-mix(in srgb, var(--danger) 45%, transparent);}
 .btn.is-wished .ui-ic{fill:currentColor;}
 .feed-wish-btn.active .ui-ic{fill:currentColor;}
-.dest-preview-actions{display:flex;gap:var(--space-2);flex:none;}
 .waze-btn{color:var(--accent);}
 /* pointer-events:none על העטיפה כדי שקטע-הכותרת/רווחים ריקים לא יחסמו הקשות על הפינים
    שמתחתיהם במפה - רק ל-discovery-carousel עצמו (שם יש כרטיסים אמיתיים) יש pointer-events:auto.
@@ -1721,19 +1730,20 @@ input[type=file]{display:none;}
         <button id="diffLegendBtn" aria-label="מקרא רמות קושי" aria-expanded="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5 7h14M5 12h9M5 17h5"/></svg></button>
       </div>
       <div class="diff-legend hidden" id="diffLegendPopover" role="dialog" aria-label="מקרא רמות קושי"></div>
-      <div class="dest-preview topo-texture" id="destPreview" role="button" tabindex="0" aria-label="פתח את עמוד היעד">
-        <div class="dest-preview-hero" id="destPreviewHero"></div>
+      <!-- לא role="button" על כל הכרטיס: כפתורים מקוננים בתוך "כפתור" נבלעים ב-VoiceOver
+           (ההקשה הכפולה נוחתת במרכז הכרטיס - שם ישב כפתור ה-Waze). פתיחת עמוד-היעד היא
+           כפתור-השם, והקשה על שאר שטח הכרטיס (תמונה/ריווח) עושה את אותו הדבר. -->
+      <div class="dest-preview topo-texture" id="destPreview" role="group" aria-label="תצוגה מקדימה של יעד">
+        <div class="dest-preview-hero" id="destPreviewHero" aria-hidden="true"></div>
         <div class="dest-preview-body">
-          <div class="dest-preview-top">
-            <div>
-              <h3 id="destPreviewName"></h3>
-              <div class="dest-preview-facts" id="destPreviewFacts"></div>
-            </div>
-            <div class="dest-preview-actions">
-              <button class="dest-preview-nav waze-btn" id="destPreviewNav" aria-label="נווט" title="נווט ב-Waze"></button>
-              <button class="dest-preview-wish" id="destPreviewTrip" aria-label="מחפשים שותף לטיול ליעד הזה" title="מחפשים שותף לטיול"></button>
-              <button class="dest-preview-wish" id="destPreviewWish" aria-label="רשימת משאלות"></button>
-            </div>
+          <h3 class="dest-preview-name"><button type="button" class="dest-preview-open" id="destPreviewOpen" aria-label="פתח את עמוד היעד"><span id="destPreviewName"></span></button></h3>
+          <div class="dest-preview-facts" id="destPreviewFacts"></div>
+          <!-- הפעולה הראשית (כבשתי) ראשונה ורחבה; Waze אחרון, בקצה, הרחק מהשם -->
+          <div class="dest-preview-actions">
+            <button type="button" class="btn btn-primary dest-preview-conquer" id="destPreviewConquer" aria-label="כבשתי — צ'ק-אין"></button>
+            <button type="button" class="dest-preview-wish" id="destPreviewWish" aria-label="רשימת משאלות"></button>
+            <button type="button" class="dest-preview-wish" id="destPreviewTrip" aria-label="מחפשים שותף לטיול ליעד הזה" title="מחפשים שותף לטיול"></button>
+            <button type="button" class="dest-preview-nav waze-btn" id="destPreviewNav" aria-label="נווט" title="נווט ב-Waze"></button>
           </div>
         </div>
       </div>
@@ -2290,6 +2300,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261017a1"></script>
+<script type="module" src="./app.js?v=20261114a1"></script>
 </body>
 </html>
