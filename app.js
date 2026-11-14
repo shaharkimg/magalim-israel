@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114a3";
+const APP_VERSION = "20261114a4";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1379,7 +1379,7 @@ function celebrate(steps){
     // a.link = כפתור-טקסט קטן מתחת לשורה (למשל "דלג"), לא עוד כפתור באותה שורה צפופה
     const actionBtn = (a,ai)=> `<button type="button" class="${a.link ? "celebrate-link" : "btn "+(a.primary?"btn-primary":"btn-outline")}" data-action-i="${ai}">${a.label}</button>`;
     const actionsHtml = s.actions
-      ? `<div class="celebrate-actions">${s.actions.map((a,ai)=> a.link ? "" : actionBtn(a,ai)).join("")}</div>`
+      ? `<div class="celebrate-actions${s.stackActions?" stacked":""}">${s.actions.map((a,ai)=> a.link ? "" : actionBtn(a,ai)).join("")}</div>`
         + s.actions.map((a,ai)=> a.link ? actionBtn(a,ai) : "").join("")
       : "";
     // Gamification Overhaul, Phase 3 - שדות חדשים ואופציונליים (subtitle/tag/totalLine/
@@ -4748,8 +4748,7 @@ document.addEventListener("keydown", e=>{
 // על כל ערך שגם שימשו בפועל כתחליף-לכותרת-הקבוצה (המשתמש היה מזהה "זו שורת החניה"
 // לפי ה-🅿️, לא לפי טקסט) - עכשיו הכותרת עצמה נושאת את האייקון, והערכים טקסט נקי.
 const FIELD_REPORT_LABELS = {
-  // הערכים במסד (flowing/low/dry) לא השתנו - רק התווית. "יבש" לא מוצע יותר בשאלה אבל
-  // דיווחים ישנים עם הערך הזה עדיין מוצגים.
+  // הערכים במסד (flowing/low/dry) לא השתנו - רק התווית של flowing ("הרבה מים").
   water: { flowing:"הרבה מים", low:"מעט מים", dry:"יבש" },
   crowding: { quiet:"שקט", moderate:"בינוני", crowded:"עמוס" },
   parking: { available:"יש מקום", limited:"מוגבל", full:"מלא" },
@@ -4848,7 +4847,7 @@ function wireFieldReportChips(){
 // רק ליעדים עם מים. הדיווח נשמר כשורה ב-field_reports (water_level בלבד); ה-RLS מאפשר להוסיף
 // רק למי שיש לו visit ביעד, כלומר רק מי שכבש. הקריאה ציבורית דרך get_landmark_field_reports,
 // בלי זהות המדווח - כל המשתמשים (גם אורחים) רואים את הדיווח והתאריך שלו בעמוד היעד.
-const WATER_REPORT_CHOICES = ["flowing","low"];
+const WATER_REPORT_CHOICES = ["flowing","low","dry"];
 function isWaterSite(l){ return !!l && (l.hasWater || l.category==="water"); }
 let waterReportInFlight = false;
 async function submitWaterReport(landmarkId, level){
@@ -4882,9 +4881,11 @@ function waterReportStep(l){
     subtitle: l.name,
     sub: "הדיווח שלך יופיע בעמוד היעד לכל המטיילים, עם התאריך של היום",
     hold: true,
+    stackActions: true,
     actions: [
       { label: FIELD_REPORT_LABELS.water.flowing, primary:true, continueAfter:true, onClick:()=> submitWaterReport(l.id, "flowing") },
       { label: FIELD_REPORT_LABELS.water.low, primary:true, continueAfter:true, onClick:()=> submitWaterReport(l.id, "low") },
+      { label: FIELD_REPORT_LABELS.water.dry, primary:true, continueAfter:true, onClick:()=> submitWaterReport(l.id, "dry") },
       { label: "דלג", link:true, continueAfter:true, onClick:()=>{} },
     ],
   };

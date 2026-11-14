@@ -618,7 +618,7 @@ button{font-family:inherit;}
 .water-reports-empty{margin:0;color:var(--text-muted);font-size:14px;}
 .water-reports-stale{margin:var(--space-2) 0 0;color:var(--text-muted);font-size:13px;display:flex;align-items:center;gap:4px;}
 .water-report-update{margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);font-size:14px;}
-.water-report-btns{display:flex;gap:var(--space-2);}
+.water-report-btns{display:flex;flex-wrap:wrap;gap:var(--space-2);}
 .water-report-btns .chip{min-height:40px;}
 .report-chip-row .chip{font-size:13.5px;padding:var(--space-2) var(--space-3);}
 .checkin-status .ic{flex:none;display:flex;}
@@ -1166,6 +1166,8 @@ button{font-family:inherit;}
 .celebrate-progress-top .num{color:var(--text-muted);font-variant-numeric:tabular-nums;}
 .celebrate-progress-hint{font-size:13.5px;color:var(--text-muted);margin-top:6px;text-align:center;}
 .celebrate-actions{display:flex;gap:var(--space-2);margin-top:16px;}
+.celebrate-actions.stacked{flex-direction:column;}
+.celebrate-actions.stacked .btn{width:100%;}
 .celebrate-actions .btn{padding:var(--space-3) var(--space-4);font-size:14.5px;}
 .celebrate-link{display:block;margin:var(--space-3) auto 0;min-height:44px;padding:0 var(--space-4);background:none;border:none;color:var(--text-muted);font:inherit;font-size:14.5px;text-decoration:underline;cursor:pointer;}
 .celebrate-tap-hint{font-size:13px;color:var(--text-muted);margin-top:14px;}
@@ -2321,6 +2323,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261114a3"></script>
+<script type="module" src="./app.js?v=20261114a4"></script>
 </body>
 </html>
