@@ -111,3 +111,22 @@ update public.weekly_mysteries set release_at = now() - interval '1 hour' where 
 set role authenticated; select tt.as_user('a1a1a1a1-0000-0000-0000-000000000011');
 select tt.ok((public.admin_delete_mystery('d4d4d4d4-0000-0000-0000-000000000014')->>'error') = 'already_released', 'a released mystery cannot be deleted');
 reset role;
+
+-- ---- alternate answers (round 2): the same place listed twice must not be "wrong"
+reset role;
+insert into public.landmarks (id, name, description, category, difficulty, region, lat, lon, duration, distance_km) values
+  ('myst-answer-dup', 'מקום החידה - חוף', 'x', 'water', 'easy', 'north', 33.001, 35.501, 'שעה', 1)
+on conflict (id) do nothing;
+insert into public.weekly_mysteries (id, landmark_id, alt_landmark_ids, release_at, riddle, area_lat, area_lon)
+values ('e5e5e5e5-0000-0000-0000-000000000015', 'myst-answer', array['myst-answer-dup'], now() - interval '6 days 23 hours', 'חידה עם תשובה חלופית', 33.05, 35.45);
+delete from public.weekly_mysteries where id = 'd4d4d4d4-0000-0000-0000-000000000014';
+set role anon; select tt.as_user('');
+select tt.ok(position('myst-answer-dup' in public.get_weekly_mystery()::text) = 0, 'alternate answers are not leaked either');
+set role authenticated;
+select tt.as_user('b2b2b2b2-0000-0000-0000-000000000012');
+select public.guess_mystery('e5e5e5e5-0000-0000-0000-000000000015', 'myst-answer-dup') as r \gset
+select tt.ok((:'r'::jsonb->>'correct')::boolean, 'an alternate entry of the same place is accepted');
+select tt.ok((:'r'::jsonb->>'answer') = 'myst-answer', 'the canonical answer is what the solver is shown');
+select tt.as_user('c3c3c3c3-0000-0000-0000-000000000013');
+select tt.ok((public.guess_mystery('e5e5e5e5-0000-0000-0000-000000000015', 'myst-other')->>'correct')::boolean = false, 'a different place is still wrong');
+reset role;
