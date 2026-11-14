@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114a4";
+const APP_VERSION = "20261114a5";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -797,7 +797,7 @@ function $(id){ return document.getElementById(id); }
 // זו אפליקציית עמוד-אחד: החלפת מסך או הודעת שגיאה מחליפות DOM בלי טעינת עמוד,
 // וקורא מסך לא מבחין בזה בכלל. הזרקת טקסט לאזור aria-live היא הדרך היחידה
 // לספר למשתמש עיוור שמשהו קרה.
-const VIEW_TITLES = { home:"בית", map:"מפה", board:"המסע שלנו", profile:"פרופיל" };
+const VIEW_TITLES = { home:"בית", map:"מפה", board:"חברים", profile:"המסע שלי" };
 let announceTimer = null;
 function announce(message, urgent){
   const el = $(urgent ? "srAlert" : "srAnnouncer");
@@ -1975,7 +1975,7 @@ function switchBoardTab(tab){
   else if(tab==="feed") renderFeed();
   else if(tab==="achievements") renderAchievementsPanel();
 }
-// תגים+אוספים אישיים - הועברו מטאב "פרופיל" לטאב חדש "הישגים" בתוך "המסע שלנו" (לבקשת
+// תגים+אוספים אישיים - הועברו מטאב "פרופיל" (היום "המסע שלי") לטאב חדש "הישגים" בתוך "המסע שלנו" (היום "חברים") (לבקשת
 // המשתמש), נשארים תלויים ב-myVisits/BADGES/COLLECTIONS הגלובליים בדיוק כמו קודם.
 const STAMP_RING_C = 163.4; // 2πr, r=26 - חייב להתאים ל-r ב-stampHtml למטה
 function stampHtml(b, state){
