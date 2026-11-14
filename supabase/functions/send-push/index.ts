@@ -86,6 +86,8 @@ function buildMessage(type: string, p: Record<string, any>) {
       return { title: "משתמש חדש נרשם", body: `${p.new_user_name || "מטייל/ת חדש/ה"} הצטרפ/ה למגלים`, url: "/#/admin" };
     case "friend_accepted":
       return { title: "בקשת החברות אושרה", body: `${p.from_name || "מטייל/ת"} אישר/ה את בקשת החברות שלך`, url: "/#/profile" };
+    case "weekly_mystery":
+      return { title: "🔍 החידה השבועית", body: "חידה חדשה מחכה לכם. מצליחים לנחש איפה זה?", url: "/#/home" };
     case "circle_joined":
       return { title: "הצטרפות לקבוצה", body: `${p.joiner_name || "מטייל/ת"} הצטרפ/ה ל"${p.circle_name || "הקבוצה"}"`, url: "/#/board" };
     // שני סוגי הכיבוש חולקים tag אחד: כשכמה חברים כובשים ברצף, ה-Service Worker

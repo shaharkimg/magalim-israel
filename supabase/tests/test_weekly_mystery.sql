@@ -130,3 +130,30 @@ select tt.ok((:'r'::jsonb->>'answer') = 'myst-answer', 'the canonical answer is 
 select tt.as_user('c3c3c3c3-0000-0000-0000-000000000013');
 select tt.ok((public.guess_mystery('e5e5e5e5-0000-0000-0000-000000000015', 'myst-other')->>'correct')::boolean = false, 'a different place is still wrong');
 reset role;
+
+-- ---- Friday notification (notify_weekly_mystery, run by pg_cron)
+reset role;
+delete from public.notifications where type = 'weekly_mystery';
+delete from public.weekly_mysteries;
+update public.profiles set notification_prefs = '{"enabled":true,"friends":true,"groups":true,"mystery":false}' where id = 'c3c3c3c3-0000-0000-0000-000000000013';
+update public.profiles set notification_prefs = '{"enabled":true,"friends":true,"groups":true}' where id = 'b2b2b2b2-0000-0000-0000-000000000012';
+insert into public.weekly_mysteries (id, landmark_id, release_at, riddle, area_lat, area_lon)
+values ('f6f6f6f6-0000-0000-0000-000000000016', 'myst-answer', now() - interval '5 minutes', 'חידה שזה עתה פורסמה', 33.05, 35.45);
+select count(*) as expected from public.profiles
+ where coalesce((notification_prefs->>'enabled')::boolean, true) and coalesce((notification_prefs->>'mystery')::boolean, true) \gset
+select public.notify_weekly_mystery() as sent \gset
+select tt.ok(:sent = :expected and :sent > 0, 'every opted-in user gets the Friday notification');
+select tt.ok((select count(*) from public.notifications where type = 'weekly_mystery' and user_id = 'b2b2b2b2-0000-0000-0000-000000000012'
+              and payload->>'mystery_id' = 'f6f6f6f6-0000-0000-0000-000000000016') = 1, 'a user without the new pref key still gets it (default on)');
+select tt.ok((select count(*) from public.notifications where type = 'weekly_mystery' and user_id = 'c3c3c3c3-0000-0000-0000-000000000013') = 0, 'a user who turned the mystery notification off gets none');
+select tt.ok(public.notify_weekly_mystery() = 0, 'the same mystery is announced only once');
+select tt.ok((select notified_at is not null from public.weekly_mysteries where id = 'f6f6f6f6-0000-0000-0000-000000000016'), 'notified_at is recorded');
+insert into public.weekly_mysteries (id, landmark_id, release_at, riddle, area_lat, area_lon)
+values ('a7a7a7a7-0000-0000-0000-000000000017', 'myst-other', now() - interval '1 week 4 hours', 'חידה ישנה שלא הוכרזה', 32.5, 35.0);
+update public.weekly_mysteries set release_at = now() - interval '4 hours', notified_at = null where id = 'a7a7a7a7-0000-0000-0000-000000000017';
+delete from public.weekly_mysteries where id = 'f6f6f6f6-0000-0000-0000-000000000016';
+select tt.ok(public.notify_weekly_mystery() = 0, 'a mystery released hours ago is not announced late');
+set role authenticated;
+select tt.as_user('b2b2b2b2-0000-0000-0000-000000000012');
+select tt.ok(tt.fails($$select public.notify_weekly_mystery()$$) is not null, 'a user cannot trigger the broadcast');
+reset role;

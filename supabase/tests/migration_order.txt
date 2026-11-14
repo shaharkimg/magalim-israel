@@ -43,3 +43,4 @@ migrations_admin_new_user_notification.sql
 migrations_admin_add_landmark.sql
 migrations_weekly_mystery.sql
 migrations_weekly_mystery_2.sql
+migrations_weekly_mystery_notify.sql
