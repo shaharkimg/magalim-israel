@@ -38,4 +38,6 @@ echo "== admin add landmark"
 run_test tests/test_admin_add_landmark.sql
 echo "== trip partners"
 run_test tests/test_trip_partners.sql
+echo "== weekly mystery"
+run_test tests/test_weekly_mystery.sql
 echo "SQL tests finished"
