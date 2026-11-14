@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114a9";
+const APP_VERSION = "20261114b1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -4527,6 +4527,7 @@ function wireStaticUI(){
     $("notifEnabledToggle").checked = np.enabled!==false;
     $("notifFriendsToggle").checked = np.friends!==false;
     $("notifGroupsToggle").checked = np.groups!==false;
+    $("notifMysteryToggle").checked = np.mystery!==false;
     $("notifCategoryToggles").classList.toggle("hidden", np.enabled===false);
     refreshPushRow();
   };
@@ -4535,6 +4536,7 @@ function wireStaticUI(){
       enabled: $("notifEnabledToggle").checked,
       friends: $("notifFriendsToggle").checked,
       groups: $("notifGroupsToggle").checked,
+      mystery: $("notifMysteryToggle").checked,   // התראת "החידה השבועית" בשישי (notify_weekly_mystery)
     };
     $("notifCategoryToggles").classList.toggle("hidden", !prefs.enabled);
     try{
@@ -4550,6 +4552,7 @@ function wireStaticUI(){
   $("notifEnabledToggle").onchange = saveNotificationPrefs;
   $("notifFriendsToggle").onchange = saveNotificationPrefs;
   $("notifGroupsToggle").onchange = saveNotificationPrefs;
+  $("notifMysteryToggle").onchange = saveNotificationPrefs;
   $("pushToggle").onchange = async (e)=>{
     e.target.disabled = true;
     if(e.target.checked) await enablePush(); else await disablePush();
@@ -6927,6 +6930,7 @@ function notificationIcon(type){
   if(type==="trip_request" || type==="trip_accepted") return uiIcon("family",18);
   if(type==="friend_checkin") return uiIcon("trophy",18);
   if(type==="group_checkin") return uiIcon("trophy",18);
+  if(type==="weekly_mystery") return stampGlyph("magnifier",18);
   return uiIcon("flame",18);
 }
 /* ============ WEB PUSH — התראות מחוץ לאפליקציה ============ */
@@ -7068,6 +7072,7 @@ function notificationText(n){
   const pointsSuffix = Number.isFinite(p.points) && p.points > 0 ? ` · +${p.points} נקודות` : "";
   if(n.type==="friend_checkin") return `${visitorName} כבש/ה יעד חדש${landmarkName?" — "+landmarkName:""}${pointsSuffix}`;
   if(n.type==="group_checkin") return `${visitorName} מהקבוצה כבש/ה ${landmarkName||"יעד חדש"}${pointsSuffix}`;
+  if(n.type==="weekly_mystery") return "החידה השבועית החדשה מחכה לכם. מצליחים לנחש איפה זה?";
   return "התראה חדשה";
 }
 function goToNotificationContext(n){
@@ -7089,6 +7094,10 @@ function goToNotificationContext(n){
     switchBoardTab("group");
   } else if((n.type==="friend_checkin" || n.type==="group_checkin") && p.landmark_id){
     goToDestination(p.landmark_id);
+  } else if(n.type==="weekly_mystery"){
+    navigate("#/home");
+    loadWeeklyMystery(true);
+    setTimeout(()=> $("mysteryCard")?.scrollIntoView({behavior:"smooth",block:"center"}), 300);
   }
 }
 async function renderNotifications(){
