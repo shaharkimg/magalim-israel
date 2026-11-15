@@ -1,2 +1,10 @@
-=== gush 17188 helka 14 ===
-GET 404 81 https://www.govmap.gov.il/api/data/mapi/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL_FILTE
+=== gush 5949 helka 66 ===
+GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
+=== gush 3025 helka 30 ===
+GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
+=== gush 2597 helka 2 ===
+GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
+=== gush 2495 helka 31 ===
+GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
+=== gush 5519 helka 21 ===
+GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
