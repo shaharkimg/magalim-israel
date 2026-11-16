@@ -2,3 +2,5 @@
 GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
 === gush 2922 helka 26 ===
 GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
+=== gush 100812 helka 2 ===
+GET 404 1349 https://open.govmap.gov.il/geoserver/opendata/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=opendata%3APARCEL_ALL&outputFormat=application%2Fjson&srsName=EPSG%3A2039&count=5&CQL
