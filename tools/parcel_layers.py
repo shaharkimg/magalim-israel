@@ -56,8 +56,54 @@ def rank(names, exact):
     # an exact field name wins; otherwise shortest name first
     return sorted(names, key=lambda k: (k.upper() != exact, len(k), k))
 
+
+CAPS_ENDPOINTS = [
+    "https://open.govmap.gov.il/geoserver/opendata/wfs",
+    "https://open.govmap.gov.il/geoserver/wfs",
+    "https://open.govmap.gov.il/geoserver/opendata/ows",
+    "https://open.govmap.gov.il/geoserver/ows",
+]
+
+
+def capabilities():
+    """Ask each endpoint what feature types it actually publishes now."""
+    log("=" * 70)
+    log("CAPABILITIES SWEEP (the layer names the server admits to)")
+    found = {}
+    for ep in CAPS_ENDPOINTS:
+        for svc, ver in (("WFS", "2.0.0"), ("WFS", "1.1.0"), ("WMS", "1.3.0")):
+            try:
+                r = SESSION.get(ep, params={"service": svc, "version": ver,
+                                            "request": "GetCapabilities"},
+                                timeout=120)
+            except Exception as e:
+                log(f"  {ep} {svc}{ver}: ERROR {type(e).__name__} {str(e)[:120]}")
+                continue
+            head = r.text[:160].replace("\n", " ")
+            log(f"  {ep} {svc}{ver}: HTTP {r.status_code} len={len(r.content)} :: {head}")
+            if r.status_code != 200 or len(r.content) < 200:
+                continue
+            names = re.findall(r"<(?:wfs:|)Name>([^<>]+)</(?:wfs:|)Name>", r.text)
+            names = [n.strip() for n in names if n.strip()]
+            if not names:
+                continue
+            log(f"     {len(names)} names; cadastral candidates:")
+            cand = [n for n in names if re.search(
+                r"parcel|gush|helka|chelka|cadas|block", n, re.I)]
+            for n in sorted(set(cand)):
+                log("       *", n)
+            if not cand:
+                log("       (none matched; first 40 names:)")
+                for n in sorted(set(names))[:40]:
+                    log("       -", n)
+            found[f"{ep} {svc}{ver}"] = {"all": sorted(set(names)),
+                                         "cadastral": sorted(set(cand))}
+    return found
+
+
 log("probe UA:", UA[:70])
-result = {"gush": GUSH, "helka": HELKA, "layers": {}}
+CAPS = capabilities()
+result = {"gush": GUSH, "helka": HELKA, "capabilities": CAPS, "layers": {}}
 
 for lyr in LAYERS:
     log("=" * 70); log("LAYER", lyr)
