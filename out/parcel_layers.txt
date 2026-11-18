@@ -1,32 +1,18 @@
 ======================================================================
 LAYER opendata:PARCEL_ALL
-  gush fields (ranked): ['GUSH_NUM', 'GUSH_SUFFI']
-  parcel fields (ranked): ['PARCEL', 'PARCEL_ID']
-   try GUSH_NUM=100812 AND PARCEL=143 -> 0
-   try GUSH_NUM='100812' AND PARCEL='143' -> 0
-   try GUSH_NUM=100812 AND PARCEL_ID=143 -> 0
-   try GUSH_NUM='100812' AND PARCEL_ID='143' -> 0
-   try GUSH_SUFFI=100812 AND PARCEL=143 -> 0
-   try GUSH_SUFFI='100812' AND PARCEL='143' -> 0
-   try GUSH_SUFFI=100812 AND PARCEL_ID=143 -> 0
-   try GUSH_SUFFI='100812' AND PARCEL_ID='143' -> 0
-  gush 100812: 80 parcels in this layer
-  helkot: 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81
-  *** HELKA 143 ABSENT from this layer
-  numeric range: (2, 81)  count: 80
+   HTTP 403 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML><HEAD><META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<TITLE>ERROR: The request could not be satisfied</TITLE>
+</HEAD><BODY>
+<H1>403 ERROR</H1>
+<H2>The request could 
+  no sample feature
 ======================================================================
 LAYER opendata:Parcels_ITM
-  gush fields (ranked): ['GUSH_NUM', 'GUSH_SUFFI']
-  parcel fields (ranked): ['PARCEL', 'PARCEL_ID']
-   try GUSH_NUM=100812 AND PARCEL=143 -> 0
-   try GUSH_NUM='100812' AND PARCEL='143' -> 0
-   try GUSH_NUM=100812 AND PARCEL_ID=143 -> 0
-   try GUSH_NUM='100812' AND PARCEL_ID='143' -> 0
-   try GUSH_SUFFI=100812 AND PARCEL=143 -> 0
-   try GUSH_SUFFI='100812' AND PARCEL='143' -> 0
-   try GUSH_SUFFI=100812 AND PARCEL_ID=143 -> 0
-   try GUSH_SUFFI='100812' AND PARCEL_ID='143' -> 0
-  gush 100812: 80 parcels in this layer
-  helkot: 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81
-  *** HELKA 143 ABSENT from this layer
-  numeric range: (2, 81)  count: 80
+   HTTP 403 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML><HEAD><META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<TITLE>ERROR: The request could not be satisfied</TITLE>
+</HEAD><BODY>
+<H1>403 ERROR</H1>
+<H2>The request could 
+  no sample feature
