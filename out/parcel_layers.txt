@@ -1,18 +1,11 @@
+probe UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, l
 ======================================================================
 LAYER opendata:PARCEL_ALL
-   HTTP 403 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<HTML><HEAD><META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
-<TITLE>ERROR: The request could not be satisfied</TITLE>
-</HEAD><BODY>
-<H1>403 ERROR</H1>
-<H2>The request could 
+   HTTP 404 server= - via= 1.1 5a6df92f738b41cec39c39029cc85606.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= WPp-ruKNGjCbNYLyEjc3DpqwYizJqBQ0lIZMzzHT
+   body: {"error":"NOT_FOUND","message":"Requested layer is not mapped in this workspace"}
   no sample feature
 ======================================================================
 LAYER opendata:Parcels_ITM
-   HTTP 403 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<HTML><HEAD><META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
-<TITLE>ERROR: The request could not be satisfied</TITLE>
-</HEAD><BODY>
-<H1>403 ERROR</H1>
-<H2>The request could 
+   HTTP 404 server= - via= 1.1 5a6df92f738b41cec39c39029cc85606.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= phkqG2IGoka6zv8rT3YddUP91g1wzH_zXsymXVWp
+   body: {"error":"NOT_FOUND","message":"Requested layer is not mapped in this workspace"}
   no sample feature
