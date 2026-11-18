@@ -1,69 +1,37 @@
-probe UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, l
-layers to try: ['parcel_all', 'opendata:parcel_all', 'sub_gush_all', 'opendata:PARCEL_ALL']
+layer=parcel_all gush=4774 helka=20
 ======================================================================
-LAYER parcel_all
-  RESOLVED. attributes: ["blockid", "blockname", "blocknumber", "blockstatus", "blockuniqueid", "createAt", "created_date", "globalid", "gush_num", "gush_suffix", "hesderdesc", "hesdertype", "isjordaniandesc", "istax", "istaxdesc", "landtype", "landtypedesc", "last_edited_date", "legal_area", "name", "note", "objectid", "owner", "parcel", "parcelnumber", "retiredbyrecord", "shape_area", "shape_length", "statedarea", "status_text", "subblocknumber", "topocadurl"]
-  sample row: {"objectid": 1, "name": "1/100002/0", "retiredbyrecord": null, "statedarea": 1209090, "globalid": "{902DC4D7-64D1-44CC-9132-F29840D7ABC3}", "parcelnumber": 1, "landtype": 1, "blocknumber": 100002, "subblocknumber": 0, "istax": 0, "blockuniqueid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "created_date": "2026-06-16T13:05:54Z", "last_edited_date": "2026-06-16T13:05:54Z", "note": "הנתון שטח רשום כאן אינו מהווה אסמכתה לאסמכתה חוקית לשטח הרשום של חלקה יש לפנות ללשכות המרשם במשרד המשפטים", "landtypedesc": "מוסדר", "blockid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "topocadurl": "https://topocad.g
-  geometry type: MultiPolygon
-  gush fields (ranked): ['gush_num', 'gush_suffix']
-  parcel fields (ranked): ['parcel', 'parcelnumber']
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_num=4774 AND parcel=20 -> 0
-   non-json 
-   try gush_num='4774' AND parcel='20' -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_num=4774 AND parcelnumber=20 -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_num='4774' AND parcelnumber='20' -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_suffix=4774 AND parcel=20 -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_suffix='4774' AND parcel='20' -> 0
-   non-json 
-   try gush_suffix=4774 AND parcelnumber=20 -> 0
-   non-json 
-   try gush_suffix='4774' AND parcelnumber='20' -> 0
+1. does the layer answer an unfiltered request
+  count=1, no filter: OK 1 feature(s)
+     props: {"blocknumber": 100002, "parcelnumber": 1, "gush_num": 100002, "parcel": 1, "subblocknumber": 0, "legal_area": 1209090, "statedarea": 1209090, "shape_area": 1210017.53815196, "landtypedesc": "מוסדר", "status_text": "מוסדר", "blockname": "100002/0", "name": "1/100002/0"}
+     geom: MultiPolygon rings: 1
 ======================================================================
-LAYER opendata:parcel_all
-  RESOLVED. attributes: ["blockid", "blockname", "blocknumber", "blockstatus", "blockuniqueid", "createAt", "created_date", "globalid", "gush_num", "gush_suffix", "hesderdesc", "hesdertype", "isjordaniandesc", "istax", "istaxdesc", "landtype", "landtypedesc", "last_edited_date", "legal_area", "name", "note", "objectid", "owner", "parcel", "parcelnumber", "retiredbyrecord", "shape_area", "shape_length", "statedarea", "status_text", "subblocknumber", "topocadurl"]
-  sample row: {"objectid": 1, "name": "1/100002/0", "retiredbyrecord": null, "statedarea": 1209090, "globalid": "{902DC4D7-64D1-44CC-9132-F29840D7ABC3}", "parcelnumber": 1, "landtype": 1, "blocknumber": 100002, "subblocknumber": 0, "istax": 0, "blockuniqueid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "created_date": "2026-06-16T13:05:54Z", "last_edited_date": "2026-06-16T13:05:54Z", "note": "הנתון שטח רשום כאן אינו מהווה אסמכתה לאסמכתה חוקית לשטח הרשום של חלקה יש לפנות ללשכות המרשם במשרד המשפטים", "landtypedesc": "מוסדר", "blockid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "topocadurl": "https://topocad.g
-  geometry type: MultiPolygon
-  gush fields (ranked): ['gush_num', 'gush_suffix']
-  parcel fields (ranked): ['parcel', 'parcelnumber']
-   non-json 
-   try gush_num=4774 AND parcel=20 -> 0
-   non-json 
-   try gush_num='4774' AND parcel='20' -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_num=4774 AND parcelnumber=20 -> 0
-   non-json 
-   try gush_num='4774' AND parcelnumber='20' -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_suffix=4774 AND parcel=20 -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_suffix='4774' AND parcel='20' -> 0
-   non-json 
-   try gush_suffix=4774 AND parcelnumber=20 -> 0
-   HTTP 404 via= - x-cache= -
-   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
-   try gush_suffix='4774' AND parcelnumber='20' -> 0
+2. does CQL_FILTER work at all (filter on objectid)
+  CQL objectid=1: OK 1 feature(s)
+     props: {"blocknumber": 100002, "parcelnumber": 1, "gush_num": 100002, "parcel": 1, "subblocknumber": 0, "legal_area": 1209090, "statedarea": 1209090, "shape_area": 1210017.53815196, "landtypedesc": "מוסדר", "status_text": "מוסדר", "blockname": "100002/0", "name": "1/100002/0"}
+     geom: MultiPolygon rings: 1
 ======================================================================
-LAYER sub_gush_all
-  RESOLVED. attributes: ["blockid", "blockname", "blocknumber", "blockstatus", "blockstatusdesc", "createAt", "created_date", "globalid", "gush_num", "gush_suffix", "gush_type", "hesderdesc", "hesdertype", "isjordanian", "isjordaniandesc", "istax", "istaxdesc", "landtype", "landtypedesc", "last_edited_date", "name", "objectid", "owner", "retiredbyrecord", "setteleddate", "shape_area", "shape_length", "status_text", "subblocknumber", "topocadurl"]
-  sample row: {"objectid": 1, "name": "203000/0", "retiredbyrecord": null, "globalid": "{E5E6D391-2485-4C44-B7A1-A6A2AA3EB007}", "blocknumber": 203000, "subblocknumber": 0, "blockstatus": 11, "isjordanian": 0, "setteleddate": "1985-04-05T00:00:00Z", "landtype": 1, "istax": 0, "created_date": "2026-06-16T10:58:47Z", "last_edited_date": "2026-06-16T11:05:37Z", "isjordaniandesc": "לא", "istaxdesc": "לא", "blockstatusdesc": "נוצר בהסדר", "landtypedesc": "מוסדר", "hesdertype": 3, "hesderdesc": " ", "blockid": "{E5E6D391-2485-4C44-B7A1-A6A2AA3EB007}", "topocadurl": "https://topocad.gov.il/he/map/block/?coords=210
-  geometry type: MultiPolygon
-  gush fields (ranked): ['gush_num', 'gush_type', 'gush_suffix']
-  parcel fields (ranked): []
+3. which attribute pair holds gush/helka
+  CQL blocknumber=4774 AND parcelnumber=20: HTTP 200 EMPTY BODY try1
+  CQL blocknumber=4774 AND parcelnumber=20: HTTP 404 (html) try2 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  CQL blocknumber=4774 AND parcel=20: HTTP 404 (html) try1 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  CQL blocknumber=4774 AND parcel=20: HTTP 404 (html) try2 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  CQL gush_num=4774 AND parcelnumber=20: HTTP 404 (html) try1 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  CQL gush_num=4774 AND parcelnumber=20: HTTP 404 (html) try2 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  CQL gush_num=4774 AND parcel=20: HTTP 404 (html) try1 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  CQL gush_num=4774 AND parcel=20: HTTP 404 (html) try2 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
 ======================================================================
-LAYER opendata:PARCEL_ALL
-   HTTP 404 via= 1.1 cadda06365c5592c0d0a272a3fe5825e.cloudfront.net (CloudFront) x-cache= Error from cloudfront
-   body: {"error":"NOT_FOUND","message":"Requested layer is not mapped in this workspace"}
-  no sample feature -> this typeName does not resolve
+4. gush only, to see the parcel numbering in that block
+  CQL blocknumber=4774: OK 181 feature(s)
+     props: {"blocknumber": 4774, "parcelnumber": 10, "gush_num": 4774, "parcel": 10, "subblocknumber": 0, "legal_area": 2478, "statedarea": 2478, "shape_area": 2476.38858746551, "landtypedesc": "מוסדר", "status_text": "מוסדר", "blockname": "4774/0", "name": "10/4774/0"}
+     geom: MultiPolygon rings: 1
+  parcelnumbers in block: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122]
+  helka 20 present: True
+======================================================================
+5. alternatives, in case CQL stays blocked
+  OGC filter param: OK 1 feature(s)
+     props: {"blocknumber": 4774, "parcelnumber": 20, "gush_num": 4774, "parcel": 20, "subblocknumber": 0, "legal_area": 18140, "statedarea": 18140, "shape_area": 18030.8256217789, "landtypedesc": "מוסדר", "status_text": "מוסדר", "blockname": "4774/0", "name": "20/4774/0"}
+     geom: MultiPolygon rings: 1
+  WFS 1.1.0 + CQL: HTTP 200 EMPTY BODY try1
+  WFS 1.1.0 + CQL: HTTP 404 (html) try2 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  typeName (singular) + CQL: HTTP 404 (html) try1 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
+  typeName (singular) + CQL: HTTP 404 (html) try2 len=1349 :: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" 
