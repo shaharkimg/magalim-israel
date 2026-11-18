@@ -1,6 +1,7 @@
-"""Probe the govmap open-data cadastral layer: which typeNames resolve, and
-what attributes they carry. Layer names come from LAYERS (comma separated)."""
-import json, os, re, sys
+"""Work out how to ask the re-platformed govmap open-data layer for one
+parcel. The layer resolves as lowercase parcel_all; what is unsettled is
+which attributes hold gush/helka and whether CQL_FILTER works at all."""
+import json, os, re, time
 import requests
 
 WFS = "https://open.govmap.gov.il/geoserver/opendata/wfs"
@@ -8,104 +9,117 @@ OUT = os.environ.get("OUTDIR", "out")
 os.makedirs(OUT, exist_ok=True)
 GUSH = os.environ.get("GUSH", "4774").strip()
 HELKA = os.environ.get("HELKA", "20").strip()
-BBOX = os.environ.get("BBOX", "160474,588977,161792,590152").strip()
-LAYERS = [x.strip() for x in os.environ.get("LAYERS", "").split(",") if x.strip()] or [
-    "parcel_all",
-    "opendata:parcel_all",
-    "sub_gush_all",
-    "opendata:PARCEL_ALL",
-]
+LAYER = os.environ.get("LAYER", "parcel_all").strip()
 
 lines = []
 def log(*a):
     s = " ".join(str(x) for x in a)
     print(s[:4000], flush=True); lines.append(s)
 
-UA = os.environ.get("UA", "").strip() or (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-HEADERS = {
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+SESSION = requests.Session()
+SESSION.headers.update({
     "User-Agent": UA,
     "Accept": "application/json,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7",
     "Referer": "https://www.govmap.gov.il/",
-    "Origin": "https://www.govmap.gov.il",
     "Connection": "keep-alive",
-}
-SESSION = requests.Session()
-SESSION.headers.update(HEADERS)
+})
 
 
-def wfs(params, timeout=180):
+def ask(label, params, tries=2):
+    """One WFS call, retried once, reporting what actually came back."""
     p = {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-         "outputFormat": "application/json", "srsName": "EPSG:2039"}
+         "outputFormat": "application/json", "srsName": "EPSG:2039",
+         "typeNames": LAYER}
     p.update(params)
-    try:
-        r = SESSION.get(WFS, params=p, timeout=timeout)
-    except Exception as e:
-        log("   ERROR", type(e).__name__, str(e)[:200]); return None
-    if r.status_code != 200:
-        log("   HTTP", r.status_code,
-            "via=", r.headers.get("Via", "-"),
-            "x-cache=", r.headers.get("X-Cache", "-"))
-        log("   body:", r.text[:200].replace("\n", " "))
-        return None
-    try:
-        return r.json()
-    except Exception:
-        log("   non-json", r.text[:300]); return None
+    for attempt in range(1, tries + 1):
+        try:
+            r = SESSION.get(WFS, params=p, timeout=180)
+        except Exception as e:
+            log(f"  {label}: ERROR {type(e).__name__} {str(e)[:150]}")
+            time.sleep(2)
+            continue
+        body = r.text or ""
+        if r.status_code != 200:
+            kind = "html" if body.lstrip()[:9].lower().startswith("<!doctype") else "other"
+            log(f"  {label}: HTTP {r.status_code} ({kind}) try{attempt} "
+                f"len={len(r.content)} :: {body[:120].replace(chr(10), ' ')}")
+            time.sleep(2)
+            continue
+        if not body.strip():
+            log(f"  {label}: HTTP 200 EMPTY BODY try{attempt}")
+            time.sleep(2)
+            continue
+        try:
+            js = r.json()
+        except Exception:
+            log(f"  {label}: HTTP 200 non-json try{attempt} :: {body[:120]}")
+            time.sleep(2)
+            continue
+        feats = js.get("features") or []
+        log(f"  {label}: OK {len(feats)} feature(s)")
+        if feats:
+            pr = feats[0].get("properties", {})
+            gm = feats[0].get("geometry") or {}
+            keep = {k: pr.get(k) for k in
+                    ("blocknumber", "parcelnumber", "gush_num", "parcel",
+                     "subblocknumber", "legal_area", "statedarea",
+                     "shape_area", "landtypedesc", "status_text",
+                     "blockname", "name")}
+            log("     props:", json.dumps(keep, ensure_ascii=False))
+            log("     geom:", gm.get("type"),
+                "rings:", len(gm.get("coordinates") or []))
+        return feats
+    return None
 
 
-def rank(names, exact):
-    return sorted(names, key=lambda k: (k.upper() != exact, len(k), k))
+log(f"layer={LAYER} gush={GUSH} helka={HELKA}")
 
+log("=" * 70)
+log("1. does the layer answer an unfiltered request")
+ask("count=1, no filter", {"count": "1"})
 
-log("probe UA:", UA[:70])
-log("layers to try:", LAYERS)
-result = {"gush": GUSH, "helka": HELKA, "layers": {}}
+log("=" * 70)
+log("2. does CQL_FILTER work at all (filter on objectid)")
+ask("CQL objectid=1", {"count": "1", "CQL_FILTER": "objectid=1"})
 
-for lyr in LAYERS:
-    log("=" * 70); log("LAYER", lyr)
-    entry = {"fields": [], "filter_hits": [], "resolved": False}
+log("=" * 70)
+log("3. which attribute pair holds gush/helka")
+for g in ("blocknumber", "gush_num"):
+    for p in ("parcelnumber", "parcel"):
+        ask(f"CQL {g}={GUSH} AND {p}={HELKA}",
+            {"count": "5", "CQL_FILTER": f"{g}={GUSH} AND {p}={HELKA}"})
 
-    js = wfs({"typeNames": lyr, "count": "1"})
-    if not js or not js.get("features"):
-        log("  no sample feature -> this typeName does not resolve")
-        result["layers"][lyr] = entry
-        continue
+log("=" * 70)
+log("4. gush only, to see the parcel numbering in that block")
+feats = ask(f"CQL blocknumber={GUSH}",
+            {"count": "2000", "CQL_FILTER": f"blocknumber={GUSH}"})
+if feats:
+    nums = sorted({f.get("properties", {}).get("parcelnumber")
+                   for f in feats if f.get("properties", {}).get("parcelnumber")
+                   is not None})
+    log("  parcelnumbers in block:", nums[:120])
+    log("  helka", HELKA, "present:", int(HELKA) in nums)
 
-    entry["resolved"] = True
-    props = js["features"][0].get("properties", {})
-    entry["fields"] = sorted(props.keys())
-    log("  RESOLVED. attributes:", json.dumps(entry["fields"], ensure_ascii=False))
-    log("  sample row:", json.dumps(props, ensure_ascii=False)[:600])
-    log("  geometry type:", (js["features"][0].get("geometry") or {}).get("type"))
-
-    gf = rank([k for k in props if re.search(r"gush", k, re.I)], "GUSH_NUM")
-    pf = rank([k for k in props if re.search(r"parcel|helka|chelka", k, re.I)],
-              "PARCEL")
-    log("  gush fields (ranked):", gf)
-    log("  parcel fields (ranked):", pf)
-
-    for g in gf:
-        for p in pf:
-            for q in ("", "'"):
-                cql = f"{g}={q}{GUSH}{q} AND {p}={q}{HELKA}{q}"
-                js2 = wfs({"typeNames": lyr, "count": "5", "CQL_FILTER": cql})
-                feats = (js2 or {}).get("features", [])
-                log(f"   try {cql} -> {len(feats)}")
-                if feats:
-                    entry["filter_hits"].append({"cql": cql, "n": len(feats)})
-                    pr = feats[0].get("properties", {})
-                    gm = feats[0].get("geometry") or {}
-                    log("      HIT props:", json.dumps(pr, ensure_ascii=False)[:500])
-                    log("      HIT geometry:", gm.get("type"),
-                        "rings:", len(gm.get("coordinates") or []))
-
-    result["layers"][lyr] = entry
+log("=" * 70)
+log("5. alternatives, in case CQL stays blocked")
+ask("OGC filter param",
+    {"count": "5",
+     "filter": ("<Filter><And>"
+                f"<PropertyIsEqualTo><PropertyName>blocknumber</PropertyName>"
+                f"<Literal>{GUSH}</Literal></PropertyIsEqualTo>"
+                f"<PropertyIsEqualTo><PropertyName>parcelnumber</PropertyName>"
+                f"<Literal>{HELKA}</Literal></PropertyIsEqualTo>"
+                "</And></Filter>")})
+ask("WFS 1.1.0 + CQL",
+    {"version": "1.1.0", "count": "5", "maxFeatures": "5",
+     "CQL_FILTER": f"blocknumber={GUSH} AND parcelnumber={HELKA}"})
+ask("typeName (singular) + CQL",
+    {"count": "5", "typeName": LAYER,
+     "CQL_FILTER": f"blocknumber={GUSH} AND parcelnumber={HELKA}"})
 
 with open(os.path.join(OUT, "parcel_layers.txt"), "w", encoding="utf-8") as fh:
     fh.write("\n".join(lines) + "\n")
-with open(os.path.join(OUT, "parcel_layers.json"), "w", encoding="utf-8") as fh:
-    json.dump(result, fh, ensure_ascii=False, indent=1)
 print("wrote", os.path.join(OUT, "parcel_layers.txt"))
