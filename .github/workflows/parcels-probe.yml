@@ -1,0 +1,33 @@
+name: parcels-probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "data.gov.il resource URL for parcel_all.zip"
+        required: false
+        default: "https://data.gov.il/dataset/dff8a168-af6c-4e0f-bbe3-c4bd3646084c/resource/c68b4df6-c809-4bb5-a546-61fa1528fed5/download/parcel_all.zip"
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - run: python tools/parcels_probe.py
+        continue-on-error: true
+        env:
+          PARCELS_URL: ${{ github.event.inputs.url }}
+      - name: commit probe output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A out
+          git commit -m "parcels probe output [skip ci]" || echo "nothing to commit"
+          git push origin HEAD:claude-parcels-mapi
