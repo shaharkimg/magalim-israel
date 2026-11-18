@@ -3,6 +3,16 @@ name: parcel-layers
 on:
   push:
     branches: [claude-parcel-layers]
+  workflow_dispatch:
+    inputs:
+      gush:
+        description: "gush to probe"
+        required: false
+        default: "4774"
+      helka:
+        description: "helka to probe"
+        required: false
+        default: "20"
 
 permissions:
   contents: write
@@ -21,8 +31,8 @@ jobs:
         continue-on-error: true
         env:
           OUTDIR: out
-          GUSH: "100812"
-          HELKA: "143"
+          GUSH: ${{ github.event.inputs.gush != '' && github.event.inputs.gush || '4774' }}
+          HELKA: ${{ github.event.inputs.helka != '' && github.event.inputs.helka || '20' }}
           BBOX: "160474,588977,161792,590152"
       - name: commit output
         run: |
