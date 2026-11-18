@@ -1,100 +1,123 @@
 {
  "gush": "4774",
  "helka": "20",
- "capabilities": {
-  "https://open.govmap.gov.il/geoserver/opendata/wfs WFS2.0.0": {
-   "all": [
-    "parcel_all",
-    "regional_authorities",
-    "sub_gush_all",
-    "water_flow"
-   ],
-   "cadastral": [
-    "parcel_all",
-    "sub_gush_all"
-   ]
-  },
-  "https://open.govmap.gov.il/geoserver/opendata/wfs WFS1.1.0": {
-   "all": [
-    "parcel_all",
-    "regional_authorities",
-    "sub_gush_all",
-    "water_flow"
-   ],
-   "cadastral": [
-    "parcel_all",
-    "sub_gush_all"
-   ]
-  },
-  "https://open.govmap.gov.il/geoserver/opendata/wfs WMS1.3.0": {
-   "all": [
-    "WMS",
-    "govmap:layer_15",
-    "govmap:layer_21",
-    "govmap:layer_regional_authorities",
-    "govmap:layer_water_flow",
-    "parcel_all",
-    "regional_authorities",
-    "sub_gush_all",
-    "water_flow"
-   ],
-   "cadastral": [
-    "parcel_all",
-    "sub_gush_all"
-   ]
-  },
-  "https://open.govmap.gov.il/geoserver/opendata/ows WFS2.0.0": {
-   "all": [
-    "parcel_all",
-    "regional_authorities",
-    "sub_gush_all",
-    "water_flow"
-   ],
-   "cadastral": [
-    "parcel_all",
-    "sub_gush_all"
-   ]
-  },
-  "https://open.govmap.gov.il/geoserver/opendata/ows WFS1.1.0": {
-   "all": [
-    "parcel_all",
-    "regional_authorities",
-    "sub_gush_all",
-    "water_flow"
-   ],
-   "cadastral": [
-    "parcel_all",
-    "sub_gush_all"
-   ]
-  },
-  "https://open.govmap.gov.il/geoserver/opendata/ows WMS1.3.0": {
-   "all": [
-    "WMS",
-    "govmap:layer_15",
-    "govmap:layer_21",
-    "govmap:layer_regional_authorities",
-    "govmap:layer_water_flow",
-    "parcel_all",
-    "regional_authorities",
-    "sub_gush_all",
-    "water_flow"
-   ],
-   "cadastral": [
-    "parcel_all",
-    "sub_gush_all"
-   ]
-  }
- },
  "layers": {
+  "parcel_all": {
+   "fields": [
+    "blockid",
+    "blockname",
+    "blocknumber",
+    "blockstatus",
+    "blockuniqueid",
+    "createAt",
+    "created_date",
+    "globalid",
+    "gush_num",
+    "gush_suffix",
+    "hesderdesc",
+    "hesdertype",
+    "isjordaniandesc",
+    "istax",
+    "istaxdesc",
+    "landtype",
+    "landtypedesc",
+    "last_edited_date",
+    "legal_area",
+    "name",
+    "note",
+    "objectid",
+    "owner",
+    "parcel",
+    "parcelnumber",
+    "retiredbyrecord",
+    "shape_area",
+    "shape_length",
+    "statedarea",
+    "status_text",
+    "subblocknumber",
+    "topocadurl"
+   ],
+   "filter_hits": [],
+   "resolved": true
+  },
+  "opendata:parcel_all": {
+   "fields": [
+    "blockid",
+    "blockname",
+    "blocknumber",
+    "blockstatus",
+    "blockuniqueid",
+    "createAt",
+    "created_date",
+    "globalid",
+    "gush_num",
+    "gush_suffix",
+    "hesderdesc",
+    "hesdertype",
+    "isjordaniandesc",
+    "istax",
+    "istaxdesc",
+    "landtype",
+    "landtypedesc",
+    "last_edited_date",
+    "legal_area",
+    "name",
+    "note",
+    "objectid",
+    "owner",
+    "parcel",
+    "parcelnumber",
+    "retiredbyrecord",
+    "shape_area",
+    "shape_length",
+    "statedarea",
+    "status_text",
+    "subblocknumber",
+    "topocadurl"
+   ],
+   "filter_hits": [],
+   "resolved": true
+  },
+  "sub_gush_all": {
+   "fields": [
+    "blockid",
+    "blockname",
+    "blocknumber",
+    "blockstatus",
+    "blockstatusdesc",
+    "createAt",
+    "created_date",
+    "globalid",
+    "gush_num",
+    "gush_suffix",
+    "gush_type",
+    "hesderdesc",
+    "hesdertype",
+    "isjordanian",
+    "isjordaniandesc",
+    "istax",
+    "istaxdesc",
+    "landtype",
+    "landtypedesc",
+    "last_edited_date",
+    "name",
+    "objectid",
+    "owner",
+    "retiredbyrecord",
+    "setteleddate",
+    "shape_area",
+    "shape_length",
+    "status_text",
+    "subblocknumber",
+    "topocadurl"
+   ],
+   "filter_hits": [],
+   "resolved": true
+  },
   "opendata:PARCEL_ALL": {
    "fields": [],
    "filter_hits": [],
-   "bbox_matches": []
-  },
-  "opendata:Parcels_ITM": {
-   "fields": [],
-   "filter_hits": [],
-   "bbox_matches": []
+   "resolved": false
   }
  }
 }

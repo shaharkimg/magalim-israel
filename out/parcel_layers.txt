@@ -1,43 +1,69 @@
 probe UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, l
+layers to try: ['parcel_all', 'opendata:parcel_all', 'sub_gush_all', 'opendata:PARCEL_ALL']
 ======================================================================
-CAPABILITIES SWEEP (the layer names the server admits to)
-  https://open.govmap.gov.il/geoserver/opendata/wfs WFS2.0.0: HTTP 200 len=4877 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="2.0.0"     xmlns:wfs="http://www.opengis.net/wfs/2.0"     xmlns:ows="http://www.opengis.ne
-     4 names; cadastral candidates:
-       * parcel_all
-       * sub_gush_all
-  https://open.govmap.gov.il/geoserver/opendata/wfs WFS1.1.0: HTTP 200 len=4937 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="1.1.0"     xmlns:wfs="http://www.opengis.net/wfs"     xmlns:ows="http://www.opengis.net/ow
-     4 names; cadastral candidates:
-       * parcel_all
-       * sub_gush_all
-  https://open.govmap.gov.il/geoserver/opendata/wfs WMS1.3.0: HTTP 200 len=8050 :: <?xml version="1.0" encoding="UTF-8"?> <WMS_Capabilities version="1.3.0"     xmlns="http://www.opengis.net/wms"     xmlns:xlink="http://www.w3.org/1999/xlink"  
-     9 names; cadastral candidates:
-       * parcel_all
-       * sub_gush_all
-  https://open.govmap.gov.il/geoserver/wfs WFS2.0.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
-  https://open.govmap.gov.il/geoserver/wfs WFS1.1.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
-  https://open.govmap.gov.il/geoserver/wfs WMS1.3.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
-  https://open.govmap.gov.il/geoserver/opendata/ows WFS2.0.0: HTTP 200 len=4877 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="2.0.0"     xmlns:wfs="http://www.opengis.net/wfs/2.0"     xmlns:ows="http://www.opengis.ne
-     4 names; cadastral candidates:
-       * parcel_all
-       * sub_gush_all
-  https://open.govmap.gov.il/geoserver/opendata/ows WFS1.1.0: HTTP 200 len=4937 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="1.1.0"     xmlns:wfs="http://www.opengis.net/wfs"     xmlns:ows="http://www.opengis.net/ow
-     4 names; cadastral candidates:
-       * parcel_all
-       * sub_gush_all
-  https://open.govmap.gov.il/geoserver/opendata/ows WMS1.3.0: HTTP 200 len=8050 :: <?xml version="1.0" encoding="UTF-8"?> <WMS_Capabilities version="1.3.0"     xmlns="http://www.opengis.net/wms"     xmlns:xlink="http://www.w3.org/1999/xlink"  
-     9 names; cadastral candidates:
-       * parcel_all
-       * sub_gush_all
-  https://open.govmap.gov.il/geoserver/ows WFS2.0.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
-  https://open.govmap.gov.il/geoserver/ows WFS1.1.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
-  https://open.govmap.gov.il/geoserver/ows WMS1.3.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
+LAYER parcel_all
+  RESOLVED. attributes: ["blockid", "blockname", "blocknumber", "blockstatus", "blockuniqueid", "createAt", "created_date", "globalid", "gush_num", "gush_suffix", "hesderdesc", "hesdertype", "isjordaniandesc", "istax", "istaxdesc", "landtype", "landtypedesc", "last_edited_date", "legal_area", "name", "note", "objectid", "owner", "parcel", "parcelnumber", "retiredbyrecord", "shape_area", "shape_length", "statedarea", "status_text", "subblocknumber", "topocadurl"]
+  sample row: {"objectid": 1, "name": "1/100002/0", "retiredbyrecord": null, "statedarea": 1209090, "globalid": "{902DC4D7-64D1-44CC-9132-F29840D7ABC3}", "parcelnumber": 1, "landtype": 1, "blocknumber": 100002, "subblocknumber": 0, "istax": 0, "blockuniqueid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "created_date": "2026-06-16T13:05:54Z", "last_edited_date": "2026-06-16T13:05:54Z", "note": "הנתון שטח רשום כאן אינו מהווה אסמכתה לאסמכתה חוקית לשטח הרשום של חלקה יש לפנות ללשכות המרשם במשרד המשפטים", "landtypedesc": "מוסדר", "blockid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "topocadurl": "https://topocad.g
+  geometry type: MultiPolygon
+  gush fields (ranked): ['gush_num', 'gush_suffix']
+  parcel fields (ranked): ['parcel', 'parcelnumber']
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_num=4774 AND parcel=20 -> 0
+   non-json 
+   try gush_num='4774' AND parcel='20' -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_num=4774 AND parcelnumber=20 -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_num='4774' AND parcelnumber='20' -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_suffix=4774 AND parcel=20 -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_suffix='4774' AND parcel='20' -> 0
+   non-json 
+   try gush_suffix=4774 AND parcelnumber=20 -> 0
+   non-json 
+   try gush_suffix='4774' AND parcelnumber='20' -> 0
+======================================================================
+LAYER opendata:parcel_all
+  RESOLVED. attributes: ["blockid", "blockname", "blocknumber", "blockstatus", "blockuniqueid", "createAt", "created_date", "globalid", "gush_num", "gush_suffix", "hesderdesc", "hesdertype", "isjordaniandesc", "istax", "istaxdesc", "landtype", "landtypedesc", "last_edited_date", "legal_area", "name", "note", "objectid", "owner", "parcel", "parcelnumber", "retiredbyrecord", "shape_area", "shape_length", "statedarea", "status_text", "subblocknumber", "topocadurl"]
+  sample row: {"objectid": 1, "name": "1/100002/0", "retiredbyrecord": null, "statedarea": 1209090, "globalid": "{902DC4D7-64D1-44CC-9132-F29840D7ABC3}", "parcelnumber": 1, "landtype": 1, "blocknumber": 100002, "subblocknumber": 0, "istax": 0, "blockuniqueid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "created_date": "2026-06-16T13:05:54Z", "last_edited_date": "2026-06-16T13:05:54Z", "note": "הנתון שטח רשום כאן אינו מהווה אסמכתה לאסמכתה חוקית לשטח הרשום של חלקה יש לפנות ללשכות המרשם במשרד המשפטים", "landtypedesc": "מוסדר", "blockid": "{F41AF603-B0C1-4962-98EC-14F8BAA9B1F0}", "topocadurl": "https://topocad.g
+  geometry type: MultiPolygon
+  gush fields (ranked): ['gush_num', 'gush_suffix']
+  parcel fields (ranked): ['parcel', 'parcelnumber']
+   non-json 
+   try gush_num=4774 AND parcel=20 -> 0
+   non-json 
+   try gush_num='4774' AND parcel='20' -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_num=4774 AND parcelnumber=20 -> 0
+   non-json 
+   try gush_num='4774' AND parcelnumber='20' -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_suffix=4774 AND parcel=20 -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_suffix='4774' AND parcel='20' -> 0
+   non-json 
+   try gush_suffix=4774 AND parcelnumber=20 -> 0
+   HTTP 404 via= - x-cache= -
+   body: <!DOCTYPE html> <html dir="rtl" lang="he-IL" class="no-js">     <head> 		<meta charset="UTF-8"> 		<meta name="viewport" content="width=device-width" />     	<meta name="viewport" content="initial-scal
+   try gush_suffix='4774' AND parcelnumber='20' -> 0
+======================================================================
+LAYER sub_gush_all
+  RESOLVED. attributes: ["blockid", "blockname", "blocknumber", "blockstatus", "blockstatusdesc", "createAt", "created_date", "globalid", "gush_num", "gush_suffix", "gush_type", "hesderdesc", "hesdertype", "isjordanian", "isjordaniandesc", "istax", "istaxdesc", "landtype", "landtypedesc", "last_edited_date", "name", "objectid", "owner", "retiredbyrecord", "setteleddate", "shape_area", "shape_length", "status_text", "subblocknumber", "topocadurl"]
+  sample row: {"objectid": 1, "name": "203000/0", "retiredbyrecord": null, "globalid": "{E5E6D391-2485-4C44-B7A1-A6A2AA3EB007}", "blocknumber": 203000, "subblocknumber": 0, "blockstatus": 11, "isjordanian": 0, "setteleddate": "1985-04-05T00:00:00Z", "landtype": 1, "istax": 0, "created_date": "2026-06-16T10:58:47Z", "last_edited_date": "2026-06-16T11:05:37Z", "isjordaniandesc": "לא", "istaxdesc": "לא", "blockstatusdesc": "נוצר בהסדר", "landtypedesc": "מוסדר", "hesdertype": 3, "hesderdesc": " ", "blockid": "{E5E6D391-2485-4C44-B7A1-A6A2AA3EB007}", "topocadurl": "https://topocad.gov.il/he/map/block/?coords=210
+  geometry type: MultiPolygon
+  gush fields (ranked): ['gush_num', 'gush_type', 'gush_suffix']
+  parcel fields (ranked): []
 ======================================================================
 LAYER opendata:PARCEL_ALL
-   HTTP 404 server= - via= 1.1 6e0f9dce97fcb3c9b684592a289e4e72.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= fhv9k56BiQ9QgW6hN0TXSxlXVFudnxSpT5oZmXsq
+   HTTP 404 via= 1.1 cadda06365c5592c0d0a272a3fe5825e.cloudfront.net (CloudFront) x-cache= Error from cloudfront
    body: {"error":"NOT_FOUND","message":"Requested layer is not mapped in this workspace"}
-  no sample feature
-======================================================================
-LAYER opendata:Parcels_ITM
-   HTTP 404 server= - via= 1.1 6e0f9dce97fcb3c9b684592a289e4e72.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= 1xojFyu1mQZ-T82hVOFtmxiAu9_ChWbtCBelUt3R
-   body: {"error":"NOT_FOUND","message":"Requested layer is not mapped in this workspace"}
-  no sample feature
+  no sample feature -> this typeName does not resolve
