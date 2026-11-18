@@ -1,18 +1,21 @@
 name: parcels-probe
 
 on:
+  push:
+    branches: [claude-parcels-mapi]
   workflow_dispatch:
     inputs:
       url:
         description: "data.gov.il resource URL for parcel_all.zip"
         required: false
-        default: "https://data.gov.il/dataset/dff8a168-af6c-4e0f-bbe3-c4bd3646084c/resource/c68b4df6-c809-4bb5-a546-61fa1528fed5/download/parcel_all.zip"
+        default: ""
 
 permissions:
   contents: write
 
 jobs:
   probe:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +26,7 @@ jobs:
       - run: python tools/parcels_probe.py
         continue-on-error: true
         env:
-          PARCELS_URL: ${{ github.event.inputs.url }}
+          PARCELS_URL: ${{ github.event.inputs.url != '' && github.event.inputs.url || 'https://data.gov.il/dataset/dff8a168-af6c-4e0f-bbe3-c4bd3646084c/resource/c68b4df6-c809-4bb5-a546-61fa1528fed5/download/parcel_all.zip' }}
       - name: commit probe output
         run: |
           git config user.name "github-actions[bot]"
