@@ -1,6 +1,90 @@
 {
  "gush": "4774",
  "helka": "20",
+ "capabilities": {
+  "https://open.govmap.gov.il/geoserver/opendata/wfs WFS2.0.0": {
+   "all": [
+    "parcel_all",
+    "regional_authorities",
+    "sub_gush_all",
+    "water_flow"
+   ],
+   "cadastral": [
+    "parcel_all",
+    "sub_gush_all"
+   ]
+  },
+  "https://open.govmap.gov.il/geoserver/opendata/wfs WFS1.1.0": {
+   "all": [
+    "parcel_all",
+    "regional_authorities",
+    "sub_gush_all",
+    "water_flow"
+   ],
+   "cadastral": [
+    "parcel_all",
+    "sub_gush_all"
+   ]
+  },
+  "https://open.govmap.gov.il/geoserver/opendata/wfs WMS1.3.0": {
+   "all": [
+    "WMS",
+    "govmap:layer_15",
+    "govmap:layer_21",
+    "govmap:layer_regional_authorities",
+    "govmap:layer_water_flow",
+    "parcel_all",
+    "regional_authorities",
+    "sub_gush_all",
+    "water_flow"
+   ],
+   "cadastral": [
+    "parcel_all",
+    "sub_gush_all"
+   ]
+  },
+  "https://open.govmap.gov.il/geoserver/opendata/ows WFS2.0.0": {
+   "all": [
+    "parcel_all",
+    "regional_authorities",
+    "sub_gush_all",
+    "water_flow"
+   ],
+   "cadastral": [
+    "parcel_all",
+    "sub_gush_all"
+   ]
+  },
+  "https://open.govmap.gov.il/geoserver/opendata/ows WFS1.1.0": {
+   "all": [
+    "parcel_all",
+    "regional_authorities",
+    "sub_gush_all",
+    "water_flow"
+   ],
+   "cadastral": [
+    "parcel_all",
+    "sub_gush_all"
+   ]
+  },
+  "https://open.govmap.gov.il/geoserver/opendata/ows WMS1.3.0": {
+   "all": [
+    "WMS",
+    "govmap:layer_15",
+    "govmap:layer_21",
+    "govmap:layer_regional_authorities",
+    "govmap:layer_water_flow",
+    "parcel_all",
+    "regional_authorities",
+    "sub_gush_all",
+    "water_flow"
+   ],
+   "cadastral": [
+    "parcel_all",
+    "sub_gush_all"
+   ]
+  }
+ },
  "layers": {
   "opendata:PARCEL_ALL": {
    "fields": [],

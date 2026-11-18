@@ -1,11 +1,43 @@
 probe UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, l
 ======================================================================
+CAPABILITIES SWEEP (the layer names the server admits to)
+  https://open.govmap.gov.il/geoserver/opendata/wfs WFS2.0.0: HTTP 200 len=4877 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="2.0.0"     xmlns:wfs="http://www.opengis.net/wfs/2.0"     xmlns:ows="http://www.opengis.ne
+     4 names; cadastral candidates:
+       * parcel_all
+       * sub_gush_all
+  https://open.govmap.gov.il/geoserver/opendata/wfs WFS1.1.0: HTTP 200 len=4937 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="1.1.0"     xmlns:wfs="http://www.opengis.net/wfs"     xmlns:ows="http://www.opengis.net/ow
+     4 names; cadastral candidates:
+       * parcel_all
+       * sub_gush_all
+  https://open.govmap.gov.il/geoserver/opendata/wfs WMS1.3.0: HTTP 200 len=8050 :: <?xml version="1.0" encoding="UTF-8"?> <WMS_Capabilities version="1.3.0"     xmlns="http://www.opengis.net/wms"     xmlns:xlink="http://www.w3.org/1999/xlink"  
+     9 names; cadastral candidates:
+       * parcel_all
+       * sub_gush_all
+  https://open.govmap.gov.il/geoserver/wfs WFS2.0.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
+  https://open.govmap.gov.il/geoserver/wfs WFS1.1.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
+  https://open.govmap.gov.il/geoserver/wfs WMS1.3.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
+  https://open.govmap.gov.il/geoserver/opendata/ows WFS2.0.0: HTTP 200 len=4877 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="2.0.0"     xmlns:wfs="http://www.opengis.net/wfs/2.0"     xmlns:ows="http://www.opengis.ne
+     4 names; cadastral candidates:
+       * parcel_all
+       * sub_gush_all
+  https://open.govmap.gov.il/geoserver/opendata/ows WFS1.1.0: HTTP 200 len=4937 :: <?xml version="1.0" encoding="UTF-8"?> <wfs:WFS_Capabilities version="1.1.0"     xmlns:wfs="http://www.opengis.net/wfs"     xmlns:ows="http://www.opengis.net/ow
+     4 names; cadastral candidates:
+       * parcel_all
+       * sub_gush_all
+  https://open.govmap.gov.il/geoserver/opendata/ows WMS1.3.0: HTTP 200 len=8050 :: <?xml version="1.0" encoding="UTF-8"?> <WMS_Capabilities version="1.3.0"     xmlns="http://www.opengis.net/wms"     xmlns:xlink="http://www.w3.org/1999/xlink"  
+     9 names; cadastral candidates:
+       * parcel_all
+       * sub_gush_all
+  https://open.govmap.gov.il/geoserver/ows WFS2.0.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
+  https://open.govmap.gov.il/geoserver/ows WFS1.1.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
+  https://open.govmap.gov.il/geoserver/ows WMS1.3.0: HTTP 200 len=10343 :: <!DOCTYPE html> <html translate="no" lang="en" style="overscroll-behavior: none;">  <head>     <meta charset="utf-8" />     <title>Govmap ××¤××ª ××©×¨××</t
+======================================================================
 LAYER opendata:PARCEL_ALL
-   HTTP 404 server= - via= 1.1 5a6df92f738b41cec39c39029cc85606.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= WPp-ruKNGjCbNYLyEjc3DpqwYizJqBQ0lIZMzzHT
+   HTTP 404 server= - via= 1.1 6e0f9dce97fcb3c9b684592a289e4e72.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= fhv9k56BiQ9QgW6hN0TXSxlXVFudnxSpT5oZmXsq
    body: {"error":"NOT_FOUND","message":"Requested layer is not mapped in this workspace"}
   no sample feature
 ======================================================================
 LAYER opendata:Parcels_ITM
-   HTTP 404 server= - via= 1.1 5a6df92f738b41cec39c39029cc85606.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= phkqG2IGoka6zv8rT3YddUP91g1wzH_zXsymXVWp
+   HTTP 404 server= - via= 1.1 6e0f9dce97fcb3c9b684592a289e4e72.cloudfront.net (CloudFront) x-cache= Error from cloudfront x-amz-cf-id= 1xojFyu1mQZ-T82hVOFtmxiAu9_ChWbtCBelUt3R
    body: {"error":"NOT_FOUND","message":"Requested layer is not mapped in this workspace"}
   no sample feature
