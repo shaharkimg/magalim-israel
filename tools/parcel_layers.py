@@ -1,15 +1,20 @@
-"""Find a parcel that opendata:PARCEL_ALL does not carry, by trying the
-other cadastral layers on the same GeoServer and by enumerating a bbox."""
+"""Probe the govmap open-data cadastral layer: which typeNames resolve, and
+what attributes they carry. Layer names come from LAYERS (comma separated)."""
 import json, os, re, sys
 import requests
 
 WFS = "https://open.govmap.gov.il/geoserver/opendata/wfs"
 OUT = os.environ.get("OUTDIR", "out")
 os.makedirs(OUT, exist_ok=True)
-GUSH = os.environ.get("GUSH", "100812").strip()
-HELKA = os.environ.get("HELKA", "143").strip()
+GUSH = os.environ.get("GUSH", "4774").strip()
+HELKA = os.environ.get("HELKA", "20").strip()
 BBOX = os.environ.get("BBOX", "160474,588977,161792,590152").strip()
-LAYERS = ["opendata:PARCEL_ALL", "opendata:Parcels_ITM"]
+LAYERS = [x.strip() for x in os.environ.get("LAYERS", "").split(",") if x.strip()] or [
+    "parcel_all",
+    "opendata:parcel_all",
+    "sub_gush_all",
+    "opendata:PARCEL_ALL",
+]
 
 lines = []
 def log(*a):
@@ -41,10 +46,8 @@ def wfs(params, timeout=180):
         log("   ERROR", type(e).__name__, str(e)[:200]); return None
     if r.status_code != 200:
         log("   HTTP", r.status_code,
-            "server=", r.headers.get("Server", "-"),
             "via=", r.headers.get("Via", "-"),
-            "x-cache=", r.headers.get("X-Cache", "-"),
-            "x-amz-cf-id=", r.headers.get("X-Amz-Cf-Id", "-")[:40])
+            "x-cache=", r.headers.get("X-Cache", "-"))
         log("   body:", r.text[:200].replace("\n", " "))
         return None
     try:
@@ -52,71 +55,32 @@ def wfs(params, timeout=180):
     except Exception:
         log("   non-json", r.text[:300]); return None
 
+
 def rank(names, exact):
-    # an exact field name wins; otherwise shortest name first
     return sorted(names, key=lambda k: (k.upper() != exact, len(k), k))
 
 
-CAPS_ENDPOINTS = [
-    "https://open.govmap.gov.il/geoserver/opendata/wfs",
-    "https://open.govmap.gov.il/geoserver/wfs",
-    "https://open.govmap.gov.il/geoserver/opendata/ows",
-    "https://open.govmap.gov.il/geoserver/ows",
-]
-
-
-def capabilities():
-    """Ask each endpoint what feature types it actually publishes now."""
-    log("=" * 70)
-    log("CAPABILITIES SWEEP (the layer names the server admits to)")
-    found = {}
-    for ep in CAPS_ENDPOINTS:
-        for svc, ver in (("WFS", "2.0.0"), ("WFS", "1.1.0"), ("WMS", "1.3.0")):
-            try:
-                r = SESSION.get(ep, params={"service": svc, "version": ver,
-                                            "request": "GetCapabilities"},
-                                timeout=120)
-            except Exception as e:
-                log(f"  {ep} {svc}{ver}: ERROR {type(e).__name__} {str(e)[:120]}")
-                continue
-            head = r.text[:160].replace("\n", " ")
-            log(f"  {ep} {svc}{ver}: HTTP {r.status_code} len={len(r.content)} :: {head}")
-            if r.status_code != 200 or len(r.content) < 200:
-                continue
-            names = re.findall(r"<(?:wfs:|)Name>([^<>]+)</(?:wfs:|)Name>", r.text)
-            names = [n.strip() for n in names if n.strip()]
-            if not names:
-                continue
-            log(f"     {len(names)} names; cadastral candidates:")
-            cand = [n for n in names if re.search(
-                r"parcel|gush|helka|chelka|cadas|block", n, re.I)]
-            for n in sorted(set(cand)):
-                log("       *", n)
-            if not cand:
-                log("       (none matched; first 40 names:)")
-                for n in sorted(set(names))[:40]:
-                    log("       -", n)
-            found[f"{ep} {svc}{ver}"] = {"all": sorted(set(names)),
-                                         "cadastral": sorted(set(cand))}
-    return found
-
-
 log("probe UA:", UA[:70])
-CAPS = capabilities()
-result = {"gush": GUSH, "helka": HELKA, "capabilities": CAPS, "layers": {}}
+log("layers to try:", LAYERS)
+result = {"gush": GUSH, "helka": HELKA, "layers": {}}
 
 for lyr in LAYERS:
     log("=" * 70); log("LAYER", lyr)
-    entry = {"fields": [], "filter_hits": [], "bbox_matches": []}
+    entry = {"fields": [], "filter_hits": [], "resolved": False}
 
     js = wfs({"typeNames": lyr, "count": "1"})
     if not js or not js.get("features"):
-        log("  no sample feature")
+        log("  no sample feature -> this typeName does not resolve")
         result["layers"][lyr] = entry
         continue
 
+    entry["resolved"] = True
     props = js["features"][0].get("properties", {})
     entry["fields"] = sorted(props.keys())
+    log("  RESOLVED. attributes:", json.dumps(entry["fields"], ensure_ascii=False))
+    log("  sample row:", json.dumps(props, ensure_ascii=False)[:600])
+    log("  geometry type:", (js["features"][0].get("geometry") or {}).get("type"))
+
     gf = rank([k for k in props if re.search(r"gush", k, re.I)], "GUSH_NUM")
     pf = rank([k for k in props if re.search(r"parcel|helka|chelka", k, re.I)],
               "PARCEL")
@@ -128,34 +92,16 @@ for lyr in LAYERS:
             for q in ("", "'"):
                 cql = f"{g}={q}{GUSH}{q} AND {p}={q}{HELKA}{q}"
                 js2 = wfs({"typeNames": lyr, "count": "5", "CQL_FILTER": cql})
-                n = len(js2.get("features", [])) if js2 else 0
-                log(f"   try {cql} -> {n}")
-                if n:
-                    entry["filter_hits"].append({"cql": cql, "n": n})
+                feats = (js2 or {}).get("features", [])
+                log(f"   try {cql} -> {len(feats)}")
+                if feats:
+                    entry["filter_hits"].append({"cql": cql, "n": len(feats)})
+                    pr = feats[0].get("properties", {})
+                    gm = feats[0].get("geometry") or {}
+                    log("      HIT props:", json.dumps(pr, ensure_ascii=False)[:500])
+                    log("      HIT geometry:", gm.get("type"),
+                        "rings:", len(gm.get("coordinates") or []))
 
-    allp = {}
-    for g in gf[:1]:
-        js4 = wfs({"typeNames": lyr, "count": "5000",
-                   "CQL_FILTER": f"{g}={GUSH}"})
-        for f in (js4 or {}).get("features", []):
-            pr = f.get("properties", {})
-            for p in pf:
-                if pr.get(p) is not None:
-                    allp[str(pr[p])] = {k: pr.get(k) for k in
-                                        ("PARCEL", "LEGAL_AREA", "STATUS_TEX",
-                                         "LOCALITY_N")}
-                    break
-
-    log(f"  gush {GUSH}: {len(allp)} parcels in this layer")
-    log("  helkot:", ", ".join(sorted(allp, key=lambda x: (len(x), x))))
-    if HELKA in allp:
-        log("  *** HELKA", HELKA, "IS PRESENT:", json.dumps(allp[HELKA], ensure_ascii=False))
-    else:
-        log("  *** HELKA", HELKA, "ABSENT from this layer")
-    nums = sorted(int(x) for x in allp if x.isdigit())
-    if nums:
-        log("  numeric range:", (nums[0], nums[-1]), " count:", len(nums))
-    entry["parcels"] = allp
     result["layers"][lyr] = entry
 
 with open(os.path.join(OUT, "parcel_layers.txt"), "w", encoding="utf-8") as fh:

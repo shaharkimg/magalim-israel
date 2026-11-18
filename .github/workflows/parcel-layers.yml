@@ -13,6 +13,10 @@ on:
         description: "helka to probe"
         required: false
         default: "20"
+      layers:
+        description: "comma-separated typeNames to try"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -33,6 +37,7 @@ jobs:
           OUTDIR: out
           GUSH: ${{ github.event.inputs.gush != '' && github.event.inputs.gush || '4774' }}
           HELKA: ${{ github.event.inputs.helka != '' && github.event.inputs.helka || '20' }}
+          LAYERS: ${{ github.event.inputs.layers }}
           BBOX: "160474,588977,161792,590152"
       - name: commit output
         run: |
