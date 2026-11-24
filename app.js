@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261124d1";
+const APP_VERSION = "20261124d2";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -1365,7 +1365,8 @@ let retryHandlers = {}, retryHandlerSeq = 0;
 function errorStateHtml(message, retryFn){
   const id = "r"+(retryHandlerSeq++);
   retryHandlers[id] = retryFn;
-  return `<div class="empty-state"><div class="empty-title">${message}</div><button class="btn btn-outline empty-cta" data-retry="${id}" type="button">נסו שוב</button></div>`;
+  // שגיאה אינה "כותרת": אייקון אזהרה בעיגול חם, הודעה בגופן הממשק ופעולה אחת - שפה אחת עם המצבים הריקים
+  return `<div class="empty-state error-state" role="alert"><div class="empty-icon">${uiIcon("warning",24)}</div><div class="error-msg">${message}</div><div class="empty-sub">ייתכן שהחיבור לרשת חלש. הנתונים שלכם שמורים.</div><button class="btn btn-outline empty-cta" data-retry="${id}" type="button">נסו שוב</button></div>`;
 }
 document.addEventListener("click", e=>{
   const btn = e.target.closest("[data-retry]");
@@ -4031,9 +4032,9 @@ function renderWizIntro(){
   introEl.innerHTML = `
     <p class="wiz-intro-greet">לאן ממשיכים?</p>
     <div class="wiz-intro-card">
-      <div class="wiz-intro-hero" style="${cssUrlValue(photoUrl)?`background-image:${cssUrlValue(photoUrl)}`:`background:${cat.color}`}">${cssUrlValue(photoUrl)?"":catIconSvg(cat.icon,32)}</div>
+      <div class="wiz-intro-hero">${photoUrl ? photoImgHtml(l, photoUrl, { alt:"", size:30 }) : photoFallbackHtml(l, 30)}
+        <div class="wiz-intro-name">${escapeHtml(l.name)}</div></div>
       <div class="wiz-intro-body">
-        <div class="wiz-intro-name">${l.name}</div>
         <div class="wiz-intro-sub">${rec.reason}</div>
         <button class="wiz-intro-why" id="wizIntroWhy" type="button">למה דווקא זה?</button>
         <div class="wiz-intro-reason hidden" id="wizIntroReason">${wizIntroWhyText(l)}</div>

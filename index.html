@@ -123,8 +123,8 @@
   --cat-religious:#A99AE0;--cat-parks:#4FC1A0;--cat-reserves:#3FB58A;--cat-urban:#9AA6B6;
   --shadow-card:none; --shadow-elevated:0 18px 40px -16px rgba(0,0,0,.75), 0 2px 8px rgba(0,0,0,.3);
 }
-/* "לילה" כפוי: מסך-הפתיחה נשאר בזהות הלילית גם במצב בהיר - הרושם הראשון של המותג */
-.auth-screen:has(#authViewWelcome:not(.hidden)){
+/* "לילה" כפוי: מסך-הפתיחה וההיכרות נשארים בזהות הלילית גם במצב בהיר - הרושם הראשון של המותג */
+.auth-screen:has(#authViewWelcome:not(.hidden)),.onboarding-screen{
   --bg-base:#0B111C; --bg-sunk:#121A27; --surface-1:#161F2D; --surface-2:#1D2738;
   --ink:#EEF2F6; --ink-soft:#97A1B2; --rule:#2B3546; --rule-soft:#1F2837;
   --go:#3DDB84; --go-2:#22B96A; --go-ink:#04140B; --go-text:#4BE08E;
@@ -302,10 +302,10 @@ button{font-family:inherit;}
 .onboarding-slide{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   gap:var(--space-3);height:100%;padding:0 var(--space-2);}
 .onboarding-slide.active{display:flex;}
-.onboarding-art{width:min(240px,72%);margin:0 auto;}
+.onboarding-art{width:min(260px,76%);margin:0 auto;filter:drop-shadow(0 20px 40px color-mix(in srgb, var(--go) 18%, transparent));}
 .onboarding-art svg{width:100%;height:auto;display:block;}
-.onboarding-slide h2{margin:0;font-size:clamp(30px, 9vw, 38px);font-weight:600;line-height:1.05;max-width:320px;}
-.onboarding-slide p{margin:0;color:var(--text-muted);font-size:var(--font-body);line-height:1.6;max-width:280px;}
+.onboarding-slide h2{margin:var(--space-3) 0 0;font-family:var(--font-display);font-size:clamp(48px, 14vw, 60px);font-weight:700;line-height:.9;max-width:330px;}
+.onboarding-slide p{margin:0;color:var(--text-muted);font-size:16px;line-height:1.6;max-width:290px;text-wrap:balance;}
 .onboarding-dots{display:flex;justify-content:center;gap:6px;margin:var(--space-4) 0;flex:none;}
 .onboarding-dots .dot{width:8px;height:8px;border-radius:999px;background:var(--border);transition:width .2s,background .2s;}
 .onboarding-dots .dot.active{width:22px;background:var(--rust);}
@@ -351,7 +351,7 @@ button{font-family:inherit;}
 /* כרטיסי ה"לילה" (אטלס, דרכון, סיכומים) - קו-מתאר דק כדי שיופרדו מהרקע גם במצב כהה */
 .home-atlas,.journey-hero,.lb-summary,.challenge-card,.welcome-banner{box-shadow:inset 0 0 0 1px rgba(238,242,246,.07);}
 .map-top-bar{position:absolute;left:0;right:0;top:0;z-index:1000;padding:calc(env(safe-area-inset-top) + var(--space-3)) var(--space-3) 0;display:flex;flex-direction:column;gap:var(--space-2);}
-#discoveryPct{margin:var(--space-2) 0 0;font-size:13px;font-weight:600;color:var(--forest);background:var(--forest-mist);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:999px;}
+#discoveryPct{margin:var(--space-2) 0 0;font-size:13px;font-weight:600;color:var(--go-text);background:var(--forest-mist);display:inline-block;padding:var(--space-1) var(--space-3);border-radius:12px;line-height:1.45;}
 .map-search-row{display:flex;gap:var(--space-2);align-items:center;}
 /* בקרות-מפה משניות: עיגול שקט באותו משקל ויזואלי זו לזו, נמוך משמעותית משורת-החיפוש */
 .map-fab{flex:none;width:48px;height:48px;border:0;border-radius:50%;background:var(--surface-2);box-shadow:var(--shadow-elevated);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:transform .18s var(--ease-spring);}
@@ -439,6 +439,13 @@ button{font-family:inherit;}
 .dest-preview-name{margin:0;font-family:var(--font-display);font-size:32px;line-height:.95;font-weight:700;min-width:0;}
 .dest-preview-open{display:block;width:100%;min-height:32px;padding:0;border:none;background:none;color:inherit;font:inherit;font-weight:600;text-align:start;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dest-preview-actions{display:flex;align-items:center;gap:6px;margin-top:var(--space-2);}
+/* טקסט מוגדל / מסכים צרים מאוד: "כבשתי" מקבל שורה משלו, כפתורי-האייקון עוברים לשורה הבאה במקום להיחתך */
+@media (max-width:320px){
+  .dest-preview-actions{flex-wrap:wrap;}
+  .dest-preview-conquer{flex-basis:100%;}
+  .dest-preview-hero{width:72px;}
+  .dest-preview-name{font-size:28px;}
+}
 .dest-preview-conquer{flex:1 1 auto;min-width:0;min-height:44px;padding:0 var(--space-3);font-size:15px;white-space:nowrap;}
 .dest-preview-conquer.is-done{background:var(--forest-mist);color:var(--go-text);box-shadow:none;}
 .dest-preview-wish,.dest-preview-nav,.dest-preview-trip{border:0;background:var(--bg-sunk);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;cursor:pointer;color:var(--text);transition:color .15s,background .15s,transform .15s var(--ease-spring);}
@@ -602,6 +609,8 @@ button{font-family:inherit;}
 .chip.active{background:var(--go);color:var(--go-ink);font-weight:600;}
 .chip.active.teal{background:var(--go);color:var(--go-ink);font-weight:600;}
 .sheet-actions{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-5) var(--space-4);border-top:0;margin-top:4px;background:linear-gradient(to top, var(--surface-1) 70%, transparent);}
+.sheet-actions .btn{white-space:nowrap;}
+.sheet-actions .btn-primary{flex:2;}
 .range-row{display:flex;align-items:center;gap:var(--space-3);}
 .range-row input[type=range]{flex:1;accent-color:var(--go);}
 .range-val{font-weight:700;font-variant-numeric:tabular-nums;font-size:14.5px;min-width:64px;text-align:left;color:var(--text-muted);}
@@ -772,6 +781,9 @@ button{font-family:inherit;}
 
 .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);margin:var(--space-7) 0 var(--space-4);padding-top:0;border-top:0;}
 .section-head h2{font-family:var(--font-display);font-size:34px;line-height:.95;margin:0;font-weight:700;}
+/* בתוך sheets ומסכי-על (הגדרות, ניהול, עזרה) הכותרות קומפקטיות - שם הן מארגנות, לא מכריזות */
+.sheet .section-head,.full-overlay .section-head,.admin-screen .section-head{margin:var(--space-6) 0 var(--space-2);}
+.sheet .section-head h2,.full-overlay .section-head h2,.admin-screen .section-head h2{font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--text-muted);line-height:1.3;}
 .section-head .btn-ghost{flex:none;min-height:40px;padding:0 var(--space-2);font-size:14px;}
 .achievements-subhead{font:600 13.5px/1.3 var(--font-sans);color:var(--text-muted);margin:var(--space-5) 0 var(--space-3);}
 /* כרטיס-מקום (רכיב משותף אחד - ראו placeCardHtml ב-app.js): התמונה היא האלמנט המרכזי,
@@ -825,16 +837,23 @@ button{font-family:inherit;}
 .wiz-match-tag{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:2px;display:flex;align-items:center;gap:4px;}
 .wiz-match-pct{font-size:13px;color:var(--text-muted);margin-top:3px;}
 .wishlist-context{font-size:13px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px;}
-.wiz-intro-greet{margin:0 0 var(--space-3);font-size:16px;font-weight:700;}
-.wiz-intro-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--space-3);margin-bottom:14px;}
-.wiz-intro-hero{width:100%;height:130px;border-radius:12px;overflow:hidden;margin-bottom:10px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#fff;}
-.wiz-intro-hero svg{width:34px;height:34px;}
-.wiz-intro-name{font-size:17px;font-weight:700;margin-bottom:4px;}
+.wiz-intro-greet{margin:0 0 var(--space-3);font-size:15px;font-weight:600;color:var(--text-muted);}
+.wiz-intro-card{background:var(--bg-sunk);border:0;border-radius:var(--radius-card);overflow:hidden;margin-bottom:14px;}
+.wiz-intro-hero{position:relative;width:100%;height:190px;overflow:hidden;background:var(--deep);color:#fff;}
+.wiz-intro-hero > img,.wiz-intro-hero > .photo-fallback{position:absolute;inset:0;width:100%;height:100%;}
+.wiz-intro-hero > img{object-fit:cover;display:block;}
+.wiz-intro-hero .pf-coord{display:none;}
+.wiz-intro-hero .pf-mark{margin-bottom:18%;}
+.wiz-intro-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(var(--scrim-rgb),.85), transparent 60%);}
+.wiz-intro-body{padding:var(--space-3) var(--space-4) var(--space-4);}
+
+.wiz-intro-name{position:absolute;z-index:1;inset-inline:var(--space-4);bottom:var(--space-3);font:700 40px/.92 var(--font-display);color:#fff;text-wrap:balance;}
 .wiz-intro-sub{font-size:14px;color:var(--text-muted);margin-bottom:8px;}
-.wiz-intro-why{background:none;border:none;padding:0;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;}
-.wiz-intro-reason{margin-top:8px;font-size:13.5px;color:var(--text-muted);background:var(--bg-elevated);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);}
+.wiz-intro-why{background:none;border:none;padding:0;min-height:40px;color:var(--go-text);font:600 14px var(--font-sans);cursor:pointer;}
+.wiz-intro-reason{margin-top:4px;font-size:13.5px;color:var(--text-muted);background:var(--surface-1);border-radius:var(--radius-input);padding:var(--space-2) var(--space-3);}
 .wiz-intro-actions{display:flex;gap:var(--space-2);}
-.wiz-intro-actions .btn{flex:1;}
+.wiz-intro-actions .btn{flex:1;padding-inline:var(--space-3);font-size:15px;white-space:nowrap;}
+.wiz-intro-actions .btn-primary{flex:1.2;}
 /* מצב-ריק (§12): אייקון עדין בעיגול, כותרת קצרה, משפט מעודד ו-CTA אחד */
 .empty-state{text-align:center;color:var(--text-muted);padding:var(--space-6) var(--space-4) var(--space-5);font-size:15px;}
 .empty-state .empty-cta{display:inline-flex;margin-top:var(--space-4);padding:var(--space-3) var(--space-5);font-size:14.5px;flex:none;}
@@ -842,6 +861,8 @@ button{font-family:inherit;}
 .empty-icon{width:68px;height:68px;margin:0 auto var(--space-3);border-radius:50%;background:var(--forest-mist);border:0;box-shadow:0 0 0 8px color-mix(in srgb, var(--go) 6%, transparent);color:var(--go-text);display:flex;align-items:center;justify-content:center;transform:none;}
 .empty-icon .ui-ic{opacity:1;}
 .empty-title{font-family:var(--font-display);font-weight:700;font-size:32px;color:var(--text);line-height:1;}
+.error-state .empty-icon{background:color-mix(in srgb, var(--warn) 16%, transparent);color:var(--warn);box-shadow:0 0 0 8px color-mix(in srgb, var(--warn) 6%, transparent);}
+.error-msg{font:700 17px/1.4 var(--font-head);color:var(--text);}
 .empty-sub{font-size:14.5px;color:var(--text-muted);margin-top:var(--space-2);line-height:1.55;max-width:260px;margin-inline:auto;}
 
 /* מסך ההזמנה (§24): הזמנה למסע, לא אישור טכני */
@@ -893,7 +914,7 @@ button{font-family:inherit;}
 .journey-hero{position:relative;isolation:isolate;overflow:hidden;background:var(--forest-deep);color:#EEF2F6;border-radius:var(--radius-hero);padding:var(--space-5);margin:var(--space-4) 0;}
 .journey-hero::before{content:"";position:absolute;inset:0;z-index:-1;background:#EEF2F6;opacity:.06;-webkit-mask:var(--topo) 80% 20%/300px 300px;mask:var(--topo) 80% 20%/300px 300px;}
 .journey-hero::after{content:"";position:absolute;inset:8px;z-index:-1;border:1px solid rgba(238,242,246,.14);border-radius:calc(var(--radius-hero) - 6px);pointer-events:none;}
-.journey-head{display:flex;align-items:center;gap:var(--space-4);}
+.journey-head{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;}
 .journey-head .profile-name{color:#EEF2F6;}
 .journey-head .profile-name button{color:rgba(255,255,255,.65);}
 .journey-head .profile-sub{color:rgba(238,242,246,.72);}
@@ -989,6 +1010,7 @@ button{font-family:inherit;}
   background:var(--bg-sunk);border:0;border-radius:999px;font-family:inherit;font-size:15.5px;font-weight:500;color:var(--text-muted);cursor:pointer;text-align:start;transition:transform .18s var(--ease-spring),background .15s;}
 .home-search:active{transform:scale(.985);}
 .home-search svg{flex:none;color:var(--go-text);}
+.home-search span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .home-masthead .quick-chip-row{margin-top:var(--space-3);}
 .home-masthead .quick-chip{box-shadow:none;background:transparent;box-shadow:inset 0 0 0 1px var(--rule);}
 .home-masthead .quick-chip.active{box-shadow:none;}
@@ -1001,6 +1023,7 @@ button{font-family:inherit;}
   .home-masthead .quick-chip-row{display:none;}
   .feature-media{height:clamp(320px, 54vh, 420px);}
   .feature-name{font-size:clamp(46px, 14vw, 60px);}
+  .feature-media .photo-fallback .pf-mark{transform:scale(.7);margin-bottom:52%;}
 }
 
 /* ---------- שער: היעד המוביל ---------- */
@@ -1042,7 +1065,7 @@ button{font-family:inherit;}
 .feature-why{display:flex;align-items:flex-start;gap:6px;margin:var(--space-3) 0 0;font-size:13.5px;line-height:1.45;color:var(--text-muted);}
 .feature-why .ui-ic{color:var(--go-text);opacity:1;margin-top:2px;}
 .feature-actions{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-4);}
-.feature-actions .btn-accent{flex:1;}
+.feature-actions .btn-accent{flex:1;white-space:nowrap;padding-inline:var(--space-4);}
 .btn-arrow{display:inline-block;transition:transform .2s var(--ease-spring);}
 .btn:active .btn-arrow{transform:translateX(-4px);}
 .feature-more{flex:none;min-height:48px;padding:0 var(--space-2);border:0;background:none;font:600 14.5px var(--font-sans);color:var(--text-muted);cursor:pointer;text-decoration:underline;text-underline-offset:4px;text-decoration-color:color-mix(in srgb, var(--text) 25%, transparent);}
@@ -1489,7 +1512,7 @@ button{font-family:inherit;}
 .nav-btn.active::before{opacity:1;transform:scale(1);}
 .nav-btn.active svg{transform:none;}
 .nav-btn:active svg{transform:scale(.9);}
-.nav-btn span{font-size:12px;font-weight:500;}
+.nav-btn span{font-size:12px;font-weight:500;white-space:nowrap;}
 .nav-btn.active span{font-weight:700;}
 .nav-btn .unread-dot{position:absolute;z-index:2;top:8px;inset-inline-end:calc(50% - 18px);width:9px;height:9px;border-radius:50%;background:var(--warn);border:2px solid var(--surface-1);display:none;}
 .nav-btn .unread-dot.show{display:block;}
@@ -2668,6 +2691,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261124d1"></script>
+<script type="module" src="./app.js?v=20261124d2"></script>
 </body>
 </html>
