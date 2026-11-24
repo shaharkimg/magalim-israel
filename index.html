@@ -328,9 +328,8 @@ button{font-family:inherit;}
    visual weight. FALLBACK NOTE: logo.png is a flat square illustration with no transparent cutout
    of just the mark, so this still renders that square, just small and uncarded - swap the img src
    below for a transparent mark-only asset when one exists; no other markup/CSS changes needed. */
-.nav-logo{display:flex;align-items:center;gap:7px;flex:none;color:var(--text);text-decoration:none;}
-.nav-logo-mark{width:24px;height:24px;flex:none;color:var(--go);}
-.nav-logo-word{font:700 34px/1 var(--font-display);letter-spacing:.005em;padding-top:4px;}
+.nav-logo{width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex:none;}
+.nav-logo img{width:100%;height:100%;object-fit:contain;display:block;}
 #notifBellBtn{margin-left:8px;}
 .stat-pill{display:flex;align-items:baseline;gap:var(--space-2);color:var(--text-muted);font-weight:500;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .stat-pill b{color:var(--text);font:700 24px/1 var(--font-display);font-variant-numeric:tabular-nums lining-nums;}
@@ -1967,10 +1966,7 @@ input[type=file]{display:none;}
   <div class="topbar hidden" id="topbar">
     <div class="topbar-side topbar-side-start"></div>
     <div class="brand-row">
-      <div class="nav-logo" role="img" aria-label="מגלים">
-        <svg class="nav-logo-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10.3" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="7.4" stroke="currentColor" stroke-width=".8" stroke-dasharray="1.2 2.2" opacity=".7"/><path d="M12 3.8 14.1 12 12 20.2 9.9 12Z" fill="currentColor"/><path d="M12 3.8 14.1 12H9.9Z" fill="var(--text)"/></svg>
-        <span class="nav-logo-word" aria-hidden="true">מגלים</span>
-      </div>
+      <div class="nav-logo"><img src="./logo.png" alt="מגלים"></div>
     </div>
     <div class="topbar-side topbar-side-end">
       <button class="icon-btn hidden" id="notifBellBtn" aria-label="התראות" title="התראות" style="position:relative;flex:none;">
@@ -2691,6 +2687,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261124d2"></script>
+<script type="module" src="./app.js?v=20261124d3"></script>
 </body>
 </html>
