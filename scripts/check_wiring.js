@@ -28,7 +28,7 @@ const CRITICAL = [
   'confirmCheckin', 'flushPendingQueue', 'checkinGrantFromResult', 'runGpsCheck', 'safeUrl', 'cssUrlValue', 'friendlyError',
   'showBootError', 'cacheLandmarks', 'readCachedLandmarks', 'landmarkPinIcon', 'detachPushFromAccount',
   'pointsForLandmark', 'effortClassFor', 'placeCardHtml', 'emptyStateHtml', 'uiIcon',
-  'monthlyChallenge', 'weekendIdeas', 'nextGoalCardHtml', 'landmarkPhotoStyle',
+  'monthlyChallenge', 'weekendIdeas', 'nextGoalCardHtml', 'photoImgHtml', 'photoFallbackHtml',
   'goToDestination', 'openDetail', 'openTodaySheet', 'openSheet', 'closeSheet',
   'locateUser', 'geoErrorMessage', 'syncMapControlsOffset', 'fitIsrael',
   'renderUserLocation', 'restoreLastLoc', 'saveLastLoc',

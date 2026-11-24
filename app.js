@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY } from "./config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // גרסת האפליקציה - יש לעדכן יחד עם ה-?v= בתג ה-script ב-index.html בכל דיפלוי, לצורך זיהוי גרסה ישנה בדפדפן
-const APP_VERSION = "20261114b1";
+const APP_VERSION = "20261124d1";
 // הדומיין הרשמי. מוטבע על תמונת-השיתוף שהאפליקציה מייצרת, ולכן הוא לא רק קונפיגורציה -
 // הוא מה שכל מי שרואה צילום כיבוש משותף יקליד. scripts/check_twa.js מוודא שהוא זהה
 // ל-host שב-twa-manifest.json, כדי שאריזת-האנדרואיד לא תצביע למקום אחר מהמיתוג.
@@ -129,10 +129,11 @@ const REGIONS = { north:"צפון", center:"מרכז", jerusalem:"ירושלים
 // (easy<medium<hard<extreme): hard הישן (3-שי) -> "מאתגר" החדש, extreme הישן (4-שי, הכי הרבה
 // נקודות) -> "קשה" החדש. קונפיג-JS טהור, אפס מיגרציית-DB.
 const DIFF_TIERS = [
-  { key:"easy", dbValue:"easy", label:"קל", xp:10, color:"var(--success)" },
-  { key:"medium", dbValue:"medium", label:"בינוני", xp:20, color:"var(--teal)" },
-  { key:"challenging", dbValue:"hard", label:"מאתגר", xp:35, color:"var(--warn)" },
-  { key:"hard", dbValue:"extreme", label:"קשה", xp:50, color:"var(--danger)" },
+  // צבעי-הקושי מופרדים מהירוק: ירוק שמור לפעולה, ליעד שנכבש ולהישג - כך "קל" לא נראה כמו "נכבש"
+  { key:"easy", dbValue:"easy", label:"קל", xp:10, color:"var(--tier-easy)" },
+  { key:"medium", dbValue:"medium", label:"בינוני", xp:20, color:"var(--tier-medium)" },
+  { key:"challenging", dbValue:"hard", label:"מאתגר", xp:35, color:"var(--tier-challenging)" },
+  { key:"hard", dbValue:"extreme", label:"קשה", xp:50, color:"var(--tier-hard)" },
 ];
 const DIFF_TIER_BY_DB = Object.fromEntries(DIFF_TIERS.map(t=>[t.dbValue,t]));
 
@@ -673,16 +674,39 @@ function greetingForNow(){
 }
 // Placeholder אחיד לכל כרטיס בלי תמונה (ראו .photo-fallback ב-index.html): גרדיאנט בצבע
 // הקטגוריה + קווי-גובה + אייקון, במקום ריבוע צבע שטוח שהיה נראה כמו נתון חסר.
-function photoFallbackHtml(l, size){
-  const cat = CATEGORIES[l.category];
-  return '<div class="photo-fallback" style="--ph-color:'+cat.color+'">'+catIconSvg(cat.icon, size||28)+'</div>';
+// "לוח אטלס": אייקון-הקטגוריה בתוך טבעת דקה (כמו חותמת), ובגדלים גדולים גם קואורדינטות
+// בשולי הלוח - 92% מהיעדים בלי צילום, אז זה חלק מהשפה ולא מצב-חסר.
+function coordLabel(l){
+  if(!isFinite(l.lat) || !isFinite(l.lon)) return "";
+  return Math.abs(l.lat).toFixed(2)+"°N  "+Math.abs(l.lon).toFixed(2)+"°E";
 }
+function photoFallbackHtml(l, size){
+  const cat = CATEGORIES[l.category] || CATEGORIES.nature;
+  size = size || 28;
+  const coord = size >= 40 ? '<span class="pf-coord" aria-hidden="true">'+coordLabel(l)+'</span>' : "";
+  return '<div class="photo-fallback" style="--ph-color:'+cat.color+';--pf-size:'+size+'px">'+coord
+    + '<span class="pf-mark">'+catIconSvg(cat.icon, size)+'</span></div>';
+}
+// צילום של יעד כ-<img> אמיתי (לא background-image) כדי שתמונה שנכשלה בטעינה תתחלף ללוח-האטלס
+// במקום להשאיר מלבן ריק עם טקסט-alt. המאזין הגלובלי למטה מבצע את ההחלפה.
+function photoImgHtml(l, url, opts){
+  opts = opts || {};
+  return '<img src="'+safeUrl(url)+'" alt="'+escapeHtml(opts.alt != null ? opts.alt : l.name)+'"'
+    + (opts.eager ? ' fetchpriority="high"' : ' loading="lazy"')+' decoding="async" data-pf-lm="'+escapeHtml(l.id)+'" data-pf-size="'+(opts.size||30)+'">';
+}
+document.addEventListener("error", (e)=>{
+  const img = e.target;
+  if(!img || img.tagName !== "IMG" || !img.dataset || !img.dataset.pfLm) return;
+  const l = lmById[img.dataset.pfLm];
+  if(!l) return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = photoFallbackHtml(l, Number(img.dataset.pfSize)||30);
+  img.replaceWith(tmp.firstChild);
+}, true);
 // points: מספר להצגה כ"+40", או null כדי להסתיר. done:true מציג "נכבש" במקום ניקוד עתידי.
 function placeCardHtml(l, opts){
   opts = opts || {};
-  const thumb = opts.thumb || (opts.photo
-    ? '<img src="'+safeUrl(opts.photo)+'" loading="lazy" decoding="async" alt="'+escapeHtml(l.name)+'">'
-    : photoFallbackHtml(l, 30));
+  const thumb = opts.thumb || (opts.photo ? photoImgHtml(l, opts.photo, { size:26 }) : photoFallbackHtml(l, 26));
   const meta = opts.metaHtml != null ? opts.metaHtml : placeMetaHtml(l, opts);
   const pts = opts.points == null ? pointsForLandmark(l) : opts.points;
   const ptsHtml = opts.hidePoints ? "" : (opts.done
@@ -1448,7 +1472,11 @@ function celebrate(steps){
         <div class="celebrate-progress-hint">${s.progress.hint}</div>
       </div>` : "";
     const tapHint = (!s.actions && i===steps.length-1) ? `<div class="celebrate-tap-hint">געו כדי להמשיך לגלות</div>` : "";
+    // חותמת-דואר עם התאריך בראש הכרטיס: רגע ההצלחה נרשם כמו עמוד בדרכון
+    const postmark = (s.xp!=null || s.stampId || s.levelIndex!=null)
+      ? `<div class="celebrate-postmark" aria-hidden="true">${new Date().toLocaleDateString("he-IL",{day:"2-digit",month:"2-digit",year:"numeric"})} · מגלים</div>` : "";
     card.innerHTML = hero
+      + (s.photoUrl ? "" : postmark)
       + `<h2>${s.title}</h2>`
       + (s.subtitle ? `<div class="celebrate-subtitle">${s.subtitle}</div>` : "")
       + (s.tag ? `<div class="celebrate-tag">${s.tag}</div>` : "")
@@ -3294,44 +3322,71 @@ function weekendIdeas(){
 }
 
 /* ============ HOME (§1,§2,§9,§10,§12) ============ */
-function landmarkPhotoStyle(l){
-  const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
-  const cat = CATEGORIES[l.category];
-  return cssUrlValue(url) ? `background-image:${cssUrlValue(url)}`
-             : `background:linear-gradient(135deg, ${cat.color}, color-mix(in srgb, ${cat.color} 60%, #000 15%))`;
-}
-function whyRowsHtml(reasons){
-  if(!reasons || !reasons.length) return "";
-  return '<div class="next-goal-why"><div class="next-goal-why-title">למה בחרנו לכם את זה?</div>'
-    + reasons.map(r=>`<div class="why-row">${uiIcon("check",15)}<span>${r}</span></div>`).join("")
-    + '</div>';
-}
 function nextGoalCardHtml(rec){
   const l = rec.landmark;
-  const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
-  return `<div class="next-goal" data-id="${l.id}">
-    <div class="next-goal-photo" style="${hasPhoto ? landmarkPhotoStyle(l) : ""}">
-      ${hasPhoto ? "" : photoFallbackHtml(l, 56)}
-      ${rec.matchPct ? `<span class="match">${rec.matchPct}% התאמה</span>` : ""}
-      <span class="pts"><bdi dir="ltr">+${pointsForLandmark(l)}</bdi></span>
-      <div class="next-goal-overlay">
-        <div class="next-goal-name">${l.name}</div>
-        <div class="place-meta">
-          <span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
-          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span>
-          ${l.duration ? `<span class="place-meta-item">${uiIcon("duration",13)}${l.duration}</span>` : ""}
-          ${l.hasWater ? `<span class="place-meta-item">${uiIcon("water",13)}מים</span>` : ""}
-        </div>
+  const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
+  const tier = tierForDb(l.difficulty);
+  const pts = pointsForLandmark(l);
+  // שלושה נתונים בלבד - אזור, משך, קושי - כדי שההחלטה "לצאת" תהיה מהירה
+  const facts = [
+    ["אזור", REGIONS[l.region]],
+    ["משך", l.duration || "גמיש"],
+    ["קושי", tierDotHtml(tier)+tier.label],
+  ];
+  const why = rec.reasons && rec.reasons.length ? rec.reasons[0] : "";
+  return `<article class="feature next-goal" data-id="${l.id}">
+    <div class="feature-media" role="button" tabindex="0" aria-label="לעמוד היעד: ${escapeHtml(l.name)}">
+      ${url ? photoImgHtml(l, url, { eager:true, alt:"", size:48 }) : photoFallbackHtml(l, 48)}
+      <div class="feature-top">
+        <div class="feature-kicker"><span class="kicker-num"></span><span>ההמלצה שלנו להיום</span></div>
+        <div class="pts-seal" aria-label="${pts} נקודות"><b>+${pts}</b><small>נק׳</small></div>
+      </div>
+      <div class="feature-overlay">
+        ${rec.matchPct ? `<div class="feature-match"><span class="feature-match-bar"><i style="width:${rec.matchPct}%"></i></span>${rec.matchPct}% התאמה לסגנון שלכם</div>` : ""}
+        <h2 class="feature-name">${escapeHtml(l.name)}</h2>
       </div>
     </div>
-    <div class="next-goal-body">
-      ${whyRowsHtml(rec.reasons)}
-      <div class="next-goal-actions">
-        <button class="btn btn-primary" data-go="${l.id}">יאללה, יוצאים</button>
-        <button class="btn btn-outline btn-sm" id="homeMoreOptions">עוד אפשרויות</button>
+    <div class="feature-panel">
+      <dl class="feature-facts">${facts.map(([k,v])=>`<div class="feature-fact"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+      ${why ? `<p class="feature-why">${uiIcon("check",14)}<span>${why}</span></p>` : ""}
+      <div class="feature-actions">
+        <button class="btn btn-accent" data-go="${l.id}">לפרטי היעד <span class="btn-arrow" aria-hidden="true">←</span></button>
+        <button class="feature-more" id="homeMoreOptions" type="button">עוד הצעות</button>
       </div>
     </div>
-  </div>`;
+  </article>`;
+}
+// "עוד מקומות בשבילכם": אותו מנוע-המלצות, מדורג, עם עדיפות קלה ליעדים עם צילום - קרוסלה
+// אחת של שערים קטנים במקום רצף כרטיסים זהים.
+function moreRecommendations(n, excludeIds){
+  const ex = new Set(excludeIds||[]);
+  const profile = travelProfile();
+  const salt = recommendationSeed("more");
+  const scored = recommendationCandidates().filter(l=> !ex.has(l.id)).map(l=> scoreLandmarkFor(l, profile, salt))
+    .sort((a,b)=> b.score-a.score).slice(0, n*3);
+  const hasPhoto = l=> !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
+  const picked = [], regions = {};
+  // גיוון: לא יותר משניים מאותו אזור, ויעדים מצולמים קודם
+  scored.sort((a,b)=> (hasPhoto(b.l)?1:0) - (hasPhoto(a.l)?1:0)).forEach(s=>{
+    if(picked.length>=n) return;
+    if((regions[s.l.region]||0) >= 2) return;
+    regions[s.l.region] = (regions[s.l.region]||0)+1;
+    picked.push(s.l);
+  });
+  return picked;
+}
+function moreCardHtml(l, kicker){
+  const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
+  const tier = tierForDb(l.difficulty);
+  return `<button type="button" class="more-card" data-id="${l.id}" aria-label="${escapeHtml(l.name)}">
+    <span class="more-card-media">${url ? photoImgHtml(l, url, { alt:"", size:30 }) : photoFallbackHtml(l, 30)}</span>
+    <span class="more-card-body">
+      ${kicker ? `<span class="more-card-kicker">${kicker}</span>` : ""}
+      <span class="more-card-name">${escapeHtml(l.name)}</span>
+      <span class="more-card-meta">${REGIONS[l.region]} · ${tier.label}${l.duration ? " · "+escapeHtml(l.duration) : ""}</span>
+    </span>
+    <span class="more-card-pts"><bdi dir="ltr">+${pointsForLandmark(l)}</bdi></span>
+  </button>`;
 }
 /* ============ WEEKLY CHALLENGE ============ */
 // אתגר אחד קצר לשבוע, זהה לכל המשתמשים ומתחלף לבד לפי מספר-השבוע - בלי טבלה חדשה
@@ -3392,17 +3447,21 @@ function renderWeeklyChallenge(){
   const ch = currentWeeklyChallenge();
   const done = Math.min(1, challengeVisitsThisWeek(ch));
   const days = challengeDaysLeft();
-  el.innerHTML = `<div class="weekly-chal${done?" is-done":""}">
-    <div class="weekly-chal-top">
-      <div class="weekly-chal-task">${ch.task}</div>
-      <div class="weekly-chal-left">${days===1?"נותר יום אחרון":"נותרו "+days+" ימים"}</div>
+  const flag = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg>';
+  el.innerHTML = `<div class="ticket${done?" is-done":""}">
+    <div class="ticket-main">
+      <div class="kicker"><span class="kicker-num"></span>אתגר השבוע</div>
+      <h2 class="ticket-task">${ch.task}</h2>
+      <div class="trail" role="img" aria-label="${done ? "האתגר הושלם" : "עוד לא הושלם"}">
+        <span class="trail-pt is-done"></span><span class="trail-line"><i style="width:${done*100}%"></i></span>${done ? '<span class="trail-pt is-done"></span>' : '<span class="trail-flag">'+flag+'</span>'}
+      </div>
+      <div class="trail-meta"><span>${done ? "הושלם! הנקודות כבר אצלכם" : "צ׳ק-אין אחד מתאים מסיים"}</span><span>${days===1?"יום אחרון":"נותרו "+days+" ימים"}</span></div>
+      ${done ? "" : `<button class="btn btn-outline btn-sm btn-block" id="challengeShowBtn">הצגת מקומות מתאימים</button>`}
     </div>
-    <div class="weekly-chal-progress">
-      <div class="bar"><i style="width:${done*100}%"></i></div>
-      <span class="weekly-chal-count"><bdi dir="ltr">${done} / 1</bdi></span>
+    <div class="ticket-stub">
+      <b>+${WEEKLY_CHALLENGE_XP}</b><small>נקודות</small>
+      <span class="ticket-stub-note">${done ? "התקבל ✓" : "בונוס לצ׳ק-אין"}</span>
     </div>
-    <div class="weekly-chal-reward">${done ? "הושלם! קיבלתם " : "הצ׳ק-אין הראשון שעונה על האתגר מזכה ב"}<b>+${WEEKLY_CHALLENGE_XP} נקודות</b>${done ? " בנוסף לנקודות הצ׳ק-אין" : ""}</div>
-    ${done ? "" : `<button class="btn btn-outline btn-sm" id="challengeShowBtn">הצגת מקומות מתאימים</button>`}
   </div>`;
   const btn = $("challengeShowBtn");
   if(btn) btn.onclick = ()=>{
@@ -3472,28 +3531,33 @@ function renderMysteryCard(){
   const isNew = !m.solved && now - new Date(m.release_at).getTime() < 24*3600*1000;
   const answer = m.answer ? lmById[m.answer] : null;
   const conquered = answer && myVisits.some(v=> v.landmark_id===answer.id);
-  const lockIc = stampGlyph("lock", 13);
-  const hintHtml = m.hint
-    ? `<div class="mystery-clue"><b>רמז נוסף:</b> ${escapeHtml(m.hint)}</div>`
-    : (m.has_hint ? `<div class="mystery-clue is-locked">${lockIc} רמז נוסף ייפתח ${mysteryUnlockText(m.hint_at)}</div>` : "");
-  const areaHtml = m.area
-    ? `<button type="button" class="btn btn-outline btn-sm" id="mysteryAreaBtn">${uiIcon("region",15)} הצג את האזור על המפה</button>`
-    : `<div class="mystery-clue is-locked">${lockIc} אזור על המפה ייפתח ${mysteryUnlockText(m.area_at)}</div>`;
+  const lockIc = stampGlyph("lock", 12);
+  const shortWhen = iso=>{ const d = new Date(iso); return HE_WEEKDAYS[d.getDay()]+" "+d.toLocaleTimeString("he-IL", { hour:"2-digit", minute:"2-digit" }); };
+  // ציר-הגילוי: שלושה שלבים שנפתחים לפי שעון השרת - החידה, רמז נוסף, אזור במפה.
+  const steps = [{ open:true, label:"החידה", when:"שישי" }];
+  if(m.has_hint || m.hint) steps.push({ open:!!m.hint, label:"רמז נוסף", when: m.hint ? "נפתח" : shortWhen(m.hint_at) });
+  steps.push({ open:!!m.area, label:"אזור במפה", when: m.area ? "נפתח" : shortWhen(m.area_at) });
+  const stepsHtml = m.solved ? "" : `<ol class="mystery-steps" aria-label="מה כבר נפתח">${steps.map(s=>
+      `<li class="${s.open?"is-open":""}"><span class="step-dot">${s.open?"":lockIc}</span><span class="step-label">${s.label}</span><span class="step-when">${s.open && s.when==="נפתח" ? "נפתח" : (s.open ? s.when : `<span class="sr-only">ייפתח </span>`+s.when)}</span></li>`).join("")}</ol>`;
+  const hintHtml = m.hint ? `<div class="mystery-clue"><b>רמז נוסף:</b> ${escapeHtml(m.hint)}</div>` : "";
+  const areaHtml = m.area ? `<button type="button" class="btn btn-outline btn-sm" id="mysteryAreaBtn">${uiIcon("region",15)} הצג את האזור על המפה</button>` : "";
   const solvers = Number(m.solvers)||0;
-  const solversText = solvers===0 ? "עוד אף אחד לא פתר. תהיו הראשונים!" : (solvers===1 ? "מטייל אחד כבר פתר" : solvers+" מטיילים כבר פתרו");
+  const solversText = solvers===0 ? "עוד אף אחד לא פתר. תהיו הראשונים!" : (solvers===1 ? "מטייל אחד כבר פתר" : `<b class="serif-num">${solvers}</b> מטיילים כבר פתרו`);
   let actionHtml;
   if(m.solved){
-    actionHtml = `<div class="mystery-solved">✓ פיצחת${answer ? ": זה "+escapeHtml(answer.name) : ""}${m.my_rank ? " · פתרת "+m.my_rank+" מכל הארץ" : ""}</div>`
-      + (answer ? `<button type="button" class="btn btn-primary btn-block" id="mysteryGoBtn">${conquered ? "לעמוד היעד" : "עכשיו לכבוש את "+escapeHtml(answer.name)}</button>` : "");
+    actionHtml = `<div class="mystery-solved">${uiIcon("check",16)} פיצחת${answer ? ": זה "+escapeHtml(answer.name) : ""}${m.my_rank ? " · פתרת "+m.my_rank+" מכל הארץ" : ""}</div>`
+      + (answer ? `<button type="button" class="btn btn-accent btn-block" id="mysteryGoBtn">${conquered ? "לעמוד היעד" : "עכשיו לכבוש את "+escapeHtml(answer.name)}</button>` : "");
   } else if(session && m.guesses_left===0){
     actionHtml = `<div class="mystery-out">נגמרו הניחושים לחידה הזו. חידה חדשה בשישי הקרוב!</div>`;
   } else {
-    const left = session && m.guesses_left < MYSTERY_MAX_GUESSES ? `<div class="mystery-left">נשארו ${m.guesses_left} ניחושים</div>` : "";
-    actionHtml = `<button type="button" class="btn btn-primary btn-block" id="mysteryGuessBtn">יש לי תשובה</button>${left}`;
+    const left = session && m.guesses_left < MYSTERY_MAX_GUESSES ? `<span class="mystery-left">נשארו ${m.guesses_left} ניחושים</span>` : "";
+    actionHtml = `<div class="mystery-action"><button type="button" class="btn btn-primary" id="mysteryGuessBtn">יש לי תשובה</button>${left}</div>`;
   }
-  el.innerHTML = `<section class="mystery-card" aria-labelledby="mysteryTitle">
-    <div class="mystery-head">${stampGlyph("magnifier", 20)}<h2 id="mysteryTitle">החידה השבועית</h2>${isNew ? '<span class="mystery-new">חדשה!</span>' : ""}</div>
+  el.innerHTML = `<section class="mystery-card${m.solved?" is-solved":""}" aria-labelledby="mysteryTitle">
+    <div class="mystery-seal" aria-hidden="true">?</div>
+    <h2 class="kicker mystery-kicker" id="mysteryTitle"><span class="kicker-num"></span>החידה השבועית${isNew ? '<span class="mystery-new">חדשה</span>' : ""}</h2>
     <p class="mystery-riddle">${escapeHtml(m.riddle)}</p>
+    ${stepsHtml}
     ${m.solved ? "" : hintHtml + areaHtml}
     <div class="mystery-solvers">${solversText}</div>
     ${actionHtml}
@@ -3829,6 +3893,31 @@ function renderRainBanner(){
     el.classList.add("hidden"); el.innerHTML = "";
   };
 }
+// האטלס בבית: אותה מפה בדיוק כמו בפרופיל (paintIsraelMap), בצבעי "לילה" - יבשה בגוון נייר
+// שקוף, נקודות-חלודה למקומות שנכבשו. הקנבס מצויר ברזולוציית-המסך כדי שלא ייראה מטושטש.
+function renderHomeAtlas(){
+  const canvas = $("homeAtlasCanvas");
+  if(canvas){
+    const box = canvas.parentElement.getBoundingClientRect();
+    const w = Math.max(96, Math.round(box.width)), h = Math.max(200, Math.min(330, Math.round(box.height || 300)));
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    canvas.style.width = w+"px"; canvas.style.height = h+"px";
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    paintIsraelMap(ctx, w, h, { padFrac:0.04, landColor:"rgba(238,242,246,.07)", outlineColor:"rgba(238,242,246,.34)",
+      dotVisited:"#3DDB84", dotOther:"rgba(238,242,246,.26)" });
+  }
+  const regEl = $("homeAtlasRegions");
+  if(regEl){
+    regEl.innerHTML = Object.keys(REGIONS).map(r=>{
+      const total = regionCount(r), done = regionVisited(myVisits, r);
+      const pct = total ? Math.round(done/total*100) : 0;
+      return `<div class="atlas-region"><span>${REGIONS[r]}</span><span class="atlas-region-bar"><i style="width:${Math.max(pct, done?4:0)}%"></i></span><span class="atlas-region-n">${done}/${total}</span></div>`;
+    }).join("");
+  }
+}
+window.addEventListener("resize", ()=>{ if(currentView==="home" && LANDMARKS.length) renderHomeAtlas(); });
 function renderHome(){
   if(!$("homeNextGoal") || !LANDMARKS.length) return;
   renderRainBanner();
@@ -3836,10 +3925,13 @@ function renderHome(){
   renderMysteryCard();
   loadWeeklyMystery();
   const discPct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
-  $("homeRingPct").textContent = discPct+"%";
-  $("homeRing").style.strokeDashoffset = (213.6*(1-discPct/100)).toFixed(1);
+  // אחוז שלם "0%" אחרי כמה ביקורים נראה כאילו לא קרה כלום - מתחת ל-1% מציגים עשרונית אחת
+  const rawPct = LANDMARKS.length ? myVisits.length/LANDMARKS.length*100 : 0;
+  $("homeRingPct").textContent = (rawPct>0 && rawPct<1 ? rawPct.toFixed(1) : String(discPct))+"%";
   const firstName = myProfile && myProfile.name ? myProfile.name.trim().split(" ")[0] : null;
   $("homeHeadGreet").textContent = greetingForNow() + (firstName ? ", "+firstName : "");
+  $("homeDateline").textContent = new Date().toLocaleDateString("he-IL", { weekday:"long", day:"numeric", month:"long" });
+  renderHomeAtlas();
   renderWeeklyChallenge();
   $("homeGreet").textContent = firstName ? firstName+", המסע שלך בישראל" : "המסע שלך בישראל";
   $("homeHeroSub").textContent = myVisits.length
@@ -3853,7 +3945,7 @@ function renderHome(){
     goalEl.querySelector("[data-go]").onclick = (e)=>{ e.stopPropagation();
       track("next_destination_clicked", { landmark_id: rec.landmark.id, match_pct: rec.matchPct||0 });
       goToDestination(rec.landmark.id); };
-    goalEl.querySelector(".next-goal").onclick = ()=> goToDestination(rec.landmark.id);
+    makeCardActivatable(goalEl.querySelector(".feature-media"), ()=> goToDestination(rec.landmark.id));
     $("homeMoreOptions").onclick = (e)=>{ e.stopPropagation(); openTodaySheet(); };
     track("recommendation_generated", { source:"home", match_pct: rec.matchPct||0 });
   } else {
@@ -3864,19 +3956,14 @@ function renderHome(){
 
   const daily = recommendDestination({ salt:"daily", excludeId: rec ? rec.landmark.id : null });
   const dailyEl = $("homeDaily");
-  $("homeDailyHead").classList.toggle("hidden", !daily);
-  if(daily){
-    const l = daily.landmark;
-    const hasPhoto = !!(landmarkPhotos[l.id] || l.stockPhotoUrl);
-    dailyEl.innerHTML = `<div class="daily-card" data-id="${l.id}">
-      <div class="daily-thumb" style="${hasPhoto?landmarkPhotoStyle(l):""}">${hasPhoto?"":photoFallbackHtml(l,26)}</div>
-      <div class="daily-body"><div class="daily-kicker">מצאנו לכם מקום שאולי לא הכרתם</div>
-        <div class="daily-name">${l.name}</div>
-        <div class="place-meta"><span class="place-meta-item">${uiIcon("region",13)}${REGIONS[l.region]}</span>
-          <span class="place-meta-item">${uiIcon("difficulty",13)}${tierForDb(l.difficulty).label}</span></div></div>
-      <div class="place-pts">+${pointsForLandmark(l)}</div></div>`;
-    makeCardActivatable(dailyEl.querySelector(".daily-card"), ()=> goToDestination(l.id));
-  } else dailyEl.innerHTML = "";
+  const moreList = [];
+  if(daily) moreList.push({ l: daily.landmark, kicker:"הגילוי היומי" });
+  moreRecommendations(6, [rec && rec.landmark.id, daily && daily.landmark.id].filter(Boolean)).forEach(l=> moreList.push({ l }));
+  $("homeDailyHead").classList.toggle("hidden", !moreList.length);
+  dailyEl.innerHTML = moreList.length ? `<div class="more-row scroll-fade" id="homeMoreRow">${moreList.map(x=> moreCardHtml(x.l, x.kicker)).join("")}</div>` : "";
+  dailyEl.querySelectorAll(".more-card").forEach(c=> c.onclick = ()=> goToDestination(c.dataset.id));
+  const moreRow = $("homeMoreRow");
+  if(moreRow && !moreRow.dataset.fade){ moreRow.dataset.fade = "1"; wireScrollFade(moreRow); }
 
   // אתגר חודשי + מתכנן סופ״ש - שני מנועי-חזרה מבוססי-זמן (§9, §12)
   $("homeChallenge").innerHTML = session ? monthlyChallengeHtml() : "";
@@ -4104,9 +4191,7 @@ function openPreview(id){
   const cat = CATEGORIES[l.category];
   const wished = myWishlist.includes(id);
   const photoUrl = landmarkPhotos[id];
-  $("destPreviewHero").innerHTML = photoUrl
-    ? '<img src="'+safeUrl(photoUrl)+'" alt="'+escapeHtml(l.name)+'">'
-    : photoFallbackHtml(l, 34);
+  $("destPreviewHero").innerHTML = photoUrl ? photoImgHtml(l, photoUrl, { eager:true, alt:"", size:26 }) : photoFallbackHtml(l, 26);
   $("destPreviewName").textContent = l.name;
   $("destPreviewOpen").setAttribute("aria-label", "פתח את עמוד היעד "+l.name);
   // הפעולה הראשית בכרטיס היא כיבוש - לא ניווט. ליעד שכבר נכבש הכפתור פותח את עמוד-היעד
@@ -4154,14 +4239,30 @@ function landmarkPinIcon(l, visited, wished, selected, justIn){
   // הקריא רק "כפתור" (או "✓ כפתור") לכל אחד מ-1,500 היעדים. השם והמצב נקראים מ-sr-only, והסימנים
   // הוויזואליים מוסתרים מקורא-המסך כדי לא להקריא אותם פעמיים.
   const srState = [visited ? "נכבש" : "", wished ? "ברשימת המשאלות" : ""].filter(Boolean).join(", ");
+  const label = '<div class="lm-pin-label" aria-hidden="true">'+escapeHtml(l.name)+'</div>';
+  const sr = '<span class="sr-only">'+escapeHtml(l.name)+(srState?", "+srState:"")+'</span>';
+  // היעד הנבחר הופך לבועת-צילום עם טבעת ירוקה - אותה תמונה בדיוק כמו בכרטיס התחתון, כדי
+  // שהקשר בין הנקודה במפה לכרטיס יהיה מיידי. רק לנבחר: 1,500 תמונות ממוזערות היו מכבידות.
+  if(selected){
+    const url = landmarkPhotos[l.id] || l.stockPhotoUrl;
+    const face = url ? photoImgHtml(l, url, { alt:"", size:18 }) : photoFallbackHtml(l, 18);
+    return L.divIcon({
+      className: "lm-divicon",
+      html: '<div class="lm-pin-wrap is-selected">'+sr
+        + '<div class="lm-bubble'+(visited?" visited":"")+(justIn?" pulse":"")+'" aria-hidden="true">'+face
+        + (visited?'<span class="lm-bubble-check">✓</span>':"")+(wished?'<span class="lm-pin-saved">'+uiIcon("heart",10)+'</span>':"")+'</div>'
+        + '<span class="lm-bubble-tail" aria-hidden="true"></span>'+label+'</div>',
+      iconSize:[60,74], iconAnchor:[30,70], popupAnchor:[0,-66],
+    });
+  }
   return L.divIcon({
     className: "lm-divicon",
-    html: '<div class="lm-pin-wrap">'
-      + '<span class="sr-only">'+escapeHtml(l.name)+(srState?", "+srState:"")+'</span>'
-      + '<div class="lm-pin'+(visited?" visited":"")+(selected?" selected":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'" aria-hidden="true">'
-      + (wished?'<span class="lm-pin-star">★</span>':"")
+    html: '<div class="lm-pin-wrap">'+sr
+      + '<div class="lm-pin'+(visited?" visited":"")+(justIn?" pulse":"")+'" style="--pin-color:'+tierForDb(l.difficulty).color+'" aria-hidden="true">'
       + (visited?'<span class="check">✓</span>':'<span class="lm-pin-icon">'+catIconSvg(cat.icon,12)+'</span>')
-      + '</div><div class="lm-pin-label" aria-hidden="true">'+escapeHtml(l.name)+'</div></div>',
+      + '</div>'
+      + (wished?'<span class="lm-pin-saved" aria-hidden="true">'+uiIcon("heart",9)+'</span>':"")
+      + label+'</div>',
     iconSize:[24,24], iconAnchor:[12,30], popupAnchor:[0,-28],
   });
 }
@@ -4269,9 +4370,7 @@ function fillDiscoveryCarousel(){
   el.innerHTML = list.map(l=>{
     const cat = CATEGORIES[l.category];
     const photoUrl = landmarkPhotos[l.id];
-    const thumb = photoUrl
-      ? '<img src="'+safeUrl(photoUrl)+'" loading="lazy" decoding="async" alt="'+escapeHtml(l.name)+'">'
-      : photoFallbackHtml(l, 26);
+    const thumb = photoUrl ? photoImgHtml(l, photoUrl, { alt:"", size:24 }) : photoFallbackHtml(l, 24);
     const tier = tierForDb(l.difficulty);
     return '<div class="discovery-card" data-id="'+l.id+'" role="button" tabindex="0" aria-label="'+l.name+'">'
       + '<div class="discovery-card-thumb">'+thumb+'<span class="discovery-card-pts"><bdi dir="ltr">+'+pointsForLandmark(l)+'</bdi></span></div>'
@@ -4369,6 +4468,10 @@ function wireStaticUI(){
   $("diffLegendPopover").innerHTML =
     '<div class="legend-title">צבע הסיכה — רמת קושי</div>'
     + DIFF_TIERS.map(t=>`<div class="diff-legend-row">${tierDotHtml(t)} ${t.label}</div>`).join("")
+    + '<div class="legend-title legend-title-gap">מצב היעד</div>'
+    + '<div class="diff-legend-row"><span class="legend-state legend-visited">✓</span> כבשתי</div>'
+    + '<div class="diff-legend-row"><span class="legend-state legend-saved">'+uiIcon("heart",9)+'</span> שמרתי</div>'
+    + '<div class="diff-legend-row"><span class="legend-state legend-selected"></span> נבחר עכשיו</div>'
     + '<div class="legend-title legend-title-gap">ניקוד — לפי המאמץ</div>'
     + Object.values(EFFORT_TIERS).map(t=>
         `<div class="diff-legend-row"><span class="legend-pts">+${t.xp}</span> ${t.label} <span class="legend-hint">${t.hint}</span></div>`
@@ -4664,6 +4767,7 @@ function wireStaticUI(){
   $("notificationsCloseBtn").onclick = goBack;
   $("openSearchBtn").onclick = openSearchSheet;
   $("homeSearchBtn").onclick = openSearchSheet;
+  $("homeAtlasBtn").onclick = ()=> navigate("#/profile");
   // מכשיר בלי Vibration API (כל ה-iPhone, למשל) - מציגים מצב אמיתי במקום מתג שלא עושה כלום
   const hapticsToggle = $("hapticsToggle");
   if(!navigator.vibrate){
@@ -5086,14 +5190,20 @@ function openDetail(id){
   const photoUrl = landmarkPhotos[id];
   $("detailBody").innerHTML = `
     <div class="lm-hero${photoUrl?" has-photo":""}">
-      ${photoUrl ? `<img src="${safeUrl(photoUrl)}" alt="${escapeHtml(l.name)}" loading="eager">` : photoFallbackHtml(l, 84)}
-      <span class="badge-count">${totalVisits.toLocaleString()} כובשים</span>
+      ${photoUrl ? photoImgHtml(l, photoUrl, { eager:true, size:56 }) : photoFallbackHtml(l, 56)}
+      <!-- חזרה ושיתוף על הצילום: עיגול כהה-שקוף עם טשטוש - ניגודיות מובטחת על כל תמונה -->
+      <button type="button" class="lm-hero-btn lm-hero-back" id="detailBackBtn" aria-label="חזרה"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" class="lm-hero-btn lm-hero-share" id="detailShareBtn" aria-label="שיתוף" title="שיתוף"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <span class="badge-count">${uiIcon("trophy",13)} ${totalVisits.toLocaleString()} כובשים</span>
       ${photoUrl && photoUrl===l.stockPhotoUrl && l.stockPhotoCredit ? `<span class="lm-photo-credit">${escapeHtml(l.stockPhotoCredit)}</span>` : ""}
     </div>
-    <div class="lm-title-row"><div><h2>${l.name}</h2>
-      <div class="lm-region">${REGIONS[l.region]} · <span class="cat-tag" style="background:${cat.color}">${catIconSvg(cat.icon,12)} ${cat.label}</span></div>
+    <div class="lm-title-row"><div>
+      <div class="kicker lm-kicker"><span class="lm-cat-dot" style="background:${cat.color}"></span>${REGIONS[l.region]} · ${cat.label}</div>
+      <h2>${escapeHtml(l.name)}</h2>
+      <div class="lm-coord" aria-hidden="true">${coordLabel(l)}</div>
       ${userLoc ? `<div class="lm-from-you">${uiIcon("region",13)} ${Math.round(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} ק"מ ממך · כ-${estimateDriveMinutes(haversine(userLoc.lat,userLoc.lon,l.lat,l.lon))} דק׳ נסיעה (משוער)</div>` : ""}
     </div></div>
+    <div id="photoGalleryBox" data-stage="mid"></div>
     <p class="lm-desc" data-stage="mid">${l.desc}</p>
     <div class="lm-stats" data-stage="mid">
       <div class="lm-stat"><div class="v">${tierDotHtml(tierForDb(l.difficulty))}${tierForDb(l.difficulty).label}</div><div class="l">קושי</div></div>
@@ -5105,17 +5215,13 @@ function openDetail(id){
     <div class="lm-important-head" data-stage="full">${uiIcon("warning",15)} חשוב לדעת לפני שיוצאים</div>
     <div class="amenity-row" data-stage="full">${amenities.map(a=>`<span class="amenity-chip">${a}</span>`).join("")}</div>
     <div id="fieldReportsBox" data-stage="full"></div>
-    <div id="photoGalleryBox" data-stage="mid"></div>
     <div id="tripPartnersBox" data-stage="mid"></div>
     ${l.officialUrl ? `<a href="${l.officialUrl}" target="_blank" rel="noopener noreferrer" class="lm-official-link" data-stage="full">מידע נוסף באתר הרשמי</a>` : ""}
     ${visitedEntry ? `<div class="checkin-status ok"><span class="ic">✓</span> כבשת את היעד הזה ב-${new Date(visitedEntry.visited_at).toLocaleDateString('he-IL')}${visitedEntry.pending?' · ממתין לסנכרון':''}</div>` : ""}
     <!-- RTL: הראשון בתור הוא הימני ביותר, שם האגודל נוחת ראשון - לכן "כבשתי" ראשון ו-Waze אחרון -->
     <div class="lm-actions">
-      <button class="btn btn-primary" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":uiIcon("trophy",16)+" כבשתי"}</button>
+      <button class="btn ${visitedEntry?"btn-secondary":"btn-accent"}" id="checkinBtn" ${visitedEntry?"disabled":""}>${visitedEntry?"✓ כבשתי":uiIcon("trophy",16)+" כבשתי"}</button>
       <button class="btn btn-outline${wished?" is-wished":""}" id="wishBtn">${uiIcon("heart",16)}${wished?"ברשימת המשאלות":"רוצה להגיע"}</button>
-      <button class="icon-btn" id="detailShareBtn" aria-label="שיתוף" title="שיתוף">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.6 15.8 6.4M8.2 13.4l7.6 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      </button>
       <button class="icon-btn waze-btn" id="detailWazeBtn"></button>
     </div>
     <div class="detail-cta">
@@ -5138,6 +5244,7 @@ function openDetail(id){
     track("navigation_started", { landmark_id: l.id });
     openWazeNavigation(l.lat, l.lon, l.name);
   };
+  $("detailBackBtn").onclick = ()=> goBack();
   $("detailShareBtn").onclick = ()=>{
     const url = `${location.origin}${location.pathname}#/destination/${encodeURIComponent(id)}`;
     shareLink(url, l.name, `${l.name} — גלו את זה באפליקציית מגלים!`);
@@ -5196,10 +5303,13 @@ async function renderPhotoGallery(id){
     if(!box.isConnected) return;
     const photos = (data||[]).filter(r=>r.photo_url);
     if(!photos.length){ box.innerHTML = ""; return; }
+    // גלריה קומפקטית: עד ארבע תמונות, ואריח "+N" שפותח את השאר באותו lightbox
+    const SHOW = 4, extra = photos.length - SHOW;
     box.innerHTML = `<div class="photo-gallery">
-      <div class="photo-gallery-title">${uiIcon("camera",13)} תמונות מהמטיילים (${photos.length})</div>
+      <div class="photo-gallery-title">${uiIcon("camera",13)} תמונות מהמטיילים · ${photos.length}</div>
       <div class="photo-gallery-strip">` +
-      photos.map((p,i)=>`<button type="button" class="photo-gallery-thumb" data-idx="${i}"><img src="${safeUrl(p.photo_url)}" loading="lazy" alt=""></button>`).join("") +
+      photos.slice(0, SHOW).map((p,i)=>`<button type="button" class="photo-gallery-thumb" data-idx="${i}" aria-label="תמונה ${i+1} מתוך ${photos.length}"><img src="${safeUrl(p.photo_url)}" loading="lazy" alt=""></button>`).join("") +
+      (extra > 0 ? `<button type="button" class="photo-gallery-thumb photo-gallery-more" data-idx="${SHOW}" aria-label="עוד ${extra} תמונות"><span class="ltr">+${extra}</span></button>` : "") +
       `</div></div>`;
     box.querySelectorAll(".photo-gallery-thumb").forEach(btn=>{
       btn.onclick = ()=> openPhotoLightbox(photos.map(p=>p.photo_url), Number(btn.dataset.idx));
@@ -6096,25 +6206,25 @@ async function generateShareCard(){
   const bg = getCssVar("--bg","#F7F5EF"), surface = getCssVar("--surface","#FFFFFF"), text = getCssVar("--text","#202622"), muted = getCssVar("--text-muted","#6F7772"), accent = getCssVar("--accent-strong","#145C3C"), teal = getCssVar("--teal","#2D838C");
   ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
   ctx.textAlign = "center";
-  ctx.fillStyle = text; ctx.font = "700 54px Heebo, sans-serif";
+  ctx.fillStyle = text; ctx.font = "700 84px Karantina, 'IBM Plex Sans Hebrew', sans-serif";
   ctx.fillText("מגלים", W/2, 130);
-  ctx.fillStyle = muted; ctx.font = "400 32px Heebo, sans-serif";
+  ctx.fillStyle = muted; ctx.font = "400 32px 'IBM Plex Sans Hebrew', sans-serif";
   ctx.fillText("המסע של "+(myProfile?myProfile.name:"מטייל/ת"), W/2, 185);
   const pct = LANDMARKS.length ? Math.round(myVisits.length/LANDMARKS.length*100) : 0;
-  ctx.fillStyle = accent; ctx.font = "800 130px Heebo, sans-serif";
+  ctx.fillStyle = accent; ctx.font = "700 150px Karantina, 'IBM Plex Sans Hebrew', sans-serif";
   ctx.fillText("גיליתי "+pct+"% 🇮🇱", W/2, 350);
   ctx.save();
   ctx.translate(80, 420);
   paintIsraelMap(ctx, W-160, 950, { padFrac:0.06 });
   ctx.restore();
   ctx.fillStyle = surface; ctx.fillRect(60, 1400, W-120, 150);
-  ctx.fillStyle = text; ctx.font = "800 46px Heebo, sans-serif";
+  ctx.fillStyle = text; ctx.font = "800 46px 'IBM Plex Sans Hebrew', sans-serif";
   ctx.textAlign = "right";
   ctx.fillText(myVisits.length+" יעדים כבשתי", W-110, 1465);
-  ctx.fillStyle = teal; ctx.font = "700 34px Heebo, sans-serif";
+  ctx.fillStyle = teal; ctx.font = "700 34px 'IBM Plex Sans Hebrew', sans-serif";
   ctx.fillText(totalXP().toLocaleString()+" נקודות · רצף "+computeStreak()+" שבועות", W-110, 1515);
   ctx.textAlign = "center";
-  ctx.fillStyle = muted; ctx.font = "400 28px Heebo, sans-serif";
+  ctx.fillStyle = muted; ctx.font = "400 28px 'IBM Plex Sans Hebrew', sans-serif";
   ctx.fillText(SITE_HOST, W/2, H-40);
   return new Promise(resolve=> canvas.toBlob(blob=>resolve(blob), "image/png"));
 }
