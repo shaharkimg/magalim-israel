@@ -37,7 +37,7 @@ if (!Object.values(vendor).every(fs.existsSync)) { console.log('SKIPPED — leaf
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css' };
 const appSrc = fs.readFileSync(process.env.SMOKE_APP_SRC || path.join(ROOT, 'app.js'), 'utf8');   // SMOKE_APP_SRC: compare against another build
 // expose a few internals to the test (app.js is a module, so nothing is global)
-const HOOKS = `\n;window.__t = { renderMap, openDetail, startCheckin, avatarInner, feedCardHtml, landmarkPhotoStyle, get lmById(){ return lmById; }, get LANDMARKS(){ return LANDMARKS; }, get myVisits(){ return myVisits; }, get clusterGroup(){ return clusterGroup; }, get markerCache(){ return typeof markerCache === 'undefined' ? new Map() : markerCache; }, switchView, toast };\n`;
+const HOOKS = `\n;window.__t = { renderMap, openDetail, startCheckin, avatarInner, feedCardHtml, photoImgHtml, get lmById(){ return lmById; }, get LANDMARKS(){ return LANDMARKS; }, get myVisits(){ return myVisits; }, get clusterGroup(){ return clusterGroup; }, get markerCache(){ return typeof markerCache === 'undefined' ? new Map() : markerCache; }, switchView, toast };\n`;
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   let file = path.join(ROOT, decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname));
