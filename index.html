@@ -54,7 +54,7 @@
   --ink:#0C1320; --ink-soft:#566173; --rule:#D3DAE4; --rule-soft:#E3E8EF;
   --go:#22C46E; --go-2:#13A85A; --go-ink:#04140B; --go-text:#0A7A3D;
   --deep:#0E1624; --scrim-rgb:8,12,20;
-  --tier-easy:#1E88C7; --tier-medium:#B98A0C; --tier-challenging:#D0662A; --tier-hard:#C73550;
+  --tier-easy:#0A8FE6; --tier-medium:#F2A100; --tier-challenging:#F2611E; --tier-hard:#E8254B;
   --color-surface-elevated:#FFFFFF; --shadow:rgba(12,19,32,.16);
   --success:#0A7A3D; --warn:#B9661E; --danger:#C2402B; --sand:#C9971F;
   --metal-bronze:#9C6236; --metal-silver:#6C7884; --metal-gold:#A47A12;
@@ -99,7 +99,7 @@
     --ink:#EEF2F6; --ink-soft:#97A1B2; --rule:#2B3546; --rule-soft:#1F2837;
     --go:#3DDB84; --go-2:#22B96A; --go-ink:#04140B; --go-text:#4BE08E;
     --deep:#151E2D; --scrim-rgb:8,12,20;
-    --tier-easy:#6CC6F0; --tier-medium:#F0C350; --tier-challenging:#F08A4B; --tier-hard:#F06A80;
+    --tier-easy:#2EB2FF; --tier-medium:#FFBE1A; --tier-challenging:#FF7A3D; --tier-hard:#FF3D63;
     --color-surface-elevated:#1A2333; --shadow:rgba(0,0,0,.55);
     --success:#4BE08E; --warn:#F0A65A; --danger:#FF7D6B; --sand:#E9B949;
     --metal-bronze:#D39A66; --metal-silver:#B7C1CC; --metal-gold:#E9B949;
@@ -114,7 +114,7 @@
   --ink:#EEF2F6; --ink-soft:#97A1B2; --rule:#2B3546; --rule-soft:#1F2837;
   --go:#3DDB84; --go-2:#22B96A; --go-ink:#04140B; --go-text:#4BE08E;
   --deep:#151E2D; --scrim-rgb:8,12,20;
-  --tier-easy:#6CC6F0; --tier-medium:#F0C350; --tier-challenging:#F08A4B; --tier-hard:#F06A80;
+  --tier-easy:#2EB2FF; --tier-medium:#FFBE1A; --tier-challenging:#FF7A3D; --tier-hard:#FF3D63;
   --color-surface-elevated:#1A2333; --shadow:rgba(0,0,0,.55);
   --success:#4BE08E; --warn:#F0A65A; --danger:#FF7D6B; --sand:#E9B949;
   --metal-bronze:#D39A66; --metal-silver:#B7C1CC; --metal-gold:#E9B949;
@@ -129,7 +129,7 @@
   --ink:#EEF2F6; --ink-soft:#97A1B2; --rule:#2B3546; --rule-soft:#1F2837;
   --go:#3DDB84; --go-2:#22B96A; --go-ink:#04140B; --go-text:#4BE08E;
   --deep:#151E2D; --scrim-rgb:8,12,20;
-  --tier-easy:#6CC6F0; --tier-medium:#F0C350; --tier-challenging:#F08A4B; --tier-hard:#F06A80;
+  --tier-easy:#2EB2FF; --tier-medium:#FFBE1A; --tier-challenging:#FF7A3D; --tier-hard:#FF3D63;
   --color-surface-elevated:#1A2333; --shadow:rgba(0,0,0,.55);
   --success:#4BE08E; --warn:#F0A65A; --danger:#FF7D6B; --sand:#E9B949;
   --metal-bronze:#D39A66; --metal-silver:#B7C1CC; --metal-gold:#E9B949;
@@ -343,10 +343,10 @@ button{font-family:inherit;}
 .map-wrap .leaflet-container{position:absolute;inset:0;font-family:var(--font-sans);background:var(--map-land);}
 /* האריחים של OSM צבעוניים ורועשים - מעמעמים אותם לגוון נייר-אטלס, כדי שהסיכות (הצבע היחיד
    על המפה) יבלטו. במצב כהה: היפוך + גוון ירוק-לילה. */
-/* מפה נקייה ומאופקת: האריחים מאבדים את רוב הצבע, כך שהסיכות (הצבע היחיד) בולטות */
-.map-wrap .leaflet-tile-pane{filter:saturate(.3) contrast(.94) brightness(1.04);}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .map-wrap .leaflet-tile-pane{filter:invert(1) hue-rotate(188deg) saturate(.42) brightness(.74) contrast(.96);} }
-:root[data-theme="dark"] .map-wrap .leaflet-tile-pane{filter:invert(1) hue-rotate(188deg) saturate(.42) brightness(.74) contrast(.96);}
+/* מפה חיה: האריחים מקבלים צבע עמוק יותר (ירוק, כחול-מים) במקום פסטל דהוי, והסיכות בצבעים רוויים מעליהם */
+.map-wrap .leaflet-tile-pane{filter:saturate(1.45) contrast(1.06) brightness(1.01);}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .map-wrap .leaflet-tile-pane{filter:invert(1) hue-rotate(195deg) saturate(1.3) brightness(1.02) contrast(.94);} }
+:root[data-theme="dark"] .map-wrap .leaflet-tile-pane{filter:invert(1) hue-rotate(195deg) saturate(1.3) brightness(1.02) contrast(.94);}
 /* כרטיסי ה"לילה" (אטלס, דרכון, סיכומים) - קו-מתאר דק כדי שיופרדו מהרקע גם במצב כהה */
 .home-atlas,.journey-hero,.lb-summary,.challenge-card,.welcome-banner{box-shadow:inset 0 0 0 1px rgba(238,242,246,.07);}
 .map-top-bar{position:absolute;left:0;right:0;top:0;z-index:1000;padding:calc(env(safe-area-inset-top) + var(--space-3)) var(--space-3) 0;display:flex;flex-direction:column;gap:var(--space-2);}
@@ -484,6 +484,8 @@ button{font-family:inherit;}
 .discovery-card-pts{position:absolute;top:6px;inset-inline-end:6px;background:rgba(var(--scrim-rgb),.55);color:#fff;font-size:12.5px;font-weight:700;padding:2px var(--space-2);border-radius:999px;font-variant-numeric:tabular-nums;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
 .discovery-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .discovery-card-thumb > div{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+/* בקרוסלה שעל המפה הלוחות בלי צילום רוויים יותר, שלא ייראו דהויים מעל מפה צבעונית */
+.discovery-card-thumb .photo-fallback,.dest-preview-hero .photo-fallback{background:radial-gradient(110% 80% at 75% 12%, color-mix(in srgb, var(--ph-color) 85%, #fff 10%), transparent 70%),linear-gradient(170deg, color-mix(in srgb, var(--ph-color) 70%, #0E1624), color-mix(in srgb, var(--ph-color) 30%, #0B111C));}
 .discovery-card-facts{font-size:12.5px;color:var(--text-muted);padding:2px var(--space-3) var(--space-3);display:flex;align-items:center;gap:var(--space-1);white-space:nowrap;overflow:hidden;}
 .discovery-card-facts .dot-sep{width:2.5px;height:2.5px;border-radius:50%;background:currentColor;opacity:.5;margin:0 2px;flex:none;}
 .discovery-card-name{font-family:var(--font-head);font-size:15.5px;font-weight:700;padding:var(--space-2) var(--space-3) 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -513,9 +515,9 @@ button{font-family:inherit;}
 }
 
 .lm-pin-wrap{position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;}
-.lm-pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin-color);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;transition:transform .25s var(--ease-spring);}
+.lm-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pin-color);border:2.5px solid #fff;box-shadow:0 0 0 4px color-mix(in srgb, var(--pin-color) 28%, transparent),0 4px 10px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;transition:transform .25s var(--ease-spring);}
 .lm-pin-wrap:hover .lm-pin{transform:rotate(-45deg) scale(1.12);}
-.lm-pin.visited{background:var(--go);border-color:#fff;box-shadow:0 0 0 4px color-mix(in srgb, var(--go) 30%, transparent),0 3px 8px rgba(0,0,0,.35);}
+.lm-pin.visited{background:var(--go);border-color:#fff;box-shadow:0 0 0 5px color-mix(in srgb, var(--go) 35%, transparent),0 4px 10px rgba(0,0,0,.4);}
 
 
 .lm-pin .lm-pin-icon{transform:rotate(45deg);color:#fff;display:flex;}
@@ -545,12 +547,13 @@ button{font-family:inherit;}
 .legend-selected{border:2.5px solid var(--go);background:var(--deep);}
 /* מוסתרות כברירת מחדל ומופיעות רק בזום קרוב (ראו syncPinLabels) - אחרת הן נערמות
    זו על זו ומסתירות את הסיכות. הסיכה הנבחרת/שזה עתה נכבשה מסומנת תמיד. */
-.lm-pin-label{display:none;margin-top:3px;white-space:nowrap;font-size:12.5px;font-weight:700;background:var(--surface-2);color:var(--text);padding:3px var(--space-2);border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;}
+.lm-pin-label{display:none;margin-top:4px;white-space:nowrap;font-size:12.5px;font-weight:700;background:#fff;color:#0C1320;padding:3px var(--space-2);border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;}
 .map-wrap.labels-on .lm-pin-label,
 .lm-pin.selected ~ .lm-pin-label,
 .lm-pin.pulse ~ .lm-pin-label{display:block;}
-.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background-color:color-mix(in srgb, var(--go) 22%, transparent)!important;}
-.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background-color:#0E1624!important;color:#EEF2F6;font-weight:700;font-family:var(--font-display);font-size:17px;line-height:30px!important;box-shadow:inset 0 0 0 2px var(--go);}
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background-color:color-mix(in srgb, var(--go) 38%, transparent)!important;}
+.marker-cluster-large{background-color:color-mix(in srgb, var(--go) 46%, transparent)!important;}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:linear-gradient(180deg,#5BEA9C,#22C46E 60%,#13A85A)!important;color:#04140B;font-weight:700;font-family:var(--font-display);font-size:18px;line-height:30px!important;box-shadow:0 0 0 2px #fff, 0 4px 10px rgba(0,0,0,.35);}
 .leaflet-control-attribution{font-size:11.5px;}
 
 /* position:fixed (לא absolute) בבסיס - .app-shell גובהו 100dvh, ויחידת-viewport-דינמית
@@ -2687,6 +2690,6 @@ input[type=file]{display:none;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/canvas-confetti@1.9.3/dist/confetti.browser.js" integrity="sha384-/Ko/tqVwPYurnBe+Mj8WWw+39WmyOZn/kU+neqXn4hRxGI575k07mB/hIekAT51+" crossorigin="anonymous"></script>
-<script type="module" src="./app.js?v=20261124d3"></script>
+<script type="module" src="./app.js?v=20261124d4"></script>
 </body>
 </html>
