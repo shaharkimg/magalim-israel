@@ -82,6 +82,39 @@ def get(url, params=None, quiet=False):
         return None
 
 
+def _log_block_parcels(gush, limit=400):
+    """When an exact parcel misses, list the block's parcels with their areas.
+
+    Lets a wrong helka in the CRM be spotted by matching the known plot size.
+    """
+    f = ("<Filter><PropertyIsEqualTo><PropertyName>blocknumber</PropertyName>"
+         f"<Literal>{gush}</Literal></PropertyIsEqualTo></Filter>")
+    r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
+            {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
+             "typeNames": "opendata:parcel_all",
+             "outputFormat": "application/json", "srsName": "EPSG:2039",
+             "count": str(limit), "filter": f}, quiet=True)
+    if r is None or r.status_code != 200:
+        log(f"   block {gush}: lookup failed, cannot list parcels")
+        return
+    try:
+        feats = r.json().get("features") or []
+    except Exception:  # noqa: BLE001
+        log(f"   block {gush}: unreadable response")
+        return
+    if not feats:
+        log(f"   block {gush} returned no parcels at all - "
+            "the block number itself is probably wrong")
+        return
+    rows = []
+    for ft in feats:
+        p = ft.get("properties", {})
+        rows.append((p.get("parcelnumber"), p.get("legal_area")))
+    rows.sort(key=lambda t: (t[0] is None, t[0]))
+    log(f"   block {gush} has {len(rows)} parcels; number/legal_area:")
+    log("   " + ", ".join(f"{n}:{a}" for n, a in rows[:limit]))
+
+
 def parcel_rings(gush, helka):
     # GovMap lowercased the layer name (opendata:PARCEL_ALL now 404s) and its
     # WAF blocks CQL_FILTER with an HTML error page. The OGC `filter` param on
@@ -105,6 +138,7 @@ def parcel_rings(gush, helka):
         return None
     if not feats:
         log("no parcel found for", gush, helka)
+        _log_block_parcels(gush)
         return None
     props = feats[0].get("properties", {})
     log("   parcel attributes:", json.dumps(props, ensure_ascii=False)[:600])
