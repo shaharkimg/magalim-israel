@@ -83,11 +83,20 @@ def get(url, params=None, quiet=False):
 
 
 def parcel_rings(gush, helka):
+    # GovMap lowercased the layer name (opendata:PARCEL_ALL now 404s) and its
+    # WAF blocks CQL_FILTER with an HTML error page. The OGC `filter` param on
+    # blocknumber/parcelnumber still works. See out/parcel_layers.txt probe.
+    ogc_filter = ("<Filter><And>"
+                  f"<PropertyIsEqualTo><PropertyName>blocknumber</PropertyName>"
+                  f"<Literal>{gush}</Literal></PropertyIsEqualTo>"
+                  f"<PropertyIsEqualTo><PropertyName>parcelnumber</PropertyName>"
+                  f"<Literal>{helka}</Literal></PropertyIsEqualTo>"
+                  "</And></Filter>")
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": "opendata:PARCEL_ALL",
+             "typeNames": "opendata:parcel_all",
              "outputFormat": "application/json", "srsName": "EPSG:2039",
-             "count": "5", "CQL_FILTER": f"GUSH_NUM={gush} AND PARCEL={helka}"})
+             "count": "5", "filter": ogc_filter})
     if r is None or r.status_code != 200:
         return None
     try:
@@ -281,7 +290,7 @@ def resolve_point(spec):
     d = 3.0
     r = get("https://open.govmap.gov.il/geoserver/opendata/wfs",
             {"service": "WFS", "version": "2.0.0", "request": "GetFeature",
-             "typeNames": "opendata:PARCEL_ALL",
+             "typeNames": "opendata:parcel_all",
              "outputFormat": "application/json", "srsName": "EPSG:2039",
              "count": "25",
              "bbox": f"{x - d},{y - d},{x + d},{y + d},EPSG:2039"})
@@ -310,9 +319,19 @@ def resolve_point(spec):
         hit = feats[0]
         log("   no polygon strictly contains the point; using nearest candidate")
     pr = hit.get("properties", {})
-    g, h = pr.get("GUSH_NUM"), pr.get("PARCEL")
+    # GovMap now returns lowercase property names; keep the old ones as a
+    # fallback in case the layer reverts.
+    def _p(*names):
+        for n in names:
+            if pr.get(n) is not None:
+                return pr.get(n)
+        return None
+
+    g = _p("gush_num", "blocknumber", "GUSH_NUM")
+    h = _p("parcel", "parcelnumber", "PARCEL")
     log(f"   point resolves to gush {g} helka {h}",
-        pr.get("LOCALITY_N"), "legal_area", pr.get("LEGAL_AREA"))
+        _p("blockname", "LOCALITY_N"),
+        "legal_area", _p("legal_area", "LEGAL_AREA"))
     return f"{g}/{h}"
 
 
